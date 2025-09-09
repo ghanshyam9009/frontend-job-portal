@@ -1,0 +1,525 @@
+.hero {
+    position: relative;
+    height: 50vh; /* half screen height */
+    width: 100%;  /* full width */
+    overflow: hidden;     
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column; /* stack overlay content vertically */
+  }
+  
+  .heroImg {
+    width: 100%;  
+    height: 187%;
+     /* full image, no cropping */
+   
+    transform: scale(1.03);
+  }
+    
+  .overlay {
+    position: absolute;
+    z-index: 1;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 40px;
+    
+    text-align: center;
+    width: 100%;
+    height: 100%;
+  }
+  
+  
+  .overlay h1 {
+    font-size: 36px;
+    font-weight: bold;
+    margin-bottom: 12px;
+  }
+  
+  .overlay p {
+    font-size: 18px;
+    margin-bottom: 20px;
+  }
+  
+  .searchBox {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+    background: #ffffff;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  
+  .searchBox input {
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  
+  .searchBox button {
+    background: #0073e6;
+    color: #fff;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  
+  .cardsSection {
+    padding: 20px 16px;
+    background: #f8fafc;
+  }
+  
+  .cardsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+    justify-items: center;
+  }
+  
+  .card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 350px;
+  }
+  
+  .cardIcon {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+
+  .iconSquare {
+    width: 60px;
+    height: 60px;
+    background: #e3f2fd;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+  }
+
+  .card h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  
+  .card p {
+    margin: 0;
+    color: #4b5563;
+    line-height: 1.5;
+  }
+  
+  .cardBtn {
+    align-self: center;
+    background: #0073e6;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    font-weight: 500;
+    width: fit-content;
+  }
+  
+  .cardBtn:hover {
+    background: #005bb5;
+  }
+  
+  @media (max-width: 640px) {
+    .cardsGrid {
+      grid-template-columns: 1fr;
+      max-width: 400px;
+    }
+  }
+  
+  .jobsSection {
+    padding: 48px 16px;
+    background: #ffffff;
+  }
+  
+  .sectionHeader {
+    max-width: 1200px;
+    margin: 0 auto 20px auto;
+    text-align: left;
+  }
+  
+  .sectionHeader h2 {
+    margin: 0 0 6px 0;
+  }
+  
+  .sectionHeader p {
+    margin: 0;
+    color: #6b7280;
+  }
+  
+  .jobsList {
+    list-style: none;
+    padding: 0;
+    margin: 0 auto;
+    max-width: 1200px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .jobItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 16px;
+  }
+  
+  .jobMeta h4 {
+    margin: 0 0 4px 0;
+  }
+  
+  .jobMeta span {
+    color: #6b7280;
+    font-size: 14px;
+  }
+  
+  .applyBtn {
+    background: #10b981;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    white-space: nowrap;
+  }
+  
+  .applyBtn:hover {
+    background: #0e9f6e;
+  }
+  
+  .trustedSection {
+    padding: 48px 16px;
+    background: #f8fafc;
+  }
+  
+  .companyGrid {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+  }
+  
+  .companyCard {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    font-weight: 600;
+  }
+  
+  @media (max-width: 1024px) {
+    .companyGrid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  
+  @media (max-width: 640px) {
+    .companyGrid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  
+  .footer {
+    background: #0f172a;
+    color: #e2e8f0;
+  }
+  
+  .footerInner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .footerNav a {
+    color: #94a3b8;
+    margin-left: 12px;
+    text-decoration: none;
+  }
+  
+  .footerNav a:hover {
+    color: #ffffff;
+  }
+  
+  .featuredJobsSection {
+    padding: 48px 16px;
+    background: #ffffff;
+  }
+  
+  .sectionTitle {
+    max-width: 1200px;
+    margin: 0 auto 16px auto;
+    text-align: center;
+    font-size: 22px;
+    font-weight: 700;
+  }
+  
+  .jobsTwoCol {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    gap: 20px;
+  }
+  
+  .jobsCol {}
+  
+  .jobCard {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    margin-bottom: 12px;
+  }
+  
+  .jobLeft {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .jobIcon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .jobText {}
+  
+  .jobTitle {
+    font-weight: 600;
+  }
+  
+  .jobCompany {
+    font-size: 12px;
+    color: #6b7280;
+  }
+  
+  .jobMetaRow {
+    font-size: 12px;
+    color: #6b7280;
+  }
+  
+  .applyNowBtn {
+    background: #2563eb;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    cursor: pointer;
+  }
+  
+  .viewAllWrap {
+    text-align: center;
+    margin-top: 8px;
+  }
+  
+  .viewAllBtn {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+  
+  .demoCol {}
+  
+  .demoCard {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    position: sticky;
+    top: 20px;
+    height: fit-content;
+  }
+  
+  .demoCard h3 {
+    margin: 0 0 12px 0;
+  }
+  
+  .demoCard label {
+    display: block;
+    margin-bottom: 10px;
+  }
+  
+  .demoCard label span {
+    display: block;
+    font-size: 12px;
+    color: #374151;
+    margin-bottom: 6px;
+  }
+  
+  .demoCard input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+  }
+  
+  .demoBtn {
+    margin-top: 8px;
+    width: 100%;
+    background: #2563eb;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+  }
+  
+  @media (max-width: 900px) {
+    .jobsTwoCol {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  .logoSlider {
+    overflow: hidden;
+    width: 100%;
+    margin: 20px auto 0 auto;
+    position: relative;
+  }
+
+  .logoTrack {
+    display: flex;
+    animation: slide 30s linear infinite;
+    gap: 40px;
+    align-items: center;
+  }
+
+  .logoItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-width: 120px;
+    flex-shrink: 0;
+  }
+
+  .logoImg {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid #e5e7eb;
+  }
+
+  .logoName {
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    text-align: center;
+  }
+
+  @keyframes slide {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .advertisementSection {
+    padding: 40px 16px;
+    background: #f8fafc;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .adContainer {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .adPlaceholder {
+    width: 100%;
+    max-width: 728px;
+    height: 90px;
+    margin: 0 auto;
+  }
+  
+  .footerBrand {
+    max-width: 280px;
+  }
+  
+  .footerLogo {
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  
+  .socialRow span { margin-right: 8px; }
+  
+  .footerCols {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(140px, 1fr));
+    gap: 20px;
+  }
+  
+  .footerCol h4 {
+    margin: 0 0 8px 0;
+  }
+  
+  .footerCol a {
+    display: block;
+    color: #94a3b8;
+    text-decoration: none;
+    margin: 4px 0;
+  }
+  
+  .footerBottom {
+    text-align: center;
+    padding: 12px 16px;
+    border-top: 1px solid #1f2937;
+    color: #94a3b8;
+  }
+  

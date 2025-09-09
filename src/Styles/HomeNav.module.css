@@ -1,0 +1,141 @@
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 40px;
+    background: #fff;
+    border-bottom: 1px solid #eaeaea;
+    width: 100%;
+  }
+  
+  .logo {
+    font-size: 20px;
+    font-weight: bold;
+    color: #0073e6;
+  }
+  
+  .navLinks {
+    display: flex;
+    list-style: none;
+    gap: 20px;
+  }
+  
+  .navLinks li a {
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+  }
+  
+  .navLinks li a:hover {
+    color: #0073e6;
+  }
+  
+  .rightMenu {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .search {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    width: 250px;
+  }
+  
+  .authButtons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .candidateBtn {
+    background: #fff;
+    border: 1px solid #ddd;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    color: #374151;
+    display: inline-block;
+  }
+
+  .candidateBtn:hover {
+    background: #f8fafc;
+    border-color: #0073e6;
+  }
+
+  .dropdown {
+    position: relative;
+    display: inline-block;
+  }
+
+  .dropdownBtn {
+    background: #0073e6;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s ease;
+  }
+
+  .dropdownBtn:hover {
+    background: #005bb5;
+  }
+
+  .dropdownContent {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: #fff;
+    min-width: 160px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    z-index: 1000;
+    overflow: hidden;
+  }
+
+  .dropdownContent a {
+    display: block;
+    padding: 12px 16px;
+    text-decoration: none;
+    color: #374151;
+    font-weight: 500;
+    transition: background 0.2s ease;
+  }
+
+  .dropdownContent a:hover {
+    background: #f8fafc;
+    color: #0073e6;
+  }
+
+  @media (max-width: 768px) {
+    .navbar {
+      padding: 12px 16px;
+      flex-wrap: wrap;
+    }
+
+    .navLinks {
+      display: none;
+    }
+
+    .search {
+      width: 150px;
+    }
+
+    .authButtons {
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .candidateBtn, .dropdownBtn {
+      padding: 6px 12px;
+      font-size: 14px;
+    }
+  }
+  
