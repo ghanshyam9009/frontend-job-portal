@@ -1,9 +1,17 @@
 import React, { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../Contexts/AuthContext";
 import styles from "../../Styles/Candidate.module.css";
 import HomeNav from "../../Components/HomeNav";
 
 const CandidateLogin = () => {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  const location = useLocation();
   const [isLogin, setIsLogin] = useState(true);
+  
+  // Get the return URL from navigation state
+  const from = location.state?.from?.pathname || '/userdashboard';
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -22,9 +30,27 @@ const CandidateLogin = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (isLogin) {
-      console.log("Login:", formData);
+      // Simulate login process
+      const userData = {
+        id: 1,
+        email: formData.email,
+        name: formData.email.split('@')[0], // Use email prefix as name for demo
+        role: 'candidate'
+      };
+      login(userData);
+      navigate(from, { replace: true });
     } else {
+      // Simulate signup process
       console.log("Signup:", formData);
+      // After successful signup, login the user
+      const userData = {
+        id: Date.now(),
+        email: formData.email,
+        name: formData.fullName,
+        role: 'candidate'
+      };
+      login(userData);
+      navigate(from, { replace: true });
     }
   };
 

@@ -1,17 +1,16 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import styles from "../../Styles/Admin.module.css";
 import HomeNav from "../../Components/HomeNav";
 
 const AdminLogin = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: "",
-    password: "",
-    confirmPassword: "",
-    adminName: "",
-    department: "",
-    employeeId: ""
+    password: ""
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleInputChange = (e) => {
     setFormData({
@@ -20,12 +19,34 @@ const AdminLogin = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isLogin) {
+    setIsLoading(true);
+    setError("");
+    
+    try {
+      // Simulate API call - replace with actual authentication logic
       console.log("Admin Login:", formData);
-    } else {
-      console.log("Admin Signup:", formData);
+      
+      // Simple validation for demo purposes
+      if (formData.email && formData.password) {
+        // Simulate successful login
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Store admin login status in localStorage
+        localStorage.setItem('adminLoggedIn', 'true');
+        localStorage.setItem('adminEmail', formData.email);
+        
+        // Redirect to admin dashboard
+        navigate('/admin/dashboard');
+      } else {
+        setError("Please fill in all fields");
+      }
+    } catch (err) {
+      setError("Login failed. Please try again.");
+      console.error("Login error:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -38,76 +59,18 @@ const AdminLogin = () => {
             <h1 className={styles.title}>Admin Portal</h1>
             <p className={styles.subtitle}>Manage the platform and oversee all operations.</p>
             
-            <div className={styles.toggleButtons}>
-              <button 
-                className={`${styles.toggleBtn} ${isLogin ? styles.active : ''}`}
-                onClick={() => setIsLogin(true)}
-              >
-                Login
-              </button>
-              <button 
-                className={`${styles.toggleBtn} ${!isLogin ? styles.active : ''}`}
-                onClick={() => setIsLogin(false)}
-              >
-                Register
-              </button>
+            <div className={styles.loginHeader}>
+              <h2 className={styles.loginTitle}>Admin Login</h2>
+              <p className={styles.loginSubtitle}>Sign in to access the admin dashboard</p>
             </div>
 
+            {error && (
+              <div className={styles.errorMessage}>
+                {error}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className={styles.form}>
-              {!isLogin && (
-                <>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.label}>
-                      <span className={styles.labelText}>Admin Name</span>
-                      <input
-                        type="text"
-                        name="adminName"
-                        value={formData.adminName}
-                        onChange={handleInputChange}
-                        placeholder="Enter your full name"
-                        className={styles.input}
-                        required={!isLogin}
-                      />
-                    </label>
-                  </div>
-
-                  <div className={styles.inputGroup}>
-                    <label className={styles.label}>
-                      <span className={styles.labelText}>Employee ID</span>
-                      <input
-                        type="text"
-                        name="employeeId"
-                        value={formData.employeeId}
-                        onChange={handleInputChange}
-                        placeholder="Enter your employee ID"
-                        className={styles.input}
-                        required={!isLogin}
-                      />
-                    </label>
-                  </div>
-
-                  <div className={styles.inputGroup}>
-                    <label className={styles.label}>
-                      <span className={styles.labelText}>Department</span>
-                      <select
-                        name="department"
-                        value={formData.department}
-                        onChange={handleInputChange}
-                        className={styles.input}
-                        required={!isLogin}
-                      >
-                        <option value="">Select department</option>
-                        <option value="IT">IT Department</option>
-                        <option value="HR">Human Resources</option>
-                        <option value="Operations">Operations</option>
-                        <option value="Finance">Finance</option>
-                        <option value="Marketing">Marketing</option>
-                        <option value="Support">Customer Support</option>
-                      </select>
-                    </label>
-                  </div>
-                </>
-              )}
 
               <div className={styles.inputGroup}>
                 <label className={styles.label}>
@@ -145,35 +108,17 @@ const AdminLogin = () => {
                 </label>
               </div>
 
-              {!isLogin && (
-                <div className={styles.inputGroup}>
-                  <label className={styles.label}>
-                    <span className={styles.labelText}>Confirm Password</span>
-                    <div className={styles.inputWrapper}>
-                      <span className={styles.inputIcon}>🔒</span>
-                      <input
-                        type="password"
-                        name="confirmPassword"
-                        value={formData.confirmPassword}
-                        onChange={handleInputChange}
-                        placeholder="••••••••"
-                        className={styles.input}
-                        required={!isLogin}
-                      />
-                    </div>
-                  </label>
-                </div>
-              )}
-
-              <button type="submit" className={styles.submitBtn}>
-                {isLogin ? 'Login' : 'Register'}
+              <button 
+                type="submit" 
+                className={styles.submitBtn}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Logging in...' : 'Login to Dashboard'}
               </button>
 
-              {isLogin && (
-                <a href="#" className={styles.forgotPassword}>
-                  Forgot Password?
-                </a>
-              )}
+              <a href="#" className={styles.forgotPassword}>
+                Forgot Password?
+              </a>
             </form>
           </div>
         </div>

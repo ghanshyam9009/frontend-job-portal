@@ -1,8 +1,13 @@
 import React, { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../Contexts/AuthContext";
 import styles from "../../Styles/Recruiter.module.css";
 import HomeNav from "../../Components/HomeNav";
 
 const RecruiterLogin = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     email: "",
@@ -24,9 +29,28 @@ const RecruiterLogin = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (isLogin) {
-      console.log("Recruiter Login:", formData);
+      // Simulate login
+      const userData = {
+        name: formData.email.split('@')[0],
+        email: formData.email,
+        companyName: "TechCorp",
+        role: "recruiter",
+        membership: "premium"
+      };
+      login(userData);
+      const from = location.state?.from?.pathname || '/recruiter/dashboard';
+      navigate(from, { replace: true });
     } else {
-      console.log("Recruiter Signup:", formData);
+      // Simulate signup
+      const userData = {
+        name: formData.contactPerson,
+        email: formData.email,
+        companyName: formData.companyName,
+        role: "recruiter",
+        membership: "free"
+      };
+      login(userData);
+      navigate('/recruiter/dashboard', { replace: true });
     }
   };
 
