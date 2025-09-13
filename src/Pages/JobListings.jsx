@@ -1,16 +1,20 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import styles from  "./JobListings.module.css";
+import styles from "./JobListings.module.css";
 import HomeNav from "../Components/HomeNav";
 
 const JobListings = () => {
   const navigate = useNavigate();
+
   const [filters, setFilters] = useState({
     location: "",
-    skills: ["React"],
-    salaryRange: "₹7L - ₹10L",
-    jobType: "Full-time"
+    skills: [],
+    salaryRange: "",
+    jobType: ""
   });
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const jobsPerPage = 5;
 
   const jobs = [
     {
@@ -87,6 +91,36 @@ const JobListings = () => {
     }
   ];
 
+  // Filtering logic
+  const filteredJobs = jobs.filter(job => {
+    const matchesLocation =
+      !filters.location ||
+      job.location.toLowerCase().includes(filters.location.toLowerCase());
+    const matchesSkills =
+      filters.skills.length === 0 ||
+      filters.skills.some(skill =>
+        job.title.toLowerCase().includes(skill.toLowerCase())
+      );
+    const matchesSalary =
+      !filters.salaryRange ||
+      job.salary.includes(filters.salaryRange.replace("₹", ""));
+    const matchesType =
+      !filters.jobType || job.type === filters.jobType || (filters.jobType === "Remote" && job.location.toLowerCase().includes("remote"));
+    return matchesLocation && matchesSkills && matchesSalary && matchesType;
+  });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredJobs.length / jobsPerPage);
+  const paginatedJobs = filteredJobs.slice(
+    (currentPage - 1) * jobsPerPage,
+    currentPage * jobsPerPage
+  );
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
+
   const handleSkillToggle = (skill) => {
     setFilters(prev => ({
       ...prev,
@@ -114,86 +148,69 @@ const JobListings = () => {
   return (
     <div className={styles.pageContainer}>
       <HomeNav />
-      <div className={styles.mainContent}>
-        <div className={styles.sidebar}>
-          <div className={styles.sidebarNav}>
-            <div className={styles.navItem}>Dashboard</div>
-            <div className={`${styles.navItem} ${styles.active}`}>Job Listings</div>
-            <div className={styles.navItem}>Applications</div>
-            <div className={styles.navItem}>Messages</div>
-            <div className={styles.navItem}>Settings</div>
-            <div className={styles.navItem}>Support</div>
-            <div className={styles.navItem}>Logout</div>
+      <div className={styles.mainContentNoSidebar}>
+        <div className={styles.filtersResponsive}>
+          <h3>Filters</h3>
+          <div className={styles.filterGroup}>
+            <label>Location</label>
+            <input
+              type="text"
+              placeholder="e.g., New York, Remote"
+              value={filters.location}
+              onChange={(e) => setFilters(prev => ({ ...prev, location: e.target.value }))}
+            />
           </div>
-
-          <div className={styles.filters}>
-            <h3>Filters</h3>
-            
-            <div className={styles.filterGroup}>
-              <label>Location</label>
-              <input
-                type="text"
-                placeholder="e.g., New York, Remote"
-                value={filters.location}
-                onChange={(e) => setFilters(prev => ({ ...prev, location: e.target.value }))}
-              />
+          <div className={styles.filterGroup}>
+            <label>Skills</label>
+            <div className={styles.checkboxGroup}>
+              {["React", "Node.js", "TypeScript", "AWS", "Python", "SQL"].map(skill => (
+                <label key={skill} className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={filters.skills.includes(skill)}
+                    onChange={() => handleSkillToggle(skill)}
+                  />
+                  {skill}
+                </label>
+              ))}
             </div>
-
-            <div className={styles.filterGroup}>
-              <label>Skills</label>
-              <div className={styles.checkboxGroup}>
-                {["React", "Node.js", "TypeScript", "AWS", "Python", "SQL"].map(skill => (
-                  <label key={skill} className={styles.checkboxLabel}>
-                    <input
-                      type="checkbox"
-                      checked={filters.skills.includes(skill)}
-                      onChange={() => handleSkillToggle(skill)}
-                    />
-                    {skill}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className={styles.filterGroup}>
-              <label>Salary Range</label>
-              <select
-                value={filters.salaryRange}
-                onChange={(e) => setFilters(prev => ({ ...prev, salaryRange: e.target.value }))}
-              >
-                <option value="">Select range</option>
-                <option value="₹5L - ₹7L">₹5L - ₹7L</option>
-                <option value="₹7L - ₹10L">₹7L - ₹10L</option>
-                <option value="₹10L - ₹13L">₹10L - ₹13L</option>
-                <option value="₹13L+">₹13L+</option>
-              </select>
-            </div>
-
-            <div className={styles.filterGroup}>
-              <label>Job Type</label>
-              <div className={styles.radioGroup}>
-                {["Full-time", "Part-time", "Contract", "Remote"].map(type => (
-                  <label key={type} className={styles.radioLabel}>
-                    <input
-                      type="radio"
-                      name="jobType"
-                      value={type}
-                      checked={filters.jobType === type}
-                      onChange={(e) => setFilters(prev => ({ ...prev, jobType: e.target.value }))}
-                    />
-                    {type}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <button className={styles.clearBtn} onClick={clearFilters}>
-              Clear Filters
-            </button>
           </div>
+          <div className={styles.filterGroup}>
+            <label>Salary Range</label>
+            <select
+              value={filters.salaryRange}
+              onChange={(e) => setFilters(prev => ({ ...prev, salaryRange: e.target.value }))}
+            >
+              <option value="">Select range</option>
+              <option value="₹5L - ₹7L">₹5L - ₹7L</option>
+              <option value="₹7L - ₹10L">₹7L - ₹10L</option>
+              <option value="₹10L - ₹13L">₹10L - ₹13L</option>
+              <option value="₹13L+">₹13L+</option>
+            </select>
+          </div>
+          <div className={styles.filterGroup}>
+            <label>Job Type</label>
+            <div className={styles.radioGroup}>
+              {["Full-time", "Part-time", "Contract", "Remote"].map(type => (
+                <label key={type} className={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    name="jobType"
+                    value={type}
+                    checked={filters.jobType === type}
+                    onChange={(e) => setFilters(prev => ({ ...prev, jobType: e.target.value }))}
+                  />
+                  {type}
+                </label>
+              ))}
+            </div>
+          </div>
+          <button className={styles.clearBtn} onClick={clearFilters}>
+            Clear Filters
+          </button>
         </div>
 
-        <div className={styles.content}>
+        <div className={styles.contentColumn}>
           <div className={styles.heroBanner}>
             <div className={styles.heroText}>
               <h1>Find Your Dream Job</h1>
@@ -206,8 +223,11 @@ const JobListings = () => {
 
           <div className={styles.jobsSection}>
             <h2>Jobs Available</h2>
-            <div className={styles.jobsGrid}>
-              {jobs.map(job => (
+            <div className={styles.jobsColumn}>
+              {paginatedJobs.length === 0 && (
+                <div className={styles.noJobs}>No jobs found matching your criteria.</div>
+              )}
+              {paginatedJobs.map(job => (
                 <div key={job.id} className={styles.jobCard}>
                   <div className={styles.jobIcon}>{job.icon}</div>
                   <div className={styles.jobType}>{job.type}</div>
@@ -219,16 +239,20 @@ const JobListings = () => {
                 </div>
               ))}
             </div>
-
             <div className={styles.pagination}>
-              <button className={styles.pageBtn}>1</button>
-              <button className={styles.pageBtn}>2</button>
-              <button className={styles.pageBtn}>3</button>
+              {[...Array(totalPages)].map((_, idx) => (
+                <button
+                  key={idx + 1}
+                  className={`${styles.pageBtn} ${idx + 1 === currentPage ? styles.activePageBtn : ""}`}
+                  onClick={() => setCurrentPage(idx + 1)}
+                >
+                  {idx + 1}
+                </button>
+              ))}
             </div>
           </div>
         </div>
       </div>
-
       <footer className={styles.footer}>
         <div className={styles.footerLinks}>
           <a href="/resources">Resources</a>
@@ -247,4 +271,3 @@ const JobListings = () => {
 };
 
 export default JobListings;
-

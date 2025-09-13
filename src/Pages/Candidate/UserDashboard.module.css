@@ -95,8 +95,8 @@
 
 .jobsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+ flex-direction: column;
+  gap: 24px;
 }
 
 .jobCard {
@@ -164,21 +164,21 @@
 }
 
 .viewBtn {
-  width: 100%;
-  background: #111827;
-  color: #ffffff;
+  background: #2563eb;
+  color: #fff;
   border: none;
   border-radius: 8px;
-  padding: 10px 16px;
+  padding: 10px 22px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease;
+  align-self: flex-start;
+  margin-top: 10px;
+  transition: background 0.2s;
 }
-
 .viewBtn:hover {
-  background: #374151;
+  background: #1d4ed8;
 }
-
 /* Additional styles for new pages */
 .emptyState {
   text-align: center;
