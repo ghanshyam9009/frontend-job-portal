@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import styles from "../Styles/ContactUs.module.css";
 import HomeNav from "../Components/HomeNav";
+import logo from "../assets/logo2.png";
 
 const ContactUs = () => {
   const [formData, setFormData] = useState({
@@ -44,7 +45,7 @@ const ContactUs = () => {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    placeholder="John Doe"
+                    placeholder=""
                     required
                   />
                 </div>
@@ -57,7 +58,7 @@ const ContactUs = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    placeholder="john.doe@example.com"
+                    placeholder=""
                     required
                   />
                 </div>
@@ -88,23 +89,45 @@ const ContactUs = () => {
               <h3>Our Office</h3>
               <div className={styles.contactItem}>
                 <span className={styles.contactIcon}>📍</span>
-                <span>123 Innovation Drive, Suite 400, Tech City, CA 90210, USA</span>
+                <span>413 -A Prem trade center, 3rd Floor Maharani road Near Gujarati Girls college, Indore (M.P.)</span>
               </div>
               <div className={styles.contactItem}>
                 <span className={styles.contactIcon}>📞</span>
-                <span>+1 (555) 123-4567</span>
+                <span>BDM- Siddharth Sharma- 9755556617</span>
+              </div>
+              <div className={styles.contactItem}>
+                <span className={styles.contactIcon}>📞</span>
+                <span>Parul Sharma- 9993588502</span>
               </div>
               <div className={styles.contactItem}>
                 <span className={styles.contactIcon}>✉️</span>
-                <span>contact@jobportal.com</span>
+                <span>HR@bigsources.in</span>
+              </div>
+              <div className={styles.contactItem}>
+                <span className={styles.contactIcon}>✉️</span>
+                <span>info@bigsources.in</span>
+              </div>
+              <div className={styles.contactItem}>
+                <span className={styles.contactIcon}>✉️</span>
+                <span>admin@bigsources.in</span>
+              </div>
+              <div className={styles.contactItem}>
+                <span className={styles.contactIcon}>✉️</span>
+                <span>sales@bigsources.in</span>
               </div>
             </div>
 
             <div className={styles.mapCard}>
               <h3>Find Us</h3>
               <div className={styles.mapContainer}>
-                <div className={styles.mapIcon}>🗺️</div>
-                <div className={styles.mapPin}>📍</div>
+                <iframe
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3679.923476612451!2d75.8942173149622!3d22.73099098510019!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3962fd40048c29cd%3A0x24c2a428b7d7e5b6!2sMR%209%20Rd%2C%20near%20canara%20bank%2C%20Vijay%20Nagar%2C%20Sector%20A%2C%20Chandra%20Nagar%2C%20Indore%2C%20Madhya%20Pradesh%20452007%2C%20India!5e0!3m2!1sen!2sus!4v1633020431628!5m2!1sen!2sus"
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen=""
+                  loading="lazy"
+                ></iframe>
               </div>
             </div>
           </div>
@@ -115,7 +138,7 @@ const ContactUs = () => {
       <footer className={styles.footer}>
         <div className={styles.footerContent}>
           <div className={styles.footerLeft}>
-            <div className={styles.footerLogo}>🌟 JobPortal</div>
+            <div className={styles.footerLogo}><img src={logo} alt="JobPortal Logo" /></div>
             <p>JobPortal is dedicated to providing cutting-edge solutions for modern businesses.</p>
             <div className={styles.socialIcons}>
               <span>📘</span>
@@ -155,7 +178,7 @@ const ContactUs = () => {
           </div>
         </div>
         <div className={styles.footerBottom}>
-          <p>© 2024 JobPortal. All rights reserved.</p>
+          <p>Copyright © Bigsources Manpower Solution PVT. LTD. 2025. All Rights Reserved</p>
         </div>
       </footer>
     </div>
@@ -163,7 +186,3 @@ const ContactUs = () => {
 };
 
 export default ContactUs;
-
-
-
-

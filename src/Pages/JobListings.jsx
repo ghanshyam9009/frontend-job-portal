@@ -231,11 +231,14 @@ const JobListings = () => {
                 <div key={job.id} className={styles.jobCard}>
                   <div className={styles.jobIcon}>{job.icon}</div>
                   <div className={styles.jobType}>{job.type}</div>
+                  <div className={styles.jobHeader}>
                   <h3>{job.title}</h3>
+                  <button className={styles.viewBtn} onClick={() => handleJobClick(job)}>View Details</button>
+
+                  </div>
                   <p className={styles.company}>{job.company}</p>
                   <p className={styles.salary}>{job.salary}</p>
                   <p className={styles.location}>{job.location}</p>
-                  <button className={styles.viewBtn} onClick={() => handleJobClick(job)}>View Details</button>
                 </div>
               ))}
             </div>

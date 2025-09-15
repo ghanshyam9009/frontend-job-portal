@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../../Styles/AdminNavbar.module.css";
-
-const AdminNavbar = ({ darkMode, toggleDarkMode, onLogout, onMobileMenuToggle }) => {
+import logo from "../../assets/logo2.png";
+const AdminNavbar = ({  onLogout, onMobileMenuToggle }) => {
   const navigate = useNavigate();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
@@ -18,12 +18,14 @@ const AdminNavbar = ({ darkMode, toggleDarkMode, onLogout, onMobileMenuToggle })
   };
 
   return (
-    <header className={`${styles.header} ${darkMode ? styles.darkMode : ''}`}>
+    <header className={`${styles.header} `}>
       <div className={styles.headerLeft}>
         <button className={styles.mobileMenuBtn} onClick={onMobileMenuToggle}>
           ☰
         </button>
-        <div className={styles.logo}>🌟 JobPortal</div>
+           <div className={styles.logo}>
+                         <img src={logo} alt="JobPortal Logo" />
+                       </div>
         <div className={styles.searchContainer}>
           <input 
             type="text" 
@@ -39,9 +41,9 @@ const AdminNavbar = ({ darkMode, toggleDarkMode, onLogout, onMobileMenuToggle })
           🔔
           <span className={styles.notificationBadge}>9</span>
         </button>
-        <button className={styles.darkModeBtn} onClick={toggleDarkMode}>
+        {/* <button className={styles.darkModeBtn} onClick={toggleDarkMode}>
           {darkMode ? '☀️' : '🌙'}
-        </button>
+        </button> */}
         <button className={styles.logoutBtn} onClick={handleLogout}>
           Logout
         </button>

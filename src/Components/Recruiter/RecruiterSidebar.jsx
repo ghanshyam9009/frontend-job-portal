@@ -1,7 +1,7 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
-import styles from "../../Styles/RecruiterSidebar.module.css";
+import styles from "./RecruiterSidebar.module.css";
 
 const RecruiterSidebar = ({ darkMode }) => {
   const location = useLocation();

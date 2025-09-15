@@ -116,9 +116,7 @@ const AdminLogin = () => {
                 {isLoading ? 'Logging in...' : 'Login to Dashboard'}
               </button>
 
-              <a href="#" className={styles.forgotPassword}>
-                Forgot Password?
-              </a>
+           
             </form>
           </div>
         </div>

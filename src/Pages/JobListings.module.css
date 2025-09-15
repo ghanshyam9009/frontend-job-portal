@@ -237,7 +237,6 @@
 }
 
 .viewBtn {
-  width: 100%;
   background: #3b82f6;
   color: #ffffff;
   border: none;
@@ -333,11 +332,17 @@
   flex-direction: row;
   gap: 32px;
 
-  margin: 0 auto;
+  margin: 45px auto;
   padding: 32px 16px 0 16px;
   flex: 1;
 }
-
+.jobHeader{
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
 .filtersResponsive {
   width: 30%;
   min-width: 240px;

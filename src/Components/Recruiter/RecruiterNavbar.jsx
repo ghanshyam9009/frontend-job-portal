@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
-import styles from "../../Styles/RecruiterNavbar.module.css";
-
-const RecruiterNavbar = ({ darkMode, toggleDarkMode }) => {
+import styles from "./RecruiterNavbar.module.css";
+import logo from "../../assets/logo2.png";
+const RecruiterNavbar = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
@@ -11,16 +11,18 @@ const RecruiterNavbar = ({ darkMode, toggleDarkMode }) => {
   const handleProfileClick = () => {
     setShowProfileDropdown(!showProfileDropdown);
   };
-
+  
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
   return (
-    <header className={`${styles.header} ${darkMode ? styles.darkMode : ''}`}>
+    <header className={`${styles.header} `}>
       <div className={styles.headerLeft}>
-        <div className={styles.logo}>🌟 JobPortal</div>
+          <div className={styles.logo}>
+          <img src={logo} alt="JobPortal Logo" />
+           </div>
         <div className={styles.searchContainer}>
           <input 
             type="text" 
@@ -36,9 +38,9 @@ const RecruiterNavbar = ({ darkMode, toggleDarkMode }) => {
           🔔
           <span className={styles.notificationBadge}>5</span>
         </button>
-        <button className={styles.darkModeBtn} onClick={toggleDarkMode}>
+        {/* <button className={styles.darkModeBtn} onClick={toggleDarkMode}>
           {darkMode ? '☀️' : '🌙'}
-        </button>
+        </button> */}
         <div className={styles.profileSection}>
           <button className={styles.profilePicture} onClick={handleProfileClick}>
             <div className={styles.avatarCircle}>

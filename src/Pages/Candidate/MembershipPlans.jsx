@@ -15,72 +15,72 @@ const MembershipPlans = () => {
     setDarkMode(!darkMode);
   };
 
-  const membershipPlans = [
-    {
-      id: 'free',
-      name: 'Free',
-      price: '$0',
-      period: 'forever',
-      description: 'Basic job searching features',
-      features: [
-        'Browse job listings',
-        'Save up to 5 jobs',
-        'Apply to 3 jobs per month',
-        'Basic profile visibility',
-        'Email support'
-      ],
-      limitations: [
-        'Limited job applications',
-        'Basic profile features',
-        'No priority support'
-      ],
-      popular: false,
-      buttonText: 'Current Plan',
-      buttonDisabled: true
-    },
-    {
-      id: 'premium',
-      name: 'Premium',
-      price: '$19.99',
-      period: 'month',
-      description: 'Enhanced job searching experience',
-      features: [
-        'Unlimited job applications',
-        'Save unlimited jobs',
-        'Advanced profile visibility',
-        'Priority in search results',
-        'Direct messaging with employers',
-        'Application tracking',
-        'Resume builder',
-        'Email & phone support'
-      ],
-      limitations: [],
-      popular: true,
-      buttonText: 'Upgrade to Premium',
-      buttonDisabled: false
-    },
-    {
-      id: 'professional',
-      name: 'Professional',
-      price: '$39.99',
-      period: 'month',
-      description: 'Complete career advancement suite',
-      features: [
-        'Everything in Premium',
-        'Personalized job recommendations',
-        'Interview preparation tools',
-        'Career coaching sessions',
-        'Salary negotiation guidance',
-        'LinkedIn profile optimization',
-        'Priority customer support',
-        'Advanced analytics'
-      ],
-      limitations: [],
-      popular: false,
-      buttonText: 'Upgrade to Professional',
-      buttonDisabled: false
-    }
-  ];
+ const membershipPlans = [
+  {
+    id: 'free',
+    name: 'Free',
+    price: '₹0',
+    period: 'forever',
+    description: 'Basic job searching features',
+    features: [
+      'Browse job listings',
+      'Save up to 5 jobs',
+      'Apply to 3 jobs per month',
+      'Basic profile visibility',
+      'Email support'
+    ],
+    limitations: [
+      'Limited job applications',
+      'Basic profile features',
+      'No priority support'
+    ],
+    popular: false,
+    buttonText: 'Current Plan',
+    buttonDisabled: true
+  },
+  {
+    id: 'premium',
+    name: 'Premium',
+    price: '₹1,699',
+    period: 'month',
+    description: 'Enhanced job searching experience',
+    features: [
+      'Unlimited job applications',
+      'Save unlimited jobs',
+      'Advanced profile visibility',
+      'Priority in search results',
+      'Direct messaging with employers',
+      'Application tracking',
+      'Resume builder',
+      'Email & phone support'
+    ],
+    limitations: [],
+    popular: true,
+    buttonText: 'Upgrade to Premium',
+    buttonDisabled: false
+  },
+  {
+    id: 'professional',
+    name: 'Professional',
+    price: '₹3,399',
+    period: 'month',
+    description: 'Complete career advancement suite',
+    features: [
+      'Everything in Premium',
+      'Personalized job recommendations',
+      'Interview preparation tools',
+      'Career coaching sessions',
+      'Salary negotiation guidance',
+      'LinkedIn profile optimization',
+      'Priority customer support',
+      'Advanced analytics'
+    ],
+    limitations: [],
+    popular: false,
+    buttonText: 'Upgrade to Professional',
+    buttonDisabled: false
+  }
+];
 
   const handlePlanSelect = (plan) => {
     setSelectedPlan(plan);

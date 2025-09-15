@@ -161,7 +161,7 @@
   color: #2563eb;
 }
 
-/* Dropdown */
+/* Dropdown - Fixed */
 .dropdown {
   position: relative;
   display: inline-block;
@@ -194,6 +194,7 @@
   transform: rotate(180deg);
 }
 
+/* Fixed dropdown content positioning and timing */
 .dropdownContent {
   position: absolute;
   top: calc(100% + 0.5rem);
@@ -203,18 +204,11 @@
   box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   border: 1px solid #e5e7eb;
-  z-index: 1000;
+  z-index: 1001;
   overflow: hidden;
-  opacity: 0;
-  transform: translateY(-10px);
-  animation: dropdownFadeIn 0.3s ease forwards;
-}
-
-@keyframes dropdownFadeIn {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .dropdownContent a {
@@ -279,13 +273,13 @@
   transform: rotate(-45deg);
 }
 
-/* Mobile Menu Overlay */
+/* Mobile Menu Overlay - Fixed z-index and positioning */
 .mobileMenuOverlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: 100vh;
   background: rgba(0, 0, 0, 0.5);
   z-index: 9999;
   animation: overlayFadeIn 0.3s ease;
@@ -300,17 +294,20 @@
   }
 }
 
+/* Fixed mobile menu height and scrolling */
 .mobileMenu {
   position: fixed;
   top: 0;
   right: 0;
   width: 100%;
   max-width: 400px;
-  height: 100%;
+  height: 100vh;
   background: white;
   box-shadow: -10px 0 25px rgba(0, 0, 0, 0.15);
   animation: slideIn 0.3s ease;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes slideIn {
@@ -328,6 +325,7 @@
   align-items: center;
   padding: 1rem;
   border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
 }
 
 .mobileLogo img {
@@ -355,6 +353,7 @@
 .mobileSearchForm {
   position: relative;
   margin: 1rem;
+  flex-shrink: 0;
 }
 
 .mobileSearch {
@@ -380,11 +379,13 @@
   color: #6b7280;
 }
 
-/* Mobile Navigation Links */
+/* Mobile Navigation Links - Fixed scrolling */
 .mobileNavLinks {
   list-style: none;
   padding: 0;
   margin: 0;
+  flex-grow: 1;
+  overflow-y: auto;
 }
 
 .mobileNavLinks li a {
@@ -403,10 +404,12 @@
   background: rgba(37, 99, 235, 0.05);
 }
 
-/* Mobile Auth Buttons */
+/* Mobile Auth Buttons - Fixed positioning */
 .mobileAuthButtons {
   padding: 1rem;
   border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  margin-top: auto;
 }
 
 .mobileCandidateBtn {
@@ -508,6 +511,8 @@
 /* Prevent body scroll when mobile menu is open */
 body.menu-open {
   overflow: hidden;
+  position: fixed;
+  width: 100%;
 }
 
 /* Focus styles for accessibility */
