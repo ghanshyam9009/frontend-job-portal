@@ -1,0 +1,709 @@
+/* Manage Jobs Styles */
+.manageJobs {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  transition: background-color 0.3s ease;
+}
+
+.manageJobs.darkMode {
+  background-color: #1a202c;
+}
+
+.container {
+  display: flex;
+  min-height: calc(100vh - 70px);
+}
+
+.mainContent {
+  flex: 1;
+  padding: 2rem;
+  margin-left: 280px;
+  transition: margin-left 0.3s ease;
+}
+
+.contentHeader {
+  margin-bottom: 2rem;
+}
+
+.pageTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 0.5rem;
+}
+
+.pageSubtitle {
+  color: #64748b;
+  font-size: 1rem;
+}
+
+.manageJobs.darkMode .pageTitle {
+  color: #f7fafc;
+}
+
+.manageJobs.darkMode .pageSubtitle {
+  color: #a0aec0;
+}
+
+/* Stats Grid */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.statCard {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.manageJobs.darkMode .statCard {
+  background: #2d3748;
+  border-color: #4a5568;
+}
+
+.statIcon {
+  font-size: 2rem;
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.statContent {
+  flex: 1;
+}
+
+.statValue {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0;
+}
+
+.statLabel {
+  color: #64748b;
+  font-size: 0.875rem;
+  margin: 0.25rem 0 0 0;
+}
+
+.manageJobs.darkMode .statValue {
+  color: #f7fafc;
+}
+
+.manageJobs.darkMode .statLabel {
+  color: #a0aec0;
+}
+
+/* Filters and Search */
+.filtersAndSearch {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.searchWrapper {
+  position: relative;
+  flex: 1;
+  min-width: 300px;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.manageJobs.darkMode .searchInput {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: #f7fafc;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  font-size: 1rem;
+}
+
+.filters {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.filterSelect {
+  padding: 0.75rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filterSelect:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.manageJobs.darkMode .filterSelect {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: #f7fafc;
+}
+
+/* Table Container */
+.tableContainer {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.manageJobs.darkMode .tableContainer {
+  background: #2d3748;
+  border-color: #4a5568;
+}
+
+.jobsTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.jobsTable th {
+  background: #f8fafc;
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.875rem;
+}
+
+.jobsTable td {
+  padding: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.jobsTable tr:hover {
+  background: #f8fafc;
+}
+
+.manageJobs.darkMode .jobsTable th {
+  background: #1a202c;
+  color: #f7fafc;
+  border-color: #4a5568;
+}
+
+.manageJobs.darkMode .jobsTable td {
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+.manageJobs.darkMode .jobsTable tr:hover {
+  background: #1a202c;
+}
+
+/* Job Title */
+.jobTitle h4 {
+  margin: 0 0 0.25rem 0;
+  color: #1a202c;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.jobType {
+  background: #e2e8f0;
+  color: #64748b;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.manageJobs.darkMode .jobTitle h4 {
+  color: #f7fafc;
+}
+
+.manageJobs.darkMode .jobType {
+  background: #4a5568;
+  color: #a0aec0;
+}
+
+/* Status Badges */
+.statusBadge {
+  padding: 0.375rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.statusBadge.approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.statusBadge.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.statusBadge.rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.manageJobs.darkMode .statusBadge.approved {
+  background: #064e3b;
+  color: #6ee7b7;
+}
+
+.manageJobs.darkMode .statusBadge.pending {
+  background: #78350f;
+  color: #fbbf24;
+}
+
+.manageJobs.darkMode .statusBadge.rejected {
+  background: #7f1d1d;
+  color: #fca5a5;
+}
+
+/* Applications */
+.applications {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.appCount {
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.viewCount {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.manageJobs.darkMode .appCount {
+  color: #f7fafc;
+}
+
+.manageJobs.darkMode .viewCount {
+  color: #a0aec0;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.actions button {
+  padding: 0.375rem 0.75rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.approveBtn {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.approveBtn:hover {
+  background: #a7f3d0;
+}
+
+.rejectBtn {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.rejectBtn:hover {
+  background: #fecaca;
+}
+
+.editBtn {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.editBtn:hover {
+  background: #bfdbfe;
+}
+
+.deleteBtn {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.deleteBtn:hover {
+  background: #fecaca;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 2rem;
+}
+
+.paginationBtn {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #374151;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.875rem;
+}
+
+.paginationBtn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e0;
+}
+
+.paginationBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.paginationBtn.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.manageJobs.darkMode .paginationBtn {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+.manageJobs.darkMode .paginationBtn:hover:not(:disabled) {
+  background: #4a5568;
+}
+
+/* No Results */
+.noResults {
+  text-align: center;
+  padding: 3rem;
+  color: #64748b;
+}
+
+.manageJobs.darkMode .noResults {
+  color: #a0aec0;
+}
+
+/* Modal Styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.manageJobs.darkMode .modal {
+  background: #2d3748;
+}
+
+.modalHeader {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  color: #1a202c;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.manageJobs.darkMode .modalHeader {
+  border-color: #4a5568;
+}
+
+.manageJobs.darkMode .modalHeader h2 {
+  color: #f7fafc;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #64748b;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.closeBtn:hover {
+  background: #f1f5f9;
+  color: #1a202c;
+}
+
+.manageJobs.darkMode .closeBtn {
+  color: #a0aec0;
+}
+
+.manageJobs.darkMode .closeBtn:hover {
+  background: #4a5568;
+  color: #f7fafc;
+}
+
+.modalBody {
+  padding: 1.5rem;
+}
+
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.formGroup label {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.manageJobs.darkMode .formGroup label {
+  color: #e2e8f0;
+}
+
+.formInput, .formTextarea {
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+}
+
+.formInput:focus, .formTextarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.manageJobs.darkMode .formInput,
+.manageJobs.darkMode .formTextarea {
+  background: #1a202c;
+  border-color: #4a5568;
+  color: #f7fafc;
+}
+
+.formTextarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.modalFooter {
+  padding: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.manageJobs.darkMode .modalFooter {
+  border-color: #4a5568;
+}
+
+.cancelBtn, .saveBtn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.875rem;
+}
+
+.cancelBtn {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.cancelBtn:hover {
+  background: #e2e8f0;
+}
+
+.saveBtn {
+  background: #667eea;
+  color: white;
+}
+
+.saveBtn:hover {
+  background: #5a67d8;
+}
+
+.manageJobs.darkMode .cancelBtn {
+  background: #4a5568;
+  color: #a0aec0;
+  border-color: #4a5568;
+}
+
+.manageJobs.darkMode .cancelBtn:hover {
+  background: #2d3748;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .mainContent {
+    margin-left: 0;
+    padding: 1rem;
+  }
+  
+  .statsGrid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .filtersAndSearch {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .searchWrapper {
+    min-width: auto;
+  }
+  
+  .filters {
+    justify-content: space-between;
+  }
+  
+  .filterSelect {
+    flex: 1;
+  }
+  
+  .actions {
+    flex-direction: column;
+  }
+  
+  .actions button {
+    justify-content: center;
+  }
+  
+  .jobsTable {
+    font-size: 0.875rem;
+  }
+  
+  .jobsTable th,
+  .jobsTable td {
+    padding: 0.75rem 0.5rem;
+  }
+  
+  .modal {
+    width: 95%;
+    margin: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .statCard {
+    padding: 1rem;
+  }
+  
+  .statIcon {
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+  }
+  
+  .statValue {
+    font-size: 1.5rem;
+  }
+  
+  .pageTitle {
+    font-size: 1.5rem;
+  }
+  
+  .jobsTable th,
+  .jobsTable td {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.75rem;
+  }
+}
