@@ -77,7 +77,6 @@ const PostJob = () => {
         <section className={styles.jobPostingSection}>
           <div className={styles.sectionHeader}>
             <h1>Post New Job</h1>
-            <p>Create a compelling job posting to attract the best candidates</p>
           </div>
           
           <form onSubmit={handleSubmit} className={styles.jobForm}>
