@@ -112,8 +112,36 @@
 /* Hero Section */
 .hero {
   position: relative;
-  background: linear-gradient(135deg, #2563eb 0%, #1e40af 50%, #3730a3 100%);
   color: white;
+  overflow: hidden;
+}
+
+.heroSlider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 400%;
+  height: 100%;
+  display: flex;
+  animation: slide 15s ease-in-out infinite;
+}
+
+.heroSlide {
+  width: 25%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+}
+
+@keyframes slide {
+  0% { transform: translateX(0%); }
+  20% { transform: translateX(0%); }
+  25% { transform: translateX(-25%); }
+  45% { transform: translateX(-25%); }
+  50% { transform: translateX(-50%); }
+  70% { transform: translateX(-50%); }
+  75% { transform: translateX(-75%); }
+  100% { transform: translateX(-75%); }
 }
 
 .heroOverlay {
@@ -148,7 +176,7 @@
 .heroSubtitle {
   font-size: 1.25rem;
   margin-bottom: 2.5rem;
-  color: #bfdbfe;
+  color: #2563eb;
 }
 
 @media (max-width: 768px) {
@@ -299,7 +327,7 @@
 .actionCard {
   background: white;
   border-radius: 0.75rem;
-  padding: 2rem;
+  padding: 1rem;
   box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.3s ease;
 }
@@ -311,8 +339,8 @@
 .actionHeader {
   display: flex;
   align-items: center;
+  max-height: 55px;
   gap: 1rem;
-  margin-bottom: 1.5rem;
 }
 
 .actionIcon {
@@ -353,7 +381,6 @@
 .actionDescription {
   color: #374151;
   line-height: 1.6;
-  margin-bottom: 1.5rem;
 }
 
 .actionButton {
@@ -541,6 +568,7 @@
   background: linear-gradient(135deg, #2563eb 0%, #3730a3 100%);
   border-radius: 0.75rem;
   padding: 2rem;
+  max-height: 435px;
   color: white;
 }
 

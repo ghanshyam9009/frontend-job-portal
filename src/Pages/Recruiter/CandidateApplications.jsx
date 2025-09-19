@@ -9,6 +9,7 @@ const CandidateApplications = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [darkMode, setDarkMode] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [applications] = useState([
     {
@@ -83,6 +84,7 @@ const CandidateApplications = () => {
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
   };
+  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
   const handleViewResume = (application) => {
     alert(`Opening resume: ${application.resumeUrl}`);
@@ -129,8 +131,8 @@ const CandidateApplications = () => {
 
   return (
     <div className={styles.dashboardContainer}>
-      <RecruiterNavbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <RecruiterSidebar darkMode={darkMode} />
+      <RecruiterNavbar toggleSidebar={toggleSidebar} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+      <RecruiterSidebar darkMode={darkMode} isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       <main className={styles.main}>
         <section className={styles.applicationsSection}>
           <div className={styles.sectionHeader}>

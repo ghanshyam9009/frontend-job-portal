@@ -6,9 +6,11 @@ import HomeNav from "../../Components/HomeNav";
 
 const CandidateLogin = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, register } = useAuth();
   const location = useLocation();
   const [isLogin, setIsLogin] = useState(true);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   
   // Get the return URL from navigation state
   const from = location.state?.from?.pathname || '/userdashboard';
@@ -27,30 +29,41 @@ const CandidateLogin = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (isLogin) {
-      // Simulate login process
-      const userData = {
-        id: 1,
-        email: formData.email,
-        name: formData.email.split('@')[0], // Use email prefix as name for demo
-        role: 'candidate'
-      };
-      login(userData);
-      navigate(from, { replace: true });
+      try {
+        await login(formData.email, formData.password, 'candidate');
+        setSuccess("Login successful!");
+        setError("");
+        navigate(from, { replace: true });
+      } catch (error) {
+        console.error("Login failed:", error);
+        setError("Login failed. Please check your credentials.");
+        setSuccess("");
+      }
     } else {
-      // Simulate signup process
-      console.log("Signup:", formData);
-      // After successful signup, login the user
-      const userData = {
-        id: Date.now(),
-        email: formData.email,
-        name: formData.fullName,
-        role: 'candidate'
-      };
-      login(userData);
-      navigate(from, { replace: true });
+      if (formData.password !== formData.confirmPassword) {
+        setError("Passwords do not match.");
+        setSuccess("");
+        return;
+      }
+      try {
+        await register({
+          full_name: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+          phone_number: formData.phone,
+          role: 'candidate'
+        });
+        setSuccess("Registration successful! Please log in.");
+        setError("");
+        setIsLogin(true); // Switch to login form
+      } catch (error) {
+        console.error("Registration failed:", error);
+        setError("Registration failed. Please try again.");
+        setSuccess("");
+      }
     }
   };
 
@@ -79,6 +92,8 @@ const CandidateLogin = () => {
             </div>
 
             <form onSubmit={handleSubmit} className={styles.form}>
+              {error && <p className={styles.error}>{error}</p>}
+              {success && <p className={styles.success}>{success}</p>}
               {!isLogin && (
                 <div className={styles.inputGroup}>
                   <label className={styles.label}>

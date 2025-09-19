@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import styles from "./RecruiterNavbar.module.css";
 import logo from "../../assets/logo2.png";
-const RecruiterNavbar = () => {
+const RecruiterNavbar = ({ toggleSidebar }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
@@ -20,13 +20,16 @@ const RecruiterNavbar = () => {
   return (
     <header className={`${styles.header} `}>
       <div className={styles.headerLeft}>
-          <div className={styles.logo}>
+        <button className={styles.menuButton} onClick={toggleSidebar}>
+          ☰
+        </button>
+        <div className={styles.logo}>
           <img src={logo} alt="JobPortal Logo" />
-           </div>
+        </div>
         <div className={styles.searchContainer}>
-          <input 
-            type="text" 
-            placeholder="Search candidates, skills..." 
+          <input
+            type="text"
+            placeholder="Search candidates, skills..."
             className={styles.searchInput}
           />
           <span className={styles.searchIcon}>🔍</span>
@@ -74,3 +77,5 @@ const RecruiterNavbar = () => {
 };
 
 export default RecruiterNavbar;
+
+

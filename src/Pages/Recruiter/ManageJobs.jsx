@@ -9,6 +9,7 @@ const ManageJobs = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [darkMode, setDarkMode] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [jobs, setJobs] = useState([
     {
       id: 1,
@@ -65,6 +66,7 @@ const ManageJobs = () => {
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
   };
+  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
   const handleEditJob = (jobId) => {
     navigate(`/edit-job/${jobId}`);
@@ -124,8 +126,8 @@ const ManageJobs = () => {
 
   return (
     <div className={styles.dashboardContainer}>
-      <RecruiterNavbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <RecruiterSidebar darkMode={darkMode} />
+      <RecruiterNavbar toggleSidebar={toggleSidebar} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+      <RecruiterSidebar darkMode={darkMode} isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       <main className={styles.main}>
         <section className={styles.manageJobsSection}>
           <div className={styles.sectionHeader}>

@@ -11,7 +11,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
-  z-index: 1000;
+  z-index: 2000;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -197,6 +197,14 @@
   color: #111827;
 }
 
+.menuButton {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .searchContainer {
@@ -213,6 +221,10 @@
   
   .headerRight {
     gap: 12px;
+  }
+
+  .menuButton {
+    display: block;
   }
 }
 

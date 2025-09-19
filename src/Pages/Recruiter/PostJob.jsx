@@ -9,6 +9,7 @@ const PostJob = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [darkMode, setDarkMode] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [jobData, setJobData] = useState({
     title: "",
     company: user?.companyName || "",
@@ -33,6 +34,7 @@ const PostJob = () => {
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
   };
+  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
   const handleInputChange = (field, value) => {
     setJobData(prev => ({
@@ -71,8 +73,8 @@ const PostJob = () => {
 
   return (
     <div className={styles.dashboardContainer}>
-      <RecruiterNavbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <RecruiterSidebar darkMode={darkMode} />
+      <RecruiterNavbar toggleSidebar={toggleSidebar} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+      <RecruiterSidebar darkMode={darkMode} isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       <main className={styles.main}>
         <section className={styles.jobPostingSection}>
           <div className={styles.sectionHeader}>

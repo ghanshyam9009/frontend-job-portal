@@ -16,7 +16,9 @@ import ProfileManagement from './Pages/Candidate/ProfileManagement'
 import Settings from './Pages/Candidate/Settings'
 import MembershipPlans from './Pages/Candidate/MembershipPlans'
 import Messages from './Pages/Candidate/Messages'
+import CandidateLayout from './Components/Candidate/CandidateLayout'
 import RecruiterLogin from './Pages/Recruiter/RecruiterLogin'
+import RecruiterLayout from './Components/Recruiter/RecruiterLayout'
 import RecruiterDashboard from './Pages/Recruiter/RecruiterDashboard'
 import PostJob from './Pages/Recruiter/PostJob'
 import ManageJobs from './Pages/Recruiter/ManageJobs'
@@ -46,23 +48,31 @@ function App() {
           <Route path="/about" element={<AboutUs />} />
           <Route path="/contact" element={<ContactUs />} />
           <Route path="/candidate/login" element={<CandidateLogin />} />
-          <Route path="/userdashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
-          <Route path="/userjoblistings" element={<ProtectedRoute><UserJobListings /></ProtectedRoute>} />
-          <Route path="/saved-jobs" element={<ProtectedRoute><SavedJobs /></ProtectedRoute>} />
-          <Route path="/my-applications" element={<ProtectedRoute><AppliedJobs /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><ProfileManagement /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-          <Route path="/membership" element={<ProtectedRoute><MembershipPlans /></ProtectedRoute>} />
-          <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+
+          
+          <Route element={<ProtectedRoute><CandidateLayout /></ProtectedRoute>}>
+            <Route path="/userdashboard" element={<UserDashboard />} />
+            <Route path="/userjoblistings" element={<UserJobListings />} />
+            <Route path="/saved-jobs" element={<SavedJobs />} />
+            <Route path="/my-applications" element={<AppliedJobs />} />
+            <Route path="/profile" element={<ProfileManagement />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/membership" element={<MembershipPlans />} />
+            <Route path="/messages" element={<Messages />} />
+          </Route>
+
+
           <Route path="/recruiter/login" element={<RecruiterLogin />} />
-          <Route path="/recruiter/dashboard" element={<ProtectedRoute><RecruiterDashboard /></ProtectedRoute>} />
-          <Route path="/post-job" element={<ProtectedRoute><PostJob /></ProtectedRoute>} />
-          <Route path="/manage-jobs" element={<ProtectedRoute><ManageJobs /></ProtectedRoute>} />
-          <Route path="/candidate-applications" element={<ProtectedRoute><CandidateApplications /></ProtectedRoute>} />
-          <Route path="/shortlist-candidates" element={<ProtectedRoute><ShortlistCandidates /></ProtectedRoute>} />
-          <Route path="/company-profile" element={<ProtectedRoute><CompanyProfile /></ProtectedRoute>} />
-          <Route path="/membership-tokens" element={<ProtectedRoute><MembershipTokens /></ProtectedRoute>} />
-          <Route path="/recruiter-settings" element={<ProtectedRoute><RecruiterSettings /></ProtectedRoute>} />
+          <Route element={<ProtectedRoute><RecruiterLayout /></ProtectedRoute>}>
+            <Route path="/recruiter/dashboard" element={<RecruiterDashboard />} />
+            <Route path="/post-job" element={<PostJob />} />
+            <Route path="/manage-jobs" element={<ManageJobs />} />
+            <Route path="/candidate-applications" element={<CandidateApplications />} />
+            <Route path="/shortlist-candidates" element={<ShortlistCandidates />} />
+            <Route path="/company-profile" element={<CompanyProfile />} />
+            <Route path="/membership-tokens" element={<MembershipTokens />} />
+            <Route path="/recruiter-settings" element={<RecruiterSettings />} />
+          </Route>
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/candidates" element={<ManageCandidates />} />

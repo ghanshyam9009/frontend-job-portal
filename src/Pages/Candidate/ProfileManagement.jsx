@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
-import CandidateSidebar from "../../Components/Candidate/CandidateSidebar";
 import styles from "./UserDashboard.module.css";
 
 const ProfileManagement = () => {
@@ -142,7 +141,6 @@ const ProfileManagement = () => {
   return (
     <div className={styles.dashboardContainer}>
       <CandidateNavbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <CandidateSidebar darkMode={darkMode} />
       <main className={styles.main}>
         <section className={styles.profileSection}>
           <div className={styles.profileHeader}>
@@ -443,3 +441,5 @@ const ProfileManagement = () => {
 };
 
 export default ProfileManagement;
+
+

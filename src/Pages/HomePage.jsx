@@ -3,6 +3,9 @@ import { Search, MapPin, Upload, Building2, Users, CheckCircle, Star, ArrowRight
 import styles from "./HomePage.module.css";
 import HomeNav from "../Components/HomeNav";
 import logo2 from "../assets/logo2.png";
+import image1 from "../assets/notebook-office-desk-used-by-hr-expert-vetting-applicants.jpg";
+import image2 from "../assets/startup-hr-worker-identifying-right-candidates-job-opening-reviewing-resume.jpg";
+import image3 from "../assets/open-laptop-desk-job-search-title-screen.jpg";
 import idbiLogo from "../assets/IDBI.jpg";
 import idfcLogo from "../assets/IDFC.jpg";
 import kotakLogo from "../assets/Kotak.jpg";
@@ -79,6 +82,12 @@ const Homepage = () => {
 <HomeNav/>
       {/* Hero Section */}
       <section className={styles.hero}>
+        <div className={styles.heroSlider}>
+          <div className={styles.heroSlide} style={{ backgroundImage: `url(${image1})` }}></div>
+          <div className={styles.heroSlide} style={{ backgroundImage: `url(${image2})` }}></div>
+          <div className={styles.heroSlide} style={{ backgroundImage: `url(${image3})` }}></div>
+          <div className={styles.heroSlide} style={{ backgroundImage: `url(${image1})` }}></div>
+        </div>
         <div className={styles.heroOverlay}></div>
         <div className={styles.heroContainer}>
           <div className={styles.heroContent}>
@@ -147,7 +156,7 @@ const Homepage = () => {
                 </div>
               </div>
               <p className={styles.actionDescription}>
-                Let our AI-powered system match you with the best opportunities. Upload your resume and get discovered by top employers.
+               Upload your resume and get discovered by top employers.
               </p>
               <button className={styles.actionButton}>
                 <Upload className={styles.buttonIcon} />
@@ -167,7 +176,7 @@ const Homepage = () => {
                 </div>
               </div>
               <p className={styles.actionDescription}>
-                Reach thousands of qualified candidates. Post your job in minutes and start receiving applications from top talent.
+               Post your job in minutes and start receiving applications from top talent.
               </p>
               <button className={`${styles.actionButton} ${styles.actionButtonGreen}`}>
                 <Building2 className={styles.buttonIcon} />
@@ -226,7 +235,7 @@ const Homepage = () => {
             
             {/* Contact Form */}
             <div className={styles.contactForm}>
-              <h3 className={styles.formTitle}>Get in Touch</h3>
+              <h3 className={styles.formTitle}>Request Free Demo</h3>
               <div className={styles.formFields}>
                 <div className={styles.fieldGroup}>
                   <input 
@@ -235,23 +244,8 @@ const Homepage = () => {
                     className={styles.formInput}
                   />
                 </div>
-                <div className={styles.radioGroup}>
-                  <label className={styles.radioLabel}>
-                    <input type="radio" name="gender" value="male" className={styles.radioInput} />
-                    <span>Male</span>
-                  </label>
-                  <label className={styles.radioLabel}>
-                    <input type="radio" name="gender" value="female" className={styles.radioInput} />
-                    <span>Female</span>
-                  </label>
-                </div>
-                <div className={styles.fieldGroup}>
-                  <input 
-                    type="tel" 
-                    placeholder="Mobile Number"
-                    className={styles.formInput}
-                  />
-                </div>
+              
+               
                 <div className={styles.fieldGroup}>
                   <input 
                     type="email" 
@@ -259,13 +253,7 @@ const Homepage = () => {
                     className={styles.formInput}
                   />
                 </div>
-                <div className={styles.fieldGroup}>
-                  <input 
-                    type="text" 
-                    placeholder="Address"
-                    className={styles.formInput}
-                  />
-                </div>
+             
                 <div className={styles.fieldGroup}>
                   <textarea 
                     placeholder="Message"
@@ -273,14 +261,7 @@ const Homepage = () => {
                     className={styles.formTextarea}
                   ></textarea>
                 </div>
-                <div className={styles.fieldGroup}>
-                  <input 
-                    type="file" 
-                    accept=".pdf,.doc,.docx"
-                    className={styles.fileInput}
-                  />
-                  <p className={styles.fileHint}>Upload your resume (PDF, DOC, DOCX)</p>
-                </div>
+            
                 <div className={styles.formButtons}>
                   <button className={styles.submitBtn}>
                     Submit

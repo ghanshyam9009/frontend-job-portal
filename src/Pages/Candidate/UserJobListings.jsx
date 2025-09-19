@@ -9,6 +9,7 @@ const UserJobListings = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [darkMode, setDarkMode] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -18,6 +19,7 @@ const UserJobListings = () => {
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
   };
+  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
   const jobs = [
     { id: 1, title: "Senior Frontend Developer", company: "InnovateX", salary: "₹12L - ₹15L / year", location: "Remote · Worldwide", type: "Full-time" },
     { id: 2, title: "Data Scientist (ML)", company: "Quantify Analytics", salary: "₹13L - ₹16L / year", location: "San Francisco, CA", type: "Full-time" },
@@ -37,8 +39,8 @@ const UserJobListings = () => {
 
   return (
     <div className={styles.dashboardContainer}>
-      <CandidateNavbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <CandidateSidebar darkMode={darkMode} />
+      <CandidateNavbar toggleSidebar={toggleSidebar} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+      <CandidateSidebar darkMode={darkMode} isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       <main className={styles.main}>
 
         <section className={styles.jobsSection}>

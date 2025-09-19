@@ -5,6 +5,7 @@ import logo from "../assets/logo2.png";
 
 const HomeNav = () => {
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showCareerDropdown, setShowCareerDropdown] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
@@ -93,6 +94,25 @@ const HomeNav = () => {
             >
               Contact Us
             </a>
+          </li>
+          <li className={styles.dropdown}>
+            <a
+              href="#"
+              onClick={() => setShowCareerDropdown(!showCareerDropdown)}
+              className={showCareerDropdown ? styles.active : ""}
+            >
+              Career
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className={styles.dropdownArrow}>
+                <path d="M7 10l5 5 5-5z"/>
+              </svg>
+            </a>
+            {showCareerDropdown && (
+              <div className={styles.dropdownContent}>
+                <a href="#">Job Seeker Services</a>
+                <a href="#">Fast Track Career</a>
+                <a href="#">Premium Seeker</a>
+              </div>
+            )}
           </li>
         </ul>
 

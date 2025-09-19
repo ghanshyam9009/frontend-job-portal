@@ -9,12 +9,14 @@ const MembershipTokens = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [darkMode, setDarkMode] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tokenBalance] = useState(1250);
   const [selectedPlan, setSelectedPlan] = useState(null);
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
   };
+  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
   const tokenPacks = [
     {
@@ -112,8 +114,8 @@ const MembershipTokens = () => {
 
   return (
     <div className={styles.dashboardContainer}>
-      <RecruiterNavbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <RecruiterSidebar darkMode={darkMode} />
+      <RecruiterNavbar toggleSidebar={toggleSidebar} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+      <RecruiterSidebar darkMode={darkMode} isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       <main className={styles.main}>
         <section className={styles.membershipTokensSection}>
           <div className={styles.sectionHeader}>

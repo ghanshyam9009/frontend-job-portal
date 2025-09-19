@@ -9,6 +9,7 @@ const CompanyProfile = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [darkMode, setDarkMode] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [companyData, setCompanyData] = useState({
     companyName: user?.companyName || "",
     description: "",
@@ -23,6 +24,7 @@ const CompanyProfile = () => {
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
   };
+  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
   const handleInputChange = (field, value) => {
     setCompanyData(prev => ({
@@ -48,8 +50,8 @@ const CompanyProfile = () => {
 
   return (
     <div className={styles.dashboardContainer}>
-      <RecruiterNavbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <RecruiterSidebar darkMode={darkMode} />
+      <RecruiterNavbar toggleSidebar={toggleSidebar} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+      <RecruiterSidebar darkMode={darkMode} isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       <main className={styles.main}>
         <section className={styles.profileSection}>
           <div className={styles.sectionHeader}>
@@ -184,3 +186,5 @@ const CompanyProfile = () => {
 };
 
 export default CompanyProfile;
+
+

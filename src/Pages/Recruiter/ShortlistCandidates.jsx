@@ -9,6 +9,7 @@ const ShortlistCandidates = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [darkMode, setDarkMode] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [shortlistedCandidates] = useState([
     {
       id: 1,
@@ -35,6 +36,7 @@ const ShortlistCandidates = () => {
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
   };
+  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
   const handleContactCandidate = (candidate) => {
     alert(`Contacting ${candidate.name} at ${candidate.email}`);
@@ -52,8 +54,8 @@ const ShortlistCandidates = () => {
 
   return (
     <div className={styles.dashboardContainer}>
-      <RecruiterNavbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <RecruiterSidebar darkMode={darkMode} />
+      <RecruiterNavbar toggleSidebar={toggleSidebar} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+      <RecruiterSidebar darkMode={darkMode} isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       <main className={styles.main}>
         <section className={styles.shortlistSection}>
           <div className={styles.sectionHeader}>
@@ -100,3 +102,5 @@ const ShortlistCandidates = () => {
 };
 
 export default ShortlistCandidates;
+
+

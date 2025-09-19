@@ -76,6 +76,9 @@ const AdminSidebar = ({ darkMode, isOpen, onClose }) => {
       {isOpen && <div className={styles.mobileOverlay} onClick={onClose}></div>}
       
       <aside className={`${styles.sidebar} ${darkMode ? styles.darkMode : ''} ${isOpen ? styles.open : ''}`}>
+      <button className={styles.closeButton} onClick={onClose}>
+        &times;
+      </button>
       <nav className={styles.nav}>
         <ul className={styles.navList}>
           {menuItems.map((item) => (

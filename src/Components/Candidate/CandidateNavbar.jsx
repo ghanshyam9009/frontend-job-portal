@@ -5,7 +5,7 @@ import styles from "../../Styles/CandidateNavbar.module.css";
 
 import logo from "../../assets/logo2.png";
 
-const CandidateNavbar = () => {
+const CandidateNavbar = ({ toggleSidebar }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
@@ -22,10 +22,12 @@ const CandidateNavbar = () => {
   return (
     <header className={`${styles.header}`}>
       <div className={styles.headerLeft}>
-
-            <div className={styles.logo}>
-                  <img src={logo} alt="JobPortal Logo" />
-                </div>
+        <button className={styles.menuButton} onClick={toggleSidebar}>
+          ☰
+        </button>
+        <div className={styles.logo}>
+          <img src={logo} alt="JobPortal Logo" />
+        </div>
         <div className={styles.searchContainer}>
           <input 
             type="text" 

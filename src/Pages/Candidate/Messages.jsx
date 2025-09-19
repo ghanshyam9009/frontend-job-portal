@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
-import CandidateSidebar from "../../Components/Candidate/CandidateSidebar";
 import styles from "./UserDashboard.module.css";
 
 const Messages = () => {
@@ -132,7 +131,6 @@ const Messages = () => {
   return (
     <div className={styles.dashboardContainer}>
       <CandidateNavbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <CandidateSidebar darkMode={darkMode} />
       <main className={styles.main}>
         <section className={styles.messagesSection}>
           <div className={styles.messagesHeader}>
@@ -230,3 +228,5 @@ const Messages = () => {
 };
 
 export default Messages;
+
+
