@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, MapPin, Upload, Building2, Users, CheckCircle, Star, ArrowRight } from "lucide-react";
 import styles from "./HomePage.module.css";
 import HomeNav from "../Components/HomeNav";
@@ -74,7 +75,24 @@ const stats = [
   { number: "98%", label: "Success Rate" }
 ];
 
+const BackgroundImage = ({ imageUrl }) => {
+  useEffect(() => {
+    const img = new Image();
+    img.src = imageUrl;
+  }, [imageUrl]);
+
+  return <div className={styles.heroSlide} style={{ backgroundImage: `url(${imageUrl})` }}></div>;
+};
+
 const Homepage = () => {
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [location, setLocation] = useState("");
+
+  const handleSearch = () => {
+    navigate(`/jobs?search=${searchTerm}&location=${location}`);
+  };
+
   return (
     <div className={styles.container}>
       {/* Navigation */}
@@ -83,10 +101,10 @@ const Homepage = () => {
       {/* Hero Section */}
       <section className={styles.hero}>
         <div className={styles.heroSlider}>
-          <div className={styles.heroSlide} style={{ backgroundImage: `url(${image1})` }}></div>
-          <div className={styles.heroSlide} style={{ backgroundImage: `url(${image2})` }}></div>
-          <div className={styles.heroSlide} style={{ backgroundImage: `url(${image3})` }}></div>
-          <div className={styles.heroSlide} style={{ backgroundImage: `url(${image1})` }}></div>
+          <BackgroundImage imageUrl={image1} />
+          <BackgroundImage imageUrl={image2} />
+          <BackgroundImage imageUrl={image3} />
+          <BackgroundImage imageUrl={image1} />
         </div>
         <div className={styles.heroOverlay}></div>
         <div className={styles.heroContainer}>
@@ -107,6 +125,8 @@ const Homepage = () => {
                     type="text" 
                     placeholder="Job title, keywords, or company"
                     className={styles.searchInput}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
                 <div className={styles.inputGroup}>
@@ -115,9 +135,11 @@ const Homepage = () => {
                     type="text" 
                     placeholder="Location"
                     className={styles.searchInput}
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
                   />
                 </div>
-                <button className={styles.searchButton}>
+                <button className={styles.searchButton} onClick={handleSearch}>
                   <Search className={styles.buttonIcon} />
                   <span>Search Jobs</span>
                 </button>

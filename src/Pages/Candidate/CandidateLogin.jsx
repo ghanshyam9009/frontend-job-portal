@@ -194,6 +194,13 @@ const CandidateLogin = () => {
                 </a>
               )}
             </form>
+            <div className={styles.divider}>
+              <span>OR</span>
+            </div>
+            <button className={styles.googleBtn} onClick={() => {}}>
+              <img src="https://img.icons8.com/color/16/000000/google-logo.png" alt="Google icon" />
+              Login with Google
+            </button>
           </div>
         </div>
 

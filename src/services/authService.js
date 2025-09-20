@@ -26,7 +26,18 @@ export const authService = {
   // Register user
   async register(userData) {
     try {
-      const response = await apiClient.post(API_ENDPOINTS.auth.register, userData);
+      let endpoint;
+      switch (userData.role) {
+        case 'candidate':
+          endpoint = API_ENDPOINTS.auth.register;
+          break;
+        case 'recruiter':
+          endpoint = API_ENDPOINTS.auth.recruiterRegister;
+          break;
+        default:
+          throw new Error('Invalid user role for registration.');
+      }
+      const response = await apiClient.post(endpoint, userData);
       return response;
     } catch (error) {
       throw error;

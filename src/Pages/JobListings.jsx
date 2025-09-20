@@ -1,10 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import styles from "./JobListings.module.css";
 import HomeNav from "../Components/HomeNav";
+import { jobService } from "../services";
+
+const useQuery = () => {
+  return new URLSearchParams(useLocation().search);
+};
 
 const JobListings = () => {
   const navigate = useNavigate();
+  const query = useQuery();
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [filters, setFilters] = useState({
     location: "",
@@ -16,110 +26,31 @@ const JobListings = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const jobsPerPage = 5;
 
-  const jobs = [
-    {
-      id: 1,
-      title: "Senior Frontend Developer",
-      company: "InnovateX",
-      salary: "₹12L-₹15L/year",
-      location: "Remote-Worldwide",
-      type: "Full-time",
-      icon: "💻"
-    },
-    {
-      id: 2,
-      title: "Data Scientist (Machine Learning)",
-      company: "Quantify Analytics",
-      salary: "₹13L-₹16L/year",
-      location: "San Francisco, CA",
-      type: "Full-time",
-      icon: "📊"
-    },
-    {
-      id: 3,
-      title: "UX/UI Designer",
-      company: "Creative Flow",
-      salary: "₹9L-₹11L/year",
-      location: "New York, NY",
-      type: "Full-time",
-      icon: "🎨"
-    },
-    {
-      id: 4,
-      title: "Backend Engineer (Node.js)",
-      company: "ServerLogic",
-      salary: "₹11L-₹14L/year",
-      location: "Seattle, WA",
-      type: "Full-time",
-      icon: "⚙️"
-    },
-    {
-      id: 5,
-      title: "Product Manager",
-      company: "Visionary Solutions",
-      salary: "₹14L-₹17L/year",
-      location: "Remote-Europe",
-      type: "Full-time",
-      icon: "📋"
-    },
-    {
-      id: 6,
-      title: "DevOps Engineer",
-      company: "CloudWorks",
-      salary: "₹12.5L-₹15.5L/year",
-      location: "Austin, TX",
-      type: "Full-time",
-      icon: "☁️"
-    },
-    {
-      id: 7,
-      title: "Mobile App Developer",
-      company: "AppGenius",
-      salary: "₹10.5L-₹13.5L/year",
-      location: "Remote-Asia",
-      type: "Full-time",
-      icon: "📱"
-    },
-    {
-      id: 8,
-      title: "Cybersecurity Analyst",
-      company: "SecureNet",
-      salary: "₹9.5L-₹12L/year",
-      location: "Boston, MA",
-      type: "Full-time",
-      icon: "🔒"
-    }
-  ];
-
-  // Filtering logic
-  const filteredJobs = jobs.filter(job => {
-    const matchesLocation =
-      !filters.location ||
-      job.location.toLowerCase().includes(filters.location.toLowerCase());
-    const matchesSkills =
-      filters.skills.length === 0 ||
-      filters.skills.some(skill =>
-        job.title.toLowerCase().includes(skill.toLowerCase())
-      );
-    const matchesSalary =
-      !filters.salaryRange ||
-      job.salary.includes(filters.salaryRange.replace("₹", ""));
-    const matchesType =
-      !filters.jobType || job.type === filters.jobType || (filters.jobType === "Remote" && job.location.toLowerCase().includes("remote"));
-    return matchesLocation && matchesSkills && matchesSalary && matchesType;
-  });
-
-  // Pagination logic
-  const totalPages = Math.ceil(filteredJobs.length / jobsPerPage);
-  const paginatedJobs = filteredJobs.slice(
-    (currentPage - 1) * jobsPerPage,
-    currentPage * jobsPerPage
-  );
-
-  // Reset to page 1 when filters change
   useEffect(() => {
-    setCurrentPage(1);
-  }, [filters]);
+    const fetchJobs = async () => {
+      setLoading(true);
+      try {
+        const params = {
+          page: currentPage,
+          limit: jobsPerPage,
+          search: query.get("search") || "",
+          location: query.get("location") || filters.location,
+          skills: filters.skills.join(","),
+          salaryRange: filters.salaryRange,
+          jobType: filters.jobType,
+        };
+        const response = await jobService.getAllJobs(params);
+        setJobs(response.data.jobs);
+        setTotalPages(response.data.totalPages);
+      } catch (err) {
+        setError("Failed to fetch jobs. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchJobs();
+  }, [currentPage, filters, query]);
 
   const handleSkillToggle = (skill) => {
     setFilters(prev => ({
@@ -224,12 +155,14 @@ const JobListings = () => {
           <div className={styles.jobsSection}>
             <h2>Jobs Available</h2>
             <div className={styles.jobsColumn}>
-              {paginatedJobs.length === 0 && (
+              {loading && <div className={styles.loading}>Loading...</div>}
+              {error && <div className={styles.error}>{error}</div>}
+              {!loading && !error && jobs.length === 0 && (
                 <div className={styles.noJobs}>No jobs found matching your criteria.</div>
               )}
-              {paginatedJobs.map(job => (
+              {!loading && !error && jobs.map(job => (
                 <div key={job.id} className={styles.jobCard}>
-                  <div className={styles.jobIcon}>{job.icon}</div>
+                  <div className={styles.jobIcon}>💻</div>
                   <div className={styles.jobType}>{job.type}</div>
                   <div className={styles.jobHeader}>
                   <h3>{job.title}</h3>

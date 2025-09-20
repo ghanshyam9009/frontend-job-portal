@@ -1,7 +1,7 @@
 // API Configuration
 const API_CONFIG = {
   development: {
-    baseURL: 'http://localhost:5000/api',
+    baseURL: '/api',
     timeout: 10000
   },
   production: {
@@ -22,7 +22,8 @@ export const API_ENDPOINTS = {
   // Authentication 
   auth: {
     login: '/auth/login',
-    register: 'students/register',
+    register: '/students/register',
+    recruiterRegister: '/recruiters/register',
     logout: '/auth/logout',
     refresh: '/auth/refresh',
     forgotPassword: '/auth/forgot-password',
