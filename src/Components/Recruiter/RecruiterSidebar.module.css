@@ -1,0 +1,184 @@
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: -250px;
+  width: 250px;
+  height: 100%;
+  background: #fff;
+  border-right: 1px solid #e2e8f0;
+  transition: left 0.3s ease;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar.open {
+  left: 0;
+}
+
+.darkMode {
+  background: #1a202c;
+  border-right-color: #2d3748;
+  color: #e2e8f0;
+}
+
+.closeButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.nav {
+  flex-grow: 1;
+  padding-top: 60px;
+}
+
+.navList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.navItem {
+  margin-bottom: 4px;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  padding: 12px 24px;
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  color: #4a5568;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+
+.navLink:hover {
+  background: #f8fafc;
+  color: #1e40af;
+}
+
+.navLink.active {
+  background: #eef2ff;
+  color: #1e40af;
+  font-weight: 600;
+  border-left-color: #3b82f6;
+}
+
+.darkMode .navLink {
+  color: #a0aec0;
+}
+
+.darkMode .navLink:hover {
+  background: #2d3748;
+  color: #fff;
+}
+
+.darkMode .navLink.active {
+  background: #2d3748;
+  color: #fff;
+  border-left-color: #6366f1;
+}
+
+.navIcon {
+  margin-right: 16px;
+  font-size: 18px;
+  width: 20px;
+  text-align: center;
+}
+
+.navLabel {
+  flex-grow: 1;
+}
+
+.notificationCount {
+  background: #ef4444;
+  color: white;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.userCard {
+  padding: 24px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.darkMode .userCard {
+  border-top-color: #2d3748;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+}
+
+.userAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #10b981;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  margin-right: 12px;
+}
+
+.userDetails {
+  line-height: 1.4;
+}
+
+.userName {
+  font-weight: 600;
+  color: #111827;
+}
+
+.darkMode .userName {
+  color: #fff;
+}
+
+.userEmail {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.darkMode .userEmail {
+  color: #a0aec0;
+}
+
+/* Mobile overlay for sidebar */
+.mobileOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1099;
+}
+
+/* Desktop: show sidebar always */
+@media (min-width: 769px) {
+  .sidebar {
+    left: 0;
+  }
+  .mobileOverlay {
+    display: none;
+  }
+  .closeButton {
+    display: none;
+  }
+}

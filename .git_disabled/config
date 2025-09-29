@@ -1,0 +1,53 @@
+[core]
+	repositoryformatversion = 0
+	filemode = false
+	bare = false
+	logallrefupdates = true
+	symlinks = false
+	ignorecase = true
+[remote "origin"]
+	url = https://github.com/ghanshyam9009/frontend-job-portal.git
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "Development"]
+	remote = origin
+	merge = refs/heads/Development
+	vscode-merge-base = origin/Development
+[branch "Test"]
+	remote = origin
+	merge = refs/heads/Test
+	vscode-merge-base = origin/Test
+[branch "Production"]
+	remote = origin
+	merge = refs/heads/Production
+	vscode-merge-base = origin/Production
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
+	github-pr-owner-number = "ghanshyam9009#frontend-job-portal#1"
