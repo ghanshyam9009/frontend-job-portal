@@ -3,6 +3,8 @@ import styles from "../Styles/Membership.module.css";
 import HomeNav from "../Components/HomeNav";
 import { CheckCircle } from 'lucide-react';
 
+
+
 const candidatePlans = [
   {
     name: "Platinum",
