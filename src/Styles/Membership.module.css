@@ -22,11 +22,26 @@
 }
 
 .plansContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section {
+  margin-bottom: 60px;
+}
+
+.sectionTitle {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+.planGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 40px;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 
 .planCard {
@@ -36,6 +51,7 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
   text-align: center;
   transition: all 0.3s ease;
+  position: relative;
 }
 
 .planCard:hover {
@@ -44,35 +60,23 @@
 }
 
 .planTitle {
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   font-weight: 600;
   color: #1f2937;
   margin-bottom: 20px;
 }
 
 .planPrice {
-  font-size: 3rem;
+  font-size: 2.5rem;
   font-weight: 700;
   color: #667eea;
+  margin-bottom: 10px;
+}
+
+.planDuration {
+  font-size: 1rem;
+  color: #6b7280;
   margin-bottom: 30px;
-}
-
-.planPrice span {
-  font-size: 1rem;
-  font-weight: 400;
-  color: #6b7280;
-}
-
-.planFeatures {
-  list-style: none;
-  padding: 0;
-  margin-bottom: 40px;
-}
-
-.planFeatures li {
-  font-size: 1rem;
-  color: #6b7280;
-  margin-bottom: 15px;
 }
 
 .planButton {
@@ -97,4 +101,68 @@
 
 .platinum {
   border-top: 4px solid #7c3aed;
+}
+
+.silver {
+  border-top: 4px solid #c0c0c0;
+}
+
+.featuresList {
+  list-style: none;
+  padding: 0;
+  margin: 30px 0;
+  text-align: left;
+}
+
+.featuresList li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  color: #4b5563;
+}
+
+.recommended {
+  border: 2px solid #667eea;
+}
+
+.recommendedBadge {
+  position: absolute;
+  top: -15px;
+  right: 20px;
+  background: #667eea;
+  color: white;
+  padding: 5px 15px;
+  border-radius: 50px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.faqSection {
+  margin-top: 80px;
+}
+
+.faqContainer {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.faqItem {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.faqQuestion {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 10px;
+}
+
+.faqAnswer {
+  color: #6b7280;
+  line-height: 1.6;
 }

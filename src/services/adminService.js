@@ -14,7 +14,7 @@ export const adminService = {
   async login(email, password) {
     try {
       const response = await apiClient.post(API_ENDPOINTS.admin.login, { email, password });
-      return response;T
+      return response;
     } catch (error) {
       throw error;
     }

@@ -16,6 +16,8 @@ import AppliedJobs from './Pages/Candidate/AppliedJobs'
 import ProfileManagement from './Pages/Candidate/ProfileManagement'
 import Settings from './Pages/Candidate/Settings'
 import Membership from './Pages/Membership'
+import CandidateMembership from './Pages/Candidate/CandidateMembership'
+import RecruiterMembership from './Pages/Recruiter/RecruiterMembership'
 import Messages from './Pages/Candidate/Messages'
 import CandidateLayout from './Components/Candidate/CandidateLayout'
 import RecruiterLogin from './Pages/Recruiter/RecruiterLogin'
@@ -44,6 +46,7 @@ import ContactForms from './Pages/Admin/ContactForms'
 import GovernmentJobsManagement from './Pages/Admin/GovernmentJobsManagement'
 import JobApplications from './Pages/Admin/JobApplications'
 import ResetPassword from './Pages/Auth/ResetPassword'
+import CareerServices from './Pages/CareerServices'
 
 function App() {
   return (
@@ -57,6 +60,9 @@ function App() {
           <Route path="/about" element={<AboutUs />} />
           <Route path="/contact" element={<ContactUs />} />
           <Route path="/membership" element={<Membership />} />
+          <Route path="/career-services" element={<CareerServices />} />
+          <Route path="/candidate-membership" element={<CandidateMembership />} />
+          <Route path="/recruiter-membership" element={<RecruiterMembership />} />
           <Route path="/candidate/login" element={<CandidateLogin />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 

@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useMemo } from "react";
 import styles from "./JobListings.module.css";
 import HomeNav from "../Components/HomeNav";
-import { jobService } from "../services";
-
-const useQuery = () => {
-  return new URLSearchParams(useLocation().search);
-};
+import { candidateExternalService } from "../services";
 
 const JobListings = () => {
   const navigate = useNavigate();
-  const query = useQuery();
+  const locationHook = useLocation();
+  const querySearch = useMemo(() => {
+    const params = new URLSearchParams(locationHook.search);
+    return params.get("search") || "";
+  }, [locationHook.search]);
+  const queryLocation = useMemo(() => {
+    const params = new URLSearchParams(locationHook.search);
+    return params.get("location") || "";
+  }, [locationHook.search]);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,17 +36,29 @@ const JobListings = () => {
       setLoading(true);
       try {
         const params = {
-          page: currentPage,
-          limit: jobsPerPage,
-          search: query.get("search") || "",
-          location: query.get("location") || filters.location,
-          skills: filters.skills.join(","),
-          salaryRange: filters.salaryRange,
-          jobType: filters.jobType,
+          keyword: querySearch || "",
+          location: queryLocation || filters.location,
+          employment_type: filters.jobType || undefined,
+          // skills, salaryRange not supported explicitly; pass keyword for broad search
         };
-        const response = await jobService.getAllJobs(params);
-        setJobs(response.data.jobs);
-        setTotalPages(response.data.totalPages);
+        const data = Object.values(params).some(Boolean)
+          ? await candidateExternalService.getFilteredJobs(params)
+          : await candidateExternalService.getAllJobs();
+
+        const allJobs = (data?.jobs || []).map((j, idx) => ({
+          id: j.job_id || idx,
+          title: j.job_title,
+          company: j.company_name || "",
+          salary: j.salary_range ? `₹${j.salary_range.min} - ₹${j.salary_range.max}` : "",
+          location: j.location || "",
+          type: j.employment_type || "Full-time",
+        }));
+
+        // client-side paginate since API shape varies
+        const start = (currentPage - 1) * jobsPerPage;
+        const paged = allJobs.slice(start, start + jobsPerPage);
+        setJobs(paged);
+        setTotalPages(Math.max(1, Math.ceil(allJobs.length / jobsPerPage)));
       } catch (err) {
         setError("Failed to fetch jobs. Please try again later.");
       } finally {
@@ -50,7 +67,7 @@ const JobListings = () => {
     };
 
     fetchJobs();
-  }, [currentPage, filters, query]);
+  }, [currentPage, filters, querySearch, queryLocation]);
 
   const handleSkillToggle = (skill) => {
     setFilters(prev => ({

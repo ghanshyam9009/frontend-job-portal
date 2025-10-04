@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import styles from "../../Styles/CandidateNavbar.module.css";
 
-import logo from "../../assets/logo2.png";
+import logo from "../../assets/favicon-icon.png";
 
 const CandidateNavbar = ({ toggleSidebar }) => {
   const navigate = useNavigate();
@@ -27,6 +27,7 @@ const CandidateNavbar = ({ toggleSidebar }) => {
         </button>
         <div className={styles.logo}>
           <img src={logo} alt="JobPortal Logo" />
+          <span>Bigsources Manpower Solution</span>
         </div>
         <div className={styles.searchContainer}>
           <input 

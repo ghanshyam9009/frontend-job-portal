@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { adminService } from "../../services/adminService";
+import { adminExternalService } from "../../services";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const GovernmentJobsManagement = () => {
@@ -12,6 +13,8 @@ const GovernmentJobsManagement = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
   const jobsPerPage = 10;
+  const [approvalTaskId, setApprovalTaskId] = useState("");
+  const [approving, setApproving] = useState(false);
 
   // Form state for adding/editing jobs
   const [formData, setFormData] = useState({
@@ -160,6 +163,33 @@ const GovernmentJobsManagement = () => {
     }
   };
 
+  // Admin approval actions via external endpoints
+  const approveAction = async (action) => {
+    if (!approvalTaskId) {
+      alert('Enter task_id first');
+      return;
+    }
+    try {
+      setApproving(true);
+      if (action === 'post') {
+        await adminExternalService.approveJobPosting(approvalTaskId);
+        alert('Job posting approved');
+      } else if (action === 'edit') {
+        await adminExternalService.approveEditedJob(approvalTaskId);
+        alert('Job edit approved');
+      } else if (action === 'close') {
+        await adminExternalService.approveJobClosing(approvalTaskId);
+        alert('Job closing approved');
+      }
+      setApprovalTaskId("");
+    } catch (e) {
+      console.error(e);
+      alert('Approval failed');
+    } finally {
+      setApproving(false);
+    }
+  };
+
   // Pagination
   const totalPages = Math.ceil(filteredJobs.length / jobsPerPage);
   const startIndex = (currentPage - 1) * jobsPerPage;
@@ -182,6 +212,24 @@ const GovernmentJobsManagement = () => {
       <div className={styles.contentHeader}>
         <h1 className={styles.pageTitle}>Government Jobs Management</h1>
         <p className={styles.pageSubtitle}>Create and manage government job postings</p>
+      </div>
+
+      {/* Admin Approval Panel */}
+      <div className={styles.filtersContainer}>
+        <div className={styles.searchBox}>
+          <input
+            type="text"
+            placeholder="Enter approval task_id"
+            value={approvalTaskId}
+            onChange={(e) => setApprovalTaskId(e.target.value)}
+            className={styles.searchInput}
+          />
+        </div>
+        <div className={styles.filterButtons}>
+          <button className={styles.saveBtn} disabled={approving} onClick={() => approveAction('post')}>Approve Posting</button>
+          <button className={styles.saveBtn} disabled={approving} onClick={() => approveAction('edit')}>Approve Edit</button>
+          <button className={styles.rejectBtn} disabled={approving} onClick={() => approveAction('close')}>Approve Closing</button>
+        </div>
       </div>
 
       {/* Filters and Search */}
@@ -455,5 +503,6 @@ const GovernmentJobsManagement = () => {
 };
 
 export default GovernmentJobsManagement;
+
 
 

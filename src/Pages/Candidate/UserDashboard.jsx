@@ -15,7 +15,7 @@ const UserDashboard = () => {
     <div className={styles.dashboardContainer}>
       <CandidateNavbar toggleSidebar={toggleSidebar} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
       <CandidateSidebar darkMode={darkMode} isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
-      <main className={styles.main}>
+      <main className={styles.main} style={{ marginLeft: "0px" }}>
       <section className={styles.kpis}>
         <div className={styles.kpiCard}>
           <div className={styles.kpiHeader}>Saved Jobs</div>

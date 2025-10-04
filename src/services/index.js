@@ -22,4 +22,14 @@ export { default as statsService } from './statsService';
 // Re-export API configuration
 export { API_BASE_URL, API_TIMEOUT, API_ENDPOINTS } from '../config/api';
 
+// External recruiter AWS endpoints
+export { default as recruiterExternalService } from './recruiterExternalService';
+
+// External admin AWS approval endpoints
+export { default as adminExternalService } from './adminExternalService';
+
+// External candidate AWS endpoints
+export { default as candidateExternalService } from './candidateExternalService';
+
+
 

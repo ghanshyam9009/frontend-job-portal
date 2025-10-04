@@ -1195,3 +1195,264 @@ img {
   max-width: 100%;
   height: auto;
 }
+
+/* Employer CTA Section */
+.employerSection {
+    background: linear-gradient(135deg, #ffffff 0%, #c2dbff 100%); 
+    padding: 3rem 0;
+    border-top: 1px solid #e5e7eb;
+}
+
+.employerContainer {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  text-align: center;
+}
+
+.employerTitle {
+    color: #080808;
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.employerButtons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.employerButton {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.05s ease;
+}
+
+.employerButton:hover {
+  background: #1d4ed8;
+}
+
+.employerButton:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 480px) {
+  .employerTitle {
+    font-size: 1.5rem;
+  }
+
+  .employerButtons {
+    gap: 0.75rem;
+  }
+
+  .employerButton {
+    width: 100%;
+  }
+}
+
+/* Steps Section */
+.stepsSection {
+  padding: 4rem 0;
+  background: #ffffff;
+}
+
+.stepsContainer {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  text-align: center;
+}
+
+.stepsTitle {
+  font-size: 2.25rem;
+  font-weight: bold;
+  color: #111827;
+  margin-bottom: 3rem;
+  position: relative;
+  display: inline-block;
+}
+
+.stepsTitle::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  width: 50%;
+  height: 4px;
+  background-color: #2563eb;
+}
+
+.stepsGrid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+@media (min-width: 768px) {
+  .stepsGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.stepCard {
+  padding: 2rem;
+  border-radius: 0.75rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stepCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.05);
+}
+
+.stepIconContainer {
+  position: relative;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.stepNumber {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-120%);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #2563eb;
+  color: white;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.stepIcon {
+  width: 50px;
+  height: 50px;
+  color: #2563eb;
+}
+
+.stepTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.stepDescription {
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.stepsButton {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-size: 1rem;
+}
+
+.stepsButton:hover {
+  background: #1d4ed8;
+}
+
+/* Popular Searches Section */
+.popularSearchesSection {
+  padding: 1rem 0;
+  background-color: #ffffff;
+}
+
+.popularSearchesContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.popularSearchesTitle {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 3rem;
+}
+
+.popularSearchesGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .popularSearchesGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.searchCard {
+  background-color: #f9fafb;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: box-shadow 0.3s ease;
+  border: 1px solid #e5e7eb;
+}
+
+.searchCard:hover {
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.07);
+}
+
+.searchCardContent {
+  flex-grow: 1;
+}
+
+.searchCardTrend {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+  display: block;
+  text-transform: uppercase;
+}
+
+.searchCardTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 1rem;
+}
+
+.searchCardLink {
+  font-weight: 600;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.searchCardImage {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 0.5rem;
+}

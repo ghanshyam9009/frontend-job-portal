@@ -22,42 +22,20 @@ const MembershipTokens = () => {
       <RecruiterSidebar darkMode={darkMode} isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       <main className={styles.main}>
         <div className={styles.header}>
-          <h1 className={styles.title}>Membership Plans</h1>
-          <p className={styles.subtitle}>Choose the plan that's right for you</p>
+          <h1 className={styles.title}>Membership Options</h1>
+          <p className={styles.subtitle}>Choose the plan that's right for you, or pay per post.</p>
         </div>
         <div className={styles.plansContainer}>
           <div className={`${styles.planCard} ${styles.silver}`}>
-            <h2 className={styles.planTitle}>Silver</h2>
-            <p className={styles.planPrice}>₹29<span>/month</span></p>
+            <h2 className={styles.planTitle}>Pay Per Post</h2>
+            <p className={styles.planPrice}>₹300<span>/post</span></p>
             <ul className={styles.planFeatures}>
-              <li>10 Job Posts per Month</li>
-              <li>Access to Candidate Database</li>
+              <li>Single Job Post</li>
+              <li>Post is live for 30 days</li>
               <li>Basic Company Profile</li>
               <li>Email Support</li>
             </ul>
-            <button className={styles.planButton}>Choose Plan</button>
-          </div>
-          <div className={`${styles.planCard} ${styles.gold}`}>
-            <h2 className={styles.planTitle}>Gold</h2>
-            <p className={styles.planPrice}>₹59<span>/month</span></p>
-            <ul className={styles.planFeatures}>
-              <li>50 Job Posts per Month</li>
-              <li>Advanced Candidate Search</li>
-              <li>Featured Company Profile</li>
-              <li>Priority Email Support</li>
-            </ul>
-            <button className={styles.planButton}>Choose Plan</button>
-          </div>
-          <div className={`${styles.planCard} ${styles.platinum}`}>
-            <h2 className={styles.planTitle}>Platinum</h2>
-            <p className={styles.planPrice}>₹99<span>/month</span></p>
-            <ul className={styles.planFeatures}>
-              <li>Unlimited Job Posts</li>
-              <li>Full Access to Candidate Database</li>
-              <li>Premium Company Branding</li>
-              <li>24/7 Phone & Email Support</li>
-            </ul>
-            <button className={styles.planButton}>Choose Plan</button>
+            <button className={styles.planButton}>Purchase</button>
           </div>
         </div>
       </main>

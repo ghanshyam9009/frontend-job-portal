@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import styles from "./HomeNav.module.css";
-import logo from "../assets/logo2.png";
+import logo from "../assets/favicon-icon.png";
 
 const HomeNav = () => {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -68,6 +68,7 @@ const HomeNav = () => {
       <div className={styles.navContainer}>
         <div className={styles.logo}>
           <img src={logo} alt="JobPortal Logo" />
+          <span>Bigsources Manpower Solution</span>
         </div>
 
         {/* Desktop Navigation */}
@@ -101,10 +102,7 @@ const HomeNav = () => {
             </a>
           </li>
           <li>
-            <a
-              href="/membership"
-              className={isActive("/membership") ? styles.active : ""}
-            >
+            <a href="/membership" className={isActive("/membership") ? styles.active : ""}>
               Membership
             </a>
           </li>
@@ -121,7 +119,7 @@ const HomeNav = () => {
             </a>
             {showCareerDropdown && (
               <div className={styles.dropdownContent}>
-                <a href="#">Job Seeker Services</a>
+                <a href="/career-services">Job Seeker Services</a>
                 <a href="#">Fast Track Career</a>
                 <a href="#">Premium Seeker</a>
               </div>

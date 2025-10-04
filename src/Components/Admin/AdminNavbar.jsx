@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import styles from "../../Styles/AdminNavbar.module.css";
-import logo from "../../assets/logo2.png";
+import logo from "../../assets/favicon-icon.png";
 
 const AdminNavbar = ({ onLogout, onMobileMenuToggle }) => {
   const navigate = useNavigate();
@@ -33,6 +33,7 @@ const AdminNavbar = ({ onLogout, onMobileMenuToggle }) => {
         </button>
            <div className={styles.logo}>
                          <img src={logo} alt="JobPortal Logo" />
+                         <span>Bigsources Manpower Solution</span>
                        </div>
         <div className={styles.searchContainer}>
           <input 

@@ -1,60 +1,46 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
 import styles from "./UserDashboard.module.css";
+import { candidateExternalService } from "../../services";
 
 const AppliedJobs = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [darkMode, setDarkMode] = useState(false);
-  const [appliedJobs, setAppliedJobs] = useState([
-    {
-      id: 1,
-      title: "Senior Frontend Developer",
-      company: "TechCorp",
-      salary: "₹12L - ₹15L / year",
-      location: "Remote · Worldwide",
-      type: "Full-time",
-      appliedDate: "2024-01-15",
-      status: "Under Review",
-      applicationId: "APP-001"
-    },
-    {
-      id: 2,
-      title: "Data Scientist",
-      company: "DataFlow Inc",
-      salary: "₹13L - ₹16L / year",
-      location: "San Francisco, CA",
-      type: "Full-time",
-      appliedDate: "2024-01-14",
-      status: "Interview Scheduled",
-      applicationId: "APP-002",
-      interviewDate: "2024-01-25"
-    },
-    {
-      id: 3,
-      title: "UX Designer",
-      company: "DesignStudio",
-      salary: "₹9L - ₹11L / year",
-      location: "New York, NY",
-      type: "Full-time",
-      appliedDate: "2024-01-13",
-      status: "Rejected",
-      applicationId: "APP-003"
-    },
-    {
-      id: 4,
-      title: "Product Manager",
-      company: "InnovateCorp",
-      salary: "₹14L - ₹17L / year",
-      location: "Seattle, WA",
-      type: "Full-time",
-      appliedDate: "2024-01-12",
-      status: "Offer Received",
-      applicationId: "APP-004"
-    }
-  ]);
+  const [appliedJobs, setAppliedJobs] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const userId = user?.user_id || user?.id || '';
+    if (!userId) return;
+    const fetchApplied = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const data = await candidateExternalService.getAppliedJobs(userId);
+        const mapped = (data?.applications || data?.jobs || []).map((a, idx) => ({
+          id: a.job_id || idx,
+          title: a.job_title || a.title || '',
+          company: a.company_name || '',
+          salary: a.salary_range ? `₹${a.salary_range.min} - ₹${a.salary_range.max}` : '',
+          location: a.location || '',
+          type: a.employment_type || '',
+          appliedDate: a.created_at ? a.created_at.split('T')[0] : '',
+          status: a.status || 'Under Review',
+          applicationId: a.application_id || ''
+        }));
+        setAppliedJobs(mapped);
+      } catch (e) {
+        setError(typeof e === 'string' ? e : e?.message || 'Failed to load applied jobs');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchApplied();
+  }, [user]);
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
@@ -96,6 +82,16 @@ const AppliedJobs = () => {
     }
   };
 
+  const handleTrack = async (applicationId) => {
+    try {
+      if (!applicationId) return alert('No application ID');
+      const data = await candidateExternalService.getApplicationStatus(applicationId);
+      alert(`Status: ${data?.status || 'Unknown'}${data?.message ? `\n${data.message}` : ''}`);
+    } catch (e) {
+      alert('Failed to fetch status');
+    }
+  };
+
   return (
     <div className={styles.dashboardContainer}>
       <CandidateNavbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
@@ -106,6 +102,12 @@ const AppliedJobs = () => {
             <p>Track the status of your job applications</p>
           </div>
           
+          {loading && (
+            <div className={styles.emptyState}><h3>Loading applications…</h3></div>
+          )}
+          {error && (
+            <div className={styles.emptyState}><h3>{error}</h3></div>
+          )}
           {appliedJobs.length === 0 ? (
             <div className={styles.emptyState}>
               <div className={styles.emptyIcon}>📋</div>
@@ -152,7 +154,7 @@ const AppliedJobs = () => {
                     </button>
                     <button 
                       className={styles.trackBtn}
-                      onClick={() => alert(`Tracking application ${job.applicationId}`)}
+                      onClick={() => handleTrack(job.applicationId)}
                     >
                       Track Application
                     </button>

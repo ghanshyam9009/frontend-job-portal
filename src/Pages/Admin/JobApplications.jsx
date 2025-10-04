@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { adminService } from "../../services/adminService";
+import { adminExternalService } from "../../services";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const JobApplications = () => {
@@ -78,6 +79,15 @@ const JobApplications = () => {
   const handleApprove = async (applicationId) => {
     try {
       await adminService.approveApplication(applicationId);
+      // If application has an external task_id, call production approval endpoint
+      const app = applications.find(a => a.id === applicationId);
+      if (app?.task_id) {
+        try {
+          await adminExternalService.approveApplicationStatusChanged(app.task_id);
+        } catch (e) {
+          console.error('External approval failed:', e);
+        }
+      }
       setApplications(applications.map(app => 
         app.id === applicationId ? { ...app, status: 'approved' } : app
       ));
@@ -411,5 +421,6 @@ const JobApplications = () => {
 };
 
 export default JobApplications;
+
 
 
