@@ -41,6 +41,79 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/ext\/jobstatus/, '/default/getjobstatus'),
       },
+      '/Recruiter': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/students': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+        secure: false,
+      },
+      // Admin External Services
+      '/ext/admin/edit': {
+        target: 'https://pxp7c1q6w0.execute-api.ap-southeast-1.amazonaws.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/ext\/admin\/edit/, ''),
+      },
+      '/ext/admin/close': {
+        target: 'https://4ua54ajyt2.execute-api.ap-southeast-1.amazonaws.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/ext\/admin\/close/, ''),
+      },
+      '/ext/admin/post': {
+        target: 'https://dpe8786t44.execute-api.ap-southeast-1.amazonaws.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/ext\/admin\/post/, ''),
+      },
+      '/ext/admin/app-approve': {
+        target: 'https://w6j19ipnk8.execute-api.ap-southeast-1.amazonaws.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/ext\/admin\/app-approve/, ''),
+      },
+      '/ext/admin/app-status': {
+        target: 'https://xnaf1mh5p2.execute-api.ap-southeast-1.amazonaws.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/ext\/admin\/app-status/, ''),
+      },
+      // Recruiter External Services
+      '/ext/recruiter/jobs': {
+        target: 'https://3lfruhyo2j.execute-api.ap-southeast-1.amazonaws.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/ext\/recruiter\/jobs/, ''),
+      },
+      '/ext/recruiter/applicants': {
+        target: 'https://fab65y8p6d.execute-api.ap-southeast-1.amazonaws.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/ext\/recruiter\/applicants/, ''),
+      },
+      '/ext/recruiter/actions': {
+        target: 'https://qghn0cpfqj.execute-api.ap-southeast-1.amazonaws.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/ext\/recruiter\/actions/, ''),
+      },
+      '/ext/recruiter/job-close': {
+        target: 'https://wxxi8h89m5.execute-api.ap-southeast-1.amazonaws.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/ext\/recruiter\/job-close/, ''),
+      },
+      // Candidate External Services (Bookmark)
+      '/ext/candidate/bookmark': {
+        target: 'https://jslq70120m.execute-api.ap-southeast-1.amazonaws.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/ext\/candidate\/bookmark/, ''),
+      },
     },
   },
 })

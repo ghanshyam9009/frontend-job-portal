@@ -11,35 +11,45 @@ const ADMIN_APPLICATION_STATUS_BASE = (typeof import.meta !== 'undefined' && imp
 export const adminExternalService = {
   // Approve edited job (fulfill edit task)
   async approveEditedJob(taskId) {
-    const url = `${ADMIN_EDIT_BASE}/default/approvededitjobs`;
+    const url = (import.meta.env?.DEV)
+      ? `/ext/admin/edit/default/approvededitjobs`
+      : `${ADMIN_EDIT_BASE}/default/approvededitjobs`;
     const { data } = await axios.get(url, { params: { task_id: taskId } });
     return data;
   },
 
   // Approve job closing
   async approveJobClosing(taskId) {
-    const url = `${ADMIN_CLOSE_BASE}/default/approvedjobclosing`;
+    const url = (import.meta.env?.DEV)
+      ? `/ext/admin/close/default/approvedjobclosing`
+      : `${ADMIN_CLOSE_BASE}/default/approvedjobclosing`;
     const { data } = await axios.get(url, { params: { task_id: taskId } });
     return data;
   },
 
   // Approve job posting
   async approveJobPosting(taskId) {
-    const url = `${ADMIN_POST_BASE}/default/approvedjobposting`;
+    const url = (import.meta.env?.DEV)
+      ? `/ext/admin/post/default/approvedjobposting`
+      : `${ADMIN_POST_BASE}/default/approvedjobposting`;
     const { data } = await axios.get(url, { params: { task_id: taskId } });
     return data;
   },
 
   // Approve job application by student (endpoint name contains a typo per spec)
   async approveJobApplicationByStudent(taskId) {
-    const url = `${ADMIN_APPLICATION_APPROVAL_BASE}/default/approvedjobapplicationbystudent`;
+    const url = (import.meta.env?.DEV)
+      ? `/ext/admin/app-approve/default/approvedjobapplicationbystudent`
+      : `${ADMIN_APPLICATION_APPROVAL_BASE}/default/approvedjobapplicationbystudent`;
     const { data } = await axios.get(url, { params: { task_id: taskId } });
     return data;
   },
 
   // Approve application status change
   async approveApplicationStatusChanged(taskId) {
-    const url = `${ADMIN_APPLICATION_STATUS_BASE}/default/approvedapplicationstatuschanged`;
+    const url = (import.meta.env?.DEV)
+      ? `/ext/admin/app-status/default/approvedapplicationstatuschanged`
+      : `${ADMIN_APPLICATION_STATUS_BASE}/default/approvedapplicationstatuschanged`;
     const { data } = await axios.get(url, { params: { task_id: taskId } });
     return data;
   }

@@ -9,30 +9,36 @@ const JOB_CLOSE_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.V
 
 export const recruiterExternalService = {
   async getAllPostedJobs(employerId) {
-    const url = `${JOBS_BASE}/default/getallpostjobs`;
+    const url = (import.meta.env?.DEV)
+      ? `/ext/recruiter/jobs/default/getallpostjobs`
+      : `${JOBS_BASE}/default/getallpostjobs`;
     const response = await axios.get(url, { params: { employer_id: employerId } });
     return response.data;
   },
 
   async getAllApplicants(jobId) {
-    const url = `${APPLICANTS_BASE}/default/getallappplicants`;
+    const url = (import.meta.env?.DEV)
+      ? `/ext/recruiter/applicants/default/getallappplicants`
+      : `${APPLICANTS_BASE}/default/getallappplicants`;
     const response = await axios.get(url, { params: { job_id: jobId } });
     return response.data;
   },
 
   async changeApplicationStatus(applicationId, statusBool) {
-    const url = `${ACTIONS_BASE}/default/changeapplicationstatus`;
+    const url = (import.meta.env?.DEV)
+      ? `/ext/recruiter/actions/default/changeapplicationstatus`
+      : `${ACTIONS_BASE}/default/changeapplicationstatus`;
     const response = await axios.get(url, { params: { application_id: applicationId, status_bool: statusBool ? 1 : 0 } });
     return response.data;
   },
   
   async closeJobOpening(jobId) {
-    const url = `${JOB_CLOSE_BASE}/default/closedjobopening`;
+    const url = (import.meta.env?.DEV)
+      ? `/ext/recruiter/job-close/default/closedjobopening`
+      : `${JOB_CLOSE_BASE}/default/closedjobopening`;
     const response = await axios.get(url, { params: { job_id: jobId } });
     return response.data;
   }
 };
 
 export default recruiterExternalService;
-
-

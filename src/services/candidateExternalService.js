@@ -31,7 +31,7 @@ export const candidateExternalService = {
   async bookmarkJob(payload) {
     // Expecting payload to contain necessary fields like { user_id, job_id }
     const url = (import.meta.env?.DEV)
-      ? `${CANDIDATE_BOOKMARK_BASE}/default/bookmarkjobs`
+      ? `/ext/candidate/bookmark/default/bookmarkjobs`
       : `${CANDIDATE_BOOKMARK_BASE}/default/bookmarkjobs`;
     const { data } = await axios.post(url, payload);
     return data;
@@ -66,5 +66,3 @@ export const candidateExternalService = {
 };
 
 export default candidateExternalService;
-
-
