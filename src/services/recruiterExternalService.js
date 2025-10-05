@@ -1,11 +1,11 @@
 // Recruiter External Service - AWS API Gateway endpoints provided
 import axios from 'axios';
 
-// Production URLs for external recruiter services
-const JOBS_URL = 'https://3lfruhyo2j.execute-api.ap-southeast-1.amazonaws.com/default/getallpostjobs';
-const APPLICANTS_URL = 'https://fab65y8p6d.execute-api.ap-southeast-1.amazonaws.com/default/getallappplicants';
-const ACTIONS_URL = 'https://qghn0cpfqj.execute-api.ap-southeast-1.amazonaws.com/default/changeapplicationstatus';
-const JOB_CLOSE_URL = 'https://wxxi8h89m5.execute-api.ap-southeast-1.amazonaws.com/default/closedjobopening';
+// Use environment variables for API URLs, with fallbacks for local development
+const JOBS_URL = import.meta.env.VITE_RECRUITER_JOBS_URL || 'https://3lfruhyo2j.execute-api.ap-southeast-1.amazonaws.com/default/getallpostjobs';
+const APPLICANTS_URL = import.meta.env.VITE_RECRUITER_APPLICANTS_URL || 'https://fab65y8p6d.execute-api.ap-southeast-1.amazonaws.com/default/getallappplicants';
+const ACTIONS_URL = import.meta.env.VITE_RECRUITER_ACTIONS_URL || 'https://qghn0cpfqj.execute-api.ap-southeast-1.amazonaws.com/default/changeapplicationstatus';
+const JOB_CLOSE_URL = import.meta.env.VITE_RECRUITER_JOB_CLOSE_URL || 'https://wxxi8h89m5.execute-api.ap-southeast-1.amazonaws.com/default/closedjobopening';
 
 export const recruiterExternalService = {
   async getAllPostedJobs(employerId) {

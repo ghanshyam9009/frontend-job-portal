@@ -1172,6 +1172,97 @@
   background: #f9fafb;
 }
 
+/* Plan Type Filter */
+.planTypeFilter {
+  display: flex;
+  gap: 10px;
+  background-color: #f3f4f6;
+  padding: 5px;
+  border-radius: 8px;
+}
+
+.planTypeFilter button {
+  padding: 8px 16px;
+  border: none;
+  background-color: transparent;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.planTypeFilter button:hover {
+  background-color: #e5e7eb;
+}
+
+.planTypeFilter .activeFilter {
+  background-color: #ffffff;
+  color: #3b82f6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.modalContent h2 {
+  margin: 0;
+  padding: 24px;
+  font-size: 20px;
+  color: #1f2937;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.formField {
+  margin-bottom: 16px;
+}
+
+.formField label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #374151;
+  font-size: 14px;
+}
+
+.formField input,
+.formField select,
+.formField textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.formField textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.deleteBtn {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.deleteBtn:hover {
+  background-color: #fecaca;
+}
+
+.submitBtn {
+  padding: 12px 24px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.submitBtn:hover {
+  background: #2563eb;
+}
+
 /* Application Details */
 .applicationDetails {
   display: flex;

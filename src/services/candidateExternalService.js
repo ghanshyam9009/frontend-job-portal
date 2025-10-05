@@ -1,13 +1,13 @@
 // Candidate External Service - AWS API Gateway endpoints for public/candidate flows
 import axios from 'axios';
 
-// Production URLs for external candidate services
-const CANDIDATE_JOBS_URL = 'https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs';
-const CANDIDATE_FILTERED_URL = 'https://1aiwecu37g.execute-api.ap-southeast-1.amazonaws.com/default/getallfilteredjobs';
-const CANDIDATE_BOOKMARK_URL = 'https://jslq70120m.execute-api.ap-southeast-1.amazonaws.com/default/bookmarkjobs';
-const CANDIDATE_GET_BOOKMARKS_URL = 'https://tojxfozsk2.execute-api.ap-southeast-1.amazonaws.com/default/getbookmarkedjobs';
-const CANDIDATE_APPLIED_URL = 'https://798vt2a100.execute-api.ap-southeast-1.amazonaws.com/default/getappliedjobs';
-const CANDIDATE_STATUS_URL = 'https://87lubscaj2.execute-api.ap-southeast-1.amazonaws.com/default/getjobstatus';
+// Use environment variables for API URLs, with fallbacks for local development
+const CANDIDATE_JOBS_URL = import.meta.env.VITE_CANDIDATE_JOBS_URL || 'https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs';
+const CANDIDATE_FILTERED_URL = import.meta.env.VITE_CANDIDATE_FILTERED_URL || 'https://1aiwecu37g.execute-api.ap-southeast-1.amazonaws.com/default/getallfilteredjobs';
+const CANDIDATE_BOOKMARK_URL = import.meta.env.VITE_CANDIDATE_BOOKMARK_URL || 'https://jslq70120m.execute-api.ap-southeast-1.amazonaws.com/default/bookmarkjobs';
+const CANDIDATE_GET_BOOKMARKS_URL = import.meta.env.VITE_CANDIDATE_GET_BOOKMARKS_URL || 'https://tojxfozsk2.execute-api.ap-southeast-1.amazonaws.com/default/getbookmarkedjobs';
+const CANDIDATE_APPLIED_URL = import.meta.env.VITE_CANDIDATE_APPLIED_URL || 'https://798vt2a100.execute-api.ap-southeast-1.amazonaws.com/default/getappliedjobs';
+const CANDIDATE_STATUS_URL = import.meta.env.VITE_CANDIDATE_STATUS_URL || 'https://87lubscaj2.execute-api.ap-southeast-1.amazonaws.com/default/getjobstatus';
 
 export const candidateExternalService = {
   // Get all jobs (public list)
