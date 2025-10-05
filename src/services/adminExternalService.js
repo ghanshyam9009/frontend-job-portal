@@ -32,7 +32,7 @@ export const adminExternalService = {
 
   // Approve job application by student (endpoint name contains a typo per spec)
   async approveJobApplicationByStudent(taskId) {
-    const url = `${ADMIN_APPLICATION_APPROVAL_BASE}/default/approcedjobapplicationbyatudent`;
+    const url = `${ADMIN_APPLICATION_APPROVAL_BASE}/default/approvedjobapplicationbystudent`;
     const { data } = await axios.get(url, { params: { task_id: taskId } });
     return data;
   },
@@ -46,5 +46,3 @@ export const adminExternalService = {
 };
 
 export default adminExternalService;
-
-

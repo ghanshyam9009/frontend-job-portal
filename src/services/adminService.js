@@ -50,49 +50,9 @@ export const adminService = {
   // Job Management Functions
   async getPendingJobs() {
     try {
-      // Mock data for now - replace with actual API call
-      const mockPendingJobs = [
-        {
-          id: 1,
-          title: 'Senior Software Engineer',
-          company_name: 'Tech Corp',
-          location: 'San Francisco, CA',
-          salary: '$120,000 - $150,000',
-          job_type: 'Full-time',
-          description: 'We are looking for a senior software engineer...',
-          requirements: '5+ years experience, React, Node.js',
-          posted_date: '2025-01-15',
-          status: 'pending'
-        },
-        {
-          id: 2,
-          title: 'Product Manager',
-          company_name: 'StartupXYZ',
-          location: 'New York, NY',
-          salary: '$100,000 - $130,000',
-          job_type: 'Full-time',
-          description: 'Lead product development initiatives...',
-          requirements: '3+ years PM experience, Agile methodology',
-          posted_date: '2025-01-14',
-          status: 'pending'
-        },
-        {
-          id: 3,
-          title: 'UX Designer',
-          company_name: 'Design Studio',
-          location: 'Remote',
-          salary: '$80,000 - $100,000',
-          job_type: 'Contract',
-          description: 'Create amazing user experiences...',
-          requirements: 'Portfolio required, Figma expertise',
-          posted_date: '2025-01-13',
-          status: 'pending'
-        }
-      ];
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return mockPendingJobs;
+      const response = await apiClient.get(API_ENDPOINTS.jobs.getAll);
+      // Assuming the response data is an array of jobs
+      return response.data.filter(job => job.status === 'pending');
     } catch (error) {
       throw error;
     }
@@ -100,9 +60,8 @@ export const adminService = {
 
   async approveJob(jobId) {
     try {
-      // Mock API call - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return { success: true, message: 'Job approved successfully' };
+      const response = await apiClient.put(API_ENDPOINTS.jobs.updateStatus(jobId), { status: 'approved' });
+      return response;
     } catch (error) {
       throw error;
     }
@@ -110,9 +69,8 @@ export const adminService = {
 
   async rejectJob(jobId) {
     try {
-      // Mock API call - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return { success: true, message: 'Job rejected successfully' };
+      const response = await apiClient.put(API_ENDPOINTS.jobs.updateStatus(jobId), { status: 'rejected' });
+      return response;
     } catch (error) {
       throw error;
     }
@@ -193,7 +151,7 @@ export const adminService = {
   // Government Jobs Management Functions
   async createGovernmentJob(jobData) {
     try {
-      const response = await apiClient.post('/api/job/Govtjobs', jobData);
+      const response = await apiClient.post('/job/Govtjobs', jobData);
       return response;
     } catch (error) {
       throw error;
@@ -202,7 +160,7 @@ export const adminService = {
 
   async updateGovernmentJob(jobId, jobData) {
     try {
-      const response = await apiClient.put(`/api/job/updateGovtjobs/${jobId}`, jobData);
+      const response = await apiClient.put(`/job/updateGovtjobs/${jobId}`, jobData);
       return response;
     } catch (error) {
       throw error;

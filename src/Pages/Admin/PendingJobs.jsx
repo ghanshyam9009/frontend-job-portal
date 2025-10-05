@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../services/adminService';
+import { adminExternalService } from '../../services';
 import styles from '../../Styles/AdminDashboard.module.css';
 
 const PendingJobs = () => {
@@ -25,20 +26,10 @@ const PendingJobs = () => {
 
   const handleApprove = async (jobId) => {
     try {
-      await adminService.approveJob(jobId);
+      await adminExternalService.approveJobPosting(jobId);
       setPendingJobs(pendingJobs.filter(job => job.id !== jobId));
     } catch (err) {
       setError('Failed to approve job.');
-      console.error(err);
-    }
-  };
-
-  const handleReject = async (jobId) => {
-    try {
-      await adminService.rejectJob(jobId);
-      setPendingJobs(pendingJobs.filter(job => job.id !== jobId));
-    } catch (err) {
-      setError('Failed to reject job.');
       console.error(err);
     }
   };
@@ -121,13 +112,6 @@ const PendingJobs = () => {
                         title="Approve Job"
                       >
                         ✅
-                      </button>
-                      <button 
-                        onClick={() => handleReject(job.id)} 
-                        className={`${styles.actionBtn} ${styles.rejectBtn}`}
-                        title="Reject Job"
-                      >
-                        ❌
                       </button>
                       <button 
                         className={`${styles.actionBtn} ${styles.viewBtn}`}

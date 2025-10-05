@@ -32,7 +32,8 @@ const UserJobListings = () => {
         setLoading(true);
         setError("");
         const data = await candidateExternalService.getAllJobs();
-        const mapped = (data?.jobs || []).map((j, idx) => ({
+        const jobsData = Array.isArray(data) ? data : data?.jobs || [];
+        const mapped = jobsData.map((j, idx) => ({
           id: j.job_id || idx,
           title: j.job_title,
           company: j.company_name || "",
@@ -65,7 +66,8 @@ const UserJobListings = () => {
         employment_type: filters.employment_type || undefined
       };
       const data = await candidateExternalService.getFilteredJobs(params);
-      const mapped = (data?.jobs || []).map((j, idx) => ({
+      const jobsData = Array.isArray(data) ? data : data?.jobs || [];
+      const mapped = jobsData.map((j, idx) => ({
         id: j.job_id || idx,
         title: j.job_title,
         company: j.company_name || "",

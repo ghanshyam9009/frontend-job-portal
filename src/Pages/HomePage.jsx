@@ -90,7 +90,8 @@ const Homepage = () => {
     const fetchFeaturedJobs = async () => {
       try {
         const data = await candidateExternalService.getAllJobs();
-        const mapped = (data?.jobs || []).slice(0, 5).map((j, idx) => ({
+        const jobs = Array.isArray(data) ? data : data?.jobs || [];
+        const mapped = jobs.slice(0, 5).map((j, idx) => ({
           id: j.job_id || idx,
           title: j.job_title,
           company_name: j.company_name || "",

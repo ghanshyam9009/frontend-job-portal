@@ -45,7 +45,8 @@ const JobListings = () => {
           ? await candidateExternalService.getFilteredJobs(params)
           : await candidateExternalService.getAllJobs();
 
-        const allJobs = (data?.jobs || []).map((j, idx) => ({
+        const jobsData = Array.isArray(data) ? data : data?.jobs || [];
+        const allJobs = jobsData.map((j, idx) => ({
           id: j.job_id || idx,
           title: j.job_title,
           company: j.company_name || "",
