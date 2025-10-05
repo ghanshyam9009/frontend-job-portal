@@ -11,6 +11,7 @@ const CANDIDATE_STATUS_URL = 'https://87lubscaj2.execute-api.ap-southeast-1.amaz
 
 export const candidateExternalService = {
   // Get all jobs (public list)
+
   async getAllJobs() {
     const { data } = await axios.get(CANDIDATE_JOBS_URL);
     return data;
