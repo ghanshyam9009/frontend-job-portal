@@ -1,10 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../Contexts/AuthContext";
+import { applicationService } from "../services/applicationService";
 import HomeNav from "../Components/HomeNav";
 import styles from "./Jobdescription.module.css";
 
 const Jobdescription = () => {
+  const [isApplying, setIsApplying] = useState(false);
+  const [applicationError, setApplicationError] = useState("");
+  const [applicationSuccess, setApplicationSuccess] = useState("");
   const { slug } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -12,7 +16,7 @@ const Jobdescription = () => {
   const job = location.state?.job;
   const derivedTitle = job?.title || (slug ? slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Job");
 
-  const handleApplyClick = () => {
+  const handleApplyClick = async () => {
     if (!isAuthenticated) {
       alert("Please login first to apply for this job");
       navigate('/candidate/login');
@@ -26,9 +30,27 @@ const Jobdescription = () => {
       return;
     }
     
-    // If has membership, proceed with application
-    alert("Application submitted successfully!");
-    // Here you would typically handle the actual application logic
+    setIsApplying(true);
+    setApplicationError("");
+    setApplicationSuccess("");
+
+    try {
+      const applicationData = {
+        student_id: user.id,
+        resume_url: "https://myresume.com/johndoe.pdf", // Replace with actual resume URL
+        cover_letter: "I am excited to apply for this role." // Replace with actual cover letter
+      };
+      const response = await applicationService.applyToJob(job.id, applicationData);
+      if (response.success) {
+        setApplicationSuccess("Application submitted successfully!");
+      } else {
+        setApplicationError(response.message || "Failed to submit application");
+      }
+    } catch (error) {
+      setApplicationError("An error occurred while submitting the application");
+    } finally {
+      setIsApplying(false);
+    }
   };
   return (
     <div>
@@ -184,5 +206,3 @@ const Jobdescription = () => {
 };
 
 export default Jobdescription;
-
-

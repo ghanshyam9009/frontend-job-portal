@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, MapPin, Upload, Building2, Users, CheckCircle, Star, ArrowRight } from "lucide-react";
+import { FaFacebook, FaTwitter, FaLinkedin } from "react-icons/fa";
 import styles from "./HomePage.module.css";
+import topHiringStyles from "../Styles/TopHiringCompanies.module.css";
 import HomeNav from "../Components/HomeNav";
+import { candidateExternalService } from "../services"; 
+import { demoService } from "../services/demoService";
 import logo2 from "../assets/logo2.png";
 import image1 from "../assets/notebook-office-desk-used-by-hr-expert-vetting-applicants.jpg";
 import image2 from "../assets/startup-hr-worker-identifying-right-candidates-job-opening-reviewing-resume.jpg";
@@ -14,49 +18,16 @@ import axisLogo from "../assets/Axis.jpg";
 import iciciLogo from "../assets/icici.jpg";
 import sbiLogo from "../assets/sbi.jpg";
 import hdfcLogo from "../assets/hdfc.jpg";
+import capgeminiLogo from "../assets/capgemini.jfif";
+import jioLogo from "../assets/jio.jfif";
+import sopraLogo from "../assets/sopra.jfif";
+import kotakMahindraLogo from "../assets/kotak.jfif";
+import nttdataLogo from "../assets/nttdata.jfif";
+import relianceLogo from "../assets/relince.jfif";
+import techmahindraLogo from "../assets/techmahindra.jfif";
+import sbilifeLogo from "../assets/sbilife.jfif";
+import ltimindtreeLogo from "../assets/lit.jfif";
 
-const jobData = [
-  {
-    title: "Product Manager (AI/ML)",
-    company: "InnovatAI",
-    location: "Remote",
-    salary: "$130k - $180k",
-    type: "Full-time",
-    logo: "🚀"
-  },
-  {
-    title: "Senior Software Engineer",
-    company: "TechCorp",
-    location: "New York",
-    salary: "$150k - $190k",
-    type: "Full-time",
-    logo: "💻"
-  },
-  {
-    title: "UX Designer",
-    company: "DesignHub",
-    location: "San Francisco",
-    salary: "$130k - $180k",
-    type: "Full-time",
-    logo: "🎨"
-  },
-  {
-    title: "Data Scientist",
-    company: "DataPro",
-    location: "Boston",
-    salary: "$140k - $185k",
-    type: "Full-time",
-    logo: "📊"
-  },
-  {
-    title: "Marketing Manager",
-    company: "GrowthCo",
-    location: "Remote",
-    salary: "$120k - $160k",
-    type: "Full-time",
-    logo: "📈"
-  },
-];
 
 const companies = [
   { name: "IDBI", logo: idbiLogo },
@@ -66,6 +37,19 @@ const companies = [
   { name: "ICICI", logo: iciciLogo },
   { name: "SBI", logo: sbiLogo },
   { name: "HDFC", logo: hdfcLogo },
+];
+
+const topHiringCompanies = [
+  { name: "Capgemini", logo: capgeminiLogo },
+  { name: "Jio", logo: jioLogo },
+  { name: "ICICI Bank", logo: iciciLogo },
+  { name: "Sopra Steria", logo: sopraLogo },
+  { name: "Kotak", logo: kotakMahindraLogo },
+  { name: "NTT Data", logo: nttdataLogo },
+  { name: "Reliance Nippon Life Insurance", logo: relianceLogo },
+  { name: "Tech Mahindra", logo: techmahindraLogo },
+  { name: "SBI Life Insurance", logo: sbilifeLogo },
+  { name: "LTIMindtree", logo: ltimindtreeLogo },
 ];
 
 const stats = [
@@ -88,9 +72,65 @@ const Homepage = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [location, setLocation] = useState("");
+  const [featuredJobs, setFeaturedJobs] = useState([]);
+  const [demoData, setDemoData] = useState({ fullName: "", email: "", message: "", userType: "candidate" });
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [demoError, setDemoError] = useState(null);
+  const [demoSuccess, setDemoSuccess] = useState(false);
+
+  const popularSearches = [
+    { title: "Jobs for Freshers", trend: "#1", image: image1, link: "/jobs?search=fresher" },
+    { title: "Work from home Jobs", trend: "#2", image: image2, link: "/jobs?search=work from home" },
+    { title: "Part time Jobs", trend: "#3", image: image3, link: "/jobs?search=part time" },
+    { title: "Jobs for Women", trend: "#4", image: image1, link: "/jobs?search=women" },
+    { title: "Full time Jobs", trend: "#5", image: image2, link: "/jobs?search=full time" },
+  ];
+
+  useEffect(() => {
+    const fetchFeaturedJobs = async () => {
+      try {
+        const data = await candidateExternalService.getAllJobs();
+        const mapped = (data?.jobs || []).slice(0, 5).map((j, idx) => ({
+          id: j.job_id || idx,
+          title: j.job_title,
+          company_name: j.company_name || "",
+          location: j.location || "",
+          salary: j.salary_range ? `₹${j.salary_range.min} - ₹${j.salary_range.max}` : "",
+          job_type: j.employment_type || "Full-time",
+          company_logo: null
+        }));
+        setFeaturedJobs(mapped);
+      } catch (error) {
+        console.error("Failed to fetch featured jobs:", error);
+      }
+    };
+
+    fetchFeaturedJobs();
+  }, []);
 
   const handleSearch = () => {
     navigate(`/jobs?search=${searchTerm}&location=${location}`);
+  };
+
+  const handleDemoInputChange = (field, value) => {
+    setDemoData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleDemoSubmit = async (e) => {
+    e.preventDefault();
+    setDemoLoading(true);
+    setDemoError(null);
+    setDemoSuccess(false);
+    try {
+      await demoService.requestDemo(demoData);
+      setDemoSuccess(true);
+      setDemoData({ fullName: "", email: "", message: "", userType: "candidate" });
+    } catch (err) {
+      setDemoError("Failed to send request. Please try again.");
+      console.error(err);
+    } finally {
+      setDemoLoading(false);
+    }
   };
 
   return (
@@ -180,7 +220,7 @@ const Homepage = () => {
               <p className={styles.actionDescription}>
                Upload your resume and get discovered by top employers.
               </p>
-              <button className={styles.actionButton}>
+              <button className={styles.actionButton} onClick={() => navigate('/profile')}>
                 <Upload className={styles.buttonIcon} />
                 <span>Upload Resume</span>
                 <ArrowRight className={styles.buttonIcon} />
@@ -200,13 +240,28 @@ const Homepage = () => {
               <p className={styles.actionDescription}>
                Post your job in minutes and start receiving applications from top talent.
               </p>
-              <button className={`${styles.actionButton} ${styles.actionButtonGreen}`}>
+              <button className={`${styles.actionButton} ${styles.actionButtonGreen}`} onClick={() => navigate('/post-job')}>
                 <Building2 className={styles.buttonIcon} />
                 <span>Post Job</span>
                 <ArrowRight className={styles.buttonIcon} />
               </button>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Top Hiring Companies */}
+      <section className={topHiringStyles.hiringCompaniesSection}>
+        <div className={topHiringStyles.hiringCompaniesContainer}>
+          <h2 className={topHiringStyles.hiringCompaniesTitle}>Top Hiring Companies</h2>
+          <div className={topHiringStyles.logoGrid}>
+            {topHiringCompanies.map((company, index) => (
+              <div key={index} className={topHiringStyles.logoCard}>
+                <img src={company.logo} alt={`${company.name} logo`} className={topHiringStyles.logoImage} />
+              </div>
+            ))}
+          </div>
+          <a href="#" className={topHiringStyles.viewAllLink}>View All</a>
         </div>
       </section>
 
@@ -217,23 +272,23 @@ const Homepage = () => {
             <div className={styles.jobsColumn}>
               <div className={styles.jobsHeader}>
                 <h2 className={styles.sectionTitle}>Featured Jobs</h2>
-                <button className={styles.viewAllBtn}>
+                <button className={styles.viewAllBtn} onClick={() => navigate('/jobs')}>
                   <span>View All</span>
                   <ArrowRight className={styles.buttonIcon} />
                 </button>
               </div>
               
               <div className={styles.jobsList}>
-                {jobData.map((job, index) => (
-                  <div key={index} className={styles.jobCard}>
+                {featuredJobs.map((job) => (
+                  <div key={job.id} className={styles.jobCard}>
                     <div className={styles.jobContent}>
                       <div className={styles.jobLeft}>
                         <div className={styles.jobLogo}>
-                          {job.logo}
+                          {job.company_logo || '🏢'}
                         </div>
                         <div className={styles.jobInfo}>
                           <h3 className={styles.jobTitle}>{job.title}</h3>
-                          <p className={styles.jobCompany}>{job.company}</p>
+                          <p className={styles.jobCompany}>{job.company_name}</p>
                           <div className={styles.jobMeta}>
                             <span className={styles.jobLocation}>
                               <MapPin className={styles.metaIcon} />
@@ -241,12 +296,12 @@ const Homepage = () => {
                             </span>
                             <span className={styles.jobSalary}>{job.salary}</span>
                             <span className={styles.jobType}>
-                              {job.type}
+                              {job.job_type}
                             </span>
                           </div>
                         </div>
                       </div>
-                      <button className={styles.applyButton}>
+                      <button className={styles.applyButton} onClick={() => navigate(`/jobs/${job.id}`)}>
                         Apply Now
                       </button>
                     </div>
@@ -256,7 +311,7 @@ const Homepage = () => {
             </div>
             
             {/* Contact Form */}
-            <div className={styles.contactForm}>
+            <form className={styles.contactForm} onSubmit={handleDemoSubmit}>
               <h3 className={styles.formTitle}>Request Free Demo</h3>
               <div className={styles.formFields}>
                 <div className={styles.fieldGroup}>
@@ -264,6 +319,9 @@ const Homepage = () => {
                     type="text" 
                     placeholder="Full Name"
                     className={styles.formInput}
+                    value={demoData.fullName}
+                    onChange={(e) => handleDemoInputChange('fullName', e.target.value)}
+                    required
                   />
                 </div>
               
@@ -273,7 +331,21 @@ const Homepage = () => {
                     type="email" 
                     placeholder="Email Address"
                     className={styles.formInput}
+                    value={demoData.email}
+                    onChange={(e) => handleDemoInputChange('email', e.target.value)}
+                    required
                   />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <select
+                    className={styles.formInput}
+                    value={demoData.userType}
+                    onChange={(e) => handleDemoInputChange('userType', e.target.value)}
+                    required
+                  >
+                    <option value="candidate">I am a Candidate</option>
+                    <option value="recruiter">I am a Recruiter</option>
+                  </select>
                 </div>
              
                 <div className={styles.fieldGroup}>
@@ -281,19 +353,94 @@ const Homepage = () => {
                     placeholder="Message"
                     rows={4}
                     className={styles.formTextarea}
+                    value={demoData.message}
+                    onChange={(e) => handleDemoInputChange('message', e.target.value)}
+                    required
                   ></textarea>
                 </div>
             
                 <div className={styles.formButtons}>
-                  <button className={styles.submitBtn}>
-                    Submit
+                  <button type="submit" className={styles.submitBtn} disabled={demoLoading}>
+                    {demoLoading ? "Sending..." : "Submit"}
                   </button>
-                  <button className={styles.resetBtn}>
+                  <button type="reset" className={styles.resetBtn} onClick={() => setDemoData({ fullName: "", email: "", message: "", userType: "candidate" })}>
                     Reset
                   </button>
                 </div>
+                {demoSuccess && <p className={styles.successText}>Request sent successfully!</p>}
+                {demoError && <p className={styles.errorText}>{demoError}</p>}
               </div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      {/* Employer Section */}
+      <section className={styles.employerSection}>
+        <div className={styles.employerContainer}>
+          <h2 className={styles.employerTitle}>Are You an Employer?</h2>
+          <div className={styles.employerButtons}>
+            <button className={styles.employerButton} onClick={() => navigate('/recruiter/login')}>
+              Search Your Hire
+            </button>
+            <button className={styles.employerButton} onClick={() => navigate('/post-job')}>
+              Post a job
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Steps Section */}
+      <section className={styles.stepsSection}>
+        <div className={styles.stepsContainer}>
+          <h2 className={styles.stepsTitle}>Get started in 3 easy steps</h2>
+          <div className={styles.stepsGrid}>
+            <div className={styles.stepCard}>
+              <div className={styles.stepIconContainer}>
+                <div className={styles.stepNumber}>1</div>
+                <Upload className={styles.stepIcon} />
+              </div>
+              <h3 className={styles.stepTitle}>Post a Job</h3>
+              <p className={styles.stepDescription}>Tell us what you need in a candidate in just 5-minutes.</p>
             </div>
+            <div className={styles.stepCard}>
+              <div className={styles.stepIconContainer}>
+                <div className={styles.stepNumber}>2</div>
+                <CheckCircle className={styles.stepIcon} />
+              </div>
+              <h3 className={styles.stepTitle}>Get Verified</h3>
+              <p className={styles.stepDescription}>Our team will call to verify your employer account.</p>
+            </div>
+            <div className={styles.stepCard}>
+              <div className={styles.stepIconContainer}>
+                <div className={styles.stepNumber}>3</div>
+                <Users className={styles.stepIcon} />
+              </div>
+              <h3 className={styles.stepTitle}>Get calls. Hire.</h3>
+              <p className={styles.stepDescription}>You will get calls from relevant candidates within one hour or call them directly from our candidate database.</p>
+            </div>
+          </div>
+          <button className={styles.stepsButton} onClick={() => navigate('/post-job')}>
+            Post your Job
+          </button>
+        </div>
+      </section>
+
+      {/* Popular Searches Section */}
+      <section className={styles.popularSearchesSection}>
+        <div className={styles.popularSearchesContainer}>
+          <h2 className={styles.popularSearchesTitle}>Popular Searches</h2>
+          <div className={styles.popularSearchesGrid}>
+            {popularSearches.map((search, index) => (
+              <div key={index} className={styles.searchCard} onClick={() => navigate(search.link)}>
+                <div className={styles.searchCardContent}>
+                  <span className={styles.searchCardTrend}>TRENDING AT {search.trend}</span>
+                  <h3 className={styles.searchCardTitle}>{search.title}</h3>
+                  <span className={styles.searchCardLink}>View all <ArrowRight size={16} /></span>
+                </div>
+                <img src={search.image} alt={search.title} className={styles.searchCardImage} />
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -337,10 +484,10 @@ const Homepage = () => {
                    target="_blank" 
                    rel="noopener noreferrer"
                    className={styles.socialLink}>
-                  📘
+                  <FaFacebook />
                 </a>
-                <span className={styles.socialLink}>🐦</span>
-                <span className={styles.socialLink}>💼</span>
+                <a href="#" className={styles.socialLink}><FaTwitter /></a>
+                <a href="#" className={styles.socialLink}><FaLinkedin /></a>
               </div>
             </div>
             

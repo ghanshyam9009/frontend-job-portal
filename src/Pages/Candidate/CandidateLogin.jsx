@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
+import { studentService } from "../../services/studentService";
 import styles from "../../Styles/Candidate.module.css";
 import HomeNav from "../../Components/HomeNav";
 
 const CandidateLogin = () => {
   const navigate = useNavigate();
-  const { login, register } = useAuth();
+  const { login } = useAuth();
   const location = useLocation();
   const [isLogin, setIsLogin] = useState(true);
   const [error, setError] = useState("");
@@ -49,12 +50,12 @@ const CandidateLogin = () => {
         return;
       }
       try {
-        await register({
+        await studentService.register({
           full_name: formData.fullName,
           email: formData.email,
           password: formData.password,
           phone_number: formData.phone,
-          role: 'candidate'
+          role: 'Student'
         });
         setSuccess("Registration successful! Please log in.");
         setError("");
@@ -189,7 +190,7 @@ const CandidateLogin = () => {
               </button>
 
               {isLogin && (
-                <a href="#" className={styles.forgotPassword}>
+                <a href="/reset-password" className={styles.forgotPassword}>
                   Forgot Password?
                 </a>
               )}

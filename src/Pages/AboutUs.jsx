@@ -4,7 +4,6 @@ import HomeNav from "../Components/HomeNav";
 
 const AboutUs = () => {
   const observerRef = useRef();
-
   useEffect(() => {
     // Intersection Observer for animations
     const observerOptions = {

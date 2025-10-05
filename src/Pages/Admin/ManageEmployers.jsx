@@ -1,85 +1,32 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import AdminNavbar from "../../Components/Admin/AdminNavbar";
-import AdminSidebar from "../../Components/Admin/AdminSidebar";
-import styles from "../../Styles/ManageEmployers.module.css";
+import { adminService } from "../../services/adminService";
+import styles from "../../Styles/AdminDashboard.module.css";
 
 const ManageEmployers = () => {
-  const navigate = useNavigate();
-  const [darkMode, setDarkMode] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [employers, setEmployers] = useState([]);
   const [filteredEmployers, setFilteredEmployers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const employersPerPage = 5;
+  const [loading, setLoading] = useState(true);
+  const employersPerPage = 10;
 
-  // Check authentication on component mount
+  // Fetch employers data
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem('adminLoggedIn');
-    if (!isLoggedIn) {
-      navigate('/admin/login');
-    }
-  }, [navigate]);
-
-  // Sample employer data
-  useEffect(() => {
-    const sampleEmployers = [
-      {
-        id: 1,
-        companyName: "Tech Innovations Inc.",
-        logo: "https://via.placeholder.com/40",
-        contactPerson: "Alice Johnson",
-        tokens: 15000,
-        subscription: "Active",
-        status: "Active",
-        lastActivity: "2024-07-28"
-      },
-      {
-        id: 2,
-        companyName: "Global Solutions Ltd.",
-        logo: "https://via.placeholder.com/40",
-        contactPerson: "Bob Williams",
-        tokens: 2500,
-        subscription: "Expired",
-        status: "Active",
-        lastActivity: "2024-07-25"
-      },
-      {
-        id: 3,
-        companyName: "Creative Minds Agency",
-        logo: "https://via.placeholder.com/40",
-        contactPerson: "Charlie Brown",
-        tokens: 0,
-        subscription: "Free Tier",
-        status: "Blocked",
-        lastActivity: "2024-07-10"
-      },
-      {
-        id: 4,
-        companyName: "Future Forge Studios",
-        logo: "https://via.placeholder.com/40",
-        contactPerson: "Diana Prince",
-        tokens: 8000,
-        subscription: "Active",
-        status: "Active",
-        lastActivity: "2024-07-29"
-      },
-      {
-        id: 5,
-        companyName: "Dynamic Innovations",
-        logo: "https://via.placeholder.com/40",
-        contactPerson: "Eve Adams",
-        tokens: 1200,
-        subscription: "Active",
-        status: "Active",
-        lastActivity: "2024-07-27"
+    const fetchEmployers = async () => {
+      try {
+        setLoading(true);
+        const employersData = await adminService.getEmployers();
+        setEmployers(employersData);
+        setFilteredEmployers(employersData);
+      } catch (error) {
+        console.error('Failed to fetch employers:', error);
+      } finally {
+        setLoading(false);
       }
-    ];
-    setEmployers(sampleEmployers);
-    setFilteredEmployers(sampleEmployers);
+    };
+    
+    fetchEmployers();
   }, []);
 
   // Filter employers based on search and status
@@ -88,8 +35,9 @@ const ManageEmployers = () => {
 
     if (searchTerm) {
       filtered = filtered.filter(employer =>
-        employer.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        employer.contactPerson.toLowerCase().includes(searchTerm.toLowerCase())
+        employer.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        employer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        employer.industry.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -101,258 +49,171 @@ const ManageEmployers = () => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, employers]);
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
+  const getStatusBadge = (status) => {
+    const statusStyles = {
+      active: { class: 'statusActive', text: 'Active' },
+      inactive: { class: 'statusInactive', text: 'Inactive' },
+      blocked: { class: 'statusBlocked', text: 'Blocked' }
+    };
+    
+    const statusInfo = statusStyles[status] || statusStyles.active;
+    return <span className={`${styles.statusBadge} ${styles[statusInfo.class]}`}>{statusInfo.text}</span>;
   };
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
-  const closeSidebar = () => {
-    setSidebarOpen(false);
-  };
-
-  const getSubscriptionClass = (subscription) => {
-    switch (subscription) {
-      case "Active":
-        return styles.active;
-      case "Expired":
-        return styles.expired;
-      case "Free Tier":
-        return styles.freeTier;
-      default:
-        return styles.default;
-    }
-  };
-
-  const getStatusClass = (status) => {
-    switch (status) {
-      case "Active":
-        return styles.statusActive;
-      case "Blocked":
-        return styles.statusBlocked;
-      default:
-        return styles.default;
-    }
-  };
-
-  const getPaginatedEmployers = () => {
-    const startIndex = (currentPage - 1) * employersPerPage;
-    return filteredEmployers.slice(startIndex, startIndex + employersPerPage);
-  };
-
+  // Pagination
   const totalPages = Math.ceil(filteredEmployers.length / employersPerPage);
+  const startIndex = (currentPage - 1) * employersPerPage;
+  const endIndex = startIndex + employersPerPage;
+  const currentEmployers = filteredEmployers.slice(startIndex, endIndex);
 
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
-
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-  };
-
-  const handleStatusFilterChange = (e) => {
-    setStatusFilter(e.target.value);
-  };
-
-  const handleBlockUnblock = (employer) => {
-    const updatedEmployers = employers.map(emp => 
-      emp.id === employer.id 
-        ? { ...emp, status: emp.status === "Active" ? "Blocked" : "Active" }
-        : emp
+  if (loading) {
+    return (
+      <div className={styles.mainContent}>
+        <div className={styles.loadingContainer}>
+          <div className={styles.loadingSpinner}></div>
+          <p>Loading employers...</p>
+        </div>
+      </div>
     );
-    setEmployers(updatedEmployers);
-  };
+  }
 
   return (
-    <div className={`${styles.manageEmployers} ${darkMode ? styles.darkMode : ''}`}>
-      <AdminNavbar 
-        darkMode={darkMode} 
-        toggleDarkMode={toggleDarkMode}
-        onMobileMenuToggle={toggleSidebar}
-      />
-      
-      <div className={styles.container}>
-        <AdminSidebar 
-          darkMode={darkMode} 
-          isOpen={sidebarOpen}
-          onClose={closeSidebar}
-        />
-        
-        <main className={styles.mainContent}>
-          <div className={styles.contentHeader}>
-            <h1 className={styles.pageTitle}>Manage Employers</h1>
-            
-            <button 
-              className={styles.addButton}
-              onClick={() => setShowAddModal(true)}
-            >
-              + Add New Employer
-            </button>
-          </div>
-
-          <div className={styles.searchAndFilter}>
-            <div className={styles.searchWrapper}>
-              <input
-                type="text"
-                placeholder="Search by company name..."
-                value={searchTerm}
-                onChange={handleSearchChange}
-                className={styles.searchInput}
-              />
-              <span className={styles.searchIcon}>🔍</span>
-            </div>
-            
-            <div className={styles.filterWrapper}>
-              <button className={styles.filterButton}>
-                Filter by Status: {statusFilter === "all" ? "All" : statusFilter} ▼
-              </button>
-              <div className={styles.filterDropdown}>
-                <button 
-                  className={styles.filterOption}
-                  onClick={() => setStatusFilter("all")}
-                >
-                  All
-                </button>
-                <button 
-                  className={styles.filterOption}
-                  onClick={() => setStatusFilter("Active")}
-                >
-                  Active
-                </button>
-                <button 
-                  className={styles.filterOption}
-                  onClick={() => setStatusFilter("Blocked")}
-                >
-                  Blocked
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.tableContainer}>
-            <table className={styles.employersTable}>
-              <thead>
-                <tr>
-                  <th>Company</th>
-                  <th>Contact Person</th>
-                  <th>Tokens</th>
-                  <th>Subscription</th>
-                  <th>Status</th>
-                  <th>Last Activity</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {getPaginatedEmployers().map((employer) => (
-                  <tr key={employer.id}>
-                    <td>
-                      <div className={styles.companyCell}>
-                        <img 
-                          src={employer.logo} 
-                          alt={employer.companyName}
-                          className={styles.companyLogo}
-                        />
-                        <span className={styles.companyName}>{employer.companyName}</span>
-                      </div>
-                    </td>
-                    <td className={styles.contactPerson}>{employer.contactPerson}</td>
-                    <td className={styles.tokens}>{employer.tokens.toLocaleString()}</td>
-                    <td>
-                      <span className={`${styles.subscriptionBadge} ${getSubscriptionClass(employer.subscription)}`}>
-                        {employer.subscription}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`${styles.statusBadge} ${getStatusClass(employer.status)}`}>
-                        {employer.status}
-                      </span>
-                    </td>
-                    <td className={styles.lastActivity}>{employer.lastActivity}</td>
-                    <td>
-                      <div className={styles.actions}>
-                        <button className={styles.viewEditBtn}>
-                          👁️ View/Edit
-                        </button>
-                        <button 
-                          className={employer.status === "Active" ? styles.blockBtn : styles.unblockBtn}
-                          onClick={() => handleBlockUnblock(employer)}
-                        >
-                          {employer.status === "Active" ? "🔒 Block" : "🔓 Unblock"}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {filteredEmployers.length === 0 && (
-            <div className={styles.noResults}>
-              <p>No employers found matching your criteria.</p>
-            </div>
-          )}
-
-          {totalPages > 1 && (
-            <div className={styles.pagination}>
-              <button
-                className={styles.paginationBtn}
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </button>
-              
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <button
-                  key={page}
-                  className={`${styles.paginationBtn} ${currentPage === page ? styles.active : ''}`}
-                  onClick={() => handlePageChange(page)}
-                >
-                  {page}
-                </button>
-              ))}
-              
-              <button
-                className={styles.paginationBtn}
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </main>
+    <div className={styles.mainContent}>
+      <div className={styles.contentHeader}>
+        <h1 className={styles.pageTitle}>Manage Employers</h1>
+        <p className={styles.pageSubtitle}>View and manage all registered employers and companies</p>
       </div>
 
-      {/* Add New Employer Modal */}
-      {showAddModal && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>Add New Employer</h2>
-              <button 
-                className={styles.closeBtn}
-                onClick={() => setShowAddModal(false)}
-              >
-                ×
-              </button>
-            </div>
-            <div className={styles.modalBody}>
-              <p>Add new employer functionality will be implemented here.</p>
-            </div>
-            <div className={styles.modalFooter}>
-              <button 
-                className={styles.cancelBtn}
-                onClick={() => setShowAddModal(false)}
-              >
-                Cancel
-              </button>
-              <button className={styles.saveBtn}>Save</button>
-            </div>
-          </div>
+      {/* Filters and Search */}
+      <div className={styles.filtersContainer}>
+        <div className={styles.searchBox}>
+          <input
+            type="text"
+            placeholder="Search by company name, email, or industry..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className={styles.searchInput}
+          />
+          <span className={styles.searchIcon}>🔍</span>
+        </div>
+        
+        <div className={styles.filterButtons}>
+          <button
+            className={`${styles.filterBtn} ${statusFilter === 'all' ? styles.active : ''}`}
+            onClick={() => setStatusFilter('all')}
+          >
+            All ({employers.length})
+          </button>
+          <button
+            className={`${styles.filterBtn} ${statusFilter === 'active' ? styles.active : ''}`}
+            onClick={() => setStatusFilter('active')}
+          >
+            Active ({employers.filter(e => e.status === 'active').length})
+          </button>
+          <button
+            className={`${styles.filterBtn} ${statusFilter === 'inactive' ? styles.active : ''}`}
+            onClick={() => setStatusFilter('inactive')}
+          >
+            Inactive ({employers.filter(e => e.status === 'inactive').length})
+          </button>
+        </div>
+      </div>
+
+      {/* Employers Table */}
+      <div className={styles.tableContainer}>
+        <table className={styles.dataTable}>
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Location</th>
+              <th>Industry</th>
+              <th>Size</th>
+              <th>Status</th>
+              <th>Joined</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentEmployers.map((employer) => (
+              <tr key={employer.id}>
+                <td>
+                  <div className={styles.userInfo}>
+                    <div className={styles.userAvatar}>
+                      {employer.company_name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className={styles.userName}>{employer.company_name}</span>
+                  </div>
+                </td>
+                <td>
+                  <a href={`mailto:${employer.email}`} className={styles.emailLink}>
+                    {employer.email}
+                  </a>
+                </td>
+                <td>{employer.phone}</td>
+                <td className={styles.locationCell}>{employer.location}</td>
+                <td>
+                  <span className={styles.industryTag}>{employer.industry}</span>
+                </td>
+                <td>{employer.company_size}</td>
+                <td>{getStatusBadge(employer.status)}</td>
+                <td className={styles.dateCell}>{formatDate(employer.created_at)}</td>
+                <td>
+                  <div className={styles.actionButtons}>
+                    <button className={styles.actionBtn} title="View Company">
+                      👁️
+                    </button>
+                    <button className={styles.actionBtn} title="Edit">
+                      ✏️
+                    </button>
+                    <button className={styles.actionBtn} title="Block/Unblock">
+                      🚫
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className={styles.pagination}>
+          <button
+            className={styles.paginationBtn}
+            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </button>
+          <span className={styles.paginationInfo}>
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            className={styles.paginationBtn}
+            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </div>
+      )}
+
+      {filteredEmployers.length === 0 && (
+        <div className={styles.emptyState}>
+          <div className={styles.emptyIcon}>💼</div>
+          <h3>No employers found</h3>
+          <p>No employers match your current filters.</p>
         </div>
       )}
     </div>
@@ -360,4 +221,3 @@ const ManageEmployers = () => {
 };
 
 export default ManageEmployers;
-

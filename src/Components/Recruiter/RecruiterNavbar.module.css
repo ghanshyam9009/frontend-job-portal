@@ -19,7 +19,10 @@
   background: #2d3748;
   border-bottom-color: #4a5568;
 }
-
+span{
+    margin-top: 5px;
+    margin-left: 5px;
+}
 .headerLeft {
   display: flex;
   align-items: center;
@@ -27,9 +30,9 @@
 }
 
 .logo {
-  font-size: 24px;
-  font-weight: 600;
-  color: #3b82f6;
+    font-size: 14px;
+    font-weight: 100;
+        display: flex;
 }
 
 .searchContainer {

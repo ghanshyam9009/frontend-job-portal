@@ -1,130 +1,71 @@
-// Application Service
 import apiClient from './apiClient';
-import { API_ENDPOINTS } from '../config/api';
 
 export const applicationService = {
-  // Get all applications
-  async getAllApplications(params = {}) {
+  // Apply for a job
+  async applyForJob(jobId, applicationData) {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.applications.getAll, { params });
+      const response = await apiClient.post(`/api/application/jobs/${jobId}/apply`, applicationData);
       return response;
     } catch (error) {
       throw error;
     }
   },
 
-  // Get application by ID
-  async getApplicationById(applicationId) {
+  // Get user's applications
+  async getUserApplications(userId) {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.applications.getById(applicationId));
-      return response;
+      // Mock data - replace with actual API call
+      const mockApplications = [
+        {
+          id: 1,
+          job_id: "job-1",
+          job_title: "Senior Software Engineer",
+          company_name: "Tech Corp",
+          application_date: "2025-01-15",
+          status: "pending", // pending, approved, rejected, shortlisted
+          applied_at: "2025-01-15T10:30:00Z"
+        },
+        {
+          id: 2,
+          job_id: "job-2",
+          job_title: "Product Manager",
+          company_name: "StartupXYZ",
+          application_date: "2025-01-14",
+          status: "shortlisted",
+          applied_at: "2025-01-14T14:20:00Z"
+        }
+      ];
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return mockApplications;
     } catch (error) {
       throw error;
     }
   },
 
-  // Create new application
-  async createApplication(applicationData) {
+  // Get application status
+  async getApplicationStatus(applicationId) {
     try {
-      const response = await apiClient.post(API_ENDPOINTS.applications.create, applicationData);
-      return response;
+      // Mock API call - replace with actual API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return { 
+        status: 'pending',
+        message: 'Your application is under review',
+        updated_at: new Date().toISOString()
+      };
     } catch (error) {
       throw error;
     }
   },
 
-  // Update application
-  async updateApplication(applicationId, applicationData) {
+  // Withdraw application
+  async withdrawApplication(applicationId) {
     try {
-      const response = await apiClient.put(API_ENDPOINTS.applications.update(applicationId), applicationData);
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  // Get applications by job
-  async getApplicationsByJob(jobId, params = {}) {
-    try {
-      const response = await apiClient.get(API_ENDPOINTS.applications.getByJob(jobId), { params });
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  // Get applications by candidate
-  async getApplicationsByCandidate(candidateId, params = {}) {
-    try {
-      const response = await apiClient.get(API_ENDPOINTS.applications.getByCandidate(candidateId), { params });
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  // Update application status
-  async updateApplicationStatus(applicationId, status, remarks = '') {
-    try {
-      const response = await apiClient.patch(API_ENDPOINTS.applications.updateStatus(applicationId), {
-        status,
-        remarks
-      });
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  // Shortlist candidate
-  async shortlistCandidate(applicationId, remarks = '') {
-    try {
-      const response = await this.updateApplicationStatus(applicationId, 'Shortlisted', remarks);
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  // Reject candidate
-  async rejectCandidate(applicationId, remarks = '') {
-    try {
-      const response = await this.updateApplicationStatus(applicationId, 'Rejected', remarks);
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  // Hire candidate
-  async hireCandidate(applicationId, remarks = '') {
-    try {
-      const response = await this.updateApplicationStatus(applicationId, 'Hired', remarks);
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  // Get application statistics
-  async getApplicationStats(params = {}) {
-    try {
-      const response = await apiClient.get('/applications/stats', { params });
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  // Check if candidate already applied
-  async checkExistingApplication(jobId, candidateId) {
-    try {
-      const response = await apiClient.get(`/applications/check/${jobId}/${candidateId}`);
-      return response;
+      // Mock API call - replace with actual API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return { success: true, message: 'Application withdrawn successfully' };
     } catch (error) {
       throw error;
     }
   }
 };
-
-export default applicationService;

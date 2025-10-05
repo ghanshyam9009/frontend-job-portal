@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authService } from '../services';
+import { authService } from '../services/authService';
 
 const AuthContext = createContext(null);
 
@@ -13,6 +13,7 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = () => {
       const token = authService.getToken();
       const currentUser = authService.getCurrentUser();
+      console.log('Checking auth:', { token, currentUser });
       
       if (token && currentUser) {
         setUser(currentUser);
@@ -28,7 +29,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authService.login(email, password, role);
       
-      if (response.success) {
+      if (response.success && response.data && response.data.user) {
         const userData = response.data.user;
         const userWithMembership = {
           ...userData,
@@ -38,16 +39,13 @@ export const AuthProvider = ({ children }) => {
         setUser(userWithMembership);
         setIsAuthenticated(true);
         
-        // Update localStorage with membership info
-        localStorage.setItem('user', JSON.stringify(userWithMembership));
-        
-        return { success: true, user: userWithMembership };
+        return true;
       }
       
-      throw new Error(response.message || 'Login failed');
+      return false;
     } catch (error) {
       console.error('Login error:', error);
-      throw error;
+      return false;
     }
   };
 
@@ -58,7 +56,7 @@ export const AuthProvider = ({ children }) => {
       if (response.success) {
         // After successful registration, automatically log in the user
         const { email, password, role } = userData;
-        return await this.login(email, password, role);
+        return await login(email, password, role);
       }
       
       throw new Error(response.message || 'Registration failed');
@@ -110,9 +108,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const resetPassword = async (token, newPassword) => {
+  const resetPassword = async (token, newPassword, role, otp) => {
     try {
-      const response = await authService.resetPassword(token, newPassword);
+      const response = await authService.resetPassword(token, newPassword, role, otp);
       return response;
     } catch (error) {
       console.error('Reset password error:', error);

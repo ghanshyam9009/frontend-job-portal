@@ -1,7 +1,7 @@
 // API Configuration
 const API_CONFIG = {
   development: {
-    baseURL: '/api',
+    baseURL: 'http://localhost:4000/api',
     timeout: 10000
   },
   production: {
@@ -22,14 +22,36 @@ export const API_ENDPOINTS = {
   // Authentication 
   auth: {
     login: '/auth/login',
-    register: '/students/register',
-    recruiterRegister: '/recruiters/register',
     logout: '/auth/logout',
     refresh: '/auth/refresh',
     forgotPassword: '/auth/forgot-password',
     resetPassword: '/auth/reset-password'
   },
   
+  // Students
+  students: {
+    register: '/students/register',
+    login: '/students/login',
+    resetPassword: '/students/reset-password',
+    getProfile: (email) => `/students/profile/${email}`
+  },
+
+  // Recruiters
+  recruiters: {
+    register: '/Recruiter/register',
+    login: '/Recruiter/login',
+    resetPassword: '/Recruiter/reset-password',
+    getProfile: (email) => `/Recruiter/profile/${email}`
+  },
+
+  // Admin
+  admin: {
+    register: '/admin/register',
+    login: '/admin/login',
+    resetPassword: '/admin/reset-password',
+    getProfile: (email) => `/admin/profile/${email}`
+  },
+
   // Users
   users: {
     getAll: '/users',
@@ -63,7 +85,7 @@ export const API_ENDPOINTS = {
   jobs: {
     getAll: '/jobs',
     getById: (id) => `/jobs/${id}`,
-    create: '/jobs',
+    create: '/job/jobs',
     update: (id) => `/jobs/${id}`,
     delete: (id) => `/jobs/${id}`,
     search: '/jobs/search',
@@ -79,7 +101,8 @@ export const API_ENDPOINTS = {
     update: (id) => `/applications/${id}`,
     getByJob: (jobId) => `/applications/job/${jobId}`,
     getByCandidate: (candidateId) => `/applications/candidate/${candidateId}`,
-    updateStatus: (id) => `/applications/${id}/status`
+    updateStatus: (id) => `/applications/${id}/status`,
+    applyToJob: (jobId) => `/application/jobs/${jobId}/apply`
   },
   
   // Saved Jobs

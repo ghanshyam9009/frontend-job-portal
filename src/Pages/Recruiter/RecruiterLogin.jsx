@@ -7,8 +7,10 @@ import HomeNav from "../../Components/HomeNav";
 const RecruiterLogin = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, register } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -26,31 +28,50 @@ const RecruiterLogin = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setSuccess("");
     if (isLogin) {
-      // Simulate login
-      const userData = {
-        name: formData.email.split('@')[0],
-        email: formData.email,
-        companyName: "TechCorp",
-        role: "recruiter",
-        membership: "premium"
-      };
-      login(userData);
-      const from = location.state?.from?.pathname || '/recruiter/dashboard';
-      navigate(from, { replace: true });
+      try {
+        await login(formData.email, formData.password, 'recruiter');
+        setSuccess("Login successful!");
+        setError("");
+        const from = location.state?.from?.pathname || '/recruiter/dashboard';
+        navigate(from, { replace: true });
+      } catch (error) {
+        console.error("Login failed:", error);
+        setError("Login failed. Please check your credentials.");
+        setSuccess("");
+      }
     } else {
-      // Simulate signup
-      const userData = {
-        name: formData.contactPerson,
-        email: formData.email,
-        companyName: formData.companyName,
-        role: "recruiter",
-        membership: "free"
-      };
-      login(userData);
-      navigate('/recruiter/dashboard', { replace: true });
+      if (formData.password !== formData.confirmPassword) {
+        setError("Passwords do not match.");
+        setSuccess("");
+        return;
+      }
+      try {
+        await register({
+          full_name: formData.contactPerson,
+          email: formData.email,
+          password: formData.password,
+          phone_number: formData.phone,
+          company_name: formData.companyName,
+          company_website: "", // Not in form, but required by API
+          industry: "", // Not in form, but required by API
+          company_size: formData.companySize,
+          location: "", // Not in form, but required by API
+          description: "", // Not in form, but required by API
+          role: 'recruiter'
+        });
+        setSuccess("Registration successful! Please log in.");
+        setError("");
+        setIsLogin(true); // Switch to login form
+      } catch (error) {
+        console.error("Registration failed:", error);
+        setError("Registration failed. Please try again.");
+        setSuccess("");
+      }
     }
   };
 
@@ -211,7 +232,7 @@ const RecruiterLogin = () => {
               </button>
 
               {isLogin && (
-                <a href="#" className={styles.forgotPassword}>
+                <a href="/reset-password" className={styles.forgotPassword}>
                   Forgot Password?
                 </a>
               )}

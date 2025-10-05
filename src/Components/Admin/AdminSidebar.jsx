@@ -1,10 +1,12 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../../Contexts/AuthContext";
 import styles from "../../Styles/AdminSidebar.module.css";
 
 const AdminSidebar = ({ darkMode, isOpen, onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const menuItems = [
     {
@@ -32,10 +34,43 @@ const AdminSidebar = ({ darkMode, isOpen, onClose }) => {
       path: '/admin/jobs'
     },
     {
+      id: 'pending-jobs',
+      label: 'Pending Jobs',
+      icon: '⏳',
+      path: '/admin/pending-jobs'
+    },
+    {
+      id: 'government-jobs',
+      label: 'Government Jobs',
+      icon: '🏛️',
+      path: '/admin/government-jobs'
+    },
+    {
+      id: 'job-applications',
+      label: 'Job Applications',
+      icon: '📋',
+      path: '/admin/job-applications',
+      badge: 12
+    },
+    {
       id: 'membership',
       label: 'Membership Plans',
       icon: '💳',
       path: '/admin/membership'
+    },
+    {
+      id: 'homepage-forms',
+      label: 'Homepage Forms',
+      icon: '📝',
+      path: '/admin/homepage-forms',
+      badge: 5
+    },
+    {
+      id: 'contact-forms',
+      label: 'Contact Forms',
+      icon: '📞',
+      path: '/admin/contact-forms',
+      badge: 3
     },
     {
       id: 'reports',
@@ -100,10 +135,16 @@ const AdminSidebar = ({ darkMode, isOpen, onClose }) => {
       
       <div className={styles.userCard}>
         <div className={styles.userInfo}>
-          <img src="https://via.placeholder.com/30" alt="Jane Doe" className={styles.userAvatar} />
+          <div className={styles.userAvatar}>
+            {(user?.name || user?.admin_name || 'Admin').charAt(0).toUpperCase()}
+          </div>
           <div className={styles.userDetails}>
-            <div className={styles.userName}>Jane Doe</div>
-            <div className={styles.userEmail}>jane.doe@example.com</div>
+            <div className={styles.userName}>
+              {user?.name || user?.admin_name || 'Admin User'}
+            </div>
+            <div className={styles.userEmail}>
+              {user?.email || 'admin@example.com'}
+            </div>
           </div>
         </div>
       </div>

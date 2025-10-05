@@ -108,3 +108,7 @@ export const candidateService = {
 };
 
 export default candidateService;
+
+
+
+

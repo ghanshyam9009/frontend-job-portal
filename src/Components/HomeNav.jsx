@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import styles from "./HomeNav.module.css";
-import logo from "../assets/logo2.png";
+import logo from "../assets/favicon-icon.png";
 
 const HomeNav = () => {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -68,6 +68,7 @@ const HomeNav = () => {
       <div className={styles.navContainer}>
         <div className={styles.logo}>
           <img src={logo} alt="JobPortal Logo" />
+          <span>Bigsources Manpower Solution</span>
         </div>
 
         {/* Desktop Navigation */}
@@ -83,6 +84,11 @@ const HomeNav = () => {
             </a>
           </li>
           <li>
+            <a href="/government-jobs" className={isActive("/government-jobs") ? styles.active : ""}>
+              Government Jobs
+            </a>
+          </li>
+          <li>
             <a href="/about" className={isActive("/about") ? styles.active : ""}>
               About Us
             </a>
@@ -93,6 +99,11 @@ const HomeNav = () => {
               className={isActive("/contact") ? styles.active : ""}
             >
               Contact Us
+            </a>
+          </li>
+          <li>
+            <a href="/membership" className={isActive("/membership") ? styles.active : ""}>
+              Membership
             </a>
           </li>
           <li className={styles.dropdown}>
@@ -108,7 +119,7 @@ const HomeNav = () => {
             </a>
             {showCareerDropdown && (
               <div className={styles.dropdownContent}>
-                <a href="#">Job Seeker Services</a>
+                <a href="/career-services">Job Seeker Services</a>
                 <a href="#">Fast Track Career</a>
                 <a href="#">Premium Seeker</a>
               </div>
@@ -212,6 +223,15 @@ const HomeNav = () => {
                 </li>
                 <li>
                   <a 
+                    href="/government-jobs" 
+                    className={isActive("/government-jobs") ? styles.active : ""} 
+                    onClick={closeMobileMenu}
+                  >
+                    Government Jobs
+                  </a>
+                </li>
+                <li>
+                  <a 
                     href="/about" 
                     className={isActive("/about") ? styles.active : ""} 
                     onClick={closeMobileMenu}
@@ -228,6 +248,15 @@ const HomeNav = () => {
                     Contact Us
                   </a>
                 </li>
+                <li>
+                  <a
+                    href="/membership"
+                    className={isActive("/membership") ? styles.active : ""}
+                    onClick={closeMobileMenu}
+                  >
+                    Membership
+                  </a>
+                </li>
               </ul>
 
               {/* Mobile Auth Buttons */}
@@ -242,7 +271,7 @@ const HomeNav = () => {
                     Recruiter Login
                   </a>
                   <a href="/admin/login" className={styles.mobileEmployerLink} onClick={closeMobileMenu}>
-                    Admin Login
+                    Admin Login 
                   </a>
                 </div>
               </div>

@@ -19,7 +19,7 @@
 }
 
 .navContainer {
-  max-width: 1500px;
+  max-width: 1630px;
   margin: 0 auto;
   padding: 0 1rem;
   display: flex;
@@ -27,12 +27,11 @@
   align-items: center;
   height: 4rem;
 }
-
 /* Logo Styles */
 .logo {
   display: flex;
   align-items: center;
-  flex-shrink: 0;
+  flex-shrink: 1;
 }
 
 .logo img {

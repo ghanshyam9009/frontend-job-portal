@@ -6,16 +6,28 @@ export const authService = {
   // Login user
   async login(email, password, role) {
     try {
-      const response = await apiClient.post(API_ENDPOINTS.auth.login, {
-        email,
-        password,
-        role
-      });
+      let endpoint;
+      switch (role) {
+        case 'candidate':
+          endpoint = API_ENDPOINTS.students.login;
+          break;
+        case 'recruiter':
+          endpoint = API_ENDPOINTS.recruiters.login;
+          break;
+        case 'admin':
+          endpoint = API_ENDPOINTS.admin.login;
+          break;
+        default:
+          throw new Error('Invalid user role for login.');
+      }
+      const response = await apiClient.post(endpoint, { email, password });
       
-      if (response.success && response.data.token) {
-        localStorage.setItem('authToken', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        return response;
+      if (response.token) {
+        const user = response.admin || response.user || response.employer;
+        user.role = role; // Add role to user object
+        localStorage.setItem('authToken', response.token);
+        localStorage.setItem('user', JSON.stringify(user));
+        return { success: true, data: { ...response, user: user } };
       }
       throw new Error(response.message || 'Login failed');
     } catch (error) {
@@ -29,10 +41,13 @@ export const authService = {
       let endpoint;
       switch (userData.role) {
         case 'candidate':
-          endpoint = API_ENDPOINTS.auth.register;
+          endpoint = API_ENDPOINTS.students.register;
           break;
         case 'recruiter':
-          endpoint = API_ENDPOINTS.auth.recruiterRegister;
+          endpoint = API_ENDPOINTS.recruiters.register;
+          break;
+        case 'admin':
+          endpoint = API_ENDPOINTS.admin.register;
           break;
         default:
           throw new Error('Invalid user role for registration.');
@@ -84,12 +99,27 @@ export const authService = {
   },
 
   // Reset password
-  async resetPassword(token, newPassword) {
+  async resetPassword(token, newPassword, role, otp) {
     try {
-      const response = await apiClient.post(API_ENDPOINTS.auth.resetPassword, {
-        token,
-        password: newPassword
-      });
+      let endpoint;
+      let payload = { token, password: newPassword };
+
+      switch (role) {
+        case 'candidate':
+          endpoint = API_ENDPOINTS.students.resetPassword;
+          break;
+        case 'recruiter':
+          endpoint = API_ENDPOINTS.recruiters.resetPassword;
+          break;
+        case 'admin':
+          endpoint = API_ENDPOINTS.admin.resetPassword;
+          payload.otp = otp;
+          break;
+        default:
+          throw new Error('Invalid user role for password reset.');
+      }
+
+      const response = await apiClient.post(endpoint, payload);
       return response;
     } catch (error) {
       throw error;
@@ -99,7 +129,10 @@ export const authService = {
   // Get current user from localStorage
   getCurrentUser() {
     const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
+    if (userStr && userStr !== 'undefined') {
+      return JSON.parse(userStr);
+    }
+    return null;
   },
 
   // Check if user is authenticated
@@ -116,3 +149,7 @@ export const authService = {
 };
 
 export default authService;
+
+
+
+

@@ -7,7 +7,8 @@ const ContactUs = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    message: ""
+    message: "",
+    userType: "candidate"
   });
 
   const handleInputChange = (e) => {
@@ -21,7 +22,7 @@ const ContactUs = () => {
     e.preventDefault();
     console.log("Form submitted:", formData);
     // Reset form
-    setFormData({ name: "", email: "", message: "" });
+    setFormData({ name: "", email: "", message: "", userType: "candidate" });
   };
 
   return (
@@ -61,6 +62,19 @@ const ContactUs = () => {
                     placeholder=""
                     required
                   />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="userType">I am a</label>
+                  <select
+                    id="userType"
+                    name="userType"
+                    value={formData.userType}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="candidate">Candidate</option>
+                    <option value="recruiter">Recruiter</option>
+                  </select>
                 </div>
                 
                 <div className={styles.formGroup}>
@@ -178,7 +192,7 @@ const ContactUs = () => {
           </div>
         </div>
         <div className={styles.footerBottom}>
-          <p>Copyright © Bigsources Manpower Solution PVT. LTD. 2025. All Rights Reserved</p>
+          <p>Copyright © Bigsources Manpower Solution PVT. LTD. 2025. All Rights Reserved</p> 
         </div>
       </footer>
     </div>

@@ -9,14 +9,6 @@ const AdminDashboard = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Check authentication on component mount
-  useEffect(() => {
-    const isLoggedIn = localStorage.getItem('adminLoggedIn');
-    if (!isLoggedIn) {
-      navigate('/admin/login');
-    }
-  }, [navigate]);
-
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
   };

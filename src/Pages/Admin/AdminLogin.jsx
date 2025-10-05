@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../Contexts/AuthContext";
 import styles from "../../Styles/Admin.module.css";
 import HomeNav from "../../Components/HomeNav";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: ""
@@ -25,22 +27,11 @@ const AdminLogin = () => {
     setError("");
     
     try {
-      // Simulate API call - replace with actual authentication logic
-      console.log("Admin Login:", formData);
-      
-      // Simple validation for demo purposes
-      if (formData.email && formData.password) {
-        // Simulate successful login
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Store admin login status in localStorage
-        localStorage.setItem('adminLoggedIn', 'true');
-        localStorage.setItem('adminEmail', formData.email);
-        
-        // Redirect to admin dashboard
+      const success = await login(formData.email, formData.password, 'admin');
+      if (success) {
         navigate('/admin/dashboard');
       } else {
-        setError("Please fill in all fields");
+        setError("Login failed. Please try again.");
       }
     } catch (err) {
       setError("Login failed. Please try again.");

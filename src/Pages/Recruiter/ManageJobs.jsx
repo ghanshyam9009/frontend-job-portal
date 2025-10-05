@@ -1,65 +1,19 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
 import RecruiterSidebar from "../../Components/Recruiter/RecruiterSidebar";
 import styles from "../../Styles/RecruiterDashboard.module.css";
+import { recruiterExternalService } from "../../services";
 
 const ManageJobs = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [darkMode, setDarkMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [jobs, setJobs] = useState([
-    {
-      id: 1,
-      title: "Senior Frontend Developer",
-      company: "TechCorp",
-      location: "San Francisco, CA",
-      type: "Full-time",
-      salary: "₹12L - ₹15L",
-      status: "Active",
-      postedDate: "2024-01-10",
-      applications: 45,
-      views: 234
-    },
-    {
-      id: 2,
-      title: "UX Designer",
-      company: "TechCorp",
-      location: "Remote",
-      type: "Full-time",
-      salary: "₹9L - ₹11L",
-      status: "Active",
-      postedDate: "2024-01-08",
-      applications: 32,
-      views: 189
-    },
-    {
-      id: 3,
-      title: "Backend Engineer",
-      company: "TechCorp",
-      location: "New York, NY",
-      type: "Full-time",
-      salary: "₹13L - ₹16L",
-      status: "Draft",
-      postedDate: "2024-01-05",
-      applications: 0,
-      views: 0
-    },
-    {
-      id: 4,
-      title: "Product Manager",
-      company: "TechCorp",
-      location: "Seattle, WA",
-      type: "Full-time",
-      salary: "₹14L - ₹17L",
-      status: "Closed",
-      postedDate: "2024-01-01",
-      applications: 67,
-      views: 456
-    }
-  ]);
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const [filterStatus, setFilterStatus] = useState("All");
 
@@ -67,6 +21,36 @@ const ManageJobs = () => {
     setDarkMode(!darkMode);
   };
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
+
+  useEffect(() => {
+    const employerId = user?.employer_id || user?.id || "emp-12345";
+    const fetchJobs = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const data = await recruiterExternalService.getAllPostedJobs(employerId);
+        const mapped = (data?.jobs || []).map((j) => ({
+          id: j.job_id,
+          title: j.job_title,
+          company: j.company_name || "",
+          location: j.location || "",
+          type: j.employment_type || "",
+          salary: j.salary_range ? `₹${Math.round(j.salary_range.min/100000)}L - ₹${Math.round(j.salary_range.max/100000)}L` : "",
+          status: (j.status || "Open").toLowerCase() === "open" ? "Active" : j.status,
+          postedDate: (j.created_at || "").split("T")[0] || "",
+          applications: 0,
+          views: 0
+        }));
+        setJobs(mapped);
+      } catch (e) {
+        console.error(e);
+        setError(typeof e === "string" ? e : e?.message || "Failed to load jobs");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchJobs();
+  }, [user]);
 
   const handleEditJob = (jobId) => {
     navigate(`/edit-job/${jobId}`);
@@ -96,15 +80,25 @@ const ManageJobs = () => {
     }
   };
 
-  const handleToggleStatus = (jobId) => {
-    setJobs(prev => prev.map(job => 
-      job.id === jobId 
-        ? { 
-            ...job, 
-            status: job.status === 'Active' ? 'Closed' : 'Active' 
-          }
-        : job
-    ));
+  const handleToggleStatus = async (jobId) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+    if (job.status === 'Active') {
+      try {
+        setLoading(true);
+        await recruiterExternalService.closeJobOpening(jobId);
+        setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'Closed' } : j));
+        alert('Job closed successfully');
+      } catch (e) {
+        console.error(e);
+        alert('Failed to close job');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // No reopen API provided; keep local toggle if needed
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'Active' } : j));
+    }
   };
 
   const filteredJobs = filterStatus === "All" 
@@ -163,6 +157,12 @@ const ManageJobs = () => {
           </div>
 
           <div className={styles.jobsList}>
+            {loading && (
+              <div className={styles.emptyState}><h3>Loading jobs…</h3></div>
+            )}
+            {error && (
+              <div className={styles.emptyState}><h3>{error}</h3></div>
+            )}
             {filteredJobs.length === 0 ? (
               <div className={styles.emptyState}>
                 <div className={styles.emptyIcon}>📄</div>
