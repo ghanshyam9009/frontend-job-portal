@@ -130,15 +130,9 @@ const HomeNav = () => {
         {/* Desktop Right Menu */}
         <div className={styles.rightMenu}>
           <form className={styles.searchForm}>
-            <input
-              type="text"
-              placeholder="Search jobs..."
-              className={styles.search}
-            />
+           
             <button type="submit" className={styles.searchBtn}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M21.71 20.29l-5.4-5.4a9 9 0 10-1.42 1.42l5.4 5.4a1 1 0 001.42-1.42zM11 18a7 7 0 117-7 7 7 0 01-7 7z"/>
-              </svg>
+             
             </button>
           </form>
           

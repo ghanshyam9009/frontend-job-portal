@@ -1,7 +1,7 @@
 // API Configuration
 const API_CONFIG = {
   development: {
-    baseURL: 'http://localhost:4000/api',
+    baseURL: 'http://18.141.113.253::4000/api',
     timeout: 10000
   },
   production: {
