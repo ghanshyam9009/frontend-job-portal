@@ -1,11 +1,16 @@
 // API Configuration
+// API Configuration
 const API_CONFIG = {
   development: {
-    baseURL: 'http://18.141.113.253::4000/api',
+    // In development, we use a proxy to avoid CORS issues.
+    // See vite.config.js for the proxy configuration.
+    baseURL: 'http://18.141.113.253/api',
     timeout: 10000
   },
   production: {
-    baseURL: 'https://i9xj8uhrgg.execute-api.ap-southeast-1.amazonaws.com',
+    // In production, the API server must be configured to accept requests
+    // from the frontend's domain to avoid CORS errors.
+    baseURL: 'http://18.141.113.253/api',
     timeout: 15000
   }
 };
