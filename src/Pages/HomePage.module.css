@@ -116,28 +116,13 @@
   overflow: hidden;
 }
 
-.heroSlider {
+.heroVideo {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-}
-
-.heroSlide {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-size: cover;
-  background-position: center;
-  opacity: 0;
-  animation: fade 12s infinite;
-}
-
-.heroSlide:nth-child(1) {
-  animation-delay: 0s;
+  object-fit: cover;
 }
 
 .heroSlide:nth-child(2) {
@@ -173,11 +158,13 @@
 .heroOverlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1;
 }
 
 .heroContainer {
   position: relative;
+  z-index: 2;
   max-width: 1280px;
   margin: 0 auto;
   padding: 5rem 1rem;
@@ -441,7 +428,7 @@
 /* Jobs Section */
 .jobsSection {
   background: white;
-  padding: 4rem 0;
+  padding: 2rem 0;
 }
 
 .jobsContainer {
@@ -465,7 +452,6 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 2rem;
 }
 
 .sectionTitle {
@@ -594,11 +580,15 @@
 
 /* Contact Form */
 .contactForm {
-  background: linear-gradient(135deg, #2563eb 0%, #3730a3 100%);
+  background: #ffffff;
   border-radius: 0.75rem;
   padding: 2rem;
-  max-height: 435px;
-  color: white;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+      max-height: 520px;
+          margin-top: 81px;
+
 }
 
 .formTitle {
@@ -623,8 +613,9 @@
   width: 100%;
   padding: 0.75rem;
   border-radius: 0.5rem;
-  border: none;
+  border: 1px solid #d1d5db;
   color: #111827;
+  background-color: #f9fafb;
 }
 
 .formInput:focus,
@@ -674,8 +665,8 @@
 
 .submitBtn {
   flex: 1;
-  background: white;
-  color: #2563eb;
+  background: #2563eb;
+  color: white;
   padding: 0.75rem;
   border-radius: 0.5rem;
   font-weight: 600;
@@ -685,13 +676,13 @@
 }
 
 .submitBtn:hover {
-  background: #f3f4f6;
+  background: #1d4ed8;
 }
 
 .resetBtn {
   flex: 1;
-  border: 1px solid white;
-  color: white;
+  border: 1px solid #d1d5db;
+  color: #111827;
   background: transparent;
   padding: 0.75rem;
   border-radius: 0.5rem;
@@ -701,8 +692,8 @@
 }
 
 .resetBtn:hover {
-  background: white;
-  color: #2563eb;
+  background: #f3f4f6;
+  color: #111827;
 }
 
 /* Companies Section */
@@ -1245,6 +1236,9 @@ img {
 }
 
 @media (max-width: 480px) {
+  .actionText{
+    margin-top: -38px;
+  }
   .employerTitle {
     font-size: 1.5rem;
   }
@@ -1455,4 +1449,29 @@ img {
   height: 100px;
   object-fit: cover;
   border-radius: 0.5rem;
+}
+
+/* User Type Selector */
+.userTypeSelector {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.userTypeButton {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  background-color: #f9fafb;
+  color: #111827;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.userTypeButton.active {
+  background-color: #2563eb;
+  color: white;
+  border-color: #2563eb;
 }

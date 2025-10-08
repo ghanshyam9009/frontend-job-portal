@@ -228,14 +228,16 @@
   gap: 16px;
 }
 
-.socialIcons span {
-  font-size: 24px;
+.socialLink {
+  color: #9ca3af;
+  font-size: 1.25rem;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: color 0.2s ease;
+  text-decoration: none;
 }
 
-.socialIcons span:hover {
-  transform: scale(1.1);
+.socialLink:hover {
+  color: white;
 }
 
 .footerRight {
@@ -378,14 +380,27 @@
   }
 }
 
+/* User Type Selector */
+.userTypeSelector {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
 
+.userTypeButton {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  background-color: #f9fafb;
+  color: #111827;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
-
-
-
-
-
-
-
-
-
+.userTypeButton.active {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}

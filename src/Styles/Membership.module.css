@@ -39,8 +39,9 @@
 }
 
 .planGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: 40px;
 }
 
@@ -52,6 +53,10 @@
   text-align: center;
   transition: all 0.3s ease;
   position: relative;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .planCard:hover {
@@ -60,23 +65,23 @@
 }
 
 .planTitle {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 1.75rem;
+  font-weight: 700;
   color: #1f2937;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .planPrice {
-  font-size: 2.5rem;
-  font-weight: 700;
+  font-size: 3rem;
+  font-weight: 800;
   color: #667eea;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
 }
 
 .planDuration {
-  font-size: 1rem;
+  font-size: 1.1rem;
   color: #6b7280;
-  margin-bottom: 30px;
+  margin-bottom: 25px;
 }
 
 .planButton {

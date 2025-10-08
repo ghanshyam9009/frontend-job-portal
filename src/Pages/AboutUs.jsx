@@ -208,12 +208,12 @@ const AboutUs = () => {
           <div className={styles.footerLeft}>
             <div className={styles.footerLogo}></div>
             <p>Empowering businesses through innovative HR solutions and professional recruitment services.</p>
-            <div className={styles.socialIcons}>
+            {/* <div className={styles.socialIcons}>
               <span>💼</span>
               <span>🐦</span>
               <span>📷</span>
               <span>📺</span>
-            </div>
+            </div> */}
           </div>
           <div className={styles.footerRight}>
             <div className={styles.footerColumn}>

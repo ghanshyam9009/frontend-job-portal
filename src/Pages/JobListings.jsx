@@ -3,9 +3,11 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useMemo } from "react";
 import styles from "./JobListings.module.css";
 import HomeNav from "../Components/HomeNav";
+import Footer from "../Components/Footer";
 import { candidateExternalService } from "../services";
 
 const JobListings = () => {
+  const [isFilterVisible, setIsFilterVisible] = useState(false);
   const navigate = useNavigate();
   const locationHook = useLocation();
   const querySearch = useMemo(() => {
@@ -98,8 +100,15 @@ const JobListings = () => {
       <HomeNav />
       <div className={styles.mainContentNoSidebar}>
         <div className={styles.filtersResponsive}>
-          <h3>Filters</h3>
-          <div className={styles.filterGroup}>
+          <button 
+            className={styles.filterToggleButton} 
+            onClick={() => setIsFilterVisible(!isFilterVisible)}
+          >
+            {isFilterVisible ? "Hide Filters" : "Show Filters"}
+          </button>
+          <div className={`${styles.filtersContent} ${isFilterVisible ? styles.visible : ''}`}>
+            <h3>Filters</h3>
+            <div className={styles.filterGroup}>
             <label>Location</label>
             <input
               type="text"
@@ -153,9 +162,10 @@ const JobListings = () => {
               ))}
             </div>
           </div>
-          <button className={styles.clearBtn} onClick={clearFilters}>
-            Clear Filters
-          </button>
+            <button className={styles.clearBtn} onClick={clearFilters}>
+              Clear Filters
+            </button>
+          </div>
         </div>
 
         <div className={styles.contentColumn}>
@@ -165,7 +175,7 @@ const JobListings = () => {
               <p>Explore thousands of job opportunities across various industries. Your next career move starts here.</p>
             </div>
             <div className={styles.heroImage}>
-              <div className={styles.vrIcon}>🥽</div>
+              <div className={styles.vrIcon}></div>
             </div>
           </div>
 
@@ -206,19 +216,7 @@ const JobListings = () => {
           </div>
         </div>
       </div>
-      <footer className={styles.footer}>
-        <div className={styles.footerLinks}>
-          <a href="/resources">Resources</a>
-          <a href="/legal">Legal</a>
-          <a href="/company">Company</a>
-        </div>
-        <div className={styles.socialIcons}>
-          <span>📘</span>
-          <span>🐦</span>
-          <span>💼</span>
-          <span>📷</span>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

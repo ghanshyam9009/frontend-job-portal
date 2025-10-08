@@ -367,6 +367,22 @@
   gap: 20px;
 }
 
+.filterToggleButton {
+  display: none;
+  width: 100%;
+  padding: 10px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.filtersContent {
+  display: block;
+}
+
 /* Responsive: stack on mobile */
 @media (max-width: 900px) {
   .mainContentNoSidebar {
@@ -378,6 +394,15 @@
   .contentColumn {
     width: 100%;
     max-width: unset;
+  }
+  .filterToggleButton {
+    display: block;
+  }
+  .filtersContent {
+    display: none;
+  }
+  .filtersContent.visible {
+    display: block;
   }
 }
 
@@ -429,4 +454,3 @@
     text-align: center;
   }
 }
-

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { FaFacebook, FaTwitter, FaLinkedin, FaEnvelope } from "react-icons/fa";
 import styles from "../Styles/ContactUs.module.css";
 import HomeNav from "../Components/HomeNav";
 import logo from "../assets/logo2.png";
@@ -35,7 +36,7 @@ const ContactUs = () => {
           <div className={styles.formSection}>
             <div className={styles.formCard}>
               <h2>Send us a message</h2>
-              <p>We'd love to hear from you. Please fill out the form below.</p>
+              {/* <p>We'd love to hear from you. Please fill out the form below.</p> */}
               
               <form onSubmit={handleSubmit} className={styles.contactForm}>
                 <div className={styles.formGroup}>
@@ -64,17 +65,22 @@ const ContactUs = () => {
                   />
                 </div>
                 <div className={styles.formGroup}>
-                  <label htmlFor="userType">I am a</label>
-                  <select
-                    id="userType"
-                    name="userType"
-                    value={formData.userType}
-                    onChange={handleInputChange}
-                    required
-                  >
-                    <option value="candidate">Candidate</option>
-                    <option value="recruiter">Recruiter</option>
-                  </select>
+                  <div className={styles.userTypeSelector}>
+                    <button
+                      type="button"
+                      className={`${styles.userTypeButton} ${formData.userType === 'candidate' ? styles.active : ''}`}
+                      onClick={() => handleInputChange({ target: { name: 'userType', value: 'candidate' } })}
+                    >
+                      Candidate
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.userTypeButton} ${formData.userType === 'recruiter' ? styles.active : ''}`}
+                      onClick={() => handleInputChange({ target: { name: 'userType', value: 'recruiter' } })}
+                    >
+                      Recruiter
+                    </button>
+                  </div>
                 </div>
                 
                 <div className={styles.formGroup}>
@@ -114,21 +120,21 @@ const ContactUs = () => {
                 <span>Parul Sharma- 9993588502</span>
               </div>
               <div className={styles.contactItem}>
-                <span className={styles.contactIcon}>✉️</span>
+                <span className={styles.contactIcon}><FaEnvelope /></span>
                 <span>HR@bigsources.in</span>
               </div>
-              <div className={styles.contactItem}>
-                <span className={styles.contactIcon}>✉️</span>
+              {/* <div className={styles.contactItem}>
+                <span className={styles.contactIcon}><FaEnvelope /></span>
                 <span>info@bigsources.in</span>
               </div>
               <div className={styles.contactItem}>
-                <span className={styles.contactIcon}>✉️</span>
+                <span className={styles.contactIcon}><FaEnvelope /></span>
                 <span>admin@bigsources.in</span>
               </div>
               <div className={styles.contactItem}>
-                <span className={styles.contactIcon}>✉️</span>
+                <span className={styles.contactIcon}><FaEnvelope /></span>
                 <span>sales@bigsources.in</span>
-              </div>
+              </div> */}
             </div>
 
             <div className={styles.mapCard}>
@@ -152,13 +158,17 @@ const ContactUs = () => {
       <footer className={styles.footer}>
         <div className={styles.footerContent}>
           <div className={styles.footerLeft}>
-            <div className={styles.footerLogo}><img src={logo} alt="JobPortal Logo" /></div>
+            {/* <div className={styles.footerLogo}><img src={logo} alt="JobPortal Logo" /></div> */}
             <p>JobPortal is dedicated to providing cutting-edge solutions for modern businesses.</p>
             <div className={styles.socialIcons}>
-              <span>📘</span>
-              <span>🐦</span>
-              <span>💼</span>
-              <span>📷</span>
+              <a href="https://www.facebook.com/pages/Bigsources-Placement-Services/1530903963853104"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 className={styles.socialLink}>
+                <FaFacebook />
+              </a>
+              <a href="#" className={styles.socialLink}><FaTwitter /></a>
+              <a href="#" className={styles.socialLink}><FaLinkedin /></a>
             </div>
           </div>
           <div className={styles.footerRight}>
@@ -200,7 +210,3 @@ const ContactUs = () => {
 };
 
 export default ContactUs;
-
-
-
-

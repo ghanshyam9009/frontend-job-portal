@@ -80,7 +80,7 @@ const HomeNav = () => {
           </li>
           <li>
             <a href="/jobs" className={isActive("/jobs") ? styles.active : ""}>
-              Job Listings
+              Job 
             </a>
           </li>
           <li>

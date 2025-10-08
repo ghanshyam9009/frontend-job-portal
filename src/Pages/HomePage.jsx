@@ -8,6 +8,7 @@ import HomeNav from "../Components/HomeNav";
 import { candidateExternalService } from "../services"; 
 import { demoService } from "../services/demoService";
 import logo2 from "../assets/logo2.png";
+import video from "../assets/Untitled design.mp4";
 import image1 from "../assets/Screenshot 2025-10-06 190253.png";
 import image2 from "../assets/Screenshot 2025-10-06 190818.png";
 import image3 from "../assets/Screenshot 2025-10-06 194637.png";
@@ -58,15 +59,6 @@ const stats = [
   { number: "500+", label: "Companies" },
   { number: "98%", label: "Success Rate" }
 ];
-
-const BackgroundImage = ({ imageUrl }) => {
-  useEffect(() => {
-    const img = new Image();
-    img.src = imageUrl;
-  }, [imageUrl]);
-
-  return <div className={styles.heroSlide} style={{ backgroundImage: `url(${imageUrl})` }}></div>;
-};
 
 const Homepage = () => {
   const navigate = useNavigate();
@@ -140,12 +132,9 @@ const Homepage = () => {
 <HomeNav/>
       {/* Hero Section */}
       <section className={styles.hero}>
-        <div className={styles.heroSlider}>
-          <BackgroundImage imageUrl={image1} />
-          <BackgroundImage imageUrl={image2} />
-          <BackgroundImage imageUrl={image3} />
-          <BackgroundImage imageUrl={image1} />
-        </div>
+        <video autoPlay loop muted className={styles.heroVideo}>
+          <source src={video} type="video/mp4" />
+        </video>
         <div className={styles.heroOverlay}></div>
         <div className={styles.heroContainer}>
           <div className={styles.heroContent}>
@@ -337,15 +326,22 @@ const Homepage = () => {
                   />
                 </div>
                 <div className={styles.fieldGroup}>
-                  <select
-                    className={styles.formInput}
-                    value={demoData.userType}
-                    onChange={(e) => handleDemoInputChange('userType', e.target.value)}
-                    required
-                  >
-                    <option value="candidate">I am a Candidate</option>
-                    <option value="recruiter">I am a Recruiter</option>
-                  </select>
+                  <div className={styles.userTypeSelector}>
+                    <button
+                      type="button"
+                      className={`${styles.userTypeButton} ${demoData.userType === 'candidate' ? styles.active : ''}`}
+                      onClick={() => handleDemoInputChange('userType', 'candidate')}
+                    >
+                      Candidate
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.userTypeButton} ${demoData.userType === 'recruiter' ? styles.active : ''}`}
+                      onClick={() => handleDemoInputChange('userType', 'recruiter')}
+                    >
+                      Recruiter
+                    </button>
+                  </div>
                 </div>
              
                 <div className={styles.fieldGroup}>
@@ -473,9 +469,9 @@ const Homepage = () => {
           <div className={styles.footerGrid}>
             <div className={styles.footerBrand}>
               <div className={styles.footerLogo}>
-                <div className={styles.footerLogoIcon}>
+                {/* <div className={styles.footerLogoIcon}>
                   <img src={logo2} alt="JobPortal Logo" />
-                </div>
+                </div> */}
                 <span className={styles.footerLogoText}></span>
               </div>
               <p className={styles.footerDescription}>Connecting talent with opportunity worldwide.</p>
