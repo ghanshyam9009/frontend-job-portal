@@ -61,7 +61,7 @@ export const adminService = {
   async approveJob(jobId) {
     try {
       // Using the external service for job posting approval
-      return await adminExternalService.approveJobPosting(jobId);
+      return await adminExternalService.approveJobPosting(jobId, 1);
     } catch (error) {
       throw error;
     }
@@ -69,10 +69,8 @@ export const adminService = {
 
   async rejectJob(jobId) {
     try {
-      // TODO: Replace with a real API endpoint for rejecting jobs
-      console.warn(`Mock rejectJob called for jobId: ${jobId}`);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return { success: true, message: 'Job rejected successfully (mock)' };
+      // Using the external service for job posting rejection
+      return await adminExternalService.rejectJobPosting(jobId, 0);
     } catch (error) {
       throw error;
     }

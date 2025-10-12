@@ -29,8 +29,14 @@ export const adminExternalService = {
   },
 
   // Approve job posting
-  async approveJobPosting(taskId) {
-    const { data } = await axios.post(ADMIN_POST_URL, { task_id: taskId });
+  async approveJobPosting(taskId, approve) {
+    const { data } = await axios.post(ADMIN_POST_URL, { task_id: taskId, approve });
+    return data;
+  },
+
+  // Reject job posting
+  async rejectJobPosting(taskId, approve) {
+    const { data } = await axios.post(ADMIN_POST_URL, { task_id: taskId, approve });
     return data;
   },
 

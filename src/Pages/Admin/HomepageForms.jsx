@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useTheme } from '../../Contexts/ThemeContext';
 import styles from '../../Styles/AdminDashboard.module.css';
 
 const HomepageForms = () => {
+  const { theme } = useTheme();
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, candidate, recruiter
@@ -102,7 +104,7 @@ const HomepageForms = () => {
 
   if (loading) {
     return (
-      <div className={styles.mainContent}>
+      <div className={`${styles.mainContent} ${theme === 'dark' ? styles.dark : ''}`}>
         <div className={styles.loadingContainer}>
           <div className={styles.loadingSpinner}></div>
           <p>Loading homepage forms...</p>
@@ -112,7 +114,7 @@ const HomepageForms = () => {
   }
 
   return (
-    <div className={styles.mainContent}>
+    <div className={`${styles.mainContent} ${theme === 'dark' ? styles.dark : ''}`}>
       <div className={styles.contentHeader}>
         <h1 className={styles.pageTitle}>Homepage Demo Forms</h1>
         <p className={styles.pageSubtitle}>Manage demo requests from homepage visitors</p>

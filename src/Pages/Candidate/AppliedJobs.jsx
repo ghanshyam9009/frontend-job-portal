@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
+import { useTheme } from "../../Contexts/ThemeContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
 import styles from "./UserDashboard.module.css";
 import { candidateExternalService } from "../../services";
@@ -8,7 +9,7 @@ import { candidateExternalService } from "../../services";
 const AppliedJobs = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [darkMode, setDarkMode] = useState(false);
+  const { theme, toggleTheme } = useTheme();
   const [appliedJobs, setAppliedJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -41,10 +42,6 @@ const AppliedJobs = () => {
     };
     fetchApplied();
   }, [user]);
-
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
 
   const handleJobClick = (job) => {
     navigate(`/job/${job.title.toLowerCase().replace(/\s+/g, '-')}`, {
@@ -93,8 +90,8 @@ const AppliedJobs = () => {
   };
 
   return (
-    <div className={styles.dashboardContainer}>
-      <CandidateNavbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+    <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
+      <CandidateNavbar darkMode={theme === 'dark'} toggleDarkMode={toggleTheme} />
       <main className={styles.main}>
         <section className={styles.jobsSection}>
           <div className={styles.jobsHeader}>

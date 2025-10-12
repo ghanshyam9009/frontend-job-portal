@@ -4,22 +4,17 @@
   left: -250px;
   width: 250px;
   height: 100%;
-  background: #fff;
-  border-right: 1px solid #e2e8f0;
+  background: var(--card-background);
+  border-right: var(--card-border);
   transition: left 0.3s ease;
   z-index: 1100;
   display: flex;
   flex-direction: column;
+  color: var(--text-color);
 }
 
 .sidebar.open {
   left: 0;
-}
-
-.darkMode {
-  background: #1a202c;
-  border-right-color: #2d3748;
-  color: #e2e8f0;
 }
 
 .closeButton {
@@ -30,7 +25,7 @@
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--text-color);
 }
 
 .nav {
@@ -58,36 +53,21 @@
   text-align: left;
   cursor: pointer;
   font-size: 14px;
-  color: #4a5568;
+  color: var(--text-color);
   transition: all 0.2s;
   border-left: 3px solid transparent;
 }
 
 .navLink:hover {
-  background: #f8fafc;
+  background: var(--background-color);
   color: #1e40af;
 }
 
 .navLink.active {
-  background: #eef2ff;
+  background: var(--background-color);
   color: #1e40af;
   font-weight: 600;
   border-left-color: #3b82f6;
-}
-
-.darkMode .navLink {
-  color: #a0aec0;
-}
-
-.darkMode .navLink:hover {
-  background: #2d3748;
-  color: #fff;
-}
-
-.darkMode .navLink.active {
-  background: #2d3748;
-  color: #fff;
-  border-left-color: #6366f1;
 }
 
 .navIcon {
@@ -112,11 +92,7 @@
 
 .userCard {
   padding: 24px;
-  border-top: 1px solid #e2e8f0;
-}
-
-.darkMode .userCard {
-  border-top-color: #2d3748;
+  border-top: var(--card-border);
 }
 
 .userInfo {
@@ -143,20 +119,12 @@
 
 .userName {
   font-weight: 600;
-  color: #111827;
-}
-
-.darkMode .userName {
-  color: #fff;
+  color: var(--text-color);
 }
 
 .userEmail {
   font-size: 12px;
-  color: #6b7280;
-}
-
-.darkMode .userEmail {
-  color: #a0aec0;
+  color: var(--text-color);
 }
 
 /* Mobile overlay for sidebar */
@@ -169,6 +137,44 @@
   background: rgba(0, 0, 0, 0.5);
   z-index: 1099;
 }
+
+/* Dark Theme */
+.dark {
+  background: #1f2937;
+  border-right: 1px solid #374151;
+}
+
+.dark .closeButton {
+  color: #9ca3af;
+}
+
+.dark .navLink {
+  color: #d1d5db;
+}
+
+.dark .navLink:hover {
+  background: #374151;
+  color: #ffffff;
+}
+
+.dark .navLink.active {
+  background: #374151;
+  color: #ffffff;
+  border-left-color: #3b82f6;
+}
+
+.dark .userCard {
+  border-top: 1px solid #374151;
+}
+
+.dark .userName {
+  color: #ffffff;
+}
+
+.dark .userEmail {
+  color: #9ca3af;
+}
+
 
 /* Desktop: show sidebar always */
 @media (min-width: 769px) {

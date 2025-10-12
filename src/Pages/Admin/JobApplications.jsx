@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
 import { adminExternalService } from "../../services";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const JobApplications = () => {
+  const { theme } = useTheme();
   const [applications, setApplications] = useState([]);
   const [filteredApplications, setFilteredApplications] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -121,7 +123,7 @@ const JobApplications = () => {
 
   if (loading) {
     return (
-      <div className={styles.mainContent}>
+      <div className={`${styles.mainContent} ${theme === 'dark' ? styles.dark : ''}`}>
         <div className={styles.loadingContainer}>
           <div className={styles.loadingSpinner}></div>
           <p>Loading job applications...</p>
@@ -131,7 +133,7 @@ const JobApplications = () => {
   }
 
   return (
-    <div className={styles.mainContent}>
+    <div className={`${styles.mainContent} ${theme === 'dark' ? styles.dark : ''}`}>
       <div className={styles.contentHeader}>
         <h1 className={styles.pageTitle}>Job Applications</h1>
         <p className={styles.pageSubtitle}>Review and manage job applications from candidates</p>
@@ -421,6 +423,3 @@ const JobApplications = () => {
 };
 
 export default JobApplications;
-
-
-

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { useTheme } from "../../Contexts/ThemeContext";
 import styles from "../../Styles/AdminDashboard.module.css";
 import { planService } from "../../services/planService";
 
 const ManageMembershipPlans = () => {
+  const { theme } = useTheme();
   const [plans, setPlans] = useState([]);
   const [planType, setPlanType] = useState("CANDIDATE"); // CANDIDATE or RECRUITER
   const [isLoading, setIsLoading] = useState(false);
@@ -120,7 +122,7 @@ const ManageMembershipPlans = () => {
   };
 
   return (
-    <div className={styles.mainContent}>
+    <div className={`${styles.mainContent} ${theme === 'dark' ? styles.dark : ''}`}>
       <div className={styles.contentHeader}>
         <h1 className={styles.pageTitle}>Manage Membership Plans</h1>
         <p className={styles.pageSubtitle}>Configure and manage subscription plans for users</p>

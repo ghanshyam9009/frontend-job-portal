@@ -1,150 +1,197 @@
 .pageContainer {
-  min-height: 100vh;
-  background: #f8f9fa;
-  padding: 40px;
+  background-color: #f8f9fa;
+  color: #333;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.dark {
+  background-color: #1a1a1a;
+  color: #f8f9fa;
 }
 
 .header {
   text-align: center;
-  margin-bottom: 60px;
+  padding: 2rem 0;
 }
 
 .title {
   font-size: 2.5rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.dark .title {
+  color: #f8f9fa;
 }
 
 .subtitle {
   font-size: 1.2rem;
-  color: #6b7280;
+  color: #6c757d;
+}
+
+.dark .subtitle {
+  color: #a0a0a0;
 }
 
 .plansContainer {
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: 2rem;
 }
 
 .section {
-  margin-bottom: 60px;
+  margin-bottom: 3rem;
 }
 
 .sectionTitle {
   font-size: 2rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 40px;
+  font-weight: bold;
   text-align: center;
+  margin-bottom: 2rem;
+}
+
+.dark .sectionTitle {
+  color: #f8f9fa;
 }
 
 .planGrid {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 40px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
 }
 
 .planCard {
-  background: #ffffff;
-  border-radius: 10px;
-  padding: 40px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
   text-align: center;
-  transition: all 0.3s ease;
+  transition: transform 0.3s, box-shadow 0.3s;
   position: relative;
-  width: 320px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+}
+
+.dark .planCard {
+  background-color: #2a2a2a;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .planCard:hover {
   transform: translateY(-10px);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
-}
-
-.planTitle {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 15px;
-}
-
-.planPrice {
-  font-size: 3rem;
-  font-weight: 800;
-  color: #667eea;
-  margin-bottom: 5px;
-}
-
-.planDuration {
-  font-size: 1.1rem;
-  color: #6b7280;
-  margin-bottom: 25px;
-}
-
-.planButton {
-  background: #667eea;
-  color: #ffffff;
-  border: none;
-  border-radius: 50px;
-  padding: 15px 40px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-.planButton:hover {
-  background: #5a67d8;
-}
-
-.gold {
-  border-top: 4px solid #fbbF24;
-}
-
-.platinum {
-  border-top: 4px solid #7c3aed;
-}
-
-.silver {
-  border-top: 4px solid #c0c0c0;
-}
-
-.featuresList {
-  list-style: none;
-  padding: 0;
-  margin: 30px 0;
-  text-align: left;
-}
-
-.featuresList li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 15px;
-  color: #4b5563;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
 .recommended {
-  border: 2px solid #667eea;
+  border: 2px solid #007bff;
 }
 
 .recommendedBadge {
   position: absolute;
   top: -15px;
-  right: 20px;
-  background: #667eea;
-  color: white;
-  padding: 5px 15px;
-  border-radius: 50px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  right: -15px;
+  background-color: #007bff;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.planTitle {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.dark .planTitle {
+  color: #f8f9fa;
+}
+
+.planDescription {
+  color: #6c757d;
+  margin-bottom: 1.5rem;
+}
+
+.dark .planDescription {
+  color: #a0a0a0;
+}
+
+.priceSection {
+  margin-bottom: 1.5rem;
+}
+
+.originalPrice, .regularPrice, .offerPrice, .coupon {
+  margin: 0.5rem 0;
+}
+
+.originalPrice del {
+  color: #dc3545;
+}
+
+.regularPrice {
+  font-size: 1.2rem;
+}
+
+.discount {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.offerPrice {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #007bff;
+}
+
+.coupon {
+  font-weight: bold;
+}
+
+.validity {
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+}
+
+.featuresSection {
+  text-align: left;
+  margin-bottom: 2rem;
+}
+
+.featuresSection h4 {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.dark .featuresSection h4 {
+  color: #f8f9fa;
+}
+
+.featuresList {
+  list-style: none;
+  padding: 0;
+}
+
+.featuresList li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.planButton {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 5px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.planButton:hover {
+  background-color: #0056b3;
 }
 
 .faqSection {
-  margin-top: 80px;
+  margin-top: 3rem;
 }
 
 .faqContainer {
@@ -153,21 +200,22 @@
 }
 
 .faqItem {
-  background: #ffffff;
-  border-radius: 10px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.5rem;
 }
 
 .faqQuestion {
   font-size: 1.2rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.dark .faqQuestion {
+  color: #f8f9fa;
 }
 
 .faqAnswer {
-  color: #6b7280;
-  line-height: 1.6;
+  color: #6c757d;
+}
+
+.dark .faqAnswer {
+  color: #a0a0a0;
 }

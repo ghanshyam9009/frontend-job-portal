@@ -1,12 +1,15 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
+import { useTheme } from "../../Contexts/ThemeContext"; // Import useTheme
 import styles from "../../Styles/AdminNavbar.module.css";
 import logo from "../../assets/favicon-icon.png";
+import { Sun, Moon } from "lucide-react";
 
 const AdminNavbar = ({ onLogout, onMobileMenuToggle }) => {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
+  const { theme, toggleTheme } = useTheme(); // Use theme context
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
   const handleProfileClick = () => {
@@ -50,9 +53,9 @@ const AdminNavbar = ({ onLogout, onMobileMenuToggle }) => {
           🔔
           <span className={styles.notificationBadge}>9</span>
         </button>
-        {/* <button className={styles.darkModeBtn} onClick={toggleDarkMode}>
-          {darkMode ? '☀️' : '🌙'}
-        </button> */}
+        <button className={styles.themeToggle} onClick={toggleTheme}>
+          {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+        </button>
         <button className={styles.logoutBtn} onClick={handleLogout}>
           Logout
         </button>

@@ -1,12 +1,14 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
+import { useTheme } from "../../Contexts/ThemeContext";
 import styles from "./RecruiterSidebar.module.css";
 
-const RecruiterSidebar = ({ darkMode, isOpen, toggleSidebar }) => {
+const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { theme } = useTheme();
 
   const menuItems = [
     {
@@ -72,7 +74,7 @@ const RecruiterSidebar = ({ darkMode, isOpen, toggleSidebar }) => {
   return (
     <>
     {isOpen && <div className={styles.mobileOverlay} onClick={toggleSidebar}></div>}
-    <aside className={`${styles.sidebar} ${darkMode ? styles.darkMode : ''} ${isOpen ? styles.open : ''}`}>
+    <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''} ${theme === 'dark' ? styles.dark : ''}`}>
       <button className={styles.closeButton} onClick={toggleSidebar}>
         &times;
       </button>

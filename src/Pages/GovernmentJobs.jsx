@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
+import { useTheme } from "../Contexts/ThemeContext";
 import { useNavigate } from "react-router-dom";
 import { Search, MapPin, Calendar, Building2, Users, Clock } from "lucide-react";
 import styles from "../Styles/GovernmentJobs.module.css";
 import HomeNav from "../Components/HomeNav";
 
 const GovernmentJobs = () => {
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [filteredJobs, setFilteredJobs] = useState([]);
@@ -149,7 +151,7 @@ const GovernmentJobs = () => {
 
   if (loading) {
     return (
-      <div className={styles.pageContainer}>
+      <div className={`${styles.pageContainer} ${theme === 'dark' ? styles.dark : ''}`}>
         <HomeNav />
         <div>Loading...</div>
       </div>
@@ -157,7 +159,7 @@ const GovernmentJobs = () => {
   }
 
   return (
-    <div className={styles.pageContainer}>
+    <div className={`${styles.pageContainer} ${theme === 'dark' ? styles.dark : ''}`}>
       <HomeNav />
       <h1 className={styles.title}>Government Jobs</h1>
       <div className={styles.jobList}>
@@ -177,6 +179,3 @@ const GovernmentJobs = () => {
 };
 
 export default GovernmentJobs;
-
-
-

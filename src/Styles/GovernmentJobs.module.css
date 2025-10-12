@@ -2,6 +2,12 @@
   min-height: 100vh;
   background: #f8f9fa;
   padding: 40px;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.dark {
+  background-color: #1a1a1a;
+  color: #f8f9fa;
 }
 
 .title {
@@ -24,6 +30,11 @@
   padding: 30px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
+}
+
+.dark .jobCard {
+  background-color: #2a2a2a;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .jobCard:hover {

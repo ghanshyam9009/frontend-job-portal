@@ -5,21 +5,43 @@
   left: 0;
   right: 0;
   height: 64px;
-  background: white;
-  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
   z-index: 2000;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  color: #1f2937;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+.themeToggle {
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  color: #6b7280;
+  transition: all 0.3s ease;
 }
 
-.darkMode {
-  background: #2d3748;
-  border-bottom-color: #4a5568;
+.themeToggle:hover {
+  background: #f9fafb;
+  color: #2563eb;
 }
 
+.themeToggleBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 24px;
+  padding: 0;
+}
 .headerLeft {
   display: flex;
   align-items: center;
@@ -47,14 +69,15 @@ span{
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 14px;
-  background: #f9fafb;
+  background: #f3f4f6;
+  color: #1f2937;
   transition: all 0.2s;
 }
 
 .searchInput:focus {
   outline: none;
   border-color: #3b82f6;
-  background: white;
+  background: var(--input-background);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -150,8 +173,8 @@ span{
   position: absolute;
   top: 100%;
   right: 0;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   padding: 8px 0;
@@ -162,12 +185,12 @@ span{
 
 .profileInfo {
   padding: 12px 16px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .profileName {
   font-weight: 600;
-  color: #111827;
+  color: #1f2937;
   margin-bottom: 2px;
 }
 
@@ -178,7 +201,7 @@ span{
 
 .dropdownDivider {
   height: 1px;
-  background: #e2e8f0;
+  background: #e5e7eb;
   margin: 8px 0;
 }
 
@@ -197,7 +220,7 @@ span{
 
 .dropdownItem:hover {
   background: #f3f4f6;
-  color: #111827;
+  color: #1f2937;
 }
 
 .menuButton {
@@ -231,6 +254,62 @@ span{
   }
 }
 
+/* Dark Theme */
+.dark .header {
+  background: #1f2937;
+  border-bottom-color: #374151;
+  color: #d1d5db;
+}
+
+.dark .searchInput {
+  background: #374151;
+  border-color: #4b5563;
+  color: #d1d5db;
+}
+
+.dark .searchInput:focus {
+  border-color: #60a5fa;
+  background: #374151;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+}
+
+.dark .notificationBtn:hover,
+.dark .darkModeBtn:hover,
+.dark .profilePicture:hover {
+  background: #374151;
+}
+
+.dark .profileDropdown {
+  background: #1f2937;
+  border-color: #374151;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+}
+
+.dark .profileInfo {
+  border-bottom-color: #374151;
+}
+
+.dark .profileName {
+  color: #ffffff;
+}
+
+.dark .profileEmail {
+  color: #9ca3af;
+}
+
+.dark .dropdownDivider {
+  background: #374151;
+}
+
+.dark .dropdownItem {
+  color: #d1d5db;
+}
+
+.dark .dropdownItem:hover {
+  background: #374151;
+  color: #ffffff;
+}
+
 @media (max-width: 480px) {
   .logo {
     font-size: 20px;
@@ -248,5 +327,3 @@ span{
     font-size: 12px;
   }
 }
-
-

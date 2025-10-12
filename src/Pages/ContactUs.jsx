@@ -1,10 +1,12 @@
 import React, { useState } from "react";
+import { useTheme } from "../Contexts/ThemeContext";
 import { FaFacebook, FaTwitter, FaLinkedin, FaEnvelope } from "react-icons/fa";
 import styles from "../Styles/ContactUs.module.css";
 import HomeNav from "../Components/HomeNav";
 import logo from "../assets/logo2.png";
 
 const ContactUs = () => {
+  const { theme } = useTheme();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -27,7 +29,7 @@ const ContactUs = () => {
   };
 
   return (
-    <div className={styles.pageContainer}>
+    <div className={`${styles.pageContainer} ${theme === 'dark' ? styles.dark : ''}`}>
       <HomeNav />
       
       <div className={styles.mainContent}>

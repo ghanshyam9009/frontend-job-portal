@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useTheme } from '../../Contexts/ThemeContext';
 import styles from '../../Styles/AdminDashboard.module.css';
 
 const ContactForms = () => {
+  const { theme } = useTheme();
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, candidate, recruiter
@@ -84,7 +86,7 @@ const ContactForms = () => {
 
   if (loading) {
     return (
-      <div className={styles.mainContent}>
+      <div className={`${styles.mainContent} ${theme === 'dark' ? styles.dark : ''}`}>
         <div className={styles.loadingContainer}>
           <div className={styles.loadingSpinner}></div>
           <p>Loading contact forms...</p>
@@ -94,7 +96,7 @@ const ContactForms = () => {
   }
 
   return (
-    <div className={styles.mainContent}>
+    <div className={`${styles.mainContent} ${theme === 'dark' ? styles.dark : ''}`}>
       <div className={styles.contentHeader}>
         <h1 className={styles.pageTitle}>Contact Us Forms</h1>
         <p className={styles.pageSubtitle}>Manage contact form submissions from visitors</p>

@@ -1,16 +1,14 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
+import { useTheme } from "../../Contexts/ThemeContext";
 import { jobService } from "../../services/jobService";
-import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
-import RecruiterSidebar from "../../Components/Recruiter/RecruiterSidebar";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 
 const PostJob = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [darkMode, setDarkMode] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
@@ -39,11 +37,6 @@ const PostJob = () => {
   });
 
   const [newSkill, setNewSkill] = useState("");
-
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
-  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
   const handleInputChange = (field, value) => {
     const keys = field.split(".");
@@ -110,9 +103,7 @@ const PostJob = () => {
   };
 
   return (
-    <div className={styles.dashboardContainer}>
-      <RecruiterNavbar toggleSidebar={toggleSidebar} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <RecruiterSidebar darkMode={darkMode} isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
+    <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
       <main className={styles.main}>
         <section className={styles.jobPostingSection}>
           <div className={styles.sectionHeader}>

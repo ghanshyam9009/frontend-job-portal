@@ -1,6 +1,7 @@
 // Authentication Service
 import apiClient from './apiClient';
 import { API_ENDPOINTS } from '../config/api';
+import { handleApiError, SUCCESS_MESSAGES, ERROR_MESSAGES } from '../utils/errorHandler';
 
 export const authService = {
   // Login user
@@ -9,9 +10,11 @@ export const authService = {
       let endpoint;
       switch (role) {
         case 'candidate':
+        case 'student':
           endpoint = API_ENDPOINTS.students.login;
           break;
         case 'recruiter':
+        case 'employer':
           endpoint = API_ENDPOINTS.recruiters.login;
           break;
         case 'admin':
@@ -20,10 +23,11 @@ export const authService = {
         default:
           throw new Error('Invalid user role for login.');
       }
+      
       const response = await apiClient.post(endpoint, { email, password });
       
       if (response.token) {
-        const user = response.admin || response.user || response.employer;
+        const user = response.admin || response.user || response.employer || response.student;
         user.role = role; // Add role to user object
         localStorage.setItem('authToken', response.token);
         localStorage.setItem('user', JSON.stringify(user));
@@ -31,7 +35,7 @@ export const authService = {
       }
       throw new Error(response.message || 'Login failed');
     } catch (error) {
-      throw error;
+      throw handleApiError(error, ERROR_MESSAGES.LOGIN_FAILED);
     }
   },
 
@@ -41,9 +45,11 @@ export const authService = {
       let endpoint;
       switch (userData.role) {
         case 'candidate':
+        case 'student':
           endpoint = API_ENDPOINTS.students.register;
           break;
         case 'recruiter':
+        case 'employer':
           endpoint = API_ENDPOINTS.recruiters.register;
           break;
         case 'admin':
@@ -55,7 +61,7 @@ export const authService = {
       const response = await apiClient.post(endpoint, userData);
       return response;
     } catch (error) {
-      throw error;
+      throw handleApiError(error, ERROR_MESSAGES.REGISTRATION_FAILED);
     }
   },
 
@@ -84,7 +90,7 @@ export const authService = {
       }
       throw new Error('Token refresh failed');
     } catch (error) {
-      throw error;
+      throw handleApiError(error, 'Token refresh failed');
     }
   },
 
@@ -94,7 +100,7 @@ export const authService = {
       const response = await apiClient.post(API_ENDPOINTS.auth.forgotPassword, { email });
       return response;
     } catch (error) {
-      throw error;
+      throw handleApiError(error, 'Failed to send password reset email');
     }
   },
 
@@ -106,9 +112,11 @@ export const authService = {
 
       switch (role) {
         case 'candidate':
+        case 'student':
           endpoint = API_ENDPOINTS.students.resetPassword;
           break;
         case 'recruiter':
+        case 'employer':
           endpoint = API_ENDPOINTS.recruiters.resetPassword;
           break;
         case 'admin':
@@ -122,7 +130,20 @@ export const authService = {
       const response = await apiClient.post(endpoint, payload);
       return response;
     } catch (error) {
-      throw error;
+      throw handleApiError(error, ERROR_MESSAGES.PASSWORD_RESET_FAILED);
+    }
+  },
+
+  // Change password
+  async changePassword(userId, currentPassword, newPassword) {
+    try {
+      const response = await apiClient.put(API_ENDPOINTS.users.changePassword(userId), {
+        currentPassword,
+        newPassword
+      });
+      return response;
+    } catch (error) {
+      throw handleApiError(error, 'Failed to change password');
     }
   },
 

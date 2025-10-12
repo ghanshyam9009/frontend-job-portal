@@ -1,92 +1,59 @@
-// Saved Job Service
 import apiClient from './apiClient';
 import { API_ENDPOINTS } from '../config/api';
+import { withErrorHandling } from '../utils/errorHandler';
 
 export const savedJobService = {
-  // Get all saved jobs
-  async getAllSavedJobs(params = {}) {
-    try {
-      const response = await apiClient.get(API_ENDPOINTS.savedJobs.getAll, { params });
+  // Get all saved jobs for a user
+  async getSavedJobs(userId) {
+    return withErrorHandling(async () => {
+      const response = await apiClient.get(API_ENDPOINTS.savedJobs.getByUser(userId));
       return response;
-    } catch (error) {
-      throw error;
-    }
+    }, 'Failed to fetch saved jobs');
   },
 
-  // Get saved jobs by candidate
-  async getSavedJobsByCandidate(candidateId, params = {}) {
-    try {
-      const response = await apiClient.get(API_ENDPOINTS.savedJobs.getByCandidate(candidateId), { params });
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  // Save job
-  async saveJob(jobId, candidateId) {
-    try {
+  // Save a job
+  async saveJob(jobId, userId) {
+    return withErrorHandling(async () => {
       const response = await apiClient.post(API_ENDPOINTS.savedJobs.save, {
         job_id: jobId,
-        candidate_id: candidateId
+        user_id: userId
       });
       return response;
-    } catch (error) {
-      throw error;
-    }
+    }, 'Failed to save job');
   },
 
-  // Unsave job
-  async unsaveJob(jobId, candidateId) {
-    try {
-      const response = await apiClient.delete(API_ENDPOINTS.savedJobs.unsave(jobId, candidateId));
+  // Unsave a job
+  async unsaveJob(jobId, userId) {
+    return withErrorHandling(async () => {
+      const response = await apiClient.delete(API_ENDPOINTS.savedJobs.unsave(jobId, userId));
       return response;
-    } catch (error) {
-      throw error;
-    }
+    }, 'Failed to unsave job');
   },
 
   // Check if job is saved
-  async isJobSaved(jobId, candidateId) {
-    try {
-      const response = await apiClient.get(`/saved-jobs/check/${jobId}/${candidateId}`);
-      return response;
-    } catch (error) {
-      throw error;
+  async isJobSaved(jobId, userId) {
+    return withErrorHandling(async () => {
+      const response = await apiClient.get(API_ENDPOINTS.savedJobs.checkSaved(jobId, userId));
+      return response.isSaved || false;
+    }, 'Failed to check saved status');
+  },
+
+  // Toggle save status
+  async toggleSaveJob(jobId, userId, isCurrentlySaved) {
+    if (isCurrentlySaved) {
+      return await this.unsaveJob(jobId, userId);
+    } else {
+      return await this.saveJob(jobId, userId);
     }
   },
 
-  // Toggle save/unsave job
-  async toggleSaveJob(jobId, candidateId) {
-    try {
-      // First check if job is already saved
-      const isSaved = await this.isJobSaved(jobId, candidateId);
-      
-      if (isSaved.data.isSaved) {
-        // If saved, unsave it
-        return await this.unsaveJob(jobId, candidateId);
-      } else {
-        // If not saved, save it
-        return await this.saveJob(jobId, candidateId);
-      }
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  // Get saved jobs count for candidate
-  async getSavedJobsCount(candidateId) {
-    try {
-      const response = await apiClient.get(`/saved-jobs/count/${candidateId}`);
+  // Get all saved jobs (admin)
+  async getAllSavedJobs(params = {}) {
+    return withErrorHandling(async () => {
+      const response = await apiClient.get(API_ENDPOINTS.savedJobs.getAll, { params });
       return response;
-    } catch (error) {
-      throw error;
-    }
+    }, 'Failed to fetch all saved jobs');
   }
 };
 
 export default savedJobService;
-
-
-
-

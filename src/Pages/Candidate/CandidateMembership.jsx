@@ -1,10 +1,13 @@
 import React from "react";
+import { useTheme } from "../../Contexts/ThemeContext";
 import styles from "../../Styles/Membership.module.css";
 import HomeNav from "../../Components/HomeNav";
 
 const CandidateMembership = () => {
+  const { theme } = useTheme();
+
   return (
-    <div className={styles.pageContainer}>
+    <div className={`${styles.pageContainer} ${theme === 'dark' ? styles.dark : ''}`}>
       <HomeNav />
       <div className={styles.header}>
         <h1 className={styles.title}>Candidate Membership Plans</h1>

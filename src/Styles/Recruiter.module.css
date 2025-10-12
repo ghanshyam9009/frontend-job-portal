@@ -29,12 +29,27 @@
   max-width: 450px;
 }
 
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
 .title {
   font-size: 32px;
   font-weight: 700;
   color: #1f2937;
-  margin: 0 0 8px 0;
+  margin: 0;
   text-align: center;
+}
+
+.themeToggleBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 24px;
+  padding: 0;
 }
 
 .subtitle {
@@ -192,6 +207,73 @@
   line-height: 1.6;
   opacity: 0.9;
 }
+
+/* Dark Theme */
+.darkTheme {
+  background: #111827;
+}
+
+.darkTheme .formCard {
+  background: #1f2937;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.darkTheme .title {
+  color: #ffffff;
+}
+
+.darkTheme .subtitle {
+  color: #9ca3af;
+}
+
+.darkTheme .toggleButtons {
+  background: #374151;
+}
+
+.darkTheme .toggleBtn {
+  color: #9ca3af;
+}
+
+.darkTheme .toggleBtn.active {
+  background: #4b5563;
+  color: #ffffff;
+}
+
+.darkTheme .labelText {
+  color: #d1d5db;
+}
+
+.darkTheme .input {
+  background: #374151;
+  border-color: #4b5563;
+  color: #ffffff;
+}
+
+.darkTheme .input:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.darkTheme .inputIcon {
+  color: #9ca3af;
+}
+
+.darkTheme .submitBtn {
+  background: #10b981;
+}
+
+.darkTheme .submitBtn:hover {
+  background: #059669;
+}
+
+.darkTheme .forgotPassword {
+  color: #10b981;
+}
+
+.darkTheme .forgotPassword:hover {
+  color: #34d399;
+}
+
 
 /* Responsive Design */
 @media (max-width: 768px) {

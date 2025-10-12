@@ -1,19 +1,16 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
+import { useTheme } from "../../Contexts/ThemeContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
 import styles from "./UserDashboard.module.css";
 
 const Messages = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [darkMode, setDarkMode] = useState(false);
+  const { theme, toggleTheme } = useTheme();
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [newMessage, setNewMessage] = useState("");
-
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
 
   const [conversations, setConversations] = useState([
     {
@@ -129,8 +126,8 @@ const Messages = () => {
   };
 
   return (
-    <div className={styles.dashboardContainer}>
-      <CandidateNavbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+    <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
+      <CandidateNavbar darkMode={theme === 'dark'} toggleDarkMode={toggleTheme} />
       <main className={styles.main}>
         <section className={styles.messagesSection}>
           <div className={styles.messagesHeader}>
@@ -228,5 +225,3 @@ const Messages = () => {
 };
 
 export default Messages;
-
-

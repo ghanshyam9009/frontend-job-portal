@@ -3,6 +3,12 @@
   min-height: 100vh;
   background: #ffffff;
   overflow-x: hidden;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.dark {
+  background-color: #1a1a1a;
+  color: #f8f9fa;
 }
 
 /* Hero Section */
@@ -99,6 +105,10 @@
   background: #f8f9fa;
 }
 
+.dark .statsSection {
+  background-color: #2a2a2a;
+}
+
 .statsContainer {
   max-width: 1200px;
   margin: 0 auto;
@@ -115,6 +125,11 @@
   border-radius: 20px;
   transition: transform 0.3s ease;
   box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+}
+
+.dark .statCard {
+  background-color: #3a3a3a;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .statCard:hover {
@@ -165,6 +180,10 @@
   background: #ffffff;
 }
 
+.dark .storySection {
+  background-color: #1a1a1a;
+}
+
 .storyContent {
   max-width: 1400px;
   margin: 0 auto;
@@ -185,6 +204,10 @@
   opacity: 0;
   transform: translateY(50px);
   border-top: 4px solid #667eea;
+}
+
+.dark .storyCard {
+  background-color: #2a2a2a;
 }
 
 .storyCard:hover {
@@ -239,6 +262,10 @@
   background: #ffffff;
 }
 
+.dark .servicesSection {
+  background-color: #1a1a1a;
+}
+
 .servicesGrid {
   max-width: 1400px;
   margin: 0 auto;
@@ -256,6 +283,10 @@
   background: #f8f9fa;
   opacity: 0;
   transform: translateY(50px);
+}
+
+.dark .featureCard {
+  background-color: #2a2a2a;
 }
 
 .featureCard:hover {

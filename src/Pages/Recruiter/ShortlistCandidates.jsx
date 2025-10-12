@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
+import { useTheme } from "../../Contexts/ThemeContext";
 import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
 import RecruiterSidebar from "../../Components/Recruiter/RecruiterSidebar";
 import styles from "../../Styles/RecruiterDashboard.module.css";
@@ -8,7 +9,7 @@ import styles from "../../Styles/RecruiterDashboard.module.css";
 const ShortlistCandidates = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [darkMode, setDarkMode] = useState(false);
+  const { theme, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [shortlistedCandidates] = useState([
     {
@@ -33,9 +34,6 @@ const ShortlistCandidates = () => {
     }
   ]);
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
   const handleContactCandidate = (candidate) => {
@@ -53,9 +51,9 @@ const ShortlistCandidates = () => {
   };
 
   return (
-    <div className={styles.dashboardContainer}>
-      <RecruiterNavbar toggleSidebar={toggleSidebar} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <RecruiterSidebar darkMode={darkMode} isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
+    <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
+      <RecruiterNavbar toggleSidebar={toggleSidebar} darkMode={theme === 'dark'} toggleDarkMode={toggleTheme} />
+      <RecruiterSidebar darkMode={theme === 'dark'} isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       <main className={styles.main}>
         <section className={styles.shortlistSection}>
           <div className={styles.sectionHeader}>
@@ -102,5 +100,3 @@ const ShortlistCandidates = () => {
 };
 
 export default ShortlistCandidates;
-
-

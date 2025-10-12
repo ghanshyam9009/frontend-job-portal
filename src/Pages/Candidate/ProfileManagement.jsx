@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../Contexts/AuthContext';
+import { useTheme } from '../../Contexts/ThemeContext';
 import { studentService } from '../../services/studentService';
 import styles from './ProfileManagement.module.css';
 
 const ProfileManagement = () => {
   const { user, updateUser } = useAuth();
+  const { theme } = useTheme();
   const [formData, setFormData] = useState({
     full_name: '',
     phone_number: '',
@@ -126,7 +128,7 @@ const ProfileManagement = () => {
   };
 
   return (
-    <div className={styles.profileContainer}>
+    <div className={`${styles.profileContainer} ${theme === 'dark' ? styles.dark : ''}`}>
       <h2 className={styles.profileHeader}>Profile Management</h2>
       <form onSubmit={handleSubmit} className={styles.profileForm}>
         {error && <p className={styles.error}>{error}</p>}

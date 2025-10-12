@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../Contexts/AuthContext';
+import { useTheme } from '../../Contexts/ThemeContext';
 import { adminService } from '../../services/adminService';
+import styles from '../../Styles/Admin.module.css';
 
 const AdminProfile = () => {
+  const { theme } = useTheme();
   const { user, updateUser } = useAuth();
   const [formData, setFormData] = useState({
     fullName: '',
@@ -53,25 +56,42 @@ const AdminProfile = () => {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className={styles.loadingContainer}>Loading...</div>;
   }
 
   return (
-    <div>
-      <h2>Admin Profile</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {success && <p style={{ color: 'green' }}>{success}</p>}
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Full Name</label>
-          <input type="text" name="fullName" value={formData.fullName} onChange={handleInputChange} />
-        </div>
-        <div>
-          <label>Email</label>
-          <input type="email" name="email" value={formData.email} onChange={handleInputChange} disabled />
-        </div>
-        <button type="submit">Update Profile</button>
-      </form>
+    <div className={`${styles.pageContainer} ${theme === 'dark' ? styles.dark : ''}`}>
+      <div className={styles.formCard}>
+        <h2 className={styles.title}>Admin Profile</h2>
+        {error && <p className={styles.errorMessage}>{error}</p>}
+        {success && <p className={styles.successMessage}>{success}</p>}
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.inputGroup}>
+            <label className={styles.label}>Full Name</label>
+            <input
+              type="text"
+              name="fullName"
+              value={formData.fullName}
+              onChange={handleInputChange}
+              className={styles.input}
+            />
+          </div>
+          <div className={styles.inputGroup}>
+            <label className={styles.label}>Email</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              className={styles.input}
+              disabled
+            />
+          </div>
+          <button type="submit" className={styles.submitBtn}>
+            Update Profile
+          </button>
+        </form>
+      </div>
     </div>
   );
 };

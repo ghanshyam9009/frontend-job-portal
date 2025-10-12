@@ -1,6 +1,7 @@
 // API Client Service
 import axios from 'axios';
 import { API_BASE_URL, API_TIMEOUT } from '../config/api';
+import { handleApiError } from '../utils/errorHandler';
 
 // Create axios instance
 const apiClient = axios.create({

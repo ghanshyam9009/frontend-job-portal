@@ -4,22 +4,17 @@
   left: -250px;
   width: 250px;
   height: 100%;
-  background: #fff;
-  border-right: 1px solid #e2e8f0;
-  transition: left 0.3s ease;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  transition: left 0.3s ease, background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   z-index: 1100;
   display: flex;
   flex-direction: column;
+  color: #374151;
 }
 
 .sidebar.open {
   left: 0;
-}
-
-.darkMode {
-  background: #1a202c;
-  border-right-color: #2d3748;
-  color: #e2e8f0;
 }
 
 .closeButton {
@@ -58,36 +53,21 @@
   text-align: left;
   cursor: pointer;
   font-size: 14px;
-  color: #4a5568;
+  color: #374151;
   transition: all 0.2s;
   border-left: 3px solid transparent;
 }
 
 .navLink:hover {
-  background: #f8fafc;
+  background: #f3f4f6;
   color: #1e40af;
 }
 
 .navLink.active {
-  background: #eef2ff;
+  background: #f3f4f6;
   color: #1e40af;
   font-weight: 600;
   border-left-color: #3b82f6;
-}
-
-.darkMode .navLink {
-  color: #a0aec0;
-}
-
-.darkMode .navLink:hover {
-  background: #2d3748;
-  color: #fff;
-}
-
-.darkMode .navLink.active {
-  background: #2d3748;
-  color: #fff;
-  border-left-color: #6366f1;
 }
 
 .navIcon {
@@ -112,11 +92,7 @@
 
 .userCard {
   padding: 24px;
-  border-top: 1px solid #e2e8f0;
-}
-
-.darkMode .userCard {
-  border-top-color: #2d3748;
+  border-top: 1px solid #e5e7eb;
 }
 
 .userInfo {
@@ -143,11 +119,7 @@
 
 .userName {
   font-weight: 600;
-  color: #111827;
-}
-
-.darkMode .userName {
-  color: #fff;
+  color: #1f2937;
 }
 
 .userEmail {
@@ -155,21 +127,12 @@
   color: #6b7280;
 }
 
-.darkMode .userEmail {
-  color: #a0aec0;
-}
-
 .footer {
   padding: 16px 24px;
   font-size: 12px;
-  color: #9ca3af;
+  color: #6b7280;
   text-align: center;
-  border-top: 1px solid #e2e8f0;
-}
-
-.darkMode .footer {
-  border-top-color: #2d3748;
-  color: #718096;
+  border-top: 1px solid #e5e7eb;
 }
 
 /* Mobile overlay for sidebar */
@@ -184,6 +147,49 @@
 }
 
 /* Desktop: show sidebar always */
+/* Dark Theme */
+.dark .sidebar {
+  background: #1f2937;
+  border-right-color: #374151;
+  color: #d1d5db;
+}
+
+.dark .closeButton {
+  color: #9ca3af;
+}
+
+.dark .navLink {
+  color: #d1d5db;
+}
+
+.dark .navLink:hover {
+  background: #374151;
+  color: #ffffff;
+}
+
+.dark .navLink.active {
+  background: #374151;
+  color: #ffffff;
+  border-left-color: #60a5fa;
+}
+
+.dark .userCard {
+  border-top-color: #374151;
+}
+
+.dark .userName {
+  color: #ffffff;
+}
+
+.dark .userEmail {
+  color: #9ca3af;
+}
+
+.dark .footer {
+  color: #9ca3af;
+  border-top-color: #374151;
+}
+
 @media (min-width: 769px) {
   .sidebar {
     left: 0;
@@ -195,5 +201,3 @@
     display: none;
   }
 }
-
-

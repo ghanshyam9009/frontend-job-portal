@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const ManageJobs = () => {
+  const { theme } = useTheme();
   const [jobs, setJobs] = useState([]);
   const [filteredJobs, setFilteredJobs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -76,7 +78,7 @@ const ManageJobs = () => {
 
   if (loading) {
     return (
-      <div className={styles.mainContent}>
+      <div className={`${styles.mainContent} ${theme === 'dark' ? styles.dark : ''}`}>
         <div className={styles.loadingContainer}>
           <div className={styles.loadingSpinner}></div>
           <p>Loading jobs...</p>
@@ -86,7 +88,7 @@ const ManageJobs = () => {
   }
 
   return (
-    <div className={styles.mainContent}>
+    <div className={`${styles.mainContent} ${theme === 'dark' ? styles.dark : ''}`}>
       <div className={styles.contentHeader}>
         <h1 className={styles.pageTitle}>Manage Jobs</h1>
         <p className={styles.pageSubtitle}>View and manage all job postings</p>

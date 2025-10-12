@@ -1,16 +1,15 @@
 // API Configuration
-// API Configuration
 const API_CONFIG = {
   development: {
     // In development, we use a proxy to avoid CORS issues.
     // See vite.config.js for the proxy configuration.
-    baseURL: 'https://18.141.113.253:/api',
+    baseURL: 'https://18.141.113.253/api',
     timeout: 10000
   },
   production: {
     // In production, the API server must be configured to accept requests
     // from the frontend's domain to avoid CORS errors.
-    baseURL: 'https://18.141.113.253:/api',
+    baseURL: 'https://18.141.113.253/api',
     timeout: 15000
   }
 };
@@ -32,21 +31,44 @@ export const API_ENDPOINTS = {
     forgotPassword: '/auth/forgot-password',
     resetPassword: '/auth/reset-password'
   },
+
+  // Password
+  password: {
+    sendOtp: '/password/send-otp',
+    verifyOtp: '/password/verify-otp',
+    resetPassword: '/password/reset-password'
+  },
   
   // Students
   students: {
     register: '/students/register',
     login: '/students/login',
+    forgotPassword: '/students/forgot-password',
     resetPassword: '/students/reset-password',
-    getProfile: (email) => `/students/profile/${email}`
+    getProfile: (email) => `/student/profile/${email}`,
+    updateProfile: (email) => `/student/profile/${email}`,
+    getAll: '/students',
+    getById: (id) => `/students/${id}`,
+    update: (id) => `/students/${id}`,
+    delete: (id) => `/students/${id}`,
+    uploadResume: (id) => `/students/${id}/resume`,
+    uploadProfileImage: (id) => `/students/${id}/profile-image`
   },
 
-  // Recruiters
+  // Recruiters/Employers
   recruiters: {
     register: '/Recruiter/register',
     login: '/Recruiter/login',
-    resetPassword: '/Recruiter/reset-password',
-    getProfile: (email) => `/Recruiter/profile/${email}`
+   resetPassword: '/Recruiter/reset-password',
+    getProfile: (email) => `/Recruiter/profile/${email}`,
+    updateProfile: (email) => `/employers/profile/${email}`,
+    getAll: '/employers',
+    getById: (id) => `/employers/${id}`,
+    update: (id) => `/employers/${id}`,
+    delete: (id) => `/employers/${id}`,
+    getJobs: (id) => `/employers/${id}/jobs`,
+    getApplications: (id) => `/employers/${id}/applications`,
+    uploadLogo: (id) => `/employers/${id}/logo`
   },
 
   // Admin
@@ -54,7 +76,12 @@ export const API_ENDPOINTS = {
     register: '/admin/register',
     login: '/admin/login',
     resetPassword: '/admin/reset-password',
-    getProfile: (email) => `/admin/profile/${email}`
+    getProfile: (email) => `/admin/profile/${email}`,
+    updateProfile: (email) => `/admin/profile/${email}`,
+    getAll: '/admin',
+    getById: (id) => `/admin/${id}`,
+    update: (id) => `/admin/${id}`,
+    delete: (id) => `/admin/${id}`
   },
 
   // Users
@@ -90,12 +117,19 @@ export const API_ENDPOINTS = {
   jobs: {
     getAll: '/jobs',
     getById: (id) => `/jobs/${id}`,
-    create: '/job/jobs',
+    create: '/jobs',
     update: (id) => `/jobs/${id}`,
     delete: (id) => `/jobs/${id}`,
     search: '/jobs/search',
     getByEmployer: (employerId) => `/jobs/employer/${employerId}`,
-    updateStatus: (id) => `/jobs/${id}/status`
+    updateStatus: (id) => `/jobs/${id}/status`,
+    getFeatured: '/jobs/featured',
+    getRecent: '/jobs/recent',
+    getByLocation: (location) => `/jobs/location/${location}`,
+    getBySkills: '/jobs/skills',
+    getGovernmentJobs: '/jobs/government',
+    createGovernmentJob: '/jobs/government',
+    updateGovernmentJob: (id) => `/jobs/government/${id}`
   },
   
   // Applications
@@ -105,17 +139,31 @@ export const API_ENDPOINTS = {
     create: '/applications',
     update: (id) => `/applications/${id}`,
     getByJob: (jobId) => `/applications/job/${jobId}`,
-    getByCandidate: (candidateId) => `/applications/candidate/${candidateId}`,
+    getByStudent: (studentId) => `/applications/student/${studentId}`,
     updateStatus: (id) => `/applications/${id}/status`,
-    applyToJob: (jobId) => `/application/jobs/${jobId}/apply`
+    applyToJob: (jobId) => `/applications/jobs/${jobId}/apply`,
+    withdraw: (id) => `/applications/${id}/withdraw`,
+    getByEmployer: (employerId) => `/applications/employer/${employerId}`
   },
   
-  // Saved Jobs
+  // Saved Jobs (Bookmark Jobs)
   savedJobs: {
-    getAll: '/saved-jobs',
-    getByCandidate: (candidateId) => `/saved-jobs/candidate/${candidateId}`,
-    save: '/saved-jobs',
-    unsave: (jobId, candidateId) => `/saved-jobs/${jobId}/candidate/${candidateId}`
+    getAll: '/bookmarkjobs',
+    getByUser: (userId) => `/bookmarkjobs/user/${userId}`,
+    save: '/bookmarkjobs',
+    unsave: (jobId, userId) => `/bookmarkjobs/${jobId}/user/${userId}`,
+    checkSaved: (jobId, userId) => `/bookmarkjobs/${jobId}/user/${userId}/check`
+  },
+
+  // Applied Jobs
+  appliedJobs: {
+    getAll: '/appliedjobs',
+    getByUser: (userId) => `/appliedjobs/user/${userId}`,
+    getByJob: (jobId) => `/appliedjobs/job/${jobId}`,
+    create: '/appliedjobs',
+    update: (id) => `/appliedjobs/${id}`,
+    delete: (id) => `/appliedjobs/${id}`,
+    getStats: (userId) => `/appliedjobs/user/${userId}/stats`
   },
   
   // Skills
@@ -161,6 +209,18 @@ export const API_ENDPOINTS = {
     verify: (id) => `/payments/${id}/verify`
   },
   
+  // Tasks (Admin Approval System)
+  tasks: {
+    getAll: '/tasks',
+    getById: (id) => `/tasks/${id}`,
+    update: (id) => `/tasks/${id}`,
+    delete: (id) => `/tasks/${id}`,
+    getByCategory: (category) => `/tasks/category/${category}`,
+    getByStatus: (status) => `/tasks/status/${status}`,
+    approve: (id) => `/tasks/${id}/approve`,
+    reject: (id) => `/tasks/${id}/reject`
+  },
+
   // Admin Actions
   adminActions: {
     getAll: '/admin/actions',

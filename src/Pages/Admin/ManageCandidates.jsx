@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const ManageCandidates = () => {
+  const { theme } = useTheme();
   const [candidates, setCandidates] = useState([]);
   const [filteredCandidates, setFilteredCandidates] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -75,7 +77,7 @@ const ManageCandidates = () => {
 
   if (loading) {
     return (
-      <div className={styles.mainContent}>
+      <div className={`${styles.mainContent} ${theme === 'dark' ? styles.dark : ''}`}>
         <div className={styles.loadingContainer}>
           <div className={styles.loadingSpinner}></div>
           <p>Loading candidates...</p>
@@ -85,7 +87,7 @@ const ManageCandidates = () => {
   }
 
   return (
-    <div className={styles.mainContent}>
+    <div className={`${styles.mainContent} ${theme === 'dark' ? styles.dark : ''}`}>
       <div className={styles.contentHeader}>
         <h1 className={styles.pageTitle}>Manage Candidates</h1>
         <p className={styles.pageSubtitle}>View and manage all registered candidates</p>

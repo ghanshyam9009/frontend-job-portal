@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from "react";
+import { useTheme } from "../Contexts/ThemeContext";
 import styles from "../Styles/AboutUs.module.css";
 import HomeNav from "../Components/HomeNav";
 
 const AboutUs = () => {
+  const { theme } = useTheme();
   const observerRef = useRef();
   useEffect(() => {
     // Intersection Observer for animations
@@ -65,7 +67,7 @@ const AboutUs = () => {
   }, []);
 
   return (
-    <div className={styles.pageContainer}>
+    <div className={`${styles.pageContainer} ${theme === 'dark' ? styles.dark : ''}`}>
       <HomeNav />
       
       {/* Hero Section */}

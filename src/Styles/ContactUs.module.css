@@ -1,6 +1,12 @@
 .pageContainer {
   min-height: 100vh;
   background: #f8fafc;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.dark {
+  background-color: #1a1a1a;
+  color: #f8f9fa;
 }
 
 .mainContent {
@@ -32,6 +38,11 @@
   max-width: 500px;
 }
 
+.dark .formCard {
+  background-color: #2a2a2a;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
 .formCard h2 {
   font-size: 28px;
   font-weight: 700;
@@ -39,11 +50,19 @@
   margin: 0 0 8px 0;
 }
 
+.dark .formCard h2 {
+  color: #f8f9fa;
+}
+
 .formCard p {
   font-size: 16px;
   color: #6b7280;
   margin: 0 0 32px 0;
   line-height: 1.5;
+}
+
+.dark .formCard p {
+  color: #a0a0a0;
 }
 
 .contactForm {
@@ -62,6 +81,10 @@
   font-size: 14px;
   font-weight: 600;
   color: #374151;
+}
+
+.dark .formGroup label {
+  color: #f8f9fa;
 }
 
 .formGroup input,
@@ -119,12 +142,23 @@
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
+.dark .infoCard,
+.dark .mapCard {
+  background-color: #2a2a2a;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
 .infoCard h3,
 .mapCard h3 {
   font-size: 20px;
   font-weight: 600;
   color: #1f2937;
   margin: 0 0 24px 0;
+}
+
+.dark .infoCard h3,
+.dark .mapCard h3 {
+  color: #f8f9fa;
 }
 
 .contactItem {
@@ -147,6 +181,10 @@
   font-size: 16px;
   color: #374151;
   line-height: 1.5;
+}
+
+.dark .contactItem span:last-child {
+  color: #f8f9fa;
 }
 
 .mapContainer {
@@ -352,16 +390,28 @@
     font-size: 20px;
   }
   
-  .formGroup input,
-  .formGroup textarea {
-    padding: 10px 12px;
-    font-size: 14px;
-  }
-  
-  .submitBtn {
-    padding: 14px 20px;
-    font-size: 14px;
-  }
+.formGroup input,
+.formGroup textarea {
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.2s ease;
+  background: #ffffff;
+  font-family: inherit;
+}
+
+.dark .formGroup input,
+.dark .formGroup textarea {
+  background-color: #3a3a3a;
+  border-color: #555;
+  color: #f8f9fa;
+}
+
+.dark .formGroup input::placeholder,
+.dark .formGroup textarea::placeholder {
+  color: #a0a0a0;
+}
   
   .contactItem span:last-child {
     font-size: 14px;

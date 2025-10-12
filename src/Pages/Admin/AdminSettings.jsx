@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import { useTheme } from "../../Contexts/ThemeContext";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const AdminSettings = () => {
+  const { theme } = useTheme();
   const [settings, setSettings] = useState({
     siteName: "JobPortal",
     siteDescription: "Connecting talent with opportunity worldwide",
@@ -25,7 +27,7 @@ const AdminSettings = () => {
   };
 
   return (
-    <div className={styles.mainContent}>
+    <div className={`${styles.mainContent} ${theme === 'dark' ? styles.dark : ''}`}>
       <div className={styles.contentHeader}>
         <h1 className={styles.pageTitle}>Admin Settings</h1>
         <p className={styles.pageSubtitle}>Configure platform settings and preferences</p>

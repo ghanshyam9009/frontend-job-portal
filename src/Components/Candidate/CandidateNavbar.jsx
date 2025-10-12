@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
+import { useTheme } from "../../Contexts/ThemeContext";
 import styles from "../../Styles/CandidateNavbar.module.css";
-
+import { Sun, Moon } from "lucide-react";
 import logo from "../../assets/favicon-icon.png";
 
 const CandidateNavbar = ({ toggleSidebar }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
   const handleProfileClick = () => {
@@ -20,7 +22,7 @@ const CandidateNavbar = ({ toggleSidebar }) => {
   };
 
   return (
-    <header className={`${styles.header}`}>
+    <header className={`${styles.header} ${theme === 'dark' ? styles.dark : ''}`}>
       <div className={styles.headerLeft}>
         <button className={styles.menuButton} onClick={toggleSidebar}>
           ☰
@@ -44,9 +46,9 @@ const CandidateNavbar = ({ toggleSidebar }) => {
           🔔
           <span className={styles.notificationBadge}>3</span>
         </button>
-        {/* <button className={styles.darkModeBtn} onClick={toggleDarkMode}>
-          {darkMode ? '☀️' : '🌙'}
-        </button> */}
+        <button className={styles.themeToggle} onClick={toggleTheme}>
+          {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+        </button>
         <div className={styles.profileSection}>
           <button className={styles.profilePicture} onClick={handleProfileClick}>
             <div className={styles.avatarCircle}>

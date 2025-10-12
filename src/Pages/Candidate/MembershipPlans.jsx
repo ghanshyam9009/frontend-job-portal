@@ -1,18 +1,15 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
+import { useTheme } from "../../Contexts/ThemeContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
 import styles from "./UserDashboard.module.css";
 
 const MembershipPlans = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [darkMode, setDarkMode] = useState(false);
+  const { theme, toggleTheme } = useTheme();
   const [selectedPlan, setSelectedPlan] = useState(null);
-
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
 
  const membershipPlans = [
   {
@@ -103,8 +100,8 @@ const MembershipPlans = () => {
   const currentPlan = user?.membership || 'free';
 
   return (
-    <div className={styles.dashboardContainer}>
-      <CandidateNavbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+    <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
+      <CandidateNavbar darkMode={theme === 'dark'} toggleDarkMode={toggleTheme} />
       <main className={styles.main}>
         <section className={styles.membershipSection}>
           <div className={styles.membershipHeader}>
@@ -234,5 +231,3 @@ const MembershipPlans = () => {
 };
 
 export default MembershipPlans;
-
-

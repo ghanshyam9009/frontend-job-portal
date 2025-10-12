@@ -42,7 +42,6 @@ const companies = [
 
 const topHiringCompanies = [
   { name: "Capgemini", logo: capgeminiLogo },
-  { name: "Jio", logo: jioLogo },
   { name: "ICICI Bank", logo: iciciLogo },
   { name: "Sopra Steria", logo: sopraLogo },
   { name: "Kotak", logo: kotakMahindraLogo },
@@ -250,7 +249,7 @@ const Homepage = () => {
               </div>
             ))}
           </div>
-          <a href="#" className={topHiringStyles.viewAllLink}>View All</a>
+         
         </div>
       </section>
 

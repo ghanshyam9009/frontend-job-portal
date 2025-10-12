@@ -1,12 +1,14 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
+import { useTheme } from "../../Contexts/ThemeContext"; // Import useTheme
 import styles from "../../Styles/AdminSidebar.module.css";
 
-const AdminSidebar = ({ darkMode, isOpen, onClose }) => {
+const AdminSidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { theme } = useTheme(); // Use theme context
 
   const menuItems = [
     {
@@ -110,7 +112,7 @@ const AdminSidebar = ({ darkMode, isOpen, onClose }) => {
       {/* Mobile Overlay */}
       {isOpen && <div className={styles.mobileOverlay} onClick={onClose}></div>}
       
-      <aside className={`${styles.sidebar} ${darkMode ? styles.darkMode : ''} ${isOpen ? styles.open : ''}`}>
+      <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
       <button className={styles.closeButton} onClick={onClose}>
         &times;
       </button>
