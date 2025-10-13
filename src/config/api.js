@@ -3,13 +3,13 @@ const API_CONFIG = {
   development: {
     // In development, we use a proxy to avoid CORS issues.
     // See vite.config.js for the proxy configuration.
-    baseURL: 'https://18.141.113.253/api',
+    baseURL: '/api',
     timeout: 10000
   },
   production: {
     // In production, the API server must be configured to accept requests
     // from the frontend's domain to avoid CORS errors.
-    baseURL: 'https://18.141.113.253/api',
+    baseURL: '/api',
     timeout: 15000
   }
 };
