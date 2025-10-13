@@ -12,7 +12,7 @@ const API_CONFIG = {
     baseURL: 'http://18.141.113.253/api',
     timeout: 15000
   }
-}; 
+};
 
 // Get current environment
 const environment = process.env.NODE_ENV || 'development';
@@ -21,7 +21,6 @@ const config = API_CONFIG[environment];
 // Base API configuration
 export const API_BASE_URL = config.baseURL;
 export const API_TIMEOUT = config.timeout;
-// API endpoints
 export const API_ENDPOINTS = {
   // Authentication 
   auth: {
