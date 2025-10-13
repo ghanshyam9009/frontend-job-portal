@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, MapPin, Upload, Building2, Users, CheckCircle, Star, ArrowRight } from "lucide-react";
+import { Search, MapPin, Upload, Building2, Users, CheckCircle, Star, ArrowRight, UserPlus } from "lucide-react";
 import { FaFacebook, FaTwitter, FaLinkedin } from "react-icons/fa";
 import styles from "./HomePage.module.css";
 import topHiringStyles from "../Styles/TopHiringCompanies.module.css";
@@ -385,39 +385,40 @@ const Homepage = () => {
         </div>
       </section>
 
-      {/* Steps Section */}
+      {/* Working Process Section */}
       <section className={styles.stepsSection}>
         <div className={styles.stepsContainer}>
-          <h2 className={styles.stepsTitle}>Get started in 3 easy steps</h2>
+          <h2 className={styles.stepsTitle}>Unlock Your Dream Job Working Process</h2>
           <div className={styles.stepsGrid}>
             <div className={styles.stepCard}>
               <div className={styles.stepIconContainer}>
-                <div className={styles.stepNumber}>1</div>
+                <UserPlus className={styles.stepIcon} />
+              </div>
+              <h3 className={styles.stepTitle}>Unlock Your Dream Job</h3>
+              <p className={styles.stepDescription}>Browse through a diverse range of job listings tailored to your interests and expertise.</p>
+            </div>
+            <div className={styles.stepCard}>
+              <div className={styles.stepIconContainer}>
                 <Upload className={styles.stepIcon} />
               </div>
-              <h3 className={styles.stepTitle}>Post a Job</h3>
-              <p className={styles.stepDescription}>Tell us what you need in a candidate in just 5-minutes.</p>
+              <h3 className={styles.stepTitle}>Create Your Profile</h3>
+              <p className={styles.stepDescription}>Build a standout profile highlighting your skills, experience, and qualifications.</p>
             </div>
             <div className={styles.stepCard}>
               <div className={styles.stepIconContainer}>
-                <div className={styles.stepNumber}>2</div>
+                <Search className={styles.stepIcon} />
+              </div>
+              <h3 className={styles.stepTitle}>Apply with Ease</h3>
+              <p className={styles.stepDescription}>Apply To Matching Jobs With Just A Few Simple Clicks.</p>
+            </div>
+            <div className={styles.stepCard}>
+              <div className={styles.stepIconContainer}>
                 <CheckCircle className={styles.stepIcon} />
               </div>
-              <h3 className={styles.stepTitle}>Get Verified</h3>
-              <p className={styles.stepDescription}>Our team will call to verify your employer account.</p>
-            </div>
-            <div className={styles.stepCard}>
-              <div className={styles.stepIconContainer}>
-                <div className={styles.stepNumber}>3</div>
-                <Users className={styles.stepIcon} />
-              </div>
-              <h3 className={styles.stepTitle}>Get calls. Hire.</h3>
-              <p className={styles.stepDescription}>You will get calls from relevant candidates within one hour or call them directly from our candidate database.</p>
+              <h3 className={styles.stepTitle}>Track Your Progress</h3>
+              <p className={styles.stepDescription}>Apply To Your Dream Job In One Click & Track Progress Live On Your Dashboard!</p>
             </div>
           </div>
-          <button className={styles.stepsButton} onClick={() => navigate('/post-job')}>
-            Post your Job
-          </button>
         </div>
       </section>
 
