@@ -9,7 +9,7 @@ const API_CONFIG = {
   production: {
     // In production, the API server must be configured to accept requests
     // from the frontend's domain to avoid CORS errors.
-    baseURL: '/api',
+    baseURL: 'https://api.bigsources.in/api',
     timeout: 15000
   }
 };
