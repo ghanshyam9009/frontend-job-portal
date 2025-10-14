@@ -1,15 +1,13 @@
 // API Configuration
 const API_CONFIG = {
   development: {
-    // In development, we use a proxy to avoid CORS issues.
-    // See vite.config.js for the proxy configuration.
+
     baseURL: '/api',
     timeout: 10000
   },
   production: {
-    // In production, the API server must be configured to accept requests
-    // from the frontend's domain to avoid CORS errors.
     baseURL: 'https://api.bigsources.in/api',
+    // baseURL: 'http://18.141.113.253:/api',
     timeout: 15000
   }
 };
@@ -60,7 +58,7 @@ export const API_ENDPOINTS = {
     login: '/Recruiter/login',
    resetPassword: '/Recruiter/reset-password',
     getProfile: (email) => `/Recruiter/profile/${email}`,
-    updateProfile: (email) => `/employers/profile/${email}`,
+    updateProfile: (email) => `/Recruiter/profile/${email}`,
     getAll: '/employers',
     getById: (id) => `/employers/${id}`,
     update: (id) => `/employers/${id}`,

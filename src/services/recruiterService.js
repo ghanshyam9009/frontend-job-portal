@@ -40,7 +40,7 @@ export const recruiterService = {
 
   async updateProfile(email, profileData) {
     try {
-      const response = await apiClient.put(API_ENDPOINTS.recruiters.getProfile(email), profileData);
+      const response = await apiClient.put(API_ENDPOINTS.recruiters.updateProfile(email), profileData);
       return response;
     } catch (error) {
       throw error;

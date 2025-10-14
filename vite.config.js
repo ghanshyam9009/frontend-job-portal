@@ -8,7 +8,7 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'https://api.bigsources.in/api',
-        // target: 'http://localhost:4000/api',
+        // target:'http://18.141.113.253:/api',
         changeOrigin: true,
         secure: false,
         // rewrite: (path) => path.replace(/^\/api/, ''),
