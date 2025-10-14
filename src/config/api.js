@@ -54,11 +54,11 @@ export const API_ENDPOINTS = {
 
   // Recruiters/Employers
   recruiters: {
-    register: '/Recruiter/register',
-    login: '/Recruiter/login',
-   resetPassword: '/Recruiter/reset-password',
-    getProfile: (email) => `/Recruiter/profile/${email}`,
-    updateProfile: (email) => `/Recruiter/profile/${email}`,
+    register: '/recruiter/register',
+    login: '/recruiter/login',
+   resetPassword: '/recruiter/reset-password',
+    getProfile: (email) => `/recruiter/profile/${email}`,
+    updateProfile: (email) => `/recruiter/profile/${email}`,
     getAll: '/employers',
     getById: (id) => `/employers/${id}`,
     update: (id) => `/employers/${id}`,
