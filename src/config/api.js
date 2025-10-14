@@ -2,7 +2,7 @@
 const API_CONFIG = {
   development: {
 
-    baseURL: '/api',
+    baseURL: 'https://api.bigsources.in/api',
     timeout: 10000
   },
   production: {
@@ -55,7 +55,7 @@ export const API_ENDPOINTS = {
   // Recruiters/Employers
   recruiters: {
     register: '/recruiter/register',
-    login: '/recruiter/login',
+    login: '/Recruiter/login',
    resetPassword: '/recruiter/reset-password',
     getProfile: (email) => `/recruiter/profile/${email}`,
     updateProfile: (email) => `/recruiter/profile/${email}`,
