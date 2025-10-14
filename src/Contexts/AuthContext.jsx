@@ -34,49 +34,17 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.login(email, password, role);
       
       if (response.success && response.data && response.data.user) {
-        let profileResponse;
-        try {
-          switch (role) {
-            case 'student':
-            case 'candidate':
-              profileResponse = await studentService.getProfile(email);
-              break;
-            case 'admin':
-              profileResponse = await adminService.getProfile(email);
-              break;
-            case 'recruiter':
-            case 'employer':
-              profileResponse = await recruiterService.getProfile(email);
-              break;
-            default:
-              throw new Error('Invalid role');
-          }
-          
-          const userData = profileResponse.data || profileResponse;
-          const userWithMembership = {
-            ...userData,
-            membership: userData.membership || 'free' // Default to free membership
-          };
-          
-          setUser(userWithMembership);
-          setIsAuthenticated(true);
-          
-          showSuccess(SUCCESS_MESSAGES.LOGIN_SUCCESS);
-          return { success: true, user: userWithMembership };
-        } catch (profileError) {
-          console.warn('Profile fetch failed, using basic user data:', profileError);
-          // Use basic user data if profile fetch fails
-          const userWithMembership = {
-            ...response.data.user,
-            membership: response.data.user.membership || 'free'
-          };
-          
-          setUser(userWithMembership);
-          setIsAuthenticated(true);
-          
-          showSuccess(SUCCESS_MESSAGES.LOGIN_SUCCESS);
-          return { success: true, user: userWithMembership };
-        }
+        // Use basic user data if profile fetch fails
+        const userWithMembership = {
+          ...response.data.user,
+          membership: response.data.user.membership || 'free'
+        };
+
+        setUser(userWithMembership);
+        setIsAuthenticated(true);
+
+        showSuccess(SUCCESS_MESSAGES.LOGIN_SUCCESS);
+        return { success: true, user: userWithMembership };
       }
       
       throw new Error('Login failed - invalid response');
