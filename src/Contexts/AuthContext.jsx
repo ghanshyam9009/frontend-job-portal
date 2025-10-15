@@ -50,7 +50,12 @@ export const AuthProvider = ({ children }) => {
       throw new Error('Login failed - invalid response');
     } catch (error) {
       console.error('Login error:', error);
-      showError(error, ERROR_MESSAGES.LOGIN_FAILED);
+      const errorMessage = error?.error || error?.response?.data?.error || error?.message || '';
+      if (errorMessage.includes('Recruiter not approved')) {
+        showError('Your account is pending approval by an administrator.');
+      } else {
+        showError(error, ERROR_MESSAGES.LOGIN_FAILED);
+      }
       return { success: false, error };
     }
   };
@@ -58,15 +63,8 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await authService.register(userData);
-      
-      if (response.success) {
-        showSuccess(SUCCESS_MESSAGES.REGISTRATION_SUCCESS);
-        // After successful registration, automatically log in the user
-        const { email, password, role } = userData;
-        return await login(email, password, role);
-      }
-      
-      throw new Error(response.message || 'Registration failed');
+      showSuccess(SUCCESS_MESSAGES.REGISTRATION_SUCCESS);
+      return response;
     } catch (error) {
       console.error('Registration error:', error);
       showError(error, ERROR_MESSAGES.REGISTRATION_FAILED);

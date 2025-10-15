@@ -1,6 +1,7 @@
 import React from "react";
 import styles from "./CareerServices.module.css";
 import HomeNav from "../Components/HomeNav";
+import Footer from "../Components/Footer";
 
 const CareerServices = () => {
   const services = [
@@ -47,6 +48,7 @@ const CareerServices = () => {
           ))}
         </div>
       </main>
+      <Footer />
     </div>
   );
 };

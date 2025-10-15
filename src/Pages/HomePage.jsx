@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Search, MapPin, Upload, Building2, Users, CheckCircle, Star, ArrowRight, UserPlus } from "lucide-react";
 import { FaFacebook, FaTwitter, FaLinkedin } from "react-icons/fa";
 import styles from "./HomePage.module.css";
+import Footer from "../Components/Footer";
 import topHiringStyles from "../Styles/TopHiringCompanies.module.css";
 import HomeNav from "../Components/HomeNav";
 import { candidateExternalService } from "../services"; 
@@ -276,8 +277,8 @@ const Homepage = () => {
                         </div>
                         <div className={styles.jobInfo}>
                           <h3 className={styles.jobTitle}>{job.title}</h3>
-                          <p className={styles.jobCompany}>{job.company_name}</p>
                           <div className={styles.jobMeta}>
+                            <p className={styles.jobCompany}>{job.company_name}</p>
                             <span className={styles.jobLocation}>
                               <MapPin className={styles.metaIcon} />
                               <span>{job.location}</span>
@@ -463,70 +464,7 @@ const Homepage = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className={styles.footer}>
-        <div className={styles.footerContent}>
-          <div className={styles.footerGrid}>
-            <div className={styles.footerBrand}>
-              <div className={styles.footerLogo}>
-                {/* <div className={styles.footerLogoIcon}>
-                  <img src={logo2} alt="JobPortal Logo" />
-                </div> */}
-                <span className={styles.footerLogoText}></span>
-              </div>
-              <p className={styles.footerDescription}>Connecting talent with opportunity worldwide.</p>
-              <div className={styles.socialLinks}>
-                <a href="https://www.facebook.com/pages/Bigsources-Placement-Services/1530903963853104" 
-                   target="_blank" 
-                   rel="noopener noreferrer"
-                   className={styles.socialLink}>
-                  <FaFacebook />
-                </a>
-                <a href="#" className={styles.socialLink}><FaTwitter /></a>
-                <a href="#" className={styles.socialLink}><FaLinkedin /></a>
-              </div>
-            </div>
-            
-            <div className={styles.footerColumn}>
-              <h4 className={styles.footerColumnTitle}>Job Seekers</h4>
-              <div className={styles.footerLinks}>
-                <a href="#" className={styles.footerLink}>Find Jobs</a>
-                <a href="#" className={styles.footerLink}>Upload Resume</a>
-                <a href="#" className={styles.footerLink}>Company Reviews</a>
-                <a href="#" className={styles.footerLink}>Salary Tools</a>
-              </div>
-            </div>
-            
-            <div className={styles.footerColumn}>
-              <h4 className={styles.footerColumnTitle}>Employers</h4>
-              <div className={styles.footerLinks}>
-                <a href="#" className={styles.footerLink}>Post a Job</a>
-                <a href="#" className={styles.footerLink}>Search Resumes</a>
-                <a href="#" className={styles.footerLink}>Employer Branding</a>
-                <a href="#" className={styles.footerLink}>Recruiting Solutions</a>
-              </div>
-            </div>
-            
-            <div className={styles.footerColumn}>
-              <h4 className={styles.footerColumnTitle}>Company</h4>
-              <div className={styles.footerLinks}>
-                <a href="#" className={styles.footerLink}>About Us</a>
-                <a href="#" className={styles.footerLink}>Contact Us</a>
-                <a href="#" className={styles.footerLink}>Privacy Policy</a>
-                <a href="#" className={styles.footerLink}>Terms of Service</a>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div className={styles.footerBottom}>
-          <div className={styles.footerBottomContent}>
-            <div className={styles.copyright}>
-              Copyright © Bigsources Manpower Solution PVT. LTD. 2025. All Rights Reserved
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

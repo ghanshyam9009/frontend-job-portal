@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useTheme } from "../Contexts/ThemeContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useMemo } from "react";
+import { Search, MapPin, Filter } from "lucide-react";
 import styles from "./JobListings.module.css";
 import HomeNav from "../Components/HomeNav";
 import Footer from "../Components/Footer";
@@ -32,7 +33,8 @@ const JobListings = () => {
     skills: [],
     salaryRange: "",
     jobType: "",
-    experienceLevel: ""
+    experienceLevel: "",
+    category: ""
   });
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -45,34 +47,49 @@ const JobListings = () => {
   const fetchJobs = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
+      const apiUrl = 'https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs';
       const searchParams = {
         page: currentPage,
         limit: jobsPerPage,
-        keyword: querySearch || "",
-        location: queryLocation || filters.location,
-        employment_type: filters.jobType || undefined,
-        experience_level: filters.experienceLevel || undefined,
-        skills: filters.skills.length > 0 ? filters.skills.join(',') : undefined
+        ...(querySearch && { keyword: querySearch }),
+        ...(queryLocation && { location: queryLocation }),
+        ...(filters.jobType && { employment_type: filters.jobType }),
+        ...(filters.experienceLevel && { experience_level: filters.experienceLevel }),
+        ...(filters.skills.length > 0 && { skills: filters.skills.join(',') }),
+        ...(filters.category && { category: filters.category }),
+        ...(filters.salaryRange && { salary_range: filters.salaryRange })
       };
 
-      // Remove undefined values
+      // Remove empty values
       Object.keys(searchParams).forEach(key => {
-        if (searchParams[key] === undefined || searchParams[key] === "") {
+        if (searchParams[key] === undefined || searchParams[key] === "" || searchParams[key] === null) {
           delete searchParams[key];
         }
       });
 
-      const response = await jobService.searchJobs(searchParams);
-      
-      if (response.success) {
-        const jobsData = response.data || response;
-        setJobs(jobsData.jobs || jobsData);
-        setTotalJobs(jobsData.total || jobsData.length);
-        setTotalPages(Math.max(1, Math.ceil((jobsData.total || jobsData.length) / jobsPerPage)));
+      const queryString = new URLSearchParams(searchParams).toString();
+      const response = await fetch(`${apiUrl}?${queryString}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const jobsData = await response.json();
+
+      if (jobsData.success || Array.isArray(jobsData)) {
+        const jobsArray = jobsData.jobs || jobsData.data || jobsData;
+        setJobs(Array.isArray(jobsArray) ? jobsArray : []);
+        setTotalJobs(jobsArray.length || 0);
+        setTotalPages(Math.max(1, Math.ceil((jobsArray.length || 0) / jobsPerPage)));
       } else {
-        throw new Error(response.message || 'Failed to fetch jobs');
+        throw new Error(jobsData.message || 'Failed to fetch jobs');
       }
     } catch (err) {
       console.error('Error fetching jobs:', err);
@@ -104,7 +121,8 @@ const JobListings = () => {
       skills: [],
       salaryRange: "",
       jobType: "",
-      experienceLevel: ""
+      experienceLevel: "",
+      category: ""
     });
     setCurrentPage(1);
   };
@@ -141,115 +159,268 @@ const JobListings = () => {
   return (
     <div className={`${styles.pageContainer} ${theme === 'dark' ? styles.dark : ''}`}>
       <HomeNav />
-      <div className={styles.mainContentNoSidebar}>
-        <div className={styles.filtersResponsive}>
-          <button 
-            className={styles.filterToggleButton} 
-            onClick={() => setIsFilterVisible(!isFilterVisible)}
-          >
-            {isFilterVisible ? "Hide Filters" : "Show Filters"}
-          </button>
-          <div className={`${styles.filtersContent} ${isFilterVisible ? styles.visible : ''}`}>
-            <h3>Filters</h3>
-            
-            <div className={styles.filterGroup}>
-              <label>Location</label>
+
+      {/* Search Bar Section */}
+      <div className={styles.searchSection}>
+        <div className={styles.searchContainer}>
+          <div className={styles.searchBar}>
+            <div className={styles.searchInputGroup}>
+              <Search className={styles.searchIcon} />
               <input
                 type="text"
-                placeholder="e.g., Mumbai, Remote"
-                value={filters.location}
-                onChange={(e) => handleFilterChange('location', e.target.value)}
+                placeholder="Job Title, Keyword"
+                className={styles.searchInput}
+                value={querySearch}
+                onChange={(e) => {
+                  const newSearch = e.target.value;
+                  const params = new URLSearchParams(locationHook.search);
+                  if (newSearch) {
+                    params.set('search', newSearch);
+                  } else {
+                    params.delete('search');
+                  }
+                  navigate({ search: params.toString() });
+                }}
               />
             </div>
 
-            <div className={styles.filterGroup}>
-              <label>Experience Level</label>
-              <select
-                t value={filters.experienceLevel}
-                onChange={(e) => handleFilterChange('experienceLevel', e.target.value)}
-              >
-                <option value="">All levels</option>
-                <option value="entry">Entry Level (0-2 years)</option>
-                <option value="mid">Mid Level (3-5 years)</option>
-                <option value="senior">Senior Level (6+ years)</option>
-              </select>
+            <div className={styles.searchInputGroup}>
+              <MapPin className={styles.searchIcon} />
+              <input
+                type="text"
+                placeholder="Enter Location"
+                className={styles.searchInput}
+                value={queryLocation}
+                onChange={(e) => {
+                  const newLocation = e.target.value;
+                  const params = new URLSearchParams(locationHook.search);
+                  if (newLocation) {
+                    params.set('location', newLocation);
+                  } else {
+                    params.delete('location');
+                  }
+                  navigate({ search: params.toString() });
+                }}
+              />
             </div>
 
-            <div className={styles.filterGroup}>
-              <label>Skills</label>
-              <div className={styles.checkboxGroup}>
-                {["React", "Node.js", "TypeScript", "AWS", "Python", "SQL", "JavaScript", "Java", "Angular", "Vue.js"].map(skill => (
-                  <label key={skill} className={styles.checkboxLabel}>
-                    <input
-                      type="checkbox"
-                      checked={filters.skills.includes(skill)}
-                      onChange={() => handleSkillToggle(skill)}
-                    />
-                    {skill}
-                  </label>
-                ))}
-              </div>
-            </div>
+            <button
+              className={styles.filterButton}
+              onClick={() => setIsFilterVisible(!isFilterVisible)}
+            >
+              <Filter className={styles.filterIcon} />
+              Filter
+            </button>
 
-            <div className={styles.filterGroup}>
-              <label>Job Type</label>
-              <div className={styles.radioGroup}>
-                {["Full-time", "Part-time", "Contract", "Remote", "Internship"].map(type => (
-                  <label key={type} className={styles.radioLabel}>
-                    <input
-                      type="radio"
-                      name="jobType"
-                      value={type}
-                      checked={filters.jobType === type}
-                      onChange={(e) => handleFilterChange('jobType', e.target.value)}
-                    />
-                    {type}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className={styles.filterGroup}>
-              <label>Salary Range</label>
-              <select
-                value={filters.salaryRange}
-                onChange={(e) => handleFilterChange('salaryRange', e.target.value)}
-              >
-                <option value="">Any salary</option>
-                <option value="0-3">₹0 - ₹3L</option>
-                <option value="3-5">₹3L - ₹5L</option>
-                <option value="5-7">₹5L - ₹7L</option>
-                <option value="7-10">₹7L - ₹10L</option>
-                <option value="10-15">₹10L - ₹15L</option>
-                <option value="15+">₹15L+</option>
-              </select>
-            </div>
-
-            <button className={styles.clearBtn} onClick={clearFilters}>
-              Clear Filters
+            <button className={styles.searchButton}>
+              Search Job
             </button>
           </div>
-        </div>
 
-        <div className={styles.contentColumn}>
+          {/* Popular Tags */}
+          <div className={styles.popularTags}>
+            <span className={styles.popularLabel}>Popular Tag:</span>
+            <div className={styles.tagsList}>
+              {["#Back office Job", "#SalesJobs", "Business Development", "Computer - Knowledge Of Billing Excel&More", "Accounting", "Telecalling-Job-Bpo & All Sector", "Counter sales Job", "HR Recruiter", "Tally"].map((tag, index) => (
+                <span key={index} className={styles.tag}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter Panel Overlay */}
+      {isFilterVisible && (
+        <div className={styles.filterOverlay} onClick={() => setIsFilterVisible(false)}>
+          <div className={styles.filterPanel} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.filterHeader}>
+              <h3>Filter</h3>
+              <button
+                className={styles.closeFilterBtn}
+                onClick={() => setIsFilterVisible(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className={styles.filterContent}>
+              <div className={styles.filterGroup}>
+                <label>Job Type</label>
+                <div className={styles.radioGroup}>
+                  {["Full Time", "Part Time", "Contractual", "Intern", "Freelance", "Night Shift"].map(type => (
+                    <label key={type} className={styles.radioLabel}>
+                      <input
+                        type="radio"
+                        name="jobType"
+                        value={type}
+                        checked={filters.jobType === type}
+                        onChange={(e) => handleFilterChange('jobType', e.target.value)}
+                      />
+                      {type}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className={styles.filterGroup}>
+                <label>Category</label>
+                <select
+                  className={styles.categorySelect}
+                  value={filters.category}
+                  onChange={(e) => handleFilterChange('category', e.target.value)}
+                >
+                  <option value="">All Categories</option>
+                  <option value="Accounting">Accounting</option>
+                  <option value="Accounting, Data Entry">Accounting, Data Entry</option>
+                  <option value="Accounts & Finance">Accounts & Finance</option>
+                  <option value="Administration">Administration</option>
+                  <option value="Administrative & Office Support">Administrative & Office Support</option>
+                  <option value="Auto Mobile Sector">Auto Mobile Sector</option>
+                  <option value="Automobile Industry">Automobile Industry</option>
+                  <option value="Automotive Diagnostics">Automotive Diagnostics</option>
+                  <option value="Automotive, Evaluation">Automotive, Evaluation</option>
+                  <option value="Back Office Jobs">Back Office Jobs</option>
+                  <option value="Back Office and Sales">Back Office and Sales</option>
+                  <option value="Banking Sector">Banking Sector</option>
+                  <option value="Beauty & Wellness, Hairdressing">Beauty & Wellness, Hairdressing</option>
+                  <option value="Beauty Industry/Telecaller & Receptionist in Beauty Industry">Beauty Industry/Telecaller & Receptionist in Beauty Industry</option>
+                  <option value="Bpo & kpo - Sector">Bpo & kpo - Sector</option>
+                  <option value="Broking Firm">Broking Firm</option>
+                  <option value="Construction">Construction</option>
+                  <option value="Counseling Jobs">Counseling Jobs</option>
+                  <option value="Customer Service">Customer Service</option>
+                  <option value="Customer Service and Telesales">Customer Service and Telesales</option>
+                  <option value="Customer Support">Customer Support</option>
+                  <option value="Data Entry/ Administration">Data Entry/ Administration</option>
+                  <option value="Delivery Services">Delivery Services</option>
+                  <option value="Design/Creative">Design/Creative</option>
+                  <option value="Digital Marketing">Digital Marketing</option>
+                  <option value="Distributor/Super Stockist">Distributor/Super Stockist</option>
+                  <option value="Driving/Motor Technician">Driving/Motor Technician</option>
+                  <option value="Education, Teaching">Education, Teaching</option>
+                  <option value="Electronic Repair, Electronics Technician, Industrial Electronics">Electronic Repair, Electronics Technician, Industrial Electronics</option>
+                  <option value="Energy/Solar Power / Consultation & Etc">Energy/Solar Power / Consultation & Etc</option>
+                  <option value="Engineer/Architects">Engineer/Architects</option>
+                  <option value="Engineering / Manufacturing">Engineering / Manufacturing</option>
+                  <option value="Engineering/Design">Engineering/Design</option>
+                  <option value="FInancial Consultancy">FInancial Consultancy</option>
+                  <option value="FMCG Sales industry">FMCG Sales industry</option>
+                  <option value="Fashion">Fashion</option>
+                  <option value="Finance & Banking">Finance & Banking</option>
+                  <option value="Finance/Administration">Finance/Administration</option>
+                  <option value="Financial Services">Financial Services</option>
+                  <option value="Garments/Textile">Garments/Textile</option>
+                  <option value="Glass industry">Glass industry</option>
+                  <option value="Graphic Design">Graphic Design</option>
+                  <option value="HR/Recruitment">HR/Recruitment</option>
+                  <option value="Healthcare">Healthcare</option>
+                  <option value="Helper">Helper</option>
+                  <option value="Hospitality">Hospitality</option>
+                  <option value="IT & Technology">IT & Technology</option>
+                  <option value="IT & Telecommunication">IT & Telecommunication</option>
+                  <option value="IT/Computer/Mis/System Work">IT/Computer/Mis/System Work</option>
+                  <option value="Information Technology">Information Technology</option>
+                  <option value="Insurance, Sales">Insurance, Sales</option>
+                  <option value="Internship">Internship</option>
+                  <option value="Laboratories">Laboratories</option>
+                  <option value="Law/Legal/Immigration Consultant,Legal Assistant">Law/Legal/Immigration Consultant,Legal Assistant</option>
+                  <option value="Logistics and Supply Chain">Logistics and Supply Chain</option>
+                  <option value="Logistics, Packaging">Logistics, Packaging</option>
+                  <option value="Management">Management</option>
+                  <option value="Manufacturer & Supplier">Manufacturer & Supplier</option>
+                  <option value="Manufacturer of Polycarbonate">Manufacturer of Polycarbonate</option>
+                  <option value="Manufacturing, Operations">Manufacturing, Operations</option>
+                  <option value="Marketing & Media">Marketing & Media</option>
+                  <option value="Marketing Jobs">Marketing Jobs</option>
+                  <option value="Mechanical">Mechanical</option>
+                  <option value="Mechanical Fitter">Mechanical Fitter</option>
+                  <option value="Media & Entertainment">Media & Entertainment</option>
+                  <option value="Medical/Pharma/pharmaceutica">Medical/Pharma/pharmaceutica</option>
+                  <option value="Operations, Management">Operations, Management</option>
+                  <option value="Others">Others</option>
+                  <option value="Packaging Industries">Packaging Industries</option>
+                  <option value="Packers & Movers">Packers & Movers</option>
+                  <option value="Production/Manufacturing">Production/Manufacturing</option>
+                  <option value="Quality Control/Inventory Jobs">Quality Control/Inventory Jobs</option>
+                  <option value="Real Rstates">Real Rstates</option>
+                  <option value="Real State Valuation">Real State Valuation</option>
+                  <option value="Restaurant, Cafe, Food Service">Restaurant, Cafe, Food Service</option>
+                  <option value="Retail industry services">Retail industry services</option>
+                  <option value="Sales & Business Development">Sales & Business Development</option>
+                  <option value="Sales & Marketing">Sales & Marketing</option>
+                  <option value="Sales & Marketing, Retail">Sales & Marketing, Retail</option>
+                  <option value="Sales Jobs">Sales Jobs</option>
+                  <option value="Sales, Marketing, Back Office">Sales, Marketing, Back Office</option>
+                  <option value="Sales, Marketing, Design, E-commerce">Sales, Marketing, Design, E-commerce</option>
+                  <option value="School/College">School/College</option>
+                  <option value="Security Services">Security Services</option>
+                  <option value="Service & Housekeeping">Service & Housekeeping</option>
+                  <option value="Service & Trading">Service & Trading</option>
+                  <option value="Software Operation">Software Operation</option>
+                  <option value="Supervision Inspection Monitoring">Supervision Inspection Monitoring</option>
+                  <option value="Supplier">Supplier</option>
+                  <option value="Support Staff/Office Services/Office Boy">Support Staff/Office Services/Office Boy</option>
+                  <option value="Tax Consultants (Law Firm ) Legal Services">Tax Consultants (Law Firm ) Legal Services</option>
+                  <option value="Technical">Technical</option>
+                  <option value="Transport /Logistics">Transport /Logistics</option>
+                  <option value="Transportation, Driving Jobs">Transportation, Driving Jobs</option>
+                  <option value="Welding and Fabrication">Welding and Fabrication</option>
+                  <option value="Workshop">Workshop</option>
+                  <option value="kpo">kpo</option>
+                </select>
+              </div>
+
+              <div className={styles.filterGroup}>
+                <label>Salary Range</label>
+                <select
+                  className={styles.salarySelect}
+                  value={filters.salaryRange}
+                  onChange={(e) => handleFilterChange('salaryRange', e.target.value)}
+                >
+                  <option value="">Any Salary</option>
+                  <option value="0-3">₹0 - ₹3L</option>
+                  <option value="3-5">₹3L - ₹5L</option>
+                  <option value="5-7">₹5L - ₹7L</option>
+                  <option value="7-10">₹7L - ₹10L</option>
+                  <option value="10-15">₹10L - ₹15L</option>
+                  <option value="15+">₹15L+</option>
+                </select>
+              </div>
+
+              <div className={styles.filterGroup}>
+                <div className={styles.checkboxGroup}>
+                  <label className={styles.checkboxLabel}>
+                    <input type="checkbox" />
+                    Remote Jobs Only
+                  </label>
+                </div>
+              </div>
+
+              <div className={styles.filterActions}>
+                <button className={styles.applyFilterBtn} onClick={() => setIsFilterVisible(false)}>
+                  Apply Filters
+                </button>
+                <button className={styles.clearFilterBtn} onClick={clearFilters}>
+                  Clear All
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className={styles.mainContent}>
+        <div className={styles.content}>
           <div className={styles.heroBanner}>
             <div className={styles.heroText}>
-              <h1>Find Your Dream Job</h1>
-              <p>Explore {totalJobs.toLocaleString()} job opportunities across various industries. Your next career move starts here.</p>
-            </div>
-            <div className={styles.heroImage}>
-              <div className={styles.vrIcon}></div>
+              <h1>Featured Jobs</h1>
             </div>
           </div>
 
           <div className={styles.jobsSection}>
-            <div className={styles.jobsHeader}>
-              <h2>Available Jobs</h2>
-              <div className={styles.jobsCount}>
-                Showing {jobs.length} of {totalJobs.toLocaleString()} jobs
-              </div>
-            </div>
-            
             <div className={styles.jobsColumn}>
               {loading && (
                 <div className={styles.loading}>
@@ -257,7 +428,7 @@ const JobListings = () => {
                   Loading jobs...
                 </div>
               )}
-              
+
               {error && (
                 <div className={styles.error}>
                   {error}
@@ -266,7 +437,7 @@ const JobListings = () => {
                   </button>
                 </div>
               )}
-              
+
               {!loading && !error && jobs.length === 0 && (
                 <div className={styles.noJobs}>
                   <div className={styles.noJobsIcon}>🔍</div>
@@ -277,7 +448,7 @@ const JobListings = () => {
                   </button>
                 </div>
               )}
-              
+
               {!loading && !error && jobs.map(job => (
                 <div key={job.job_id || job.id} className={styles.jobCard}>
                   <div className={styles.jobCardHeader}>
@@ -285,11 +456,11 @@ const JobListings = () => {
                     <div className={styles.jobType}>{job.employment_type || job.type || 'Full-time'}</div>
                     <div className={styles.jobDate}>{formatDate(job.created_at || job.posted_date)}</div>
                   </div>
-                  
+
                   <div className={styles.jobContent}>
                     <h3 className={styles.jobTitle}>{job.job_title || job.title}</h3>
                     <p className={styles.company}>{job.company_name || job.company}</p>
-                    
+
                     <div className={styles.jobDetails}>
                       <div className={styles.jobDetail}>
                         <span className={styles.detailIcon}>📍</span>
@@ -306,16 +477,16 @@ const JobListings = () => {
                         </div>
                       )}
                     </div>
-                    
+
                     {job.description && (
                       <p className={styles.jobDescription}>
-                        {job.description.length > 150 
-                          ? `${job.description.substring(0, 150)}...` 
+                        {job.description.length > 150
+                          ? `${job.description.substring(0, 150)}...`
                           : job.description
                         }
                       </p>
                     )}
-                    
+
                     <div className={styles.jobSkills}>
                       {job.skills_required && job.skills_required.slice(0, 3).map((skill, index) => (
                         <span key={index} className={styles.skillTag}>
@@ -324,10 +495,10 @@ const JobListings = () => {
                       ))}
                     </div>
                   </div>
-                  
+
                   <div className={styles.jobActions}>
-                    <button 
-                      className={styles.viewBtn} 
+                    <button
+                      className={styles.viewBtn}
                       onClick={() => handleJobClick(job)}
                     >
                       View Details
@@ -339,7 +510,7 @@ const JobListings = () => {
                 </div>
               ))}
             </div>
-            
+
             {totalPages > 1 && (
               <div className={styles.pagination}>
                 <button
@@ -349,11 +520,11 @@ const JobListings = () => {
                 >
                   Previous
                 </button>
-                
+
                 {[...Array(Math.min(5, totalPages))].map((_, idx) => {
                   const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + idx;
                   if (pageNum > totalPages) return null;
-                  
+
                   return (
                     <button
                       key={pageNum}
@@ -364,7 +535,7 @@ const JobListings = () => {
                     </button>
                   );
                 })}
-                
+
                 <button
                   className={styles.pageBtn}
                   onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}

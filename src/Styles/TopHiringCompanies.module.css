@@ -35,6 +35,11 @@
   border: var(--card-border);
 }
 
+/* Override card background to white in dark mode for better visibility */
+[data-theme='dark'] .logoCard {
+  background-color: #fff;
+}
+
 .logoCard:hover {
   transform: translateY(-5px);
 }

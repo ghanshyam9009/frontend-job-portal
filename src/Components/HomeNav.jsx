@@ -71,7 +71,7 @@ const HomeNav = () => {
       <div className={styles.navContainer}>
         <div className={styles.logo}>
           <img src={logo} alt="JobPortal Logo" />
-          <span>Bigsources Manpower Solution</span>
+          <span >Bigsources Manpower Solution</span>
         </div>
 
         {/* Desktop Navigation */}

@@ -1,12 +1,16 @@
+/* Page Container */
 .pageContainer {
   min-height: 100vh;
   background: #f8fafc;
   transition: background-color 0.3s, color 0.3s;
+  margin-top: 60px;
 }
 
-.dark {
-  background-color: #1a1a1a;
-  color: #f8f9fa;
+body.dark .pageContainer,
+.dark .pageContainer,
+.pageContainer.dark {
+  background-color: #111827 !important;
+  color: #f9fafb !important;
 }
 
 .mainContent {
@@ -96,6 +100,19 @@
   transition: border-color 0.2s ease;
   background: #ffffff;
   font-family: inherit;
+  color: #111827;
+}
+
+.dark .formGroup input,
+.dark .formGroup textarea {
+  background-color: #3a3a3a;
+  border-color: #555;
+  color: #f8f9fa;
+}
+
+.dark .formGroup input::placeholder,
+.dark .formGroup textarea::placeholder {
+  color: #a0a0a0;
 }
 
 .formGroup input:focus,
@@ -103,6 +120,12 @@
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.dark .formGroup input:focus,
+.dark .formGroup textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
 .formGroup textarea {
@@ -124,6 +147,14 @@
 }
 
 .submitBtn:hover {
+  background: #2563eb;
+}
+
+.dark .submitBtn {
+  background: #3b82f6;
+}
+
+.dark .submitBtn:hover {
   background: #2563eb;
 }
 
@@ -196,6 +227,10 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
+}
+
+.dark .mapContainer {
+  background: #3a3a3a;
 }
 
 .mapIcon {
@@ -412,6 +447,12 @@
 .dark .formGroup textarea::placeholder {
   color: #a0a0a0;
 }
+
+.dark .formGroup input:focus,
+.dark .formGroup textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
   
   .contactItem span:last-child {
     font-size: 14px;
@@ -450,6 +491,18 @@
 }
 
 .userTypeButton.active {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.dark .userTypeButton {
+  border-color: #555;
+  background-color: #3a3a3a;
+  color: #f8f9fa;
+}
+
+.dark .userTypeButton.active {
   background-color: #3b82f6;
   color: white;
   border-color: #3b82f6;

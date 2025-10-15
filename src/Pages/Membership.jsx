@@ -3,16 +3,15 @@ import { useTheme } from "../Contexts/ThemeContext";
 import styles from "../Styles/Membership.module.css";
 import HomeNav from "../Components/HomeNav";
 import { CheckCircle, XCircle } from 'lucide-react';
+import Footer from "../Components/Footer";
 
 const candidatePlans = [
   {
     name: "Platinum",
-    description: "Perfect for beginners starting their coding journey.",
-    originalPrice: "₹250",
+    description: "Perfect for beginners starting their coding journey with government jobs access.",
     regularPrice: "₹200",
     discount: "20% OFF",
     offerPrice: "₹200",
-    coupon: "OFFER20",
     validity: "1 Month",
     features: [
       { name: "Access to all job listings", included: true },
@@ -20,17 +19,17 @@ const candidatePlans = [
       { name: "Profile highlighted to recruiters", included: false },
       { name: "Email and SMS job alerts", included: false },
       { name: "Resume writing assistance", included: false },
+      { name: "Access to government job listings", included: true },
     ],
     style: "platinum"
   },
   {
     name: "Silver",
-    description: "Go all in — with expert support & 3 Months access.",
+    description: "Go all in — with expert support & 3 Months access including government jobs.",
     originalPrice: "₹600",
     regularPrice: "₹500",
     discount: "17% OFF",
     offerPrice: "₹500",
-    coupon: "OFFER17",
     validity: "3 Months",
     features: [
       { name: "Access to all job listings", included: true },
@@ -38,18 +37,18 @@ const candidatePlans = [
       { name: "Profile highlighted to recruiters", included: true },
       { name: "Email and SMS job alerts", included: true },
       { name: "Resume writing assistance", included: false },
+      { name: "Access to government job listings", included: true },
     ],
     style: "silver",
     recommended: true
   },
   {
     name: "Gold",
-    description: "Perfect for a group of people who are looking for an extra discount.",
+    description: "Premium access with backend support and 100% job security guarantee.",
     originalPrice: "₹1200",
     regularPrice: "₹1000",
     discount: "17% OFF",
     offerPrice: "₹1000",
-    coupon: "OFFER17",
     validity: "6 Months",
     features: [
       { name: "Access to all job listings", included: true },
@@ -57,6 +56,9 @@ const candidatePlans = [
       { name: "Profile highlighted to recruiters", included: true },
       { name: "Email and SMS job alerts", included: true },
       { name: "Resume writing assistance", included: true },
+      { name: "Backend support for job applications", included: true },
+      { name: "100% job security guarantee", included: true },
+      { name: "Access to government job listings", included: true },
     ],
     style: "gold"
   }
@@ -64,14 +66,17 @@ const candidatePlans = [
 
 const employerPlans = [
   {
-    name: "Per Post",
+    name: "Employer Plan",
+    description: "Simple per-post payment model for flexible recruitment needs.",
     price: "₹300",
     duration: "per job post",
     features: [
-      "Single job post",
-      "Visible for 30 days",
-      "Access to applicant resumes",
-      "Email support"
+      "Pay per job post",
+      "Individual job posting",
+      "Access to candidate profiles",
+      "Email support",
+      "Standard job visibility",
+      "Basic candidate filtering"
     ]
   }
 ];
@@ -111,10 +116,10 @@ const Membership = () => {
                 <h3 className={styles.planTitle}>{plan.name}</h3>
                 <p className={styles.planDescription}>{plan.description}</p>
                 <div className={styles.priceSection}>
-                  <p className={styles.originalPrice}>Original: <del>{plan.originalPrice}</del></p>
+                  {plan.originalPrice && <p className={styles.originalPrice}>Original: <del>{plan.originalPrice}</del></p>}
                   <p className={styles.regularPrice}>Regular: {plan.regularPrice} <span className={styles.discount}>{plan.discount}</span></p>
                   <p className={styles.offerPrice}>Offer Price: {plan.offerPrice}</p>
-                  <p className={styles.coupon}>Coupon: {plan.coupon}</p>
+                  {plan.coupon && <p className={styles.coupon}>Coupon: {plan.coupon}</p>}
                 </div>
                 <p className={styles.validity}>Validity: {plan.validity}</p>
                 <div className={styles.featuresSection}>
@@ -137,15 +142,25 @@ const Membership = () => {
           <h2 className={styles.sectionTitle}>For Employers</h2>
           <div className={styles.planGrid}>
             {employerPlans.map((plan, index) => (
-              <div key={index} className={`${styles.planCard}`}>
+              <div key={index} className={`${styles.planCard} ${styles[plan.style] || ''} ${plan.recommended ? styles.recommended : ''}`}>
+                {plan.recommended && <div className={styles.recommendedBadge}>Most Popular</div>}
                 <h3 className={styles.planTitle}>{plan.name}</h3>
-                <p className={styles.planPrice}>{plan.price}</p>
-                <p className={styles.planDuration}>{plan.duration}</p>
-                 <ul className={styles.featuresList}>
-                  {plan.features.map((feature, i) => (
-                    <li key={i}><CheckCircle size={16} /> {feature}</li>
-                  ))}
-                </ul>
+                <p className={styles.planDescription}>{plan.description}</p>
+                <div className={styles.priceSection}>
+                  <p className={styles.planPrice}>{plan.price}</p>
+                  <p className={styles.planDuration}>{plan.duration}</p>
+                </div>
+                <div className={styles.featuresSection}>
+                  <h4>What's included</h4>
+                  <ul className={styles.featuresList}>
+                    {plan.features.map((feature, i) => (
+                      <li key={i}>
+                        <CheckCircle size={16} />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
                 <button className={styles.planButton}>Choose Plan</button>
               </div>
             ))}
@@ -163,6 +178,7 @@ const Membership = () => {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };

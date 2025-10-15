@@ -35,7 +35,7 @@ export const authService = {
       }
       throw new Error(response.message || 'Login failed');
     } catch (error) {
-      throw handleApiError(error, ERROR_MESSAGES.LOGIN_FAILED);
+      throw error;
     }
   },
 
@@ -170,7 +170,3 @@ export const authService = {
 };
 
 export default authService;
-
-
-
-

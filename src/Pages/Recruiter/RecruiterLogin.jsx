@@ -37,14 +37,26 @@ const RecruiterLogin = () => {
     setSuccess("");
     if (isLogin) {
       try {
-        await login(formData.email, formData.password, 'recruiter');
-        setSuccess("Login successful!");
-        setError("");
-        const from = location.state?.from?.pathname || '/recruiter/dashboard';
-        navigate(from, { replace: true });
+        const result = await login(formData.email, formData.password, 'recruiter');
+        if (result.success) {
+          setSuccess("Login successful!");
+          setError("");
+          const from = location.state?.from?.pathname || '/recruiter/dashboard';
+          navigate(from, { replace: true });
+        } else {
+          const errorMessage = result.error?.error || result.error?.response?.data?.error || result.error?.message || '';
+          if (errorMessage.includes('Recruiter not approved')) {
+            navigate('/recruiter/dashboard', { state: { status: 'pending_approval' } });
+          } else if (errorMessage.includes('Recruiter rejected')) {
+            setError("Your registration request has been rejected by the admin.");
+          } else {
+            setError("Login failed. Please check your credentials.");
+          }
+          setSuccess("");
+        }
       } catch (error) {
         console.error("Login failed:", error);
-        setError("Login failed. Please check your credentials.");
+        setError("Login failed. An unexpected error occurred.");
         setSuccess("");
       }
     } else {
@@ -67,7 +79,7 @@ const RecruiterLogin = () => {
           description: "", // Not in form, but required by API
           role: 'recruiter'
         });
-        setSuccess("Registration successful! Please log in.");
+        setSuccess("Registration request sent. Please wait for admin approval to log in.");
         setError("");
         setIsLogin(true); // Switch to login form
       } catch (error) {
@@ -105,6 +117,8 @@ const RecruiterLogin = () => {
             </button>
           </div>
 
+          {error && <p className={styles.error}>{error}</p>}
+          {success && <p className={styles.success}>{success}</p>}
           <form onSubmit={handleSubmit}>
             {!isLogin && (
               <>

@@ -1,13 +1,15 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 
 const RecruiterDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { theme } = useTheme();
+  const isPendingApproval = location.state?.status === 'pending_approval';
 
   const stats = {
     totalJobs: 15,
@@ -83,113 +85,123 @@ const RecruiterDashboard = () => {
   return (
     <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
       <main className={styles.main}>
-        <section className={styles.dashboardHeader}>
-          <div className={styles.welcomeSection}>
-            <h1>Welcome back, {user?.companyName || 'Recruiter'}!</h1>
-            <p>Here's what's happening with your job postings and candidates.</p>
+        {isPendingApproval ? (
+          <div className={styles.pendingApprovalContainer}>
+            <h2>Waiting for Admin Approval</h2>
+            <p>Your registration request has been sent to the administrator for approval.</p>
+            <p>Once approved, you will have full access to the dashboard. Please check back later.</p>
           </div>
-        </section>
+        ) : (
+          <>
+            <section className={styles.dashboardHeader}>
+              <div className={styles.welcomeSection}>
+                <h1>Welcome back, {user?.companyName || 'Recruiter'}!</h1>
+                <p>Here's what's happening with your job postings and candidates.</p>
+              </div>
+            </section>
 
-        <section className={styles.statsSection}>
-          <div className={styles.statsGrid}>
-            <div className={styles.statCard}>
-              <div className={styles.statIcon}>📄</div>
-              <div className={styles.statInfo}>
-                <h3>{stats.totalJobs}</h3>
-                <p>Total Jobs Posted</p>
+            <section className={styles.statsSection}>
+              <div className={styles.statsGrid}>
+                <div className={styles.statCard}>
+                  <div className={styles.statIcon}>📄</div>
+                  <div className={styles.statInfo}>
+                    <h3>{stats.totalJobs}</h3>
+                    <p>Total Jobs Posted</p>
+                  </div>
+                </div>
+                <div className={styles.statCard}>
+                  <div className={styles.statIcon}>🟢</div>
+                  <div className={styles.statInfo}>
+                    <h3>{stats.activeJobs}</h3>
+                    <p>Active Jobs</p>
+                  </div>
+                </div>
+                <div className={styles.statCard}>
+                  <div className={styles.statIcon}>👥</div>
+                  <div className={styles.statInfo}>
+                    <h3>{stats.totalApplications}</h3>
+                    <p>Total Applications</p>
+                  </div>
+                </div>
+                <div className={styles.statCard}>
+                  <div className={styles.statIcon}>⭐</div>
+                  <div className={styles.statInfo}>
+                    <h3>{stats.shortlistedCandidates}</h3>
+                    <p>Shortlisted</p>
+                  </div>
+                </div>
+                <div className={styles.statCard}>
+                  <div className={styles.statIcon}>📅</div>
+                  <div className={styles.statInfo}>
+                    <h3>{stats.interviewsScheduled}</h3>
+                    <p>Interviews Scheduled</p>
+                  </div>
+                </div>
+                <div className={styles.statCard}>
+                  <div className={styles.statIcon}>🎉</div>
+                  <div className={styles.statInfo}>
+                    <h3>{stats.hired}</h3>
+                    <p>Hired</p>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className={styles.statCard}>
-              <div className={styles.statIcon}>🟢</div>
-              <div className={styles.statInfo}>
-                <h3>{stats.activeJobs}</h3>
-                <p>Active Jobs</p>
-              </div>
-            </div>
-            <div className={styles.statCard}>
-              <div className={styles.statIcon}>👥</div>
-              <div className={styles.statInfo}>
-                <h3>{stats.totalApplications}</h3>
-                <p>Total Applications</p>
-              </div>
-            </div>
-            <div className={styles.statCard}>
-              <div className={styles.statIcon}>⭐</div>
-              <div className={styles.statInfo}>
-                <h3>{stats.shortlistedCandidates}</h3>
-                <p>Shortlisted</p>
-              </div>
-            </div>
-            <div className={styles.statCard}>
-              <div className={styles.statIcon}>📅</div>
-              <div className={styles.statInfo}>
-                <h3>{stats.interviewsScheduled}</h3>
-                <p>Interviews Scheduled</p>
-              </div>
-            </div>
-            <div className={styles.statCard}>
-              <div className={styles.statIcon}>🎉</div>
-              <div className={styles.statInfo}>
-                <h3>{stats.hired}</h3>
-                <p>Hired</p>
-              </div>
-            </div>
-          </div>
-        </section>
+            </section>
 
-        <section className={styles.contentSection}>
-          <div className={styles.contentGrid}>
-            <div className={styles.recentApplications}>
-              <div className={styles.sectionHeader}>
-                <h2>Recent Applications</h2>
-                <button 
-                  className={styles.viewAllBtn}
-                  onClick={() => navigate('/candidate-applications')}
-                >
-                  View All
-                </button>
-              </div>
-              <div className={styles.applicationsList}>
-                {recentApplications.map((application) => (
-                  <div key={application.id} className={styles.applicationCard}>
-                    <div className={styles.applicationHeader}>
-                      <div className={styles.candidateInfo}>
-                        <h4>{application.candidateName}</h4>
-                        <p>{application.jobTitle}</p>
+            <section className={styles.contentSection}>
+              <div className={styles.contentGrid}>
+                <div className={styles.recentApplications}>
+                  <div className={styles.sectionHeader}>
+                    <h2>Recent Applications</h2>
+                    <button
+                      className={styles.viewAllBtn}
+                      onClick={() => navigate('/candidate-applications')}
+                    >
+                      View All
+                    </button>
+                  </div>
+                  <div className={styles.applicationsList}>
+                    {recentApplications.map((application) => (
+                      <div key={application.id} className={styles.applicationCard}>
+                        <div className={styles.applicationHeader}>
+                          <div className={styles.candidateInfo}>
+                            <h4>{application.candidateName}</h4>
+                            <p>{application.jobTitle}</p>
+                          </div>
+                          <span className={`${styles.statusBadge} ${styles[application.status.toLowerCase().replace(' ', '')]}`}>
+                            {application.status}
+                          </span>
+                        </div>
+                        <div className={styles.applicationDetails}>
+                          <span className={styles.experience}>{application.experience} experience</span>
+                          <span className={styles.appliedDate}>Applied {application.appliedDate}</span>
+                        </div>
+                        <div className={styles.applicationActions}>
+                          <button className={styles.viewResumeBtn}>View Resume</button>
+                          <button className={styles.contactBtn}>Contact</button>
+                        </div>
                       </div>
-                      <span className={`${styles.statusBadge} ${styles[application.status.toLowerCase().replace(' ', '')]}`}>
-                        {application.status}
-                      </span>
-                    </div>
-                    <div className={styles.applicationDetails}>
-                      <span className={styles.experience}>{application.experience} experience</span>
-                      <span className={styles.appliedDate}>Applied {application.appliedDate}</span>
-                    </div>
-                    <div className={styles.applicationActions}>
-                      <button className={styles.viewResumeBtn}>View Resume</button>
-                      <button className={styles.contactBtn}>Contact</button>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
 
-            <div className={styles.quickActions}>
-              <h2>Quick Actions</h2>
-              <div className={styles.actionsGrid}>
-                {quickActions.map((action, index) => (
-                  <div key={index} className={styles.actionCard} onClick={action.action}>
-                    <div className={styles.actionIcon}>{action.icon}</div>
-                    <div className={styles.actionContent}>
-                      <h3>{action.title}</h3>
-                      <p>{action.description}</p>
-                    </div>
+                <div className={styles.quickActions}>
+                  <h2>Quick Actions</h2>
+                  <div className={styles.actionsGrid}>
+                    {quickActions.map((action, index) => (
+                      <div key={index} className={styles.actionCard} onClick={action.action}>
+                        <div className={styles.actionIcon}>{action.icon}</div>
+                        <div className={styles.actionContent}>
+                          <h3>{action.title}</h3>
+                          <p>{action.description}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
-          </div>
-        </section>
+            </section>
+          </>
+        )}
       </main>
     </div>
   );

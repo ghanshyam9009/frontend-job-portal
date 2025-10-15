@@ -3,6 +3,7 @@ import { useTheme } from "../Contexts/ThemeContext";
 import { FaFacebook, FaTwitter, FaLinkedin, FaEnvelope } from "react-icons/fa";
 import styles from "../Styles/ContactUs.module.css";
 import HomeNav from "../Components/HomeNav";
+import Footer from "../Components/Footer";
 import logo from "../assets/logo2.png";
 
 const ContactUs = () => {
@@ -156,57 +157,7 @@ const ContactUs = () => {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className={styles.footer}>
-        <div className={styles.footerContent}>
-          <div className={styles.footerLeft}>
-            {/* <div className={styles.footerLogo}><img src={logo} alt="JobPortal Logo" /></div> */}
-            <p>JobPortal is dedicated to providing cutting-edge solutions for modern businesses.</p>
-            <div className={styles.socialIcons}>
-              <a href="https://www.facebook.com/pages/Bigsources-Placement-Services/1530903963853104"
-                 target="_blank"
-                 rel="noopener noreferrer"
-                 className={styles.socialLink}>
-                <FaFacebook />
-              </a>
-              <a href="#" className={styles.socialLink}><FaTwitter /></a>
-              <a href="#" className={styles.socialLink}><FaLinkedin /></a>
-            </div>
-          </div>
-          <div className={styles.footerRight}>
-            <div className={styles.footerColumn}>
-              <h4>Company</h4>
-              <a href="/about">About Us</a>
-              <a href="/careers">Careers</a>
-              <a href="/press">Press</a>
-              <a href="/partners">Partners</a>
-            </div>
-            <div className={styles.footerColumn}>
-              <h4>Products</h4>
-              <a href="/features">Features</a>
-              <a href="/pricing">Pricing</a>
-              <a href="/integrations">Integrations</a>
-              <a href="/solutions">Solutions</a>
-            </div>
-            <div className={styles.footerColumn}>
-              <h4>Resources</h4>
-              <a href="/blog">Blog</a>
-              <a href="/support">Support</a>
-              <a href="/documentation">Documentation</a>
-              <a href="/community">Community</a>
-            </div>
-            <div className={styles.footerColumn}>
-              <h4>Legal</h4>
-              <a href="/privacy">Privacy Policy</a>
-              <a href="/terms">Terms of Service</a>
-              <a href="/cookies">Cookie Policy</a>
-            </div>
-          </div>
-        </div>
-        <div className={styles.footerBottom}>
-          <p>Copyright © Bigsources Manpower Solution PVT. LTD. 2025. All Rights Reserved</p> 
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

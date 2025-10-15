@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Search, MapPin, Calendar, Building2, Users, Clock } from "lucide-react";
 import styles from "../Styles/GovernmentJobs.module.css";
 import HomeNav from "../Components/HomeNav";
+import Footer from "../Components/Footer";
 
 const GovernmentJobs = () => {
   const { theme } = useTheme();
@@ -174,6 +175,7 @@ const GovernmentJobs = () => {
           </div>
         ))}
       </div>
+      <Footer />
     </div>
   );
 };
