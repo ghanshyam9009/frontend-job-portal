@@ -23,14 +23,19 @@ export const authService = {
         default:
           throw new Error('Invalid user role for login.');
       }
-      
+
       const response = await apiClient.post(endpoint, { email, password });
-      
+
       if (response.token) {
         const user = response.admin || response.user || response.employer || response.student;
         user.role = role; // Add role to user object
+
+        // Store login timestamp for 24-hour auto logout
+        const loginTimestamp = Date.now();
         localStorage.setItem('authToken', response.token);
         localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('loginTimestamp', loginTimestamp.toString());
+
         return { success: true, data: { ...response, user: user } };
       }
       throw new Error(response.message || 'Login failed');
@@ -69,13 +74,11 @@ export const authService = {
   async logout() {
     try {
       await apiClient.post(API_ENDPOINTS.auth.logout);
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
+      this.clearAuthData();
       return { success: true };
     } catch (error) {
       // Even if API call fails, clear local storage
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
+      this.clearAuthData();
       return { success: true };
     }
   },
@@ -166,6 +169,71 @@ export const authService = {
   // Get auth token
   getToken() {
     return localStorage.getItem('authToken');
+  },
+
+  // Get login timestamp
+  getLoginTimestamp() {
+    return localStorage.getItem('loginTimestamp');
+  },
+
+  // Check if session has expired (24 hours)
+  isSessionExpired() {
+    const loginTimestamp = this.getLoginTimestamp();
+    if (!loginTimestamp) return true; // No timestamp means expired
+
+    const currentTime = Date.now();
+    const sessionDuration = currentTime - parseInt(loginTimestamp);
+    const twentyFourHours = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+    return sessionDuration >= twentyFourHours;
+  },
+
+  // Clear all auth data
+  clearAuthData() {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    localStorage.removeItem('loginTimestamp');
+  },
+
+  // Check authentication with session expiry
+  checkAuthWithExpiry() {
+    if (!this.isAuthenticated()) {
+      return false;
+    }
+
+    if (this.isSessionExpired()) {
+      this.clearAuthData();
+      return false;
+    }
+
+    return true;
+  },
+
+  // Get remaining session time in milliseconds
+  getRemainingSessionTime() {
+    const loginTimestamp = this.getLoginTimestamp();
+    if (!loginTimestamp) return 0;
+
+    const currentTime = Date.now();
+    const sessionDuration = currentTime - parseInt(loginTimestamp);
+    const twentyFourHours = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+    return Math.max(0, twentyFourHours - sessionDuration);
+  },
+
+  // Get formatted remaining session time
+  getFormattedRemainingTime() {
+    const remainingMs = this.getRemainingSessionTime();
+    if (remainingMs === 0) return 'Session expired';
+
+    const hours = Math.floor(remainingMs / (60 * 60 * 1000));
+    const minutes = Math.floor((remainingMs % (60 * 60 * 1000)) / (60 * 1000));
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m remaining`;
+    } else {
+      return `${minutes}m remaining`;
+    }
   }
 };
 

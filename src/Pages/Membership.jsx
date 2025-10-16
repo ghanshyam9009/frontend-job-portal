@@ -68,16 +68,22 @@ const employerPlans = [
   {
     name: "Employer Plan",
     description: "Simple per-post payment model for flexible recruitment needs.",
-    price: "₹300",
-    duration: "per job post",
+    originalPrice: "₹400",
+    regularPrice: "₹300",
+    discount: "25% OFF",
+    offerPrice: "₹300",
+    validity: "Per Job Post",
     features: [
-      "Pay per job post",
-      "Individual job posting",
-      "Access to candidate profiles",
-      "Email support",
-      "Standard job visibility",
-      "Basic candidate filtering"
-    ]
+      { name: "Pay per job post", included: true },
+      { name: "Individual job posting", included: true },
+      { name: "Access to candidate profiles", included: true },
+      { name: "Email support", included: true },
+      { name: "Standard job visibility", included: true },
+      { name: "Basic candidate filtering", included: true },
+      { name: "Priority candidate matching", included: false },
+      { name: "Advanced analytics", included: false }
+    ],
+    style: "employer"
   }
 ];
 
@@ -147,16 +153,19 @@ const Membership = () => {
                 <h3 className={styles.planTitle}>{plan.name}</h3>
                 <p className={styles.planDescription}>{plan.description}</p>
                 <div className={styles.priceSection}>
-                  <p className={styles.planPrice}>{plan.price}</p>
-                  <p className={styles.planDuration}>{plan.duration}</p>
+                  {plan.originalPrice && <p className={styles.originalPrice}>Original: <del>{plan.originalPrice}</del></p>}
+                  <p className={styles.regularPrice}>Regular: {plan.regularPrice} <span className={styles.discount}>{plan.discount}</span></p>
+                  <p className={styles.offerPrice}>Offer Price: {plan.offerPrice}</p>
+                  {plan.coupon && <p className={styles.coupon}>Coupon: {plan.coupon}</p>}
                 </div>
+                <p className={styles.validity}>Validity: {plan.validity}</p>
                 <div className={styles.featuresSection}>
                   <h4>What's included</h4>
                   <ul className={styles.featuresList}>
                     {plan.features.map((feature, i) => (
                       <li key={i}>
-                        <CheckCircle size={16} />
-                        {feature}
+                        {feature.included ? <CheckCircle size={16} /> : <XCircle size={16} />}
+                        {feature.name}
                       </li>
                     ))}
                   </ul>

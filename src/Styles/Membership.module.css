@@ -55,6 +55,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 2rem;
+      justify-items: center;
 }
 
 .planCard {
@@ -65,6 +66,8 @@
   text-align: center;
   transition: transform 0.3s, box-shadow 0.3s;
   position: relative;
+        max-width: 440px;
+
 }
 
 .dark .planCard {

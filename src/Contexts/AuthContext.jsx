@@ -15,19 +15,33 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Check if user is already authenticated on app load
     const checkAuth = () => {
-      const token = authService.getToken();
-      const currentUser = authService.getCurrentUser();
-      console.log('Checking auth:', { token, currentUser });
-      
-      if (token && currentUser) {
+      if (authService.checkAuthWithExpiry()) {
+        const currentUser = authService.getCurrentUser();
         setUser(currentUser);
         setIsAuthenticated(true);
+      } else {
+        // Session expired or invalid
+        setUser(null);
+        setIsAuthenticated(false);
       }
       setLoading(false);
     };
 
     checkAuth();
   }, []);
+
+  // Set up periodic session expiry check (every 5 minutes)
+  useEffect(() => {
+    const sessionCheckInterval = setInterval(() => {
+      if (isAuthenticated && authService.isSessionExpired()) {
+        console.log('Session expired - auto logging out');
+        showError('Your session has expired. Please log in again.');
+        logout();
+      }
+    }, 5 * 60 * 1000); // Check every 5 minutes
+
+    return () => clearInterval(sessionCheckInterval);
+  }, [isAuthenticated]);
 
   const login = async (email, password, role) => {
     try {

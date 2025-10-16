@@ -1,16 +1,20 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext"; // Import useTheme
+import { authService } from "../../services/authService";
 import styles from "../../Styles/AdminNavbar.module.css";
 import logo from "../../assets/favicon-icon.png";
-import { Sun, Moon } from "lucide-react";
+import { Sun, Moon, Clock } from "lucide-react";
 
 const AdminNavbar = ({ onLogout, onMobileMenuToggle }) => {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const { theme, toggleTheme } = useTheme(); // Use theme context
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [sessionTime, setSessionTime] = useState('');
+
+ 
 
   const handleProfileClick = () => {
     setShowProfileDropdown(!showProfileDropdown);
@@ -38,17 +42,13 @@ const AdminNavbar = ({ onLogout, onMobileMenuToggle }) => {
                          <img src={logo} alt="JobPortal Logo" />
                          <span>Bigsources Manpower Solution</span>
                        </div>
-        <div className={styles.searchContainer}>
-          <input 
-            type="text" 
-            placeholder="Search dashboard..." 
-            className={styles.searchInput}
-          />
-          <span className={styles.searchIcon}>🔍</span>
-        </div>
+
       </div>
       
       <div className={styles.headerRight}>
+        {/* Session Timer */}
+       
+
         <button className={styles.notificationBtn}>
           🔔
           <span className={styles.notificationBadge}>9</span>
