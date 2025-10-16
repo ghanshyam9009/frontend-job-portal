@@ -1,0 +1,59 @@
+.hiringCompaniesSection {
+  padding: 60px 0;
+  background-color: var(--background-color);
+}
+
+.hiringCompaniesContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.hiringCompaniesTitle {
+  font-size: 2.5rem;
+  margin-bottom: 40px;
+  color: var(--text-color);
+}
+
+.logoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 20px;
+  justify-items: center;
+}
+
+.logoCard {
+  background-color: var(--card-background);
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+  border: var(--card-border);
+}
+
+/* Override card background to white in dark mode for better visibility */
+[data-theme='dark'] .logoCard {
+  background-color: #fff;
+}
+
+.logoCard:hover {
+  transform: translateY(-5px);
+}
+
+.logoImage {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.viewAllLink {
+  margin-top: 40px;
+  display: inline-block;
+  color: #007bff;
+  text-decoration: none;
+  font-weight: bold;
+}

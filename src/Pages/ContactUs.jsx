@@ -1,13 +1,18 @@
 import React, { useState } from "react";
+import { useTheme } from "../Contexts/ThemeContext";
+import { FaFacebook, FaTwitter, FaLinkedin, FaEnvelope } from "react-icons/fa";
 import styles from "../Styles/ContactUs.module.css";
 import HomeNav from "../Components/HomeNav";
+import Footer from "../Components/Footer";
 import logo from "../assets/logo2.png";
 
 const ContactUs = () => {
+  const { theme } = useTheme();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    message: ""
+    message: "",
+    userType: "candidate"
   });
 
   const handleInputChange = (e) => {
@@ -21,11 +26,11 @@ const ContactUs = () => {
     e.preventDefault();
     console.log("Form submitted:", formData);
     // Reset form
-    setFormData({ name: "", email: "", message: "" });
+    setFormData({ name: "", email: "", message: "", userType: "candidate" });
   };
 
   return (
-    <div className={styles.pageContainer}>
+    <div className={`${styles.pageContainer} ${theme === 'dark' ? styles.dark : ''}`}>
       <HomeNav />
       
       <div className={styles.mainContent}>
@@ -34,7 +39,7 @@ const ContactUs = () => {
           <div className={styles.formSection}>
             <div className={styles.formCard}>
               <h2>Send us a message</h2>
-              <p>We'd love to hear from you. Please fill out the form below.</p>
+              {/* <p>We'd love to hear from you. Please fill out the form below.</p> */}
               
               <form onSubmit={handleSubmit} className={styles.contactForm}>
                 <div className={styles.formGroup}>
@@ -61,6 +66,24 @@ const ContactUs = () => {
                     placeholder=""
                     required
                   />
+                </div>
+                <div className={styles.formGroup}>
+                  <div className={styles.userTypeSelector}>
+                    <button
+                      type="button"
+                      className={`${styles.userTypeButton} ${formData.userType === 'candidate' ? styles.active : ''}`}
+                      onClick={() => handleInputChange({ target: { name: 'userType', value: 'candidate' } })}
+                    >
+                      Candidate
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.userTypeButton} ${formData.userType === 'recruiter' ? styles.active : ''}`}
+                      onClick={() => handleInputChange({ target: { name: 'userType', value: 'recruiter' } })}
+                    >
+                      Recruiter
+                    </button>
+                  </div>
                 </div>
                 
                 <div className={styles.formGroup}>
@@ -100,21 +123,21 @@ const ContactUs = () => {
                 <span>Parul Sharma- 9993588502</span>
               </div>
               <div className={styles.contactItem}>
-                <span className={styles.contactIcon}>✉️</span>
+                <span className={styles.contactIcon}><FaEnvelope /></span>
                 <span>HR@bigsources.in</span>
               </div>
-              <div className={styles.contactItem}>
-                <span className={styles.contactIcon}>✉️</span>
+              {/* <div className={styles.contactItem}>
+                <span className={styles.contactIcon}><FaEnvelope /></span>
                 <span>info@bigsources.in</span>
               </div>
               <div className={styles.contactItem}>
-                <span className={styles.contactIcon}>✉️</span>
+                <span className={styles.contactIcon}><FaEnvelope /></span>
                 <span>admin@bigsources.in</span>
               </div>
               <div className={styles.contactItem}>
-                <span className={styles.contactIcon}>✉️</span>
+                <span className={styles.contactIcon}><FaEnvelope /></span>
                 <span>sales@bigsources.in</span>
-              </div>
+              </div> */}
             </div>
 
             <div className={styles.mapCard}>
@@ -134,53 +157,7 @@ const ContactUs = () => {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className={styles.footer}>
-        <div className={styles.footerContent}>
-          <div className={styles.footerLeft}>
-            <div className={styles.footerLogo}><img src={logo} alt="JobPortal Logo" /></div>
-            <p>JobPortal is dedicated to providing cutting-edge solutions for modern businesses.</p>
-            <div className={styles.socialIcons}>
-              <span>📘</span>
-              <span>🐦</span>
-              <span>💼</span>
-              <span>📷</span>
-            </div>
-          </div>
-          <div className={styles.footerRight}>
-            <div className={styles.footerColumn}>
-              <h4>Company</h4>
-              <a href="/about">About Us</a>
-              <a href="/careers">Careers</a>
-              <a href="/press">Press</a>
-              <a href="/partners">Partners</a>
-            </div>
-            <div className={styles.footerColumn}>
-              <h4>Products</h4>
-              <a href="/features">Features</a>
-              <a href="/pricing">Pricing</a>
-              <a href="/integrations">Integrations</a>
-              <a href="/solutions">Solutions</a>
-            </div>
-            <div className={styles.footerColumn}>
-              <h4>Resources</h4>
-              <a href="/blog">Blog</a>
-              <a href="/support">Support</a>
-              <a href="/documentation">Documentation</a>
-              <a href="/community">Community</a>
-            </div>
-            <div className={styles.footerColumn}>
-              <h4>Legal</h4>
-              <a href="/privacy">Privacy Policy</a>
-              <a href="/terms">Terms of Service</a>
-              <a href="/cookies">Cookie Policy</a>
-            </div>
-          </div>
-        </div>
-        <div className={styles.footerBottom}>
-          <p>Copyright © Bigsources Manpower Solution PVT. LTD. 2025. All Rights Reserved</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

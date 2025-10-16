@@ -1,0 +1,224 @@
+.pageContainer {
+  background-color: #f8f9fa;
+  color: #333;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.dark {
+  background-color: #1a1a1a;
+  color: #f8f9fa;
+}
+
+.header {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.dark .title {
+  color: #f8f9fa;
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  color: #6c757d;
+}
+
+.dark .subtitle {
+  color: #a0a0a0;
+}
+
+.plansContainer {
+  padding: 2rem;
+}
+
+.section {
+  margin-bottom: 3rem;
+}
+
+.sectionTitle {
+  font-size: 2rem;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.dark .sectionTitle {
+  color: #f8f9fa;
+}
+
+.planGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+      justify-items: center;
+}
+
+.planCard {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  text-align: center;
+  transition: transform 0.3s, box-shadow 0.3s;
+  position: relative;
+        max-width: 440px;
+
+}
+
+.dark .planCard {
+  background-color: #2a2a2a;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.planCard:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.recommended {
+  border: 2px solid #007bff;
+}
+
+.recommendedBadge {
+  position: absolute;
+  top: -15px;
+  right: -15px;
+  background-color: #007bff;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.planTitle {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.dark .planTitle {
+  color: #f8f9fa;
+}
+
+.planDescription {
+  color: #6c757d;
+  margin-bottom: 1.5rem;
+}
+
+.dark .planDescription {
+  color: #a0a0a0;
+}
+
+.priceSection {
+  margin-bottom: 1.5rem;
+}
+
+.originalPrice, .regularPrice, .offerPrice, .coupon {
+  margin: 0.5rem 0;
+}
+
+.originalPrice del {
+  color: #dc3545;
+}
+
+.regularPrice {
+  font-size: 1.2rem;
+}
+
+.discount {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.offerPrice {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #007bff;
+}
+
+.coupon {
+  font-weight: bold;
+}
+
+.validity {
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+}
+
+.featuresSection {
+  text-align: left;
+  margin-bottom: 2rem;
+}
+
+.featuresSection h4 {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.dark .featuresSection h4 {
+  color: #f8f9fa;
+}
+
+.featuresList {
+  list-style: none;
+  padding: 0;
+}
+
+.featuresList li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.planButton {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 5px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.planButton:hover {
+  background-color: #0056b3;
+}
+
+.faqSection {
+  margin-top: 3rem;
+}
+
+.faqContainer {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.faqItem {
+  margin-bottom: 1.5rem;
+}
+
+.faqQuestion {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.dark .faqQuestion {
+  color: #f8f9fa;
+}
+
+.faqAnswer {
+  color: #6c757d;
+}
+
+.dark .faqAnswer {
+  color: #a0a0a0;
+}

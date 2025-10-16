@@ -1,12 +1,14 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
+import { useTheme } from "../../Contexts/ThemeContext";
 import styles from "../../Styles/CandidateSidebar.module.css";
 
-const CandidateSidebar = ({ darkMode }) => {
+const CandidateSidebar = ({ isOpen, toggleSidebar }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { theme } = useTheme();
 
   const menuItems = [
     {
@@ -62,6 +64,7 @@ const CandidateSidebar = ({ darkMode }) => {
 
   const handleNavigation = (path) => {
     navigate(path);
+    if (toggleSidebar) toggleSidebar();
   };
 
   const isActive = (path) => {
@@ -69,7 +72,12 @@ const CandidateSidebar = ({ darkMode }) => {
   };
 
   return (
-    <aside className={`${styles.sidebar} ${darkMode ? styles.darkMode : ''}`}>
+    <>
+    {isOpen && <div className={styles.mobileOverlay} onClick={toggleSidebar}></div>}
+    <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''} ${theme === 'dark' ? styles.dark : ''}`}>
+      <button className={styles.closeButton} onClick={toggleSidebar}>
+        &times;
+      </button>
       <nav className={styles.nav}>
         <ul className={styles.navList}>
           {menuItems.map((item) => (
@@ -105,6 +113,7 @@ const CandidateSidebar = ({ darkMode }) => {
         Made with ❤️ for Job Seekers
       </div>
     </aside>
+    </>
   );
 };
 

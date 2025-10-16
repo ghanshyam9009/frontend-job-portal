@@ -1,58 +1,110 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../../Contexts/AuthContext";
+import { useTheme } from "../../Contexts/ThemeContext"; // Import useTheme
+import {
+  Home,
+  Users,
+  Briefcase,
+  FileText,
+  Clock,
+  Building2,
+  ClipboardList,
+  CreditCard,
+  File,
+  Phone,
+  BarChart3,
+  Settings,
+  Bell
+} from "lucide-react";
 import styles from "../../Styles/AdminSidebar.module.css";
 
-const AdminSidebar = ({ darkMode, isOpen, onClose }) => {
+const AdminSidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { theme } = useTheme(); // Use theme context
 
   const menuItems = [
     {
       id: 'dashboard',
       label: 'Dashboard',
-      icon: '🏠',
+      icon: Home,
       path: '/admin/dashboard'
     },
     {
       id: 'candidates',
       label: 'Manage Candidates',
-      icon: '👥',
+      icon: Users,
       path: '/admin/candidates'
     },
     {
       id: 'employers',
       label: 'Manage Employers',
-      icon: '💼',
+      icon: Briefcase,
       path: '/admin/employers'
     },
     {
       id: 'jobs',
       label: 'Manage Jobs',
-      icon: '📄',
+      icon: FileText,
       path: '/admin/jobs'
+    },
+    {
+      id: 'pending-jobs',
+      label: 'Pending Jobs',
+      icon: Clock,
+      path: '/admin/pending-jobs'
+    },
+    {
+      id: 'government-jobs',
+      label: 'Government Jobs',
+      icon: Building2,
+      path: '/admin/government-jobs'
+    },
+    {
+      id: 'job-applications',
+      label: 'Job Applications',
+      icon: ClipboardList,
+      path: '/admin/job-applications',
+      badge: 12
     },
     {
       id: 'membership',
       label: 'Membership Plans',
-      icon: '💳',
+      icon: CreditCard,
       path: '/admin/membership'
+    },
+    {
+      id: 'homepage-forms',
+      label: 'Homepage Forms',
+      icon: File,
+      path: '/admin/homepage-forms',
+      badge: 5
+    },
+    {
+      id: 'contact-forms',
+      label: 'Contact Forms',
+      icon: Phone,
+      path: '/admin/contact-forms',
+      badge: 3
     },
     {
       id: 'reports',
       label: 'Reports',
-      icon: '📊',
+      icon: BarChart3,
       path: '/admin/reports'
     },
     {
       id: 'settings',
       label: 'Settings',
-      icon: '⚙️',
+      icon: Settings,
       path: '/admin/settings'
     },
     {
       id: 'notifications',
       label: 'Notifications',
-      icon: '🔔',
+      icon: Bell,
       path: '/admin/notifications',
       badge: 9
     }
@@ -75,7 +127,10 @@ const AdminSidebar = ({ darkMode, isOpen, onClose }) => {
       {/* Mobile Overlay */}
       {isOpen && <div className={styles.mobileOverlay} onClick={onClose}></div>}
       
-      <aside className={`${styles.sidebar} ${darkMode ? styles.darkMode : ''} ${isOpen ? styles.open : ''}`}>
+      <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
+      <button className={styles.closeButton} onClick={onClose}>
+        &times;
+      </button>
       <nav className={styles.nav}>
         <ul className={styles.navList}>
           {menuItems.map((item) => (
@@ -84,7 +139,7 @@ const AdminSidebar = ({ darkMode, isOpen, onClose }) => {
                 className={`${styles.navLink} ${isActive(item.path) ? styles.active : ''}`}
                 onClick={() => handleNavigation(item.path)}
               >
-                <span className={styles.navIcon}>{item.icon}</span>
+                <item.icon className={styles.navIcon} />
                 <span className={styles.navLabel}>{item.label}</span>
                 {item.badge && (
                   <span className={styles.notificationCount}>{item.badge}</span>
@@ -97,10 +152,16 @@ const AdminSidebar = ({ darkMode, isOpen, onClose }) => {
       
       <div className={styles.userCard}>
         <div className={styles.userInfo}>
-          <img src="https://via.placeholder.com/30" alt="Jane Doe" className={styles.userAvatar} />
+          <div className={styles.userAvatar}>
+            {(user?.name || user?.admin_name || 'Admin').charAt(0).toUpperCase()}
+          </div>
           <div className={styles.userDetails}>
-            <div className={styles.userName}>Jane Doe</div>
-            <div className={styles.userEmail}>jane.doe@example.com</div>
+            <div className={styles.userName}>
+              {user?.name || user?.admin_name || 'Admin User'}
+            </div>
+            <div className={styles.userEmail}>
+              {user?.email || 'admin@example.com'}
+            </div>
           </div>
         </div>
       </div>

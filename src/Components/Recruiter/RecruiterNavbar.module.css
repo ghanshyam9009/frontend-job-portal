@@ -5,21 +5,46 @@
   left: 0;
   right: 0;
   height: 64px;
-  background: white;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--navbar-background);
+  border-bottom: var(--navbar-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
-  z-index: 1000;
+  z-index: 2000;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  color: var(--text-color);
+}
+span{
+    margin-top: 5px;
+    margin-left: 5px;
+}
+.themeToggle {
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  color: #6b7280;
+  transition: all 0.3s ease;
 }
 
-.darkMode {
-  background: #2d3748;
-  border-bottom-color: #4a5568;
+.themeToggle:hover {
+  background: #f9fafb;
+  color: #2563eb;
 }
 
+.themeToggleBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 24px;
+  padding: 0;
+}
 .headerLeft {
   display: flex;
   align-items: center;
@@ -27,9 +52,9 @@
 }
 
 .logo {
-  font-size: 24px;
-  font-weight: 600;
-  color: #3b82f6;
+    font-size: 14px;
+    font-weight: 100;
+        display: flex;
 }
 
 .searchContainer {
@@ -41,17 +66,18 @@
 .searchInput {
   width: 320px;
   padding: 8px 16px 8px 40px;
-  border: 1px solid #d1d5db;
+  border: var(--input-border);
   border-radius: 8px;
   font-size: 14px;
-  background: #f9fafb;
+  background: var(--input-background);
+  color: var(--text-color);
   transition: all 0.2s;
 }
 
 .searchInput:focus {
   outline: none;
   border-color: #3b82f6;
-  background: white;
+  background: var(--input-background);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -80,7 +106,7 @@
 }
 
 .notificationBtn:hover {
-  background: #f3f4f6;
+  background: var(--card-background);
 }
 
 .notificationBadge {
@@ -110,7 +136,7 @@
 }
 
 .darkModeBtn:hover {
-  background: #f3f4f6;
+  background: var(--card-background);
 }
 
 .profileSection {
@@ -127,7 +153,7 @@
 }
 
 .profilePicture:hover {
-  background: #f3f4f6;
+  background: var(--card-background);
 }
 
 .avatarCircle {
@@ -147,8 +173,8 @@
   position: absolute;
   top: 100%;
   right: 0;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--card-background);
+  border: var(--card-border);
   border-radius: 8px;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   padding: 8px 0;
@@ -159,23 +185,23 @@
 
 .profileInfo {
   padding: 12px 16px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: var(--card-border);
 }
 
 .profileName {
   font-weight: 600;
-  color: #111827;
+  color: var(--text-color);
   margin-bottom: 2px;
 }
 
 .profileEmail {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-color);
 }
 
 .dropdownDivider {
   height: 1px;
-  background: #e2e8f0;
+  background: var(--card-border);
   margin: 8px 0;
 }
 
@@ -187,15 +213,52 @@
   background: none;
   text-align: left;
   cursor: pointer;
-  color: #374151;
+  color: var(--text-color);
   font-size: 14px;
   transition: background 0.2s;
 }
 
 .dropdownItem:hover {
-  background: #f3f4f6;
-  color: #111827;
+  background: var(--background-color);
+  color: var(--text-color);
 }
+
+.menuButton {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+/* Dark Theme */
+.dark {
+  --navbar-background: #1f2937;
+  --navbar-border: 1px solid #374151;
+  --text-color: #d1d5db;
+  --input-background: #374151;
+  --input-border: 1px solid #4b5563;
+  --card-background: #374151;
+}
+
+.dark .searchInput:focus {
+  background: var(--input-background);
+}
+
+.dark .notificationBtn:hover,
+.dark .darkModeBtn:hover,
+.dark .profilePicture:hover {
+  background: #4b5563;
+}
+
+.dark .profileDropdown {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+}
+
+.dark .dropdownItem:hover {
+  background: #4b5563;
+}
+
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -213,6 +276,10 @@
   
   .headerRight {
     gap: 12px;
+  }
+
+  .menuButton {
+    display: block;
   }
 }
 

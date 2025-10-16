@@ -1,14 +1,16 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
 import CandidateSidebar from "../../Components/Candidate/CandidateSidebar";
 import styles from "./UserDashboard.module.css";
+import { candidateExternalService } from "../../services";
 
 const UserJobListings = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [darkMode, setDarkMode] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -18,16 +20,66 @@ const UserJobListings = () => {
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
   };
-  const jobs = [
-    { id: 1, title: "Senior Frontend Developer", company: "InnovateX", salary: "₹12L - ₹15L / year", location: "Remote · Worldwide", type: "Full-time" },
-    { id: 2, title: "Data Scientist (ML)", company: "Quantify Analytics", salary: "₹13L - ₹16L / year", location: "San Francisco, CA", type: "Full-time" },
-    { id: 3, title: "UX/UI Designer", company: "Creative Flow", salary: "₹9L - ₹11L / year", location: "New York, NY", type: "Full-time" },
-    { id: 4, title: "Backend Engineer (Node.js)", company: "ServerNest", salary: "₹11L - ₹14L / year", location: "Seattle, WA", type: "Full-time" },
-    { id: 5, title: "Product Manager", company: "Visionary Solutions", salary: "₹14L - ₹17L / year", location: "Remote · Europe", type: "Full-time" },
-    { id: 6, title: "DevOps Engineer", company: "CloudWorks", salary: "₹12.5L - ₹15.5L / year", location: "Austin, TX", type: "Full-time" },
-    { id: 7, title: "Mobile App Developer", company: "AppDenim", salary: "₹10.5L - ₹13.5L / year", location: "Remote · Asia", type: "Full-time" },
-    { id: 8, title: "Cybersecurity Analyst", company: "SecureNet", salary: "₹9.5L - ₹12L / year", location: "Boston, MA", type: "Full-time" },
-  ];
+  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [filters, setFilters] = useState({ keyword: "", location: "", employment_type: "" });
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const data = await candidateExternalService.getAllJobs();
+        const mapped = (data?.jobs || []).map((j, idx) => ({
+          id: j.job_id || idx,
+          title: j.job_title,
+          company: j.company_name || "",
+          salary: j.salary_range ? `₹${j.salary_range.min} - ₹${j.salary_range.max} / ${j.employment_type ? 'year' : ''}` : "",
+          location: j.location || "",
+          type: j.employment_type || "Full-time",
+        }));
+        setJobs(mapped);
+      } catch (e) {
+        setError(typeof e === 'string' ? e : e?.message || 'Failed to load jobs');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchJobs();
+  }, []);
+
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSearch = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const params = {
+        keyword: filters.keyword || undefined,
+        location: filters.location || undefined,
+        employment_type: filters.employment_type || undefined
+      };
+      const data = await candidateExternalService.getFilteredJobs(params);
+      const mapped = (data?.jobs || []).map((j, idx) => ({
+        id: j.job_id || idx,
+        title: j.job_title,
+        company: j.company_name || "",
+        salary: j.salary_range ? `₹${j.salary_range.min} - ₹${j.salary_range.max} / ${j.employment_type ? 'year' : ''}` : "",
+        location: j.location || "",
+        type: j.employment_type || "Full-time",
+      }));
+      setJobs(mapped);
+    } catch (e) {
+      setError(typeof e === 'string' ? e : e?.message || 'Failed to filter jobs');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleJobClick = (job) => {
     navigate(`/job/${job.title.toLowerCase().replace(/\s+/g, '-')}`, {
@@ -35,10 +87,25 @@ const UserJobListings = () => {
     });
   };
 
+  const handleSaveJob = async (job) => {
+    try {
+      if (!user?.user_id && !user?.id) {
+        alert('Please log in to save jobs.');
+        navigate('/candidate/login');
+        return;
+      }
+      const userId = user.user_id || user.id;
+      await candidateExternalService.bookmarkJob({ user_id: userId, job_id: job.id });
+      alert('Job saved');
+    } catch (e) {
+      alert('Failed to save job');
+    }
+  };
+
   return (
     <div className={styles.dashboardContainer}>
-      <CandidateNavbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <CandidateSidebar darkMode={darkMode} />
+      <CandidateNavbar toggleSidebar={toggleSidebar} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+      <CandidateSidebar darkMode={darkMode} isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       <main className={styles.main}>
 
         <section className={styles.jobsSection}>
@@ -46,8 +113,41 @@ const UserJobListings = () => {
             <h2>Available Jobs</h2>
             <p>Discover your next career opportunity</p>
           </div>
+          <div className={styles.filtersSection}>
+            <input
+              type="text"
+              name="keyword"
+              placeholder="Keyword (e.g., React, Node)"
+              className={styles.formInput}
+              value={filters.keyword}
+              onChange={handleFilterChange}
+            />
+            <input
+              type="text"
+              name="location"
+              placeholder="Location (e.g., Bengaluru, India)"
+              className={styles.formInput}
+              value={filters.location}
+              onChange={handleFilterChange}
+            />
+            <select
+              name="employment_type"
+              className={styles.formInput}
+              value={filters.employment_type}
+              onChange={handleFilterChange}
+            >
+              <option value="">Any Type</option>
+              <option value="Full-Time">Full-Time</option>
+              <option value="Part-Time">Part-Time</option>
+              <option value="Contract">Contract</option>
+              <option value="Internship">Internship</option>
+            </select>
+            <button className={styles.primaryBtn} onClick={handleSearch}>Search</button>
+          </div>
           
           <div className={styles.jobsGrid}>
+            {loading && <div className={styles.emptyState}><h3>Loading jobs…</h3></div>}
+            {error && <div className={styles.emptyState}><h3>{error}</h3></div>}
             {jobs.map(job => (
               <div key={job.id} className={styles.jobCard}>
                 <div className={styles.jobCardHeader}>
@@ -63,6 +163,12 @@ const UserJobListings = () => {
                   onClick={() => handleJobClick(job)}
                 >
                   View Details
+                </button>
+                <button 
+                  className={styles.applyBtn}
+                  onClick={() => handleSaveJob(job)}
+                >
+                  Save Job
                 </button>
               </div>
             ))}

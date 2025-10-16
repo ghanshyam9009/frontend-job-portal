@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import styles from "./HomeNav.module.css";
-import logo from "../assets/logo2.png";
+import logo from "../assets/favicon-icon.png";
+import { useTheme } from "../Contexts/ThemeContext";
+import { Sun, Moon } from 'lucide-react';
 
 const HomeNav = () => {
+  const { theme, toggleTheme } = useTheme();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showCareerDropdown, setShowCareerDropdown] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
@@ -67,6 +71,7 @@ const HomeNav = () => {
       <div className={styles.navContainer}>
         <div className={styles.logo}>
           <img src={logo} alt="JobPortal Logo" />
+          <span >Bigsources Manpower Solution</span>
         </div>
 
         {/* Desktop Navigation */}
@@ -78,7 +83,12 @@ const HomeNav = () => {
           </li>
           <li>
             <a href="/jobs" className={isActive("/jobs") ? styles.active : ""}>
-              Job Listings
+              Job 
+            </a>
+          </li>
+          <li>
+            <a href="/government-jobs" className={isActive("/government-jobs") ? styles.active : ""}>
+              Government Jobs
             </a>
           </li>
           <li>
@@ -94,22 +104,44 @@ const HomeNav = () => {
               Contact Us
             </a>
           </li>
+          <li>
+            <a href="/membership" className={isActive("/membership") ? styles.active : ""}>
+              Membership
+            </a>
+          </li>
+          <li className={styles.dropdown}>
+            <a
+              href="#"
+              onClick={() => setShowCareerDropdown(!showCareerDropdown)}
+              className={showCareerDropdown ? styles.active : ""}
+            >
+              Career
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className={styles.dropdownArrow}>
+                <path d="M7 10l5 5 5-5z"/>
+              </svg>
+            </a>
+            {showCareerDropdown && (
+              <div className={styles.dropdownContent}>
+                <a href="/career-services">Job Seeker Services</a>
+                <a href="#">Fast Track Career</a>
+                <a href="#">Premium Seeker</a>
+              </div>
+            )}
+          </li>
         </ul>
 
         {/* Desktop Right Menu */}
         <div className={styles.rightMenu}>
+     
           <form className={styles.searchForm}>
-            <input
-              type="text"
-              placeholder="Search jobs..."
-              className={styles.search}
-            />
+           
             <button type="submit" className={styles.searchBtn}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M21.71 20.29l-5.4-5.4a9 9 0 10-1.42 1.42l5.4 5.4a1 1 0 001.42-1.42zM11 18a7 7 0 117-7 7 7 0 01-7 7z"/>
-              </svg>
+             
             </button>
           </form>
+          <button onClick={toggleTheme} className={styles.themeToggle}>
+            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+          </button>
           
           <div className={styles.authButtons}>
             <a href="/candidate/login" className={styles.candidateBtn}>
@@ -156,19 +188,10 @@ const HomeNav = () => {
                 </button>
               </div>
 
-              {/* Mobile Search */}
-              <form className={styles.mobileSearchForm}>
-                <input
-                  type="text"
-                  placeholder="Search jobs..."
-                  className={styles.mobileSearch}
-                />
-                <button type="submit" className={styles.mobileSearchBtn}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M21.71 20.29l-5.4-5.4a9 9 0 10-1.42 1.42l5.4 5.4a1 1 0 001.42-1.42zM11 18a7 7 0 117-7 7 7 0 01-7 7z"/>
-                  </svg>
-                </button>
-              </form>
+              {/* Theme Toggle */}
+              <button onClick={toggleTheme} className={styles.themeToggle}>
+                {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+              </button>
 
               {/* Mobile Navigation Links */}
               <ul className={styles.mobileNavLinks}>
@@ -192,6 +215,15 @@ const HomeNav = () => {
                 </li>
                 <li>
                   <a 
+                    href="/government-jobs" 
+                    className={isActive("/government-jobs") ? styles.active : ""} 
+                    onClick={closeMobileMenu}
+                  >
+                    Government Jobs
+                  </a>
+                </li>
+                <li>
+                  <a 
                     href="/about" 
                     className={isActive("/about") ? styles.active : ""} 
                     onClick={closeMobileMenu}
@@ -208,6 +240,15 @@ const HomeNav = () => {
                     Contact Us
                   </a>
                 </li>
+                <li>
+                  <a
+                    href="/membership"
+                    className={isActive("/membership") ? styles.active : ""}
+                    onClick={closeMobileMenu}
+                  >
+                    Membership
+                  </a>
+                </li>
               </ul>
 
               {/* Mobile Auth Buttons */}
@@ -222,7 +263,7 @@ const HomeNav = () => {
                     Recruiter Login
                   </a>
                   <a href="/admin/login" className={styles.mobileEmployerLink} onClick={closeMobileMenu}>
-                    Admin Login
+                    Admin Login 
                   </a>
                 </div>
               </div>

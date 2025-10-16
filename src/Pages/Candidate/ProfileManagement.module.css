@@ -1,0 +1,186 @@
+.profileContainer {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.profileHeader {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #333;
+}
+
+.profileForm {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.formGroup.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.formGroup label {
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+  color: #555;
+}
+
+.formGroup input,
+.formGroup textarea {
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.formGroup input:focus,
+.formGroup textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+.submitButton {
+  grid-column: 1 / -1;
+  padding: 0.75rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s;
+}
+
+.submitButton:hover {
+  background-color: #0056b3;
+}
+
+.error {
+  color: red;
+  text-align: center;
+  margin-bottom: 1rem;
+  grid-column: 1 / -1;
+}
+
+.success {
+  color: green;
+  text-align: center;
+  margin-bottom: 1rem;
+  grid-column: 1 / -1;
+}
+
+.fieldset {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.fieldset legend {
+  font-weight: bold;
+  font-size: 1.2em;
+  color: #333;
+  padding: 0 10px;
+}
+
+.dynamicGroup {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 10px;
+  margin-bottom: 10px;
+  align-items: center;
+  grid-column: 1 / -1;
+}
+
+.dynamicGroup input {
+  flex: 1;
+}
+
+.dynamicGroup button {
+  padding: 8px 12px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.dynamicGroup button:hover {
+  background-color: #d32f2f;
+}
+
+/* Dark Theme */
+.dark .profileContainer {
+  background-color: #1f2937;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dark .profileHeader {
+  color: #e5e7eb;
+}
+
+.dark .formGroup label {
+  color: #d1d5db;
+}
+
+.dark .formGroup input,
+.dark .formGroup textarea {
+  background-color: #374151;
+  border-color: #4b5563;
+  color: #e5e7eb;
+}
+
+.dark .formGroup input:focus,
+.dark .formGroup textarea:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+}
+
+.dark .submitButton {
+  background-color: #60a5fa;
+}
+
+.dark .submitButton:hover {
+  background-color: #3b82f6;
+}
+
+.dark .fieldset {
+  border-color: #4b5563;
+}
+
+.dark .fieldset legend {
+  color: #e5e7eb;
+}
+
+.dark .dynamicGroup button {
+  background-color: #ef4444;
+}
+
+.dark .dynamicGroup button:hover {
+  background-color: #dc2626;
+}

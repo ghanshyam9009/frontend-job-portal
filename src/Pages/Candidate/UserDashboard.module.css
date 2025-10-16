@@ -1,13 +1,14 @@
 /* Layout */
 .dashboardContainer {
   min-height: 100vh;
-  background: #f6f7fb;
-  color: #0f172a;
+  background: #f8fafc;
+  color: #1f2937;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .main {
-  margin-left: 280px;
-  margin-top: 64px;
+  margin-left: 120px;
+  margin-top: 15px;
   padding: 24px;
   min-height: calc(100vh - 64px);
 }
@@ -22,6 +23,9 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 20px;
+      margin-left: 200px;
+    margin-top: 35px;
+
 }
 
 .kpiCard {
@@ -31,8 +35,8 @@
   padding: 16px;
 }
 .kpiHeader { font-size: 13px; color: #6b7280; margin-bottom: 6px; }
-.kpiValue { font-size: 20px; font-weight: 700; color: #111827; }
-.kpiFoot { font-size: 12px; color: #9ca3af; margin-top: 6px; }
+.kpiValue { font-size: 20px; font-weight: 700; color: #1f2937; }
+.kpiFoot { font-size: 12px; color: #6b7280; margin-top: 6px; }
 
 .progressBar {
   width: 100%; height: 8px; border-radius: 999px; background: #eef2ff;
@@ -45,6 +49,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+  margin-left:200px;
 }
 
 .quickActions, .recentActivity {
@@ -59,9 +64,9 @@
 .quickActions ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .qaItem {
   width: 100%; text-align: left; padding: 12px;
-  border-radius: 12px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer;
+  border-radius: 12px; border: 1px solid #e5e7eb; background: #ffffff; cursor: pointer;
 }
-.qaItem:hover { background: #f9fafb; }
+.qaItem:hover { background: #f8fafc; }
 
 .activityList { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
 .activityList li { position: relative; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 12px; }
@@ -85,7 +90,7 @@
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 8px;
-  color: #111827;
+  color: #1f2937;
 }
 
 .jobsHeader p {
@@ -95,7 +100,7 @@
 
 .jobsGrid {
   display: grid;
- flex-direction: column;
+  grid-template-columns: 1fr;
   gap: 24px;
 }
 
@@ -142,11 +147,11 @@
   font-size: 18px;
   font-weight: 700;
   margin: 0 0 8px;
-  color: #111827;
+  color: #1f2937;
 }
 
 .jobCompany {
-  color: #6b7280;
+  color: #374151;
   margin: 0 0 8px;
   font-weight: 500;
 }
@@ -183,7 +188,7 @@
 .emptyState {
   text-align: center;
   padding: 60px 20px;
-  background: white;
+  background: #ffffff;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
 }
@@ -196,7 +201,7 @@
 .emptyState h3 {
   font-size: 20px;
   font-weight: 600;
-  color: #111827;
+  color: #1f2937;
   margin: 0 0 8px;
 }
 
@@ -353,7 +358,7 @@
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 8px;
-  color: #111827;
+  color: #1f2937;
 }
 
 .profileHeader p {
@@ -362,7 +367,7 @@
 }
 
 .profileContainer {
-  background: white;
+  background: #ffffff;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
   overflow: hidden;
@@ -371,7 +376,7 @@
 .profileTabs {
   display: flex;
   border-bottom: 1px solid #e5e7eb;
-  background: #f9fafb;
+  background: #f8fafc;
 }
 
 .tab {
@@ -388,12 +393,12 @@
 }
 
 .tab:hover {
-  background: #f3f4f6;
-  color: #374151;
+  background: #f8fafc;
+  color: #1f2937;
 }
 
 .activeTab {
-  background: white;
+  background: #ffffff;
   color: #3b82f6;
   border-bottom: 2px solid #3b82f6;
 }
@@ -410,7 +415,7 @@
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 16px;
-  color: #111827;
+  color: #1f2937;
 }
 
 .formGrid {
@@ -439,6 +444,8 @@
   border-radius: 8px;
   font-size: 14px;
   transition: border-color 0.15s ease;
+  background: #ffffff;
+  color: #1f2937;
 }
 
 .formGroup input:focus,
@@ -478,7 +485,7 @@
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 16px;
-  background: #f9fafb;
+  background: #f8fafc;
 }
 
 .cardHeader {
@@ -492,7 +499,7 @@
   font-size: 16px;
   font-weight: 600;
   margin: 0;
-  color: #111827;
+  color: #1f2937;
 }
 
 .skillsContainer {
@@ -594,7 +601,7 @@
 .saveSection {
   padding: 24px;
   border-top: 1px solid #e5e7eb;
-  background: #f9fafb;
+  background: #f8fafc;
   text-align: center;
 }
 
@@ -627,7 +634,7 @@
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 8px;
-  color: #111827;
+  color: #1f2937;
 }
 
 .settingsHeader p {
@@ -639,14 +646,14 @@
   display: grid;
   grid-template-columns: 250px 1fr;
   gap: 24px;
-  background: white;
+  background: #ffffff;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
   overflow: hidden;
 }
 
 .settingsSidebar {
-  background: #f9fafb;
+  background: #f8fafc;
   border-right: 1px solid #e5e7eb;
   padding: 24px 0;
 }
@@ -661,18 +668,18 @@
   background: none;
   cursor: pointer;
   transition: all 0.15s ease;
-  color: #6b7280;
+  color: #374151;
   font-weight: 500;
   text-align: left;
 }
 
 .settingsTab:hover {
-  background: #f3f4f6;
-  color: #374151;
+  background: #f8fafc;
+  color: #1f2937;
 }
 
 .settingsTab.activeTab {
-  background: white;
+  background: #ffffff;
   color: #3b82f6;
   border-right: 3px solid #3b82f6;
 }
@@ -685,7 +692,7 @@
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 20px;
-  color: #111827;
+  color: #1f2937;
 }
 
 .notificationsSection,
@@ -703,7 +710,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background: #f9fafb;
+  background: #f8fafc;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
 }
@@ -720,7 +727,7 @@
   font-size: 16px;
   font-weight: 600;
   margin: 0 0 4px;
-  color: #111827;
+  color: #1f2937;
 }
 
 .notificationInfo p,
@@ -790,7 +797,7 @@
   font-size: 32px;
   font-weight: 700;
   margin: 0 0 8px;
-  color: #111827;
+  color: #1f2937;
 }
 
 .membershipHeader p {
@@ -848,7 +855,7 @@
 }
 
 .planCard {
-  background: white;
+  background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 24px;
@@ -888,7 +895,7 @@
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 8px;
-  color: #111827;
+  color: #1f2937;
 }
 
 .planPrice {
@@ -898,7 +905,7 @@
 .price {
   font-size: 36px;
   font-weight: 700;
-  color: #111827;
+  color: #1f2937;
 }
 
 .period {
@@ -919,7 +926,7 @@
   font-size: 16px;
   font-weight: 600;
   margin: 0 0 12px;
-  color: #111827;
+  color: #1f2937;
 }
 
 .featuresList,
@@ -990,7 +997,7 @@
   font-weight: 700;
   text-align: center;
   margin: 0 0 32px;
-  color: #111827;
+  color: #1f2937;
 }
 
 .benefitsGrid {
@@ -1000,7 +1007,7 @@
 }
 
 .benefitCard {
-  background: white;
+  background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 24px;
@@ -1022,7 +1029,7 @@
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 8px;
-  color: #111827;
+  color: #1f2937;
 }
 
 .benefitCard p {
@@ -1039,7 +1046,7 @@
   font-weight: 700;
   text-align: center;
   margin: 0 0 32px;
-  color: #111827;
+  color: #1f2937;
 }
 
 .faqGrid {
@@ -1049,7 +1056,7 @@
 }
 
 .faqItem {
-  background: white;
+  background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 24px;
@@ -1059,7 +1066,7 @@
   font-size: 16px;
   font-weight: 600;
   margin: 0 0 8px;
-  color: #111827;
+  color: #1f2937;
 }
 
 .faqItem p {
@@ -1080,7 +1087,7 @@
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 8px;
-  color: #111827;
+  color: #1f2937;
 }
 
 .messagesHeader p {
@@ -1092,7 +1099,7 @@
   display: grid;
   grid-template-columns: 350px 1fr;
   gap: 24px;
-  background: white;
+  background: #ffffff;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
   overflow: hidden;
@@ -1100,7 +1107,7 @@
 }
 
 .conversationsList {
-  background: #f9fafb;
+  background: #f8fafc;
   border-right: 1px solid #e5e7eb;
   padding: 24px;
   overflow-y: auto;
@@ -1110,7 +1117,7 @@
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 16px;
-  color: #111827;
+  color: #1f2937;
 }
 
 .conversations {
@@ -1120,7 +1127,7 @@
 }
 
 .conversationItem {
-  background: white;
+  background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 16px;
@@ -1149,7 +1156,7 @@
   font-size: 16px;
   font-weight: 600;
   margin: 0 0 4px;
-  color: #111827;
+  color: #1f2937;
 }
 
 .jobTitle {
@@ -1183,7 +1190,7 @@
 
 .timestamp {
   font-size: 12px;
-  color: #9ca3af;
+  color: #6b7280;
   margin-left: 8px;
 }
 
@@ -1197,14 +1204,14 @@
   padding: 24px 24px 0;
   margin: 0;
   border-bottom: 1px solid #e5e7eb;
-  background: white;
+  background: #ffffff;
 }
 
 .employerInfo h3 {
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 4px;
-  color: #111827;
+  color: #1f2937;
 }
 
 .employerInfo span {
@@ -1265,7 +1272,7 @@
 .messageInput {
   padding: 24px;
   border-top: 1px solid #e5e7eb;
-  background: white;
+  background: #ffffff;
   display: flex;
   gap: 12px;
 }
@@ -1277,6 +1284,8 @@
   border-radius: 24px;
   font-size: 14px;
   outline: none;
+  background: #f3f4f6;
+  color: #1f2937;
 }
 
 .messageInput input:focus {
@@ -1321,12 +1330,276 @@
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 8px;
-  color: #111827;
+  color: #1f2937;
 }
 
 .noConversation p {
   margin: 0;
 }
+
+/* Dark Theme */
+.dark .dashboardContainer {
+  background: #111827;
+  color: #d1d5db;
+}
+
+.dark .kpiCard,
+.dark .quickActions,
+.dark .recentActivity,
+.dark .jobCard,
+.dark .emptyState,
+.dark .profileContainer,
+.dark .settingsContainer,
+.dark .planCard,
+.dark .benefitCard,
+.dark .faqItem,
+.dark .messagesContainer {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+.dark .kpiHeader,
+.dark .kpiFoot,
+.dark .meta,
+.dark .jobLocation,
+.dark .emptyState p,
+.dark .profileHeader p,
+.dark .tab,
+.dark .formGroup label,
+.dark .uploadLabel span,
+.dark .settingsHeader p,
+.dark .settingsTab,
+.dark .notificationInfo p,
+.dark .privacyInfo p,
+.dark .preferenceInfo p,
+.dark .membershipHeader p,
+.dark .period,
+.dark .planDescription,
+.dark .limitation,
+.dark .benefitCard p,
+.dark .faqItem p,
+.dark .jobTitle,
+.dark .timestamp,
+.dark .employerInfo span,
+.dark .noConversation {
+  color: #9ca3af;
+}
+
+.dark .kpiValue,
+.dark .jobsHeader h2,
+.dark .jobTitle,
+.dark .jobCompany,
+.dark .emptyState h3,
+.dark .profileHeader h2,
+.dark .formSection h3,
+.dark .cardHeader h4,
+.dark .uploadLabel p,
+.dark .settingsHeader h2,
+.dark .settingsPanel h3,
+.dark .notificationInfo h4,
+.dark .privacyInfo h4,
+.dark .preferenceInfo h4,
+.dark .membershipHeader h2,
+.dark .planHeader .planName,
+.dark .price,
+.dark .planFeatures h4,
+.dark .feature,
+.dark .membershipBenefits h3,
+.dark .benefitCard h4,
+.dark .faqSection h3,
+.dark .faqItem h4,
+.dark .messagesHeader h2,
+.dark .conversationsList h3,
+.dark .companyInfo h4,
+.dark .lastMessage p,
+.dark .employerInfo h3,
+.dark .noConversation h3 {
+  color: #ffffff;
+}
+
+.dark .qaItem {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+.dark .qaItem:hover {
+  background: #111827;
+}
+
+.dark .activityList li {
+  border-color: #374151;
+}
+
+.dark .jobCard:hover {
+  border-color: #4b5563;
+}
+
+.dark .jobIcon {
+  background: #374151;
+}
+
+.dark .jobType {
+  background: #374151;
+  color: #9ca3af;
+}
+
+.dark .viewBtn {
+  background: #3b82f6;
+}
+
+.dark .viewBtn:hover {
+  background: #2563eb;
+}
+
+.dark .activeTab {
+  background: var(--card-background);
+  color: #3b82f6;
+  border-bottom: 2px solid #3b82f6;
+}
+
+.dark .tab:hover {
+  background: var(--background-color);
+}
+
+.dark .experienceCard,
+.dark .educationCard {
+  background: var(--background-color);
+}
+
+.dark .skillTag {
+  background: #374151;
+  color: #9ca3af;
+}
+
+.dark .removeSkillBtn {
+  color: #9ca3af;
+}
+
+.dark .uploadArea {
+  border-color: #4b5563;
+}
+
+.dark .uploadArea:hover {
+  border-color: #3b82f6;
+}
+
+.dark .uploadedFile {
+  background: #374151;
+}
+
+.dark .fileName {
+  color: #9ca3af;
+}
+
+.dark .saveSection {
+  background: var(--background-color);
+}
+
+.dark .settingsSidebar {
+  background: var(--background-color);
+}
+
+.dark .settingsTab:hover {
+  background: var(--background-color);
+}
+
+.dark .settingsTab.activeTab {
+  background: var(--card-background);
+}
+
+.dark .notificationItem,
+.dark .privacyItem,
+.dark .preferenceItem {
+  background: var(--background-color);
+}
+
+.dark .toggleSlider {
+  background-color: #4b5563;
+}
+
+.dark .toggle input:checked + .toggleSlider {
+  background-color: #3b82f6;
+}
+
+.dark .currentPlanCard {
+  background: #1e3a8a;
+  border-color: #3b82f6;
+}
+
+.dark .currentPlanCard h3,
+.dark .planName,
+.dark .interviewLabel,
+.dark .interviewDate {
+  color: #dbeafe;
+}
+
+.dark .planStatus {
+  background: #166534;
+  color: #dcfce7;
+}
+
+.dark .popularPlan {
+  border-color: #3b82f6;
+}
+
+.dark .popularBadge {
+  background: #3b82f6;
+}
+
+.dark .upgradeButton {
+  background: #3b82f6;
+}
+
+.dark .upgradeButton:hover {
+  background: #2563eb;
+}
+
+.dark .currentButton {
+  background: #374151;
+  color: #9ca3af;
+}
+
+.dark .conversationsList {
+  background: var(--background-color);
+}
+
+.dark .conversationItem:hover {
+  border-color: #4b5563;
+}
+
+.dark .activeConversation {
+  background: #1e3a8a;
+  border-color: #3b82f6;
+}
+
+.dark .messagesArea .messagesHeader {
+  background: var(--card-background);
+}
+
+.dark .messageContent {
+  background: #374151;
+}
+
+.dark .userMessage .messageContent {
+  background: #3b82f6;
+}
+
+.dark .messageInput {
+  background: var(--card-background);
+}
+
+.dark .sendButton {
+  background: #3b82f6;
+}
+
+.dark .sendButton:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.dark .sendButton:disabled {
+  background: #4b5563;
+}
+
 
 /* Responsive */
 @media (max-width: 1024px) {
@@ -1435,5 +1708,3 @@
     grid-template-columns: 1fr;
   }
 }
-
-

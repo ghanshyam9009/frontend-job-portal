@@ -1,10 +1,15 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import styles from "../../Styles/Admin.module.css";
+import { useAuth } from "../../Contexts/AuthContext";
+import { useTheme } from "../../Contexts/ThemeContext";
+import styles from "../../Styles/Auth.module.css";
 import HomeNav from "../../Components/HomeNav";
+import logo from "/favicon-icon.png";
 
 const AdminLogin = () => {
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: ""
@@ -25,22 +30,11 @@ const AdminLogin = () => {
     setError("");
     
     try {
-      // Simulate API call - replace with actual authentication logic
-      console.log("Admin Login:", formData);
-      
-      // Simple validation for demo purposes
-      if (formData.email && formData.password) {
-        // Simulate successful login
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Store admin login status in localStorage
-        localStorage.setItem('adminLoggedIn', 'true');
-        localStorage.setItem('adminEmail', formData.email);
-        
-        // Redirect to admin dashboard
+      const success = await login(formData.email, formData.password, 'admin');
+      if (success) {
         navigate('/admin/dashboard');
       } else {
-        setError("Please fill in all fields");
+        setError("Login failed. Please try again.");
       }
     } catch (err) {
       setError("Login failed. Please try again.");
@@ -51,83 +45,83 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className={styles.pageContainer}>
+    <div className={styles.container}>
       <HomeNav />
-      <div className={styles.mainContent}>
-        <div className={styles.leftColumn}>
-          <div className={styles.formCard}>
-            <h1 className={styles.title}>Admin Portal</h1>
-            <p className={styles.subtitle}>Manage the platform and oversee all operations.</p>
-            
-            <div className={styles.loginHeader}>
-              <h2 className={styles.loginTitle}>Admin Login</h2>
-              <p className={styles.loginSubtitle}>Sign in to access the admin dashboard</p>
+      <div className={styles.leftPanel}>
+        <div className={styles.header}>
+          <img src={logo} alt="logo" className={styles.logo} />
+          <h1 className={styles.companyName}>Bigsources Manpower Solution</h1>
+
+        </div>
+        <div className={styles.formContainer}>
+          <h1 className={styles.title}>Admin Login</h1>
+          
+          <form onSubmit={handleSubmit}>
+            <div className={styles.inputGroup}>
+              <label className={styles.label}>
+                <span className={styles.labelText}>Email Address</span>
+                <div className={styles.inputWrapper}>
+                  <span className={styles.inputIcon}>✉️</span>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder="admin@company.com"
+                    className={styles.input}
+                    required
+                  />
+                </div>
+              </label>
             </div>
 
-            {error && (
-              <div className={styles.errorMessage}>
-                {error}
-              </div>
-            )}
+            <div className={styles.inputGroup}>
+              <label className={styles.label}>
+                <span className={styles.labelText}>Password</span>
+                <div className={styles.inputWrapper}>
+                  <span className={styles.inputIcon}>🔒</span>
+                  <input
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    placeholder="••••••••"
+                    className={styles.input}
+                    required
+                  />
+                </div>
+              </label>
+            </div>
 
-            <form onSubmit={handleSubmit} className={styles.form}>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.label}>
-                  <span className={styles.labelText}>Email Address</span>
-                  <div className={styles.inputWrapper}>
-                    <span className={styles.inputIcon}>✉️</span>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      placeholder="admin@company.com"
-                      className={styles.input}
-                      required
-                    />
-                  </div>
-                </label>
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.label}>
-                  <span className={styles.labelText}>Password</span>
-                  <div className={styles.inputWrapper}>
-                    <span className={styles.inputIcon}>🔒</span>
-                    <input
-                      type="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      placeholder="••••••••"
-                      className={styles.input}
-                      required
-                    />
-                  </div>
-                </label>
-              </div>
-
-              <button 
-                type="submit" 
-                className={styles.submitBtn}
-                disabled={isLoading}
-              >
-                {isLoading ? 'Logging in...' : 'Login to Dashboard'}
-              </button>
-
-           
-            </form>
-          </div>
+            <button 
+              type="submit" 
+              className={styles.submitBtn}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Logging in...' : 'Login'}
+            </button>
+          </form>
         </div>
-
-        <div className={styles.rightColumn}>
-          <div className={styles.imageCard}>
-            <div className={styles.imageOverlay}>
-              <h2 className={styles.overlayTitle}>Platform Management</h2>
-              <p className={styles.overlayText}>
-                Oversee all platform operations, manage users, and ensure smooth functionality.
-              </p>
+      </div>
+      <div className={styles.rightPanel}>
+        <div className={styles.overlay}></div>
+        <div className={styles.overlayContent}>
+          <h2 className={styles.overlayTitle}>858 Open jobs waiting for you</h2>
+          <div className={styles.statsContainer}>
+            <div className={styles.statBox}>
+              <div className={styles.statIcon}>💼</div>
+              <div className={styles.statNumber}>856</div>
+              <div className={styles.statLabel}>Live Jobs</div>
+            </div>
+            <div className={styles.statBox}>
+              <div className={styles.statIcon}>🏢</div>
+              <div className={styles.statNumber}>729</div>
+              <div className={styles.statLabel}>Companies</div>
+            </div>
+            <div className={styles.statBox}>
+              <div className={styles.statIcon}>👥</div>
+              <div className={styles.statNumber}>1496</div>
+              <div className={styles.statLabel}>Candidates</div>
             </div>
           </div>
         </div>

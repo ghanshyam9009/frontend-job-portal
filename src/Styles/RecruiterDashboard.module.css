@@ -3,10 +3,11 @@
   min-height: 100vh;
   background: #f6f7fb;
   color: #0f172a;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 .main {
-  margin-left: 280px;
+  margin-left: 250px;
   margin-top: 64px;
   padding: 24px;
   min-height: calc(100vh - 64px);
@@ -287,6 +288,179 @@
   margin: 0;
 }
 
+/* Dark Theme */
+.dark {
+  background: #111827;
+  color: #d1d5db;
+}
+
+.dark .welcomeSection h1,
+.dark .statInfo h3,
+.dark .sectionHeader h2,
+.dark .candidateInfo h4,
+.dark .quickActions h2,
+.dark .actionContent h3,
+.dark .formSection h2,
+.dark .jobTitle,
+.dark .candidateName,
+.dark .detailValue,
+.dark .balanceInfo h2,
+.dark .sectionTitle h2,
+.dark .tokenNumber,
+.dark .currentPrice,
+.dark .planName,
+.dark .planPrice,
+.dark .usageItem h4,
+.dark .settingsPanel h3,
+.dark .notificationInfo h4,
+.dark .privacyInfo h4,
+.dark .preferenceInfo h4 {
+  color: #ffffff;
+}
+
+.dark .welcomeSection p,
+.dark .statInfo p,
+.dark .candidateInfo p,
+.dark .applicationDetails,
+.dark .actionContent p,
+.dark .formGroup label,
+.dark .salaryInputs span,
+.dark .jobMeta,
+.dark .statsSummary,
+.dark .statLabel,
+.dark .jobTitle,
+.dark .appliedDate,
+.dark .detailLabel,
+.dark .skillsLabel,
+.dark .coverLetterLabel,
+.dark .coverLetterText,
+.dark .balanceLabel,
+.dark .lastUpdated,
+.dark .tokenLabel,
+.dark .packDescription,
+.dark .planPeriod,
+.dark .featureItem,
+.dark .sectionTitle p,
+.dark .usageItem p,
+.dark .settingsTab,
+.dark .notificationInfo p,
+.dark .privacyInfo p,
+.dark .preferenceInfo p {
+  color: #9ca3af;
+}
+
+.dark .statCard,
+.dark .recentApplications,
+.dark .quickActions,
+.dark .applicationCard,
+.dark .actionCard,
+.dark .jobForm,
+.dark .filtersSection,
+.dark .jobCard,
+.dark .searchInput,
+.dark .tokenBalanceCard,
+.dark .tokenPackCard,
+.dark .subscriptionPlanCard,
+.dark .usageGuide,
+.dark .usageItem,
+.dark .settingsContainer,
+.dark .notificationItem,
+.dark .privacyItem,
+.dark .preferenceItem {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+.dark .statCard:hover,
+.dark .applicationCard:hover,
+.dark .jobCard:hover,
+.dark .tokenPackCard:hover,
+.dark .subscriptionPlanCard:hover {
+  border-color: #4b5563;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.dark .statIcon,
+.dark .actionIcon,
+.dark .tokenIcon {
+  background: #374151;
+}
+
+.dark .viewAllBtn,
+.dark .settingsTab.activeTab {
+  color: #60a5fa;
+}
+
+.dark .viewAllBtn:hover,
+.dark .settingsTab:hover {
+  background: #374151;
+}
+
+.dark .viewResumeBtn,
+.dark .draftBtn,
+.dark .filterTab,
+.dark .actionBtn,
+.dark .statusSelect,
+.dark .settingsTab.activeTab {
+  background: #374151;
+  color: #d1d5db;
+  border-color: #4b5563;
+}
+
+.dark .viewResumeBtn:hover,
+.dark .draftBtn:hover,
+.dark .filterTab:hover,
+.dark .actionBtn:hover {
+  background: #4b5563;
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.dark .actionCard:hover,
+.dark .filterTab.activeFilter {
+  border-color: #10b981;
+  background: #064e3b;
+  color: #ffffff;
+}
+
+.dark .formGroup input,
+.dark .formGroup textarea,
+.dark .formGroup select,
+.dark .skillInput input {
+  background: #374151;
+  border-color: #4b5563;
+  color: #d1d5db;
+}
+
+.dark .formGroup input:focus,
+.dark .formGroup textarea:focus,
+.dark .formGroup select:focus,
+.dark .searchInput:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.dark .jobStats {
+  border-top-color: #374151;
+  border-bottom-color: #374151;
+}
+
+.dark .candidateDetails {
+  border-top-color: #374151;
+  border-bottom-color: #374151;
+}
+
+.dark .settingsSidebar {
+  background: #1f2937;
+  border-right-color: #374151;
+}
+
+.dark .settingsTab.activeTab {
+  background: #111827;
+  border-right-color: #10b981;
+}
+
+
 /* Responsive */
 @media (max-width: 1024px) {
   .main {
@@ -433,6 +607,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
+      max-width: 107px;
+
 }
 
 .salaryInputs select {

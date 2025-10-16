@@ -1,50 +1,46 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
+import { useTheme } from "../../Contexts/ThemeContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
-import CandidateSidebar from "../../Components/Candidate/CandidateSidebar";
 import styles from "./UserDashboard.module.css";
+import { candidateExternalService } from "../../services";
 
 const SavedJobs = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [darkMode, setDarkMode] = useState(false);
-  const [savedJobs, setSavedJobs] = useState([
-    {
-      id: 1,
-      title: "Senior Frontend Developer",
-      company: "TechCorp",
-      salary: "₹12L - ₹15L / year",
-      location: "Remote · Worldwide",
-      type: "Full-time",
-      savedDate: "2024-01-15",
-      status: "Active"
-    },
-    {
-      id: 2,
-      title: "Data Scientist",
-      company: "DataFlow Inc",
-      salary: "₹13L - ₹16L / year",
-      location: "San Francisco, CA",
-      type: "Full-time",
-      savedDate: "2024-01-14",
-      status: "Active"
-    },
-    {
-      id: 3,
-      title: "UX Designer",
-      company: "DesignStudio",
-      salary: "₹9L - ₹11L / year",
-      location: "New York, NY",
-      type: "Full-time",
-      savedDate: "2024-01-13",
-      status: "Expired"
-    }
-  ]);
+  const { theme, toggleTheme } = useTheme();
+  const [savedJobs, setSavedJobs] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
+  useEffect(() => {
+    const userId = user?.user_id || user?.id || '';
+    if (!userId) return;
+    const fetchSaved = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const data = await candidateExternalService.getBookmarkedJobs(userId);
+        const mapped = (data?.bookmarked_jobs || data?.jobs || []).map((j, idx) => ({
+          id: j.job_id || idx,
+          title: j.job_title,
+          company: j.company_name || "",
+          salary: j.salary_range ? `₹${j.salary_range.min} - ₹${j.salary_range.max}` : "",
+          location: j.location || "",
+          type: j.employment_type || "",
+          savedDate: j.saved_at ? j.saved_at.split('T')[0] : '',
+          status: (j.status || 'Active')
+        }));
+        setSavedJobs(mapped);
+      } catch (e) {
+        setError(typeof e === 'string' ? e : e?.message || 'Failed to load saved jobs');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSaved();
+  }, [user]);
 
   const handleJobClick = (job) => {
     navigate(`/job/${job.title.toLowerCase().replace(/\s+/g, '-')}`, {
@@ -70,9 +66,8 @@ const SavedJobs = () => {
   };
 
   return (
-    <div className={styles.dashboardContainer}>
-      <CandidateNavbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <CandidateSidebar darkMode={darkMode} />
+    <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
+      <CandidateNavbar darkMode={theme === 'dark'} toggleDarkMode={toggleTheme} />
       <main className={styles.main}>
         <section className={styles.jobsSection}>
           <div className={styles.jobsHeader}>
@@ -80,6 +75,12 @@ const SavedJobs = () => {
             <p>Your bookmarked job opportunities</p>
           </div>
           
+          {loading && (
+            <div className={styles.emptyState}><h3>Loading saved jobs…</h3></div>
+          )}
+          {error && (
+            <div className={styles.emptyState}><h3>{error}</h3></div>
+          )}
           {savedJobs.length === 0 ? (
             <div className={styles.emptyState}>
               <div className={styles.emptyIcon}>⭐</div>

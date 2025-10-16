@@ -1,6 +1,16 @@
+/* Page Container */
 .pageContainer {
   min-height: 100vh;
   background: #f8fafc;
+  transition: background-color 0.3s, color 0.3s;
+  margin-top: 60px;
+}
+
+body.dark .pageContainer,
+.dark .pageContainer,
+.pageContainer.dark {
+  background-color: #111827 !important;
+  color: #f9fafb !important;
 }
 
 .mainContent {
@@ -32,6 +42,11 @@
   max-width: 500px;
 }
 
+.dark .formCard {
+  background-color: #2a2a2a;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
 .formCard h2 {
   font-size: 28px;
   font-weight: 700;
@@ -39,11 +54,19 @@
   margin: 0 0 8px 0;
 }
 
+.dark .formCard h2 {
+  color: #f8f9fa;
+}
+
 .formCard p {
   font-size: 16px;
   color: #6b7280;
   margin: 0 0 32px 0;
   line-height: 1.5;
+}
+
+.dark .formCard p {
+  color: #a0a0a0;
 }
 
 .contactForm {
@@ -64,6 +87,10 @@
   color: #374151;
 }
 
+.dark .formGroup label {
+  color: #f8f9fa;
+}
+
 .formGroup input,
 .formGroup textarea {
   padding: 12px 16px;
@@ -73,6 +100,19 @@
   transition: border-color 0.2s ease;
   background: #ffffff;
   font-family: inherit;
+  color: #111827;
+}
+
+.dark .formGroup input,
+.dark .formGroup textarea {
+  background-color: #3a3a3a;
+  border-color: #555;
+  color: #f8f9fa;
+}
+
+.dark .formGroup input::placeholder,
+.dark .formGroup textarea::placeholder {
+  color: #a0a0a0;
 }
 
 .formGroup input:focus,
@@ -80,6 +120,12 @@
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.dark .formGroup input:focus,
+.dark .formGroup textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
 .formGroup textarea {
@@ -104,6 +150,14 @@
   background: #2563eb;
 }
 
+.dark .submitBtn {
+  background: #3b82f6;
+}
+
+.dark .submitBtn:hover {
+  background: #2563eb;
+}
+
 /* Info Section */
 .infoSection {
   display: flex;
@@ -119,12 +173,23 @@
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
+.dark .infoCard,
+.dark .mapCard {
+  background-color: #2a2a2a;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
 .infoCard h3,
 .mapCard h3 {
   font-size: 20px;
   font-weight: 600;
   color: #1f2937;
   margin: 0 0 24px 0;
+}
+
+.dark .infoCard h3,
+.dark .mapCard h3 {
+  color: #f8f9fa;
 }
 
 .contactItem {
@@ -149,6 +214,10 @@
   line-height: 1.5;
 }
 
+.dark .contactItem span:last-child {
+  color: #f8f9fa;
+}
+
 .mapContainer {
   position: relative;
   background: #f3f4f6;
@@ -158,6 +227,10 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
+}
+
+.dark .mapContainer {
+  background: #3a3a3a;
 }
 
 .mapIcon {
@@ -228,14 +301,16 @@
   gap: 16px;
 }
 
-.socialIcons span {
-  font-size: 24px;
+.socialLink {
+  color: #9ca3af;
+  font-size: 1.25rem;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: color 0.2s ease;
+  text-decoration: none;
 }
 
-.socialIcons span:hover {
-  transform: scale(1.1);
+.socialLink:hover {
+  color: white;
 }
 
 .footerRight {
@@ -350,16 +425,34 @@
     font-size: 20px;
   }
   
-  .formGroup input,
-  .formGroup textarea {
-    padding: 10px 12px;
-    font-size: 14px;
-  }
-  
-  .submitBtn {
-    padding: 14px 20px;
-    font-size: 14px;
-  }
+.formGroup input,
+.formGroup textarea {
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.2s ease;
+  background: #ffffff;
+  font-family: inherit;
+}
+
+.dark .formGroup input,
+.dark .formGroup textarea {
+  background-color: #3a3a3a;
+  border-color: #555;
+  color: #f8f9fa;
+}
+
+.dark .formGroup input::placeholder,
+.dark .formGroup textarea::placeholder {
+  color: #a0a0a0;
+}
+
+.dark .formGroup input:focus,
+.dark .formGroup textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
   
   .contactItem span:last-child {
     font-size: 14px;
@@ -378,6 +471,39 @@
   }
 }
 
+/* User Type Selector */
+.userTypeSelector {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
 
+.userTypeButton {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  background-color: #f9fafb;
+  color: #111827;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
+.userTypeButton.active {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
 
+.dark .userTypeButton {
+  border-color: #555;
+  background-color: #3a3a3a;
+  color: #f8f9fa;
+}
+
+.dark .userTypeButton.active {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}

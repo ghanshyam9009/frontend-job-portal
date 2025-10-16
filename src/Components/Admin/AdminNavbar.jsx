@@ -1,20 +1,35 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../Contexts/AuthContext";
+import { useTheme } from "../../Contexts/ThemeContext"; // Import useTheme
+import { authService } from "../../services/authService";
 import styles from "../../Styles/AdminNavbar.module.css";
-import logo from "../../assets/logo2.png";
-const AdminNavbar = ({  onLogout, onMobileMenuToggle }) => {
+import logo from "../../assets/favicon-icon.png";
+import { Sun, Moon, Clock } from "lucide-react";
+
+const AdminNavbar = ({ onLogout, onMobileMenuToggle }) => {
   const navigate = useNavigate();
+  const { logout, user } = useAuth();
+  const { theme, toggleTheme } = useTheme(); // Use theme context
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [sessionTime, setSessionTime] = useState('');
+
+ 
 
   const handleProfileClick = () => {
     setShowProfileDropdown(!showProfileDropdown);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('adminLoggedIn');
-    localStorage.removeItem('adminEmail');
-    navigate('/admin/login');
-    if (onLogout) onLogout();
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/admin/login');
+      if (onLogout) onLogout();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force navigation even if logout fails
+      navigate('/admin/login');
+    }
   };
 
   return (
@@ -25,38 +40,41 @@ const AdminNavbar = ({  onLogout, onMobileMenuToggle }) => {
         </button>
            <div className={styles.logo}>
                          <img src={logo} alt="JobPortal Logo" />
+                         <span>Bigsources Manpower Solution</span>
                        </div>
-        <div className={styles.searchContainer}>
-          <input 
-            type="text" 
-            placeholder="Search dashboard..." 
-            className={styles.searchInput}
-          />
-          <span className={styles.searchIcon}>🔍</span>
-        </div>
+
       </div>
       
       <div className={styles.headerRight}>
+        {/* Session Timer */}
+       
+
         <button className={styles.notificationBtn}>
           🔔
           <span className={styles.notificationBadge}>9</span>
         </button>
-        {/* <button className={styles.darkModeBtn} onClick={toggleDarkMode}>
-          {darkMode ? '☀️' : '🌙'}
-        </button> */}
+        <button className={styles.themeToggle} onClick={toggleTheme}>
+          {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+        </button>
         <button className={styles.logoutBtn} onClick={handleLogout}>
           Logout
         </button>
         <div className={styles.profileSection}>
           <button className={styles.profilePicture} onClick={handleProfileClick}>
-            <img src="https://via.placeholder.com/40" alt="Admin" />
+            <div className={styles.profileAvatar}>
+              {(user?.name || user?.admin_name || 'Admin').charAt(0).toUpperCase()}
+            </div>
           </button>
           
           {showProfileDropdown && (
             <div className={styles.profileDropdown}>
               <div className={styles.profileInfo}>
-                <div className={styles.profileName}>Jane Doe</div>
-                <div className={styles.profileEmail}>jane.doe@example.com</div>
+                <div className={styles.profileName}>
+                  {user?.name || user?.admin_name || 'Admin User'}
+                </div>
+                <div className={styles.profileEmail}>
+                  {user?.email || 'admin@example.com'}
+                </div>
               </div>
               <div className={styles.dropdownDivider}></div>
               <button className={styles.dropdownItem}>Profile Settings</button>

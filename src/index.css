@@ -16,5 +16,34 @@ img, video, canvas, svg {
 
 body {
   overflow-x: hidden;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  font-family: "Open Sans", sans-serif;
 }
 
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Poppins", sans-serif;
+}
+
+:root {
+  --background-color: #fff;
+  --text-color: #333;
+  --navbar-background: rgba(255, 255, 255, 0.8);
+  --navbar-border: 1px solid rgba(229, 231, 235, 0.3);
+  --card-background: #fff;
+  --card-border: 1px solid #e5e7eb;
+  --input-background: #fff;
+  --input-border: 1px solid #d1d5db;
+}
+
+[data-theme='dark'] {
+  --background-color: #121212;
+  --text-color: #e0e0e0;
+  --navbar-background: rgba(18, 18, 18, 0.8);
+  --navbar-border: 1px solid rgba(55, 55, 55, 0.5);
+  --card-background: #1e1e1e;
+  --card-border: 1px solid #373737;
+  --input-background: #2c2c2c;
+  --input-border: 1px solid #4f4f4f;
+}

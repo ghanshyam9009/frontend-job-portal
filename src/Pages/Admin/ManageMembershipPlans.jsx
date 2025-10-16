@@ -1,406 +1,234 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import AdminNavbar from "../../Components/Admin/AdminNavbar";
-import AdminSidebar from "../../Components/Admin/AdminSidebar";
-import styles from "../../Styles/ManageMembershipPlans.module.css";
+import { useTheme } from "../../Contexts/ThemeContext";
+import styles from "../../Styles/AdminDashboard.module.css";
+import { planService } from "../../services/planService";
 
 const ManageMembershipPlans = () => {
-  const navigate = useNavigate();
-  const [darkMode, setDarkMode] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("membership");
-  const [membershipPlans, setMembershipPlans] = useState([]);
-  const [transactions, setTransactions] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const transactionsPerPage = 5;
+  const { theme } = useTheme();
+  const [plans, setPlans] = useState([]);
+  const [planType, setPlanType] = useState("CANDIDATE"); // CANDIDATE or RECRUITER
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Check authentication on component mount
-  useEffect(() => {
-    const isLoggedIn = localStorage.getItem('adminLoggedIn');
-    if (!isLoggedIn) {
-      navigate('/admin/login');
-    }
-  }, [navigate]);
+  const [showModal, setShowModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState(null);
 
-  // Sample data
-  useEffect(() => {
-    const sampleMembershipPlans = [
-      {
-        id: 1,
-        name: "Basic Membership",
-        price: "₹190 / Monthly",
-        features: [
-          "Access to basic content",
-          "5 project templates",
-          "Email support"
-        ],
-        status: "Active"
-      },
-      {
-        id: 2,
-        name: "Pro Membership",
-        price: "₹490 / Annually",
-        features: [
-          "All Basic features",
-          "20 premium templates",
-          "Priority support",
-          "Advanced analytics",
-          "100 Tokens Included"
-        ],
-        status: "Active"
-      },
-      {
-        id: 3,
-        name: "Enterprise Solution",
-        price: "₹990 / Annually",
-        features: [
-          "All Pro features",
-          "Unlimited templates",
-          "Dedicated account manager",
-          "Custom integrations",
-          "500 Tokens Included"
-        ],
-        status: "Inactive"
-      }
-    ];
-
-    const sampleTransactions = [
-      {
-        id: "TXN78901",
-        user: "Alice Smith",
-        plan: "Pro Membership",
-        amount: "₹490",
-        status: "Completed",
-        date: "2024-07-28"
-      },
-      {
-        id: "TXN78902",
-        user: "Bob Johnson",
-        plan: "Starter Token Pack",
-        amount: "₹50",
-        status: "Pending",
-        date: "2024-07-27"
-      },
-      {
-        id: "TXN78903",
-        user: "Charlie Brown",
-        plan: "Basic Membership",
-        amount: "₹190",
-        status: "Completed",
-        date: "2024-07-26"
-      },
-      {
-        id: "TXN78904",
-        user: "Diana Prince",
-        plan: "Ultimate Token Vault",
-        amount: "₹500",
-        status: "Completed",
-        date: "2024-07-25"
-      },
-      {
-        id: "TXN78905",
-        user: "Eve Adams",
-        plan: "Pro Membership",
-        amount: "₹490",
-        status: "Failed",
-        date: "2024-07-24"
-      }
-    ];
-
-    setMembershipPlans(sampleMembershipPlans);
-    setTransactions(sampleTransactions);
-  }, []);
-
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
-
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
-  const closeSidebar = () => {
-    setSidebarOpen(false);
-  };
-
-  const getStatusClass = (status) => {
-    switch (status) {
-      case "Active":
-        return styles.active;
-      case "Inactive":
-        return styles.inactive;
-      case "Completed":
-        return styles.completed;
-      case "Pending":
-        return styles.pending;
-      case "Failed":
-        return styles.failed;
-      default:
-        return styles.default;
+  const fetchPlans = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await planService.getPlansByUserType(planType);
+      setPlans(response.data || []);
+    } catch (err) {
+      setError("Failed to fetch plans. Please try again later.");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const getPaginatedTransactions = () => {
-    const startIndex = (currentPage - 1) * transactionsPerPage;
-    return transactions.slice(startIndex, startIndex + transactionsPerPage);
+  useEffect(() => {
+    fetchPlans();
+  }, [planType]);
+
+  const handleOpenAddModal = () => {
+    setIsEditing(false);
+    setCurrentPlan({
+      name: "",
+      price: 0,
+      duration: "monthly",
+      features: [],
+      status: "Active",
+      user_type: planType,
+    });
+    setShowModal(true);
   };
 
-  const totalPages = Math.ceil(transactions.length / transactionsPerPage);
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
+  const handleOpenEditModal = (plan) => {
+    setIsEditing(true);
+    setCurrentPlan({ ...plan, features: Array.isArray(plan.features) ? plan.features : [] });
+    setShowModal(true);
   };
 
-  const handleEditPlan = (plan) => {
-    console.log("Edit plan:", plan);
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setCurrentPlan(null);
   };
 
-  const handleDeletePlan = (plan) => {
-    console.log("Delete plan:", plan);
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setCurrentPlan((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleFeaturesChange = (e) => {
+    const featuresArray = e.target.value.split('\n');
+    setCurrentPlan((prev) => ({ ...prev, features: featuresArray }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!currentPlan) return;
+
+    const planData = {
+      ...currentPlan,
+      price: Number(currentPlan.price),
+    };
+
+    try {
+      if (isEditing) {
+        await planService.updatePlan(currentPlan.id, planData);
+      } else {
+        await planService.createPlan(planData);
+      }
+      fetchPlans();
+      handleCloseModal();
+    } catch (err) {
+      setError("Failed to save plan.");
+      console.error(err);
+    }
+  };
+
+  const handleToggleStatus = async (plan) => {
+    const updatedPlan = { ...plan, status: plan.status === 'Active' ? 'Inactive' : 'Active' };
+    try {
+      await planService.updatePlan(plan.id, updatedPlan);
+      fetchPlans();
+    } catch (err) {
+      setError("Failed to update plan status.");
+      console.error(err);
+    }
+  };
+
+  const handleDeletePlan = async (planId) => {
+    if (window.confirm("Are you sure you want to delete this plan?")) {
+      try {
+        await planService.deletePlan(planId);
+        fetchPlans();
+      } catch (err) {
+        setError("Failed to delete plan.");
+        console.error(err);
+      }
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const isActive = status === 'Active';
+    return (
+      <span className={`${styles.statusBadge} ${isActive ? styles.statusActive : styles.statusInactive}`}>
+        {isActive ? 'Active' : 'Inactive'}
+      </span>
+    );
   };
 
   return (
-    <div className={`${styles.manageMembershipPlans} ${darkMode ? styles.darkMode : ''}`}>
-      <AdminNavbar 
-        darkMode={darkMode} 
-        toggleDarkMode={toggleDarkMode}
-        onMobileMenuToggle={toggleSidebar}
-      />
-      
-      <div className={styles.container}>
-        <AdminSidebar 
-          darkMode={darkMode} 
-          isOpen={sidebarOpen}
-          onClose={closeSidebar}
-        />
-        
-        <main className={styles.mainContent}>
-          <div className={styles.contentHeader}>
-            <h1 className={styles.pageTitle}>Manage Membership Plans</h1>
-          </div>
-
-          <div className={styles.tabs}>
-            <button 
-              className={`${styles.tab} ${activeTab === "membership" ? styles.active : ''}`}
-              onClick={() => setActiveTab("membership")}
-            >
-              Membership Plans
-            </button>
-            <button 
-              className={`${styles.tab} ${activeTab === "tokens" ? styles.active : ''}`}
-              onClick={() => setActiveTab("tokens")}
-            >
-              Token Plans
-            </button>
-          </div>
-
-          {activeTab === "membership" && (
-            <>
-              <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>Membership Plans Overview</h2>
-                <button 
-                  className={styles.createButton}
-                  onClick={() => setShowCreateModal(true)}
-                >
-                  + Create New Plan
-                </button>
-              </div>
-
-              <div className={styles.plansGrid}>
-                {membershipPlans.map((plan) => (
-                  <div key={plan.id} className={styles.planCard}>
-                    <div className={styles.planHeader}>
-                      <h3 className={styles.planName}>{plan.name}</h3>
-                      <span className={`${styles.statusBadge} ${getStatusClass(plan.status)}`}>
-                        {plan.status}
-                      </span>
-                    </div>
-                    
-                    <div className={styles.planPrice}>{plan.price}</div>
-                    
-                    <div className={styles.planFeatures}>
-                      {plan.features.map((feature, index) => (
-                        <div key={index} className={styles.feature}>
-                          <span className={styles.checkmark}>✓</span>
-                          <span>{feature}</span>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    <div className={styles.planActions}>
-                      <button 
-                        className={styles.editBtn}
-                        onClick={() => handleEditPlan(plan)}
-                      >
-                        ✏️ Edit
-                      </button>
-                      <button 
-                        className={styles.deleteBtn}
-                        onClick={() => handleDeletePlan(plan)}
-                      >
-                        🗑️ Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className={styles.transactionSection}>
-                <h2 className={styles.sectionTitle}>Transaction Overview</h2>
-                <h3 className={styles.subsectionTitle}>Recent Transactions</h3>
-                
-                <div className={styles.tableContainer}>
-                  <table className={styles.transactionsTable}>
-                    <thead>
-                      <tr>
-                        <th>Transaction ID</th>
-                        <th>User</th>
-                        <th>Plan</th>
-                        <th>Amount</th>
-                        <th>Status</th>
-                        <th>Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {getPaginatedTransactions().map((transaction) => (
-                        <tr key={transaction.id}>
-                          <td className={styles.transactionId}>{transaction.id}</td>
-                          <td className={styles.user}>{transaction.user}</td>
-                          <td className={styles.plan}>{transaction.plan}</td>
-                          <td className={styles.amount}>{transaction.amount}</td>
-                          <td>
-                            <span className={`${styles.statusBadge} ${getStatusClass(transaction.status)}`}>
-                              {transaction.status}
-                            </span>
-                          </td>
-                          <td className={styles.date}>{transaction.date}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {totalPages > 1 && (
-                  <div className={styles.pagination}>
-                    <button
-                      className={styles.paginationBtn}
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </button>
-                    
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <button
-                        key={page}
-                        className={`${styles.paginationBtn} ${currentPage === page ? styles.active : ''}`}
-                        onClick={() => handlePageChange(page)}
-                      >
-                        {page}
-                      </button>
-                    ))}
-                    
-                    <button
-                      className={styles.paginationBtn}
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className={styles.chartSection}>
-                <h3 className={styles.chartTitle}>Payment Distribution</h3>
-                <div className={styles.chartContainer}>
-                  <div className={styles.barChart}>
-                    <div className={styles.yAxis}>
-                      <span>₹2600</span>
-                      <span>₹1950</span>
-                      <span>₹1300</span>
-                      <span>₹650</span>
-                      <span>₹0</span>
-                    </div>
-                    <div className={styles.chartArea}>
-                      <div className={styles.chartBars}>
-                        <div className={styles.barGroup}>
-                          <div className={`${styles.bar} ${styles.bar1}`} style={{height: '80%'}}></div>
-                          <div className={`${styles.bar} ${styles.bar2}`} style={{height: '60%'}}></div>
-                          <div className={`${styles.bar} ${styles.bar3}`} style={{height: '40%'}}></div>
-                          <div className={`${styles.bar} ${styles.bar4}`} style={{height: '20%'}}></div>
-                        </div>
-                        <div className={styles.barGroup}>
-                          <div className={`${styles.bar} ${styles.bar1}`} style={{height: '90%'}}></div>
-                          <div className={`${styles.bar} ${styles.bar2}`} style={{height: '70%'}}></div>
-                          <div className={`${styles.bar} ${styles.bar3}`} style={{height: '50%'}}></div>
-                          <div className={`${styles.bar} ${styles.bar4}`} style={{height: '30%'}}></div>
-                        </div>
-                      </div>
-                      <div className={styles.xAxis}>
-                        <span>Pro Membership</span>
-                        <span>Enterprise</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className={styles.legend}>
-                    <div className={styles.legendItem}>
-                      <span className={`${styles.legendColor} ${styles.legend1}`}></span>
-                      <span>Q1</span>
-                    </div>
-                    <div className={styles.legendItem}>
-                      <span className={`${styles.legendColor} ${styles.legend2}`}></span>
-                      <span>Q2</span>
-                    </div>
-                    <div className={styles.legendItem}>
-                      <span className={`${styles.legendColor} ${styles.legend3}`}></span>
-                      <span>Q3</span>
-                    </div>
-                    <div className={styles.legendItem}>
-                      <span className={`${styles.legendColor} ${styles.legend4}`}></span>
-                      <span>Q4</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {activeTab === "tokens" && (
-            <div className={styles.tokenPlansSection}>
-              <h2 className={styles.sectionTitle}>Token Plans</h2>
-              <p>Token plans management will be implemented here.</p>
-            </div>
-          )}
-        </main>
+    <div className={`${styles.mainContent} ${theme === 'dark' ? styles.dark : ''}`}>
+      <div className={styles.contentHeader}>
+        <h1 className={styles.pageTitle}>Manage Membership Plans</h1>
+        <p className={styles.pageSubtitle}>Configure and manage subscription plans for users</p>
       </div>
 
-      {/* Create New Plan Modal */}
-      {showCreateModal && (
+      <div className={styles.filtersContainer}>
+        <div className={styles.planTypeFilter}>
+          <button onClick={() => setPlanType("CANDIDATE")} className={planType === 'CANDIDATE' ? styles.activeFilter : ''}>Candidate Plans</button>
+          <button onClick={() => setPlanType("RECRUITER")} className={planType === 'RECRUITER' ? styles.activeFilter : ''}>Recruiter Plans</button>
+        </div>
+        <button className={styles.addBtn} onClick={handleOpenAddModal}>
+          + Add New Plan
+        </button>
+      </div>
+
+      {isLoading && <p>Loading plans...</p>}
+      {error && <p className={styles.errorText}>{error}</p>}
+
+      {!isLoading && !error && (
+        <>
+          <div className={styles.plansGrid}>
+            {plans.map((plan) => (
+              <div key={plan.id} className={styles.planCard}>
+                <div className={styles.planHeader}>
+                  <h3 className={styles.planName}>{plan.name}</h3>
+                  <div className={styles.planPrice}>
+                    <span className={styles.priceAmount}>₹{plan.price}</span>
+                    <span className={styles.priceDuration}>/{plan.duration}</span>
+                  </div>
+                </div>
+                
+                <div className={styles.planFeatures}>
+                  <h4>Features:</h4>
+                  <ul>
+                    {Array.isArray(plan.features) && plan.features.map((feature, index) => (
+                      <li key={index}>{feature}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className={styles.planStats}>
+                  <div className={styles.statItem}>
+                    <span className={styles.statLabel}>Users:</span>
+                    <span className={styles.statValue}>{plan.userCount || 0}</span>
+                  </div>
+                  <div className={styles.statItem}>
+                    <span className={styles.statLabel}>Status:</span>
+                    {getStatusBadge(plan.status)}
+                  </div>
+                </div>
+
+                <div className={styles.planActions}>
+                  <button className={styles.actionBtn} title="Edit Plan" onClick={() => handleOpenEditModal(plan)}>✏️</button>
+                  <button className={styles.actionBtn} title="Toggle Status" onClick={() => handleToggleStatus(plan)}>🔄</button>
+                  <button className={`${styles.actionBtn} ${styles.deleteBtn}`} title="Delete Plan" onClick={() => handleDeletePlan(plan.id)}>🗑️</button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {plans.length === 0 && (
+            <div className={styles.emptyState}>
+              <div className={styles.emptyIcon}>💳</div>
+              <h3>No membership plans for {planType.toLowerCase()}s</h3>
+              <p>Create the first membership plan to get started.</p>
+            </div>
+          )}
+        </>
+      )}
+
+      {showModal && (
         <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>Create New Plan</h2>
-              <button 
-                className={styles.closeBtn}
-                onClick={() => setShowCreateModal(false)}
-              >
-                ×
-              </button>
-            </div>
-            <div className={styles.modalBody}>
-              <p>Create new plan functionality will be implemented here.</p>
-            </div>
-            <div className={styles.modalFooter}>
-              <button 
-                className={styles.cancelBtn}
-                onClick={() => setShowCreateModal(false)}
-              >
-                Cancel
-              </button>
-              <button className={styles.saveBtn}>Create Plan</button>
-            </div>
+          <div className={styles.modalContent}>
+            <h2>{isEditing ? "Edit" : "Add"} Membership Plan</h2>
+            <form onSubmit={handleSubmit}>
+              <div className={styles.formField}>
+                <label>Plan Name</label>
+                <input type="text" name="name" value={currentPlan.name} onChange={handleInputChange} required />
+              </div>
+              <div className={styles.formField}>
+                <label>Price (₹)</label>
+                <input type="number" name="price" value={currentPlan.price} onChange={handleInputChange} required min="0" />
+              </div>
+              <div className={styles.formField}>
+                <label>Duration</label>
+                <select name="duration" value={currentPlan.duration} onChange={handleInputChange}>
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </div>
+              <div className={styles.formField}>
+                <label>Features (one per line)</label>
+                <textarea name="features" rows="5" value={Array.isArray(currentPlan.features) ? currentPlan.features.join('\n') : ''} onChange={handleFeaturesChange}></textarea>
+              </div>
+              <div className={styles.formField}>
+                <label>Status</label>
+                <select name="status" value={currentPlan.status} onChange={handleInputChange}>
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+              <div className={styles.modalActions}>
+                <button type="button" className={styles.cancelBtn} onClick={handleCloseModal}>Cancel</button>
+                <button type="submit" className={styles.submitBtn}>{isEditing ? "Save Changes" : "Create Plan"}</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -409,4 +237,3 @@ const ManageMembershipPlans = () => {
 };
 
 export default ManageMembershipPlans;
-

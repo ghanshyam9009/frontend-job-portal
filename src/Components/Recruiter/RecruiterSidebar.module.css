@@ -1,42 +1,36 @@
-/* Recruiter Sidebar Styles */
 .sidebar {
-  width: 280px;
-  background: white;
-  border-right: 1px solid #e2e8f0;
+  position: fixed;
+  top: 0;
+  left: -250px;
+  width: 250px;
+  height: 100%;
+  background: var(--card-background);
+  border-right: var(--card-border);
+  transition: left 0.3s ease;
+  z-index: 1100;
   display: flex;
   flex-direction: column;
-  position: fixed;
-  height: calc(100vh - 64px);
-  top: 64px;
-  overflow-y: auto;
-  z-index: 100;
+  color: var(--text-color);
 }
 
-.logoutBtn {
-  width: 90%;
-  margin: 18px auto 0 auto;
-  display: block;
-  background: #ef4444;
-  color: #fff;
+.sidebar.open {
+  left: 0;
+}
+
+.closeButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
   border: none;
-  border-radius: 8px;
-  padding: 10px 0;
-  font-weight: 600;
+  font-size: 24px;
   cursor: pointer;
-  transition: background 0.2s;
-}
-.logoutBtn:hover {
-  background: #b91c1c;
-}
-
-.darkMode {
-  background: #2d3748;
-  border-right-color: #4a5568;
+  color: var(--text-color);
 }
 
 .nav {
-  flex: 1;
-  padding: 24px 0;
+  flex-grow: 1;
+  padding-top: 60px;
 }
 
 .navList {
@@ -53,75 +47,57 @@
   display: flex;
   align-items: center;
   padding: 12px 24px;
-  color: #6b7280;
-  text-decoration: none;
-  border: none;
-  background: none;
   width: 100%;
-  cursor: pointer;
-  transition: all 0.2s;
-  position: relative;
+  background: none;
+  border: none;
   text-align: left;
+  cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
+  color: var(--text-color);
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
 }
 
 .navLink:hover {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--background-color);
+  color: #1e40af;
 }
 
 .navLink.active {
-  background: #ecfdf5;
-  color: #059669;
-  border-right: 3px solid #10b981;
-}
-
-.navLink.active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: #10b981;
+  background: var(--background-color);
+  color: #1e40af;
+  font-weight: 600;
+  border-left-color: #3b82f6;
 }
 
 .navIcon {
-  margin-right: 12px;
-  font-size: 16px;
+  margin-right: 16px;
+  font-size: 18px;
   width: 20px;
   text-align: center;
 }
 
 .navLabel {
-  flex: 1;
+  flex-grow: 1;
 }
 
 .notificationCount {
   background: #ef4444;
   color: white;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 11px;
   font-weight: 600;
-  margin-left: 8px;
 }
 
 .userCard {
-  padding: 20px 24px;
-  border-top: 1px solid #e2e8f0;
-  background: #f9fafb;
+  padding: 24px;
+  border-top: var(--card-border);
 }
 
 .userInfo {
   display: flex;
   align-items: center;
-  gap: 12px;
 }
 
 .userAvatar {
@@ -134,110 +110,81 @@
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 16px;
+  margin-right: 12px;
 }
 
 .userDetails {
-  flex: 1;
-  min-width: 0;
+  line-height: 1.4;
 }
 
 .userName {
   font-weight: 600;
-  color: #111827;
-  margin-bottom: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--text-color);
 }
 
 .userEmail {
   font-size: 12px;
-  color: #6b7280;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--text-color);
 }
 
-.footer {
-  padding: 16px 24px;
-  text-align: center;
+/* Mobile overlay for sidebar */
+.mobileOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1099;
+}
+
+/* Dark Theme */
+.dark {
+  background: #1f2937;
+  border-right: 1px solid #374151;
+}
+
+.dark .closeButton {
   color: #9ca3af;
-  font-size: 12px;
-  border-top: 1px solid #e2e8f0;
-  background: #f9fafb;
 }
 
-/* Dark mode styles */
-.darkMode .navLink {
-  color: #a0aec0;
+.dark .navLink {
+  color: #d1d5db;
 }
 
-.darkMode .navLink:hover {
-  background: #4a5568;
-  color: #e2e8f0;
+.dark .navLink:hover {
+  background: #374151;
+  color: #ffffff;
 }
 
-.darkMode .navLink.active {
-  background: #064e3b;
-  color: #6ee7b7;
+.dark .navLink.active {
+  background: #374151;
+  color: #ffffff;
+  border-left-color: #3b82f6;
 }
 
-.darkMode .userCard {
-  background: #4a5568;
-  border-top-color: #4a5568;
+.dark .userCard {
+  border-top: 1px solid #374151;
 }
 
-.darkMode .userName {
-  color: #e2e8f0;
+.dark .userName {
+  color: #ffffff;
 }
 
-.darkMode .userEmail {
-  color: #a0aec0;
+.dark .userEmail {
+  color: #9ca3af;
 }
 
-.darkMode .footer {
-  background: #4a5568;
-  border-top-color: #4a5568;
-  color: #a0aec0;
-}
 
-/* Responsive */
-@media (max-width: 768px) {
+/* Desktop: show sidebar always */
+@media (min-width: 769px) {
   .sidebar {
-    width: 240px;
+    left: 0;
   }
-  
-  .navLink {
-    padding: 10px 20px;
-    font-size: 13px;
+  .mobileOverlay {
+    display: none;
   }
-  
-  .navIcon {
-    margin-right: 10px;
-    font-size: 14px;
-  }
-  
-  .userCard {
-    padding: 16px 20px;
-  }
-  
-  .footer {
-    padding: 12px 20px;
-  }
-}
-
-@media (max-width: 640px) {
-  .sidebar {
-    width: 100%;
-    position: fixed;
-    height: 100vh;
-    top: 0;
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
-  }
-  
-  .sidebar.open {
-    transform: translateX(0);
+  .closeButton {
+    display: none;
   }
 }
