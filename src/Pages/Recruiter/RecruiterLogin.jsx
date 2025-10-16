@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext"; // Import useTheme
+import { CheckCircle, Clock, XCircle } from "lucide-react";
 import styles from "../../Styles/Auth.module.css";
 import HomeNav from "../../Components/HomeNav";
 import logo from "/favicon-icon.png";
@@ -14,6 +15,9 @@ const RecruiterLogin = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [approvalStatus, setApprovalStatus] = useState(""); // "pending" or "rejected"
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -46,9 +50,11 @@ const RecruiterLogin = () => {
         } else {
           const errorMessage = result.error?.error || result.error?.response?.data?.error || result.error?.message || '';
           if (errorMessage.includes('Recruiter not approved')) {
-            navigate('/recruiter/dashboard', { state: { status: 'pending_approval' } });
+            setApprovalStatus('pending');
+            setShowApprovalModal(true);
           } else if (errorMessage.includes('Recruiter rejected')) {
-            setError("Your registration request has been rejected by the admin.");
+            setApprovalStatus('rejected');
+            setShowApprovalModal(true);
           } else {
             setError("Login failed. Please check your credentials.");
           }
@@ -79,9 +85,8 @@ const RecruiterLogin = () => {
           description: "", // Not in form, but required by API
           role: 'recruiter'
         });
-        setSuccess("Registration request sent. Please wait for admin approval to log in.");
+        setShowModal(true);
         setError("");
-        setIsLogin(true); // Switch to login form
       } catch (error) {
         console.error("Registration failed:", error);
         setError("Registration failed. Please try again.");
@@ -282,6 +287,91 @@ const RecruiterLogin = () => {
           </div>
         </div>
       </div>
+
+      {/* Success Modal */}
+      {showModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <CheckCircle className={styles.modalIcon} />
+              <h2>Registration Successful!</h2>
+            </div>
+            <div className={styles.modalBody}>
+              <p>Your registration request has been sent successfully!</p>
+              <p>Please wait for admin approval before you can log in to your account.</p>
+              <p>You will receive a notification once your account is approved.</p>
+            </div>
+            <div className={styles.modalActions}>
+              <button
+                className={styles.modalBtn}
+                onClick={() => {
+                  setShowModal(false);
+                  setIsLogin(true);
+                  // Clear form data
+                  setFormData({
+                    email: "",
+                    password: "",
+                    confirmPassword: "",
+                    companyName: "",
+                    contactPerson: "",
+                    phone: "",
+                    companySize: ""
+                  });
+                }}
+              >
+                Continue to Login
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approval Status Modal */}
+      {showApprovalModal && (
+        <div className={styles.modalOverlay}>
+          <div className={`${styles.modalContent} ${approvalStatus === 'pending' ? styles.approvalModal : styles.rejectedModal}`}>
+            <div className={styles.modalHeader}>
+              {approvalStatus === 'pending' ? (
+                <Clock className={styles.modalIcon} />
+              ) : (
+                <XCircle className={styles.modalIcon} />
+              )}
+              <h2>
+                {approvalStatus === 'pending'
+                  ? 'Application Under Review'
+                  : 'Application Rejected'
+                }
+              </h2>
+            </div>
+            <div className={styles.modalBody}>
+              {approvalStatus === 'pending' ? (
+                <>
+                  <p>Your application is waiting for approval.</p>
+                  <p>Our admin team is currently reviewing your registration request.</p>
+                  <p>You will be able to log in once your application is approved.</p>
+                </>
+              ) : (
+                <>
+                  <p>Your registration request has been rejected by the admin.</p>
+                  <p>Please contact our support team for more information about the rejection reason.</p>
+                  <p>You can also try registering again with corrected information.</p>
+                </>
+              )}
+            </div>
+            <div className={styles.modalActions}>
+              <button
+                className={styles.modalBtn}
+                onClick={() => {
+                  setShowApprovalModal(false);
+                  setApprovalStatus("");
+                }}
+              >
+                I Understand
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

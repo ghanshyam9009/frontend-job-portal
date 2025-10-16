@@ -78,7 +78,9 @@ export const API_ENDPOINTS = {
     getAll: '/admin',
     getById: (id) => `/admin/${id}`,
     update: (id) => `/admin/${id}`,
-    delete: (id) => `/admin/${id}`
+    delete: (id) => `/admin/${id}`,
+    getAllRecruiters: '/admin/get-all-recruiter',
+    approveRecruiter: '/admin/approved-recruiter'
   },
 
   // Users

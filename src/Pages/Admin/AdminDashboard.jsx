@@ -10,6 +10,7 @@ import { applicationService } from "../../services/applicationService";
 import { studentService } from "../../services/studentService";
 import { employerService } from "../../services/employerService";
 import { showError } from "../../utils/errorHandler";
+import { Users, Briefcase, FileText, Mail, CreditCard, DollarSign } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const AdminDashboard = () => {
@@ -194,7 +195,7 @@ const AdminDashboard = () => {
           {/* KPI Cards */}
           <div className={styles.kpiGrid}>
             <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon}>👥</div>
+              <Users className={styles.kpiIcon} />
               <div className={styles.kpiContent}>
                 <h3 className={styles.kpiValue}>{dashboardData.stats.totalCandidates.toLocaleString()}</h3>
                 <p className={styles.kpiLabel}>Total Candidates</p>
@@ -203,7 +204,7 @@ const AdminDashboard = () => {
             </div>
 
             <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon}>💼</div>
+              <Briefcase className={styles.kpiIcon} />
               <div className={styles.kpiContent}>
                 <h3 className={styles.kpiValue}>{dashboardData.stats.totalEmployers.toLocaleString()}</h3>
                 <p className={styles.kpiLabel}>Employers</p>
@@ -212,7 +213,7 @@ const AdminDashboard = () => {
             </div>
 
             <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon}>📄</div>
+              <FileText className={styles.kpiIcon} />
               <div className={styles.kpiContent}>
                 <h3 className={styles.kpiValue}>{dashboardData.stats.totalJobs.toLocaleString()}</h3>
                 <p className={styles.kpiLabel}>Jobs Posted</p>
@@ -221,7 +222,7 @@ const AdminDashboard = () => {
             </div>
 
             <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon}>✉️</div>
+              <Mail className={styles.kpiIcon} />
               <div className={styles.kpiContent}>
                 <h3 className={styles.kpiValue}>{dashboardData.stats.totalApplications.toLocaleString()}</h3>
                 <p className={styles.kpiLabel}>Applications</p>
@@ -230,7 +231,7 @@ const AdminDashboard = () => {
             </div>
 
             <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon}>🎫</div>
+              <CreditCard className={styles.kpiIcon} />
               <div className={styles.kpiContent}>
                 <h3 className={styles.kpiValue}>{dashboardData.stats.totalTokens.toLocaleString()}</h3>
                 <p className={styles.kpiLabel}>Tokens Sold</p>
@@ -239,7 +240,7 @@ const AdminDashboard = () => {
             </div>
 
             <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon}>💰</div>
+              <DollarSign className={styles.kpiIcon} />
               <div className={styles.kpiContent}>
                 <h3 className={styles.kpiValue}>₹{dashboardData.stats.revenue.toLocaleString()}</h3>
                 <p className={styles.kpiLabel}>Revenue</p>

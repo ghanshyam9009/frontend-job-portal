@@ -96,6 +96,27 @@ export const adminService = {
     }
   },
 
+  // Recruiter Management Functions
+  async getAllRecruiters() {
+    try {
+      const response = await adminApiClient.get(API_ENDPOINTS.admin.getAllRecruiters);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async approveRecruiter(recruiterId) {
+    try {
+      const response = await adminApiClient.post(API_ENDPOINTS.admin.approveRecruiter, {
+        employer_id: recruiterId
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Government Jobs Management Functions
   async createGovernmentJob(jobData) {
     try {
