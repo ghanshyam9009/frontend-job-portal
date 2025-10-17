@@ -20,8 +20,7 @@
 
 .navContainer {
   max-width: 1630px;
-  margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0 0.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -45,10 +44,10 @@
 .navLinks {
   display: flex;
   list-style: none;
-  gap: 1.5rem;
   margin: 0;
   padding: 0;
   align-items: center;
+  gap: 5px;
 
 }
 

@@ -28,9 +28,6 @@
   color: #6b7280;
   transition: all 0.3s ease;
 }
-span{
-    font-family: 'Open Sans';
-}
 
 .themeToggle:hover {
   background: #f9fafb;
