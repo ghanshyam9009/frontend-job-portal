@@ -148,44 +148,44 @@
 
 /* Desktop: show sidebar always */
 /* Dark Theme */
-.dark .sidebar {
+:global(.dark) .sidebar {
   background: #1f2937;
   border-right-color: #374151;
   color: #d1d5db;
 }
 
-.dark .closeButton {
+:global(.dark) .closeButton {
   color: #9ca3af;
 }
 
-.dark .navLink {
+:global(.dark) .navLink {
   color: #d1d5db;
 }
 
-.dark .navLink:hover {
+:global(.dark) .navLink:hover {
   background: #374151;
   color: #ffffff;
 }
 
-.dark .navLink.active {
+:global(.dark) .navLink.active {
   background: #374151;
   color: #ffffff;
   border-left-color: #60a5fa;
 }
 
-.dark .userCard {
+:global(.dark) .userCard {
   border-top-color: #374151;
 }
 
-.dark .userName {
+:global(.dark) .userName {
   color: #ffffff;
 }
 
-.dark .userEmail {
+:global(.dark) .userEmail {
   color: #9ca3af;
 }
 
-.dark .footer {
+:global(.dark) .footer {
   color: #9ca3af;
   border-top-color: #374151;
 }

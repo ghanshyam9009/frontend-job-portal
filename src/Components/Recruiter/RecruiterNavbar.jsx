@@ -30,14 +30,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
           <img src={logo} alt="JobPortal Logo" />
           <span>Bigsources Manpower Solution</span>
         </div>
-        <div className={styles.searchContainer}>
-          <input
-            type="text"
-            placeholder="Search candidates, skills..."
-            className={styles.searchInput}
-          />
-          <span className={styles.searchIcon}>🔍</span>
-        </div>
+      
       </div>
       
       <div className={styles.headerRight}>

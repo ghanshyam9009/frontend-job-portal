@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { jobService } from "../../services/jobService";
+import { recruiterExternalService } from "../../services";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 
-const PostJob = () => {
+const EditJob = () => {
   const navigate = useNavigate();
+  const { jobId } = useParams();
   const { user } = useAuth();
   const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
+  const [loadingJob, setLoadingJob] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -38,6 +41,57 @@ const PostJob = () => {
   });
 
   const [newSkill, setNewSkill] = useState("");
+
+  // Fetch job data on component mount
+  useEffect(() => {
+    const fetchJobData = async () => {
+      try {
+        setLoadingJob(true);
+        setError(null);
+        
+        // Get job data from the recruiter service
+        const jobsData = await recruiterExternalService.getAllPostedJobs(user?.employer_id || user?.id);
+        const job = jobsData?.jobs?.find(j => j.job_id === jobId);
+        
+        if (job) {
+          setJobData({
+            job_title: job.job_title || "",
+            company_name: job.company_name || user?.company_name || "",
+            location: job.location || "",
+            employment_type: job.employment_type || "Full-Time",
+            work_mode: job.work_mode || "On-site",
+            salary_range: {
+              min: job.salary_range?.min || "",
+              max: job.salary_range?.max || "",
+              currency: job.salary_range?.currency || "INR",
+            },
+            experience_required: {
+              min_years: job.experience_required?.min_years || "",
+              max_years: job.experience_required?.max_years || "",
+            },
+            skills_required: job.skills_required || [],
+            description: job.description || "",
+            responsibilities: Array.isArray(job.responsibilities) ? job.responsibilities.join("\n") : job.responsibilities || "",
+            qualifications: Array.isArray(job.qualifications) ? job.qualifications.join("\n") : job.qualifications || "",
+            application_deadline: job.application_deadline || "",
+            contact_email: job.contact_email || user?.email || "",
+            job_status: job.job_status || "open",
+          });
+        } else {
+          setError("Job not found");
+        }
+      } catch (err) {
+        setError("Failed to load job data");
+        console.error(err);
+      } finally {
+        setLoadingJob(false);
+      }
+    };
+
+    if (jobId) {
+      fetchJobData();
+    }
+  }, [jobId, user]);
 
   const handleInputChange = (field, value) => {
     const keys = field.split(".");
@@ -79,6 +133,7 @@ const PostJob = () => {
     setLoading(true);
     setError(null);
     setSuccess(false);
+    
     try {
       const jobPayload = {
         ...jobData,
@@ -86,47 +141,33 @@ const PostJob = () => {
         responsibilities: jobData.responsibilities.split("\n"),
         qualifications: jobData.qualifications.split("\n"),
       };
-      await jobService.createJob(jobPayload);
-      setShowSuccessModal(true);
-      // Clear form data after successful submission
-      setJobData({
-        job_title: "",
-        company_name: user?.company_name || "",
-        location: "",
-        employment_type: "Full-Time",
-        work_mode: "On-site",
-        salary_range: {
-          min: "",
-          max: "",
-          currency: "INR",
+
+      // Update job using the provided API endpoint
+      const response = await fetch(`http://api.bigsources.in/api/job/Updatejobs/${jobId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        experience_required: {
-          min_years: "",
-          max_years: "",
-        },
-        skills_required: [],
-        description: "",
-        responsibilities: "",
-        qualifications: "",
-        application_deadline: "",
-        contact_email: user?.email || "",
-        job_status: "open",
+        body: JSON.stringify(jobPayload),
       });
+
+      if (response.ok) {
+        setShowSuccessModal(true);
+      } else {
+        throw new Error('Failed to update job');
+      }
     } catch (err) {
-      setError("Failed to post job. Please try again.");
+      setError("Failed to update job. Please try again.");
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSaveDraft = () => {
-    alert("Job saved as draft!");
-  };
-
   const handleCloseSuccessModal = () => {
     setShowSuccessModal(false);
     setSuccess(false);
+    navigate('/recruiter/manage-jobs');
   };
 
   // Handle escape key press to close modal
@@ -153,12 +194,45 @@ const PostJob = () => {
     }
   };
 
+  if (loadingJob) {
+    return (
+      <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
+        <main className={styles.main}>
+          <div className={styles.loadingContainer}>
+            <h2>Loading job data...</h2>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (error && !jobData.job_title) {
+    return (
+      <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
+        <main className={styles.main}>
+          <div className={styles.errorContainer}>
+            <h2>Error: {error}</h2>
+            <button onClick={() => navigate('/recruiter/manage-jobs')}>
+              Back to Manage Jobs
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
       <main className={styles.main}>
         <section className={styles.jobPostingSection}>
           <div className={styles.sectionHeader}>
-            <h1>Post New Job</h1>
+            <h1>Edit Job Posting</h1>
+            <button 
+              className={styles.backBtn}
+              onClick={() => navigate('/recruiter/manage-jobs')}
+            >
+              ← Back to Manage Jobs
+            </button>
           </div>
           
           <form onSubmit={handleSubmit} className={styles.jobForm}>
@@ -287,8 +361,8 @@ const PostJob = () => {
                   <label>Application Deadline</label>
                   <input
                     type="date"
-                    value={jobData.applicationDeadline}
-                    onChange={(e) => handleInputChange('applicationDeadline', e.target.value)}
+                    value={jobData.application_deadline}
+                    onChange={(e) => handleInputChange('application_deadline', e.target.value)}
                   />
                 </div>
               </div>
@@ -376,11 +450,11 @@ const PostJob = () => {
             </div>
 
             <div className={styles.formActions}>
-              <button type="button" onClick={handleSaveDraft} className={styles.draftBtn}>
-                Save as Draft
+              <button type="button" onClick={() => navigate('/recruiter/manage-jobs')} className={styles.draftBtn}>
+                Cancel
               </button>
               <button type="submit" className={styles.submitBtn} disabled={loading}>
-                {loading ? "Posting..." : "Post Job"}
+                {loading ? "Updating..." : "Update Job"}
               </button>
             </div>
             {error && <p className={styles.errorText}>{error}</p>}
@@ -404,7 +478,7 @@ const PostJob = () => {
             <div className={styles.modalBody}>
               <div className={styles.successIcon}>✓</div>
               <p className={styles.successMessage}>
-                Job posted successfully! It will be reviewed by an admin.
+                Job updated successfully!
               </p>
             </div>
             <div className={styles.modalFooter}>
@@ -422,4 +496,4 @@ const PostJob = () => {
   );
 };
 
-export default PostJob;
+export default EditJob;

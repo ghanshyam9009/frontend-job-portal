@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
@@ -11,6 +11,28 @@ const CandidateNavbar = ({ toggleSidebar }) => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState(theme);
+
+  // Listen for theme changes and force re-render
+  useEffect(() => {
+    setCurrentTheme(theme);
+  }, [theme]);
+
+  useEffect(() => {
+    const handleThemeChange = (event) => {
+      setCurrentTheme(event.detail);
+    };
+
+    window.addEventListener('themeChanged', handleThemeChange);
+    
+    // Also check localStorage on mount
+    const storedTheme = localStorage.getItem('theme') || 'light';
+    setCurrentTheme(storedTheme);
+
+    return () => {
+      window.removeEventListener('themeChanged', handleThemeChange);
+    };
+  }, []);
 
   const handleProfileClick = () => {
     setShowProfileDropdown(!showProfileDropdown);
@@ -21,8 +43,15 @@ const CandidateNavbar = ({ toggleSidebar }) => {
     navigate('/');
   };
 
+  const handleThemeToggle = () => {
+    toggleTheme();
+    // Force immediate update
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    setCurrentTheme(newTheme);
+  };
+
   return (
-    <header className={`${styles.header} ${theme === 'dark' ? styles.dark : ''}`}>
+    <header className={`${styles.header} ${currentTheme === 'dark' ? styles.dark : ''}`}>
       <div className={styles.headerLeft}>
         <button className={styles.menuButton} onClick={toggleSidebar}>
           ☰
@@ -31,14 +60,6 @@ const CandidateNavbar = ({ toggleSidebar }) => {
           <img src={logo} alt="JobPortal Logo" />
           <span>Bigsources Manpower Solution</span>
         </div>
-        <div className={styles.searchContainer}>
-          <input 
-            type="text" 
-            placeholder="Search jobs, companies..." 
-            className={styles.searchInput}
-          />
-          <span className={styles.searchIcon}>🔍</span>
-        </div>
       </div>
       
       <div className={styles.headerRight}>
@@ -46,8 +67,8 @@ const CandidateNavbar = ({ toggleSidebar }) => {
           🔔
           <span className={styles.notificationBadge}>3</span>
         </button>
-        <button className={styles.themeToggle} onClick={toggleTheme}>
-          {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+        <button className={styles.themeToggle} onClick={handleThemeToggle}>
+          {currentTheme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
         </button>
         <div className={styles.profileSection}>
           <button className={styles.profilePicture} onClick={handleProfileClick}>

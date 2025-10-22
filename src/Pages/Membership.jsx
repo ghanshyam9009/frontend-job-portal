@@ -176,10 +176,9 @@ const Membership = () => {
                 <h3 className={styles.planTitle}>{plan.name}</h3>
                 <p className={styles.planDescription}>{plan.description}</p>
                 <div className={styles.priceSection}>
-                  {plan.originalPrice && <p className={styles.originalPrice}>Original: <del>{plan.originalPrice}</del></p>}
 
-                  <p className={styles.offerPrice}> Price:  ₹200{plan.offerPrice}</p>
-                  {plan.coupon && <p className={styles.coupon}>Coupon: {plan.coupon}</p>}
+                  <p className={styles.price}> Price: {plan.price}</p>
+                
                 </div>
                 <p className={styles.validity}>Validity: {plan.validity}</p>
                 <div className={styles.featuresSection}>

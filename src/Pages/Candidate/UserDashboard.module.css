@@ -1338,346 +1338,401 @@
 }
 
 /* Dark Theme */
-.dark .dashboardContainer {
+:global(.dark) .dashboardContainer {
   background: #111827;
   color: #d1d5db;
 }
 
-.dark .kpiCard,
-.dark .quickActions,
-.dark .recentActivity,
-.dark .jobCard,
-.dark .emptyState,
-.dark .profileContainer,
-.dark .settingsContainer,
-.dark .planCard,
-.dark .benefitCard,
-.dark .faqItem,
-.dark .messagesContainer {
+:global(.dark) .kpiCard,
+:global(.dark) .quickActions,
+:global(.dark) .recentActivity,
+:global(.dark) .jobCard,
+:global(.dark) .emptyState,
+:global(.dark) .profileContainer,
+:global(.dark) .settingsContainer,
+:global(.dark) .planCard,
+:global(.dark) .benefitCard,
+:global(.dark) .faqItem,
+:global(.dark) .messagesContainer {
   background: #1f2937;
   border-color: #374151;
 }
 
-.dark .kpiHeader,
-.dark .kpiFoot,
-.dark .meta,
-.dark .jobLocation,
-.dark .emptyState p,
-.dark .profileHeader p,
-.dark .tab,
-.dark .formGroup label,
-.dark .uploadLabel span,
-.dark .settingsHeader p,
-.dark .settingsTab,
-.dark .notificationInfo p,
-.dark .privacyInfo p,
-.dark .preferenceInfo p,
-.dark .membershipHeader p,
-.dark .period,
-.dark .planDescription,
-.dark .limitation,
-.dark .benefitCard p,
-.dark .faqItem p,
-.dark .jobTitle,
-.dark .timestamp,
-.dark .employerInfo span,
-.dark .noConversation {
+:global(.dark) .kpiHeader,
+:global(.dark) .kpiFoot,
+:global(.dark) .meta,
+:global(.dark) .jobLocation,
+:global(.dark) .emptyState p,
+:global(.dark) .profileHeader p,
+:global(.dark) .tab,
+:global(.dark) .formGroup label,
+:global(.dark) .uploadLabel span,
+:global(.dark) .settingsHeader p,
+:global(.dark) .settingsTab,
+:global(.dark) .notificationInfo p,
+:global(.dark) .privacyInfo p,
+:global(.dark) .preferenceInfo p,
+:global(.dark) .membershipHeader p,
+:global(.dark) .period,
+:global(.dark) .planDescription,
+:global(.dark) .limitation,
+:global(.dark) .benefitCard p,
+:global(.dark) .faqItem p,
+:global(.dark) .jobTitle,
+:global(.dark) .timestamp,
+:global(.dark) .employerInfo span,
+:global(.dark) .noConversation {
   color: #9ca3af;
 }
 
-.dark .kpiValue,
-.dark .jobsHeader h2,
-.dark .jobTitle,
-.dark .jobCompany,
-.dark .emptyState h3,
-.dark .profileHeader h2,
-.dark .formSection h3,
-.dark .cardHeader h4,
-.dark .uploadLabel p,
-.dark .settingsHeader h2,
-.dark .settingsPanel h3,
-.dark .notificationInfo h4,
-.dark .privacyInfo h4,
-.dark .preferenceInfo h4,
-.dark .membershipHeader h2,
-.dark .planHeader .planName,
-.dark .price,
-.dark .planFeatures h4,
-.dark .feature,
-.dark .membershipBenefits h3,
-.dark .benefitCard h4,
-.dark .faqSection h3,
-.dark .faqItem h4,
-.dark .messagesHeader h2,
-.dark .conversationsList h3,
-.dark .companyInfo h4,
-.dark .lastMessage p,
-.dark .employerInfo h3,
-.dark .noConversation h3 {
+:global(.dark) .kpiValue,
+:global(.dark) .jobsHeader h2,
+:global(.dark) .jobTitle,
+:global(.dark) .jobCompany,
+:global(.dark) .emptyState h3,
+:global(.dark) .profileHeader h2,
+:global(.dark) .formSection h3,
+:global(.dark) .cardHeader h4,
+:global(.dark) .uploadLabel p,
+:global(.dark) .settingsHeader h2,
+:global(.dark) .settingsPanel h3,
+:global(.dark) .notificationInfo h4,
+:global(.dark) .privacyInfo h4,
+:global(.dark) .preferenceInfo h4,
+:global(.dark) .membershipHeader h2,
+:global(.dark) .planHeader .planName,
+:global(.dark) .price,
+:global(.dark) .planFeatures h4,
+:global(.dark) .feature,
+:global(.dark) .membershipBenefits h3,
+:global(.dark) .benefitCard h4,
+:global(.dark) .faqSection h3,
+:global(.dark) .faqItem h4,
+:global(.dark) .messagesHeader h2,
+:global(.dark) .conversationsList h3,
+:global(.dark) .companyInfo h4,
+:global(.dark) .lastMessage p,
+:global(.dark) .employerInfo h3,
+:global(.dark) .noConversation h3 {
   color: #ffffff;
 }
 
-.dark .qaItem {
+:global(.dark) .qaItem {
   background: #1f2937;
   border-color: #374151;
 }
 
-.dark .qaItem:hover {
+:global(.dark) .qaItem:hover {
   background: #111827;
 }
 
-.dark .activityList li {
+:global(.dark) .activityList li {
   border-color: #374151;
 }
 
-.dark .jobCard:hover {
+:global(.dark) .jobCard:hover {
   border-color: #4b5563;
 }
 
-.dark .jobIcon {
+:global(.dark) .jobIcon {
   background: #374151;
 }
 
-.dark .jobType {
+:global(.dark) .jobType {
   background: #374151;
   color: #9ca3af;
 }
 
-.dark .viewBtn {
+:global(.dark) .viewBtn {
   background: #3b82f6;
 }
 
-.dark .viewBtn:hover {
+:global(.dark) .viewBtn:hover {
   background: #2563eb;
 }
 
-.dark .activeTab {
+:global(.dark) .activeTab {
   background: var(--card-background);
   color: #3b82f6;
   border-bottom: 2px solid #3b82f6;
 }
 
-.dark .tab:hover {
+:global(.dark) .tab:hover {
   background: var(--background-color);
 }
 
-.dark .experienceCard,
-.dark .educationCard {
+:global(.dark) .experienceCard,
+:global(.dark) .educationCard {
   background: var(--background-color);
 }
 
-.dark .skillTag {
+:global(.dark) .skillTag {
   background: #374151;
   color: #9ca3af;
 }
 
-.dark .removeSkillBtn {
+:global(.dark) .removeSkillBtn {
   color: #9ca3af;
 }
 
-.dark .uploadArea {
+:global(.dark) .uploadArea {
   border-color: #4b5563;
 }
 
-.dark .uploadArea:hover {
+:global(.dark) .uploadArea:hover {
   border-color: #3b82f6;
 }
 
-.dark .uploadedFile {
+:global(.dark) .uploadedFile {
   background: #374151;
 }
 
-.dark .fileName {
+:global(.dark) .fileName {
   color: #9ca3af;
 }
 
-.dark .saveSection {
+:global(.dark) .saveSection {
   background: var(--background-color);
 }
 
-.dark .settingsSidebar {
+:global(.dark) .settingsSidebar {
   background: var(--background-color);
 }
 
-.dark .settingsTab:hover {
+:global(.dark) .settingsTab:hover {
   background: var(--background-color);
 }
 
-.dark .settingsTab.activeTab {
+:global(.dark) .settingsTab.activeTab {
   background: var(--card-background);
 }
 
-.dark .notificationItem,
-.dark .privacyItem,
-.dark .preferenceItem {
+:global(.dark) .notificationItem,
+:global(.dark) .privacyItem,
+:global(.dark) .preferenceItem {
   background: var(--background-color);
 }
 
-.dark .toggleSlider {
+:global(.dark) .toggleSlider {
   background-color: #4b5563;
 }
 
-.dark .toggle input:checked + .toggleSlider {
+:global(.dark) .toggle input:checked + .toggleSlider {
   background-color: #3b82f6;
 }
 
-.dark .currentPlanCard {
+:global(.dark) .currentPlanCard {
   background: #1e3a8a;
   border-color: #3b82f6;
 }
 
-.dark .currentPlanCard h3,
-.dark .planName,
-.dark .interviewLabel,
-.dark .interviewDate {
+:global(.dark) .currentPlanCard h3,
+:global(.dark) .planName,
+:global(.dark) .interviewLabel,
+:global(.dark) .interviewDate {
   color: #dbeafe;
 }
 
-.dark .planStatus {
+:global(.dark) .planStatus {
   background: #166534;
   color: #dcfce7;
 }
 
-.dark .popularPlan {
+:global(.dark) .popularPlan {
   border-color: #3b82f6;
 }
 
-.dark .popularBadge {
+:global(.dark) .popularBadge {
   background: #3b82f6;
 }
 
-.dark .upgradeButton {
+:global(.dark) .upgradeButton {
   background: #3b82f6;
 }
 
-.dark .upgradeButton:hover {
+:global(.dark) .upgradeButton:hover {
   background: #2563eb;
 }
 
-.dark .currentButton {
+:global(.dark) .currentButton {
   background: #374151;
   color: #9ca3af;
 }
 
-.dark .conversationsList {
+:global(.dark) .conversationsList {
   background: var(--background-color);
 }
 
-.dark .conversationItem:hover {
+:global(.dark) .conversationItem:hover {
   border-color: #4b5563;
 }
 
-.dark .activeConversation {
+:global(.dark) .activeConversation {
   background: #1e3a8a;
   border-color: #3b82f6;
 }
 
-.dark .messagesArea .messagesHeader {
+:global(.dark) .messagesArea .messagesHeader {
   background: var(--card-background);
 }
 
-.dark .messageContent {
+:global(.dark) .messageContent {
   background: #374151;
 }
 
-.dark .userMessage .messageContent {
+:global(.dark) .userMessage .messageContent {
   background: #3b82f6;
 }
 
-.dark .messageInput {
+:global(.dark) .messageInput {
   background: var(--card-background);
 }
 
-.dark .sendButton {
+:global(.dark) .sendButton {
   background: #3b82f6;
 }
 
-.dark .sendButton:hover:not(:disabled) {
+:global(.dark) .sendButton:hover:not(:disabled) {
   background: #2563eb;
 }
 
-.dark .sendButton:disabled {
+:global(.dark) .sendButton:disabled {
   background: #4b5563;
 }
 
 
-/* Responsive */
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .kpis {
+    margin-left: 120px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  
+  .grid {
+    margin-left: 120px;
+  }
+}
+
 @media (max-width: 1024px) {
   .main {
-    margin-left: 240px;
+    margin-left: 0;
+    padding: 20px;
+    margin-top: 80px;
   }
   
-  .kpis { 
-    grid-template-columns: repeat(2, minmax(0, 1fr)); 
+  .kpis {
+    margin-left: 0;
+    margin-top: 20px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
   }
   
-  .grid { 
-    grid-template-columns: 1fr; 
+  .grid {
+    margin-left: 0;
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .jobsGrid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .plansGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  
+  .benefitsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  
+  .faqGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 768px) {
   .main {
-    margin-left: 0;
     padding: 16px;
+    margin-top: 70px;
   }
   
-  .kpis { 
-    grid-template-columns: repeat(2, minmax(0, 1fr)); 
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
+    margin-top: 16px;
   }
   
   .kpiCard {
     padding: 12px;
   }
   
-  .jobsGrid {
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 16px;
-  }
-}
-
-@media (max-width: 640px) {
-  .main {
-    margin-top: 56px;
-    padding: 12px;
+  .kpiValue {
+    font-size: 18px;
   }
   
-  .kpis { 
-    grid-template-columns: 1fr; 
+  .jobsSection {
+    padding: 16px;
   }
   
-  .jobsGrid {
-    grid-template-columns: 1fr;
+  .jobsHeader h2 {
+    font-size: 20px;
   }
   
-  /* New pages responsive styles */
+  .jobCard {
+    padding: 16px;
+  }
+  
+  .jobTitle {
+    font-size: 16px;
+  }
+  
+  .profileSection,
+  .settingsSection,
+  .membershipSection,
+  .messagesSection {
+    padding: 16px;
+  }
+  
+  .profileHeader h2,
+  .settingsHeader h2,
+  .membershipHeader h2,
+  .messagesHeader h2 {
+    font-size: 20px;
+  }
+  
   .settingsContainer {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
   
   .settingsSidebar {
     border-right: none;
     border-bottom: 1px solid #e5e7eb;
+    padding: 16px 0;
   }
   
   .settingsTab {
     justify-content: center;
+    padding: 10px 16px;
   }
   
   .messagesContainer {
     grid-template-columns: 1fr;
     height: auto;
+    gap: 16px;
   }
   
   .conversationsList {
     border-right: none;
     border-bottom: 1px solid #e5e7eb;
     max-height: 300px;
+    padding: 16px;
   }
   
   .plansGrid {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
   
   .popularPlan {
@@ -1686,25 +1741,508 @@
   
   .benefitsGrid {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
   
   .faqGrid {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
   
   .profileTabs {
     flex-wrap: wrap;
+    gap: 4px;
   }
   
   .tab {
     flex: 1;
-    min-width: 120px;
+    min-width: 100px;
     justify-content: center;
-    padding: 12px 8px;
+    padding: 10px 8px;
     font-size: 12px;
   }
   
   .formGrid {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .formGroup input,
+  .formGroup textarea,
+  .formGroup select {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+  
+  .uploadArea {
+    padding: 30px 16px;
+  }
+  
+  .uploadIcon {
+    font-size: 36px;
+  }
+  
+  .uploadLabel p {
+    font-size: 14px;
+  }
+  
+  .uploadLabel span {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .main {
+    padding: 12px;
+    margin-top: 60px;
+  }
+  
+  .kpis {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  
+  .kpiCard {
+    padding: 10px;
+  }
+  
+  .kpiHeader {
+    font-size: 12px;
+  }
+  
+  .kpiValue {
+    font-size: 16px;
+  }
+  
+  .kpiFoot {
+    font-size: 11px;
+  }
+  
+  .jobsSection {
+    padding: 12px;
+  }
+  
+  .jobsHeader h2 {
+    font-size: 18px;
+  }
+  
+  .jobCard {
+    padding: 12px;
+  }
+  
+  .jobTitle {
+    font-size: 14px;
+  }
+  
+  .jobCompany {
+    font-size: 13px;
+  }
+  
+  .jobLocation {
+    font-size: 12px;
+  }
+  
+  .viewBtn {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+  
+  .profileSection,
+  .settingsSection,
+  .membershipSection,
+  .messagesSection {
+    padding: 12px;
+  }
+  
+  .profileHeader h2,
+  .settingsHeader h2,
+  .membershipHeader h2,
+  .messagesHeader h2 {
+    font-size: 18px;
+  }
+  
+  .profileTabs {
+    flex-direction: column;
+  }
+  
+  .tab {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+  
+  .tabContent {
+    padding: 16px;
+  }
+  
+  .formSection h3 {
+    font-size: 16px;
+  }
+  
+  .formGroup label {
+    font-size: 13px;
+  }
+  
+  .formGroup input,
+  .formGroup textarea,
+  .formGroup select {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+  
+  .addBtn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
+  .saveBtn {
+    padding: 10px 24px;
+    font-size: 14px;
+  }
+  
+  .uploadArea {
+    padding: 24px 12px;
+  }
+  
+  .uploadIcon {
+    font-size: 32px;
+  }
+  
+  .uploadLabel p {
+    font-size: 13px;
+  }
+  
+  .uploadLabel span {
+    font-size: 11px;
+  }
+  
+  .uploadedFile {
+    padding: 8px 12px;
+  }
+  
+  .fileName {
+    font-size: 13px;
+  }
+  
+  .fileSize {
+    font-size: 11px;
+  }
+  
+  .settingsTab {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  
+  .settingsContent {
+    padding: 16px;
+  }
+  
+  .settingsPanel h3 {
+    font-size: 16px;
+  }
+  
+  .notificationItem,
+  .privacyItem,
+  .preferenceItem {
+    padding: 12px;
+  }
+  
+  .notificationInfo h4,
+  .privacyInfo h4,
+  .preferenceInfo h4 {
+    font-size: 14px;
+  }
+  
+  .notificationInfo p,
+  .privacyInfo p,
+  .preferenceInfo p {
+    font-size: 12px;
+  }
+  
+  .membershipHeader h2 {
+    font-size: 24px;
+  }
+  
+  .membershipHeader p {
+    font-size: 14px;
+  }
+  
+  .currentPlanCard {
+    padding: 16px;
+  }
+  
+  .currentPlanCard h3 {
+    font-size: 16px;
+  }
+  
+  .planName {
+    font-size: 20px;
+  }
+  
+  .planStatus {
+    font-size: 12px;
+    padding: 3px 8px;
+  }
+  
+  .planHeader .planName {
+    font-size: 20px;
+  }
+  
+  .price {
+    font-size: 28px;
+  }
+  
+  .period {
+    font-size: 14px;
+  }
+  
+  .planDescription {
+    font-size: 13px;
+  }
+  
+  .planFeatures h4 {
+    font-size: 14px;
+  }
+  
+  .feature,
+  .limitation {
+    font-size: 13px;
+  }
+  
+  .planButton {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+  
+  .membershipBenefits h3 {
+    font-size: 20px;
+  }
+  
+  .benefitCard {
+    padding: 16px;
+  }
+  
+  .benefitIcon {
+    font-size: 36px;
+  }
+  
+  .benefitCard h4 {
+    font-size: 16px;
+  }
+  
+  .benefitCard p {
+    font-size: 13px;
+  }
+  
+  .faqSection h3 {
+    font-size: 20px;
+  }
+  
+  .faqItem {
+    padding: 16px;
+  }
+  
+  .faqItem h4 {
+    font-size: 14px;
+  }
+  
+  .faqItem p {
+    font-size: 12px;
+  }
+  
+  .conversationsList {
+    padding: 12px;
+  }
+  
+  .conversationsList h3 {
+    font-size: 16px;
+  }
+  
+  .conversationItem {
+    padding: 12px;
+  }
+  
+  .companyInfo h4 {
+    font-size: 14px;
+  }
+  
+  .jobTitle {
+    font-size: 11px;
+  }
+  
+  .lastMessage p {
+    font-size: 12px;
+  }
+  
+  .timestamp {
+    font-size: 10px;
+  }
+  
+  .messagesArea .messagesHeader {
+    padding: 16px 16px 0;
+  }
+  
+  .employerInfo h3 {
+    font-size: 16px;
+  }
+  
+  .employerInfo span {
+    font-size: 12px;
+  }
+  
+  .messagesList {
+    padding: 16px;
+    gap: 12px;
+  }
+  
+  .messageContent {
+    padding: 8px 12px;
+  }
+  
+  .messageContent p {
+    font-size: 12px;
+  }
+  
+  .messageTimestamp {
+    font-size: 10px;
+  }
+  
+  .messageInput {
+    padding: 16px;
+    gap: 8px;
+  }
+  
+  .messageInput input {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  
+  .sendButton {
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+  
+  .noConversationIcon {
+    font-size: 36px;
+  }
+  
+  .noConversation h3 {
+    font-size: 16px;
+  }
+  
+  .noConversation p {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main {
+    padding: 8px;
+  }
+  
+  .kpis {
+    gap: 8px;
+  }
+  
+  .kpiCard {
+    padding: 8px;
+  }
+  
+  .jobsSection,
+  .profileSection,
+  .settingsSection,
+  .membershipSection,
+  .messagesSection {
+    padding: 8px;
+  }
+  
+  .jobCard {
+    padding: 10px;
+  }
+  
+  .profileTabs {
+    gap: 2px;
+  }
+  
+  .tab {
+    padding: 8px 12px;
+    font-size: 11px;
+  }
+  
+  .tabContent {
+    padding: 12px;
+  }
+  
+  .formGrid {
+    gap: 8px;
+  }
+  
+  .formGroup input,
+  .formGroup textarea,
+  .formGroup select {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+  
+  .uploadArea {
+    padding: 20px 8px;
+  }
+  
+  .uploadIcon {
+    font-size: 28px;
+  }
+  
+  .settingsTab {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+  
+  .settingsContent {
+    padding: 12px;
+  }
+  
+  .notificationItem,
+  .privacyItem,
+  .preferenceItem {
+    padding: 8px;
+  }
+  
+  .membershipHeader h2 {
+    font-size: 20px;
+  }
+  
+  .currentPlanCard {
+    padding: 12px;
+  }
+  
+  .planHeader .planName {
+    font-size: 18px;
+  }
+  
+  .price {
+    font-size: 24px;
+  }
+  
+  .planButton {
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+  
+  .conversationsList {
+    padding: 8px;
+  }
+  
+  .conversationItem {
+    padding: 8px;
+  }
+  
+  .messagesList {
+    padding: 12px;
+  }
+  
+  .messageInput {
+    padding: 12px;
   }
 }

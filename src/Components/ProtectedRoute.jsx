@@ -3,8 +3,13 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../Contexts/AuthContext';
 
 const ProtectedRoute = ({ children, role = 'candidate' }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
   const location = useLocation();
+
+  // Wait for auth hydration on initial load/refresh
+  if (loading) {
+    return null;
+  }
 
   if (!isAuthenticated) {
     let loginPath = '/candidate/login';

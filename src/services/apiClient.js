@@ -32,34 +32,16 @@ apiClient.interceptors.response.use(
     return response.data;
   },
   (error) => {
-    // Handle common errors
-    if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to appropriate login
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      
-      // Redirect to role-specific login page
-      let loginPath = '/candidate/login';
-      if (user.role === 'admin') {
-        loginPath = '/admin/login';
-      } else if (user.role === 'recruiter') {
-        loginPath = '/recruiter/login';
-      }
-      
-      window.location.href = loginPath;
-    }
-    
+    // Handle common errors but avoid forcibly clearing auth on 401 here.
+    // Let feature code or a centralized auth layer decide what to do.
     if (error.response?.status === 403) {
-      // Forbidden
       console.error('Access denied');
     }
-    
+
     if (error.response?.status >= 500) {
-      // Server error
       console.error('Server error:', error.response.data);
     }
-    
+
     return Promise.reject(error.response?.data || error.message);
   }
 );

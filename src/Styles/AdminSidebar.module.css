@@ -139,6 +139,49 @@
   z-index: 1099;
 }
 
+/* Dark Theme */
+:global(.dark) .sidebar {
+  background: #1f2937;
+  border-right-color: #374151;
+  color: #d1d5db;
+}
+
+:global(.dark) .closeButton {
+  color: #9ca3af;
+}
+
+:global(.dark) .navLink {
+  color: #d1d5db;
+}
+
+:global(.dark) .navLink:hover {
+  background: #374151;
+  color: #ffffff;
+}
+
+:global(.dark) .navLink.active {
+  background: #374151;
+  color: #ffffff;
+  border-left-color: #60a5fa;
+}
+
+:global(.dark) .userCard {
+  border-top-color: #374151;
+}
+
+:global(.dark) .userName {
+  color: #ffffff;
+}
+
+:global(.dark) .userEmail {
+  color: #9ca3af;
+}
+
+:global(.dark) .footer {
+  color: #9ca3af;
+  border-top-color: #374151;
+}
+
 /* Desktop: keep sidebar static/visible */
 @media (min-width: 769px) {
   .sidebar {

@@ -15,6 +15,10 @@ const ManageJobs = () => {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [applications, setApplications] = useState({});
+  const [showApplicationsModal, setShowApplicationsModal] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState(null);
+  const [applicationsLoading, setApplicationsLoading] = useState(false);
 
   const [filterStatus, setFilterStatus] = useState("All");
 
@@ -97,6 +101,56 @@ const ManageJobs = () => {
       // No reopen API provided; keep local toggle if needed
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'Active' } : j));
     }
+  };
+
+  const handleViewApplications = async (jobId) => {
+    try {
+      setApplicationsLoading(true);
+      setSelectedJobId(jobId);
+      const applicationsData = await recruiterExternalService.getAllApplicants(jobId);
+      setApplications(prev => ({
+        ...prev,
+        [jobId]: applicationsData.applications || []
+      }));
+      setShowApplicationsModal(true);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to load applications');
+    } finally {
+      setApplicationsLoading(false);
+    }
+  };
+
+  const handleUpdateApplicationStatus = async (applicationId, statusBool) => {
+    try {
+      setLoading(true);
+      await recruiterExternalService.changeApplicationStatus(applicationId, statusBool);
+      
+      // Update local state
+      const jobApplications = applications[selectedJobId] || [];
+      const updatedApplications = jobApplications.map(app => 
+        app.application_id === applicationId 
+          ? { ...app, status: statusBool ? 'Shortlisted' : 'Pending' }
+          : app
+      );
+      
+      setApplications(prev => ({
+        ...prev,
+        [selectedJobId]: updatedApplications
+      }));
+      
+      alert(`Application ${statusBool ? 'shortlisted' : 'moved to pending'} successfully`);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to update application status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const closeApplicationsModal = () => {
+    setShowApplicationsModal(false);
+    setSelectedJobId(null);
   };
 
   const filteredJobs = filterStatus === "All" 
@@ -217,6 +271,12 @@ const ManageJobs = () => {
                     </button>
                     <button 
                       className={styles.actionBtn}
+                      onClick={() => handleViewApplications(job.id)}
+                    >
+                      👥 Applications ({job.applications})
+                    </button>
+                    <button 
+                      className={styles.actionBtn}
                       onClick={() => handleDuplicateJob(job.id)}
                     >
                       📋 Duplicate
@@ -240,6 +300,100 @@ const ManageJobs = () => {
           </div>
         </section>
       </main>
+
+      {/* Applications Modal */}
+      {showApplicationsModal && (
+        <div className={styles.modalOverlay} onClick={closeApplicationsModal}>
+          <div className={styles.modalContent} style={{ maxWidth: '800px', width: '95%' }}>
+            <div className={styles.modalHeader}>
+              <h2>Job Applications</h2>
+              <button 
+                className={styles.closeButton}
+                onClick={closeApplicationsModal}
+              >
+                ×
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              {applicationsLoading ? (
+                <div className={styles.loadingContainer}>
+                  <h3>Loading applications...</h3>
+                </div>
+              ) : (
+                <div className={styles.applicationsList}>
+                  {applications[selectedJobId]?.length === 0 ? (
+                    <div className={styles.emptyState}>
+                      <p>No applications found for this job.</p>
+                    </div>
+                  ) : (
+                    applications[selectedJobId]?.map((application) => (
+                      <div key={application.application_id} className={styles.applicationCard}>
+                        <div className={styles.applicationHeader}>
+                          <div className={styles.applicationInfo}>
+                            <h4>Student ID: {application.student_id}</h4>
+                            <p className={styles.applicationDate}>
+                              Applied: {new Date(application.created_at).toLocaleDateString()}
+                            </p>
+                            <p className={styles.applicationStatus}>
+                              Status: <span className={`${styles.statusBadge} ${application.status === 'Shortlisted' ? styles.statusActive : styles.statusDefault}`}>
+                                {application.status}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                        <div className={styles.applicationDetails}>
+                          <div className={styles.coverLetter}>
+                            <h5>Cover Letter:</h5>
+                            <p>{application.cover_letter}</p>
+                          </div>
+                          <div className={styles.resumeSection}>
+                            <h5>Resume:</h5>
+                            <a 
+                              href={application.resume_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className={styles.resumeLink}
+                            >
+                              📄 View Resume
+                            </a>
+                          </div>
+                        </div>
+                        <div className={styles.applicationActions}>
+                          {application.status === 'Pending' ? (
+                            <button 
+                              className={`${styles.actionBtn} ${styles.shortlistBtn}`}
+                              onClick={() => handleUpdateApplicationStatus(application.application_id, true)}
+                              disabled={loading}
+                            >
+                              ✓ Shortlist
+                            </button>
+                          ) : (
+                            <button 
+                              className={`${styles.actionBtn} ${styles.pendingBtn}`}
+                              onClick={() => handleUpdateApplicationStatus(application.application_id, false)}
+                              disabled={loading}
+                            >
+                              ↩️ Move to Pending
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+            <div className={styles.modalFooter}>
+              <button 
+                className={styles.okButton}
+                onClick={closeApplicationsModal}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
