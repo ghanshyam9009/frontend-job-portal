@@ -1,13 +1,11 @@
 // API Configuration
 const API_CONFIG = {
   development: {
-
     baseURL: 'https://api.bigsources.in/api',
     timeout: 10000
   },
   production: {
     baseURL: 'https://api.bigsources.in/api',
-    // baseURL: 'http://18.141.113.253:/api',
     timeout: 15000
   }
 };
@@ -116,7 +114,7 @@ export const API_ENDPOINTS = {
   jobs: {
     getAll: '/jobs',
     getById: (id) => `/jobs/${id}`,
-    create: '/jobs',
+    create: '/job/jobs',
     update: (id) => `/jobs/${id}`,
     delete: (id) => `/jobs/${id}`,
     search: '/jobs/search',

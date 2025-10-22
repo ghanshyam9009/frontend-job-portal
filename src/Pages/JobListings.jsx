@@ -8,9 +8,12 @@ import HomeNav from "../Components/HomeNav";
 import Footer from "../Components/Footer";
 import { jobService } from "../services/jobService";
 import { showError } from "../utils/errorHandler";
+import { candidateExternalService } from "../services/candidateExternalService";
+import { useAuth } from "../Contexts/AuthContext";
 
 const JobListings = () => {
   const { theme } = useTheme();
+  const { user, isAuthenticated } = useAuth();
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const navigate = useNavigate();
   const locationHook = useLocation();
@@ -132,6 +135,33 @@ const JobListings = () => {
     navigate(`/job/${jobSlug}`, {
       state: { job }
     });
+  };
+
+  const handleSaveJob = async (job) => {
+    try {
+      if (!isAuthenticated || !user) {
+        alert('Please log in to save jobs.');
+        navigate('/candidate/login');
+        return;
+      }
+      
+      const userId = user.user_id || user.id;
+      if (!userId) {
+        alert('User ID not found. Please log in again.');
+        navigate('/candidate/login');
+        return;
+      }
+
+      await candidateExternalService.bookmarkJob({ 
+        user_id: userId, 
+        job_id: job.job_id || job.id 
+      });
+      
+      alert('Job saved successfully!');
+    } catch (error) {
+      console.error('Error saving job:', error);
+      alert('Failed to save job. Please try again.');
+    }
   };
 
   const formatSalary = (salaryRange) => {
@@ -503,7 +533,10 @@ const JobListings = () => {
                     >
                       View Details
                     </button>
-                    <button className={styles.saveBtn}>
+                    <button 
+                      className={styles.saveBtn}
+                      onClick={() => handleSaveJob(job)}
+                    >
                       Save Job
                     </button>
                   </div>

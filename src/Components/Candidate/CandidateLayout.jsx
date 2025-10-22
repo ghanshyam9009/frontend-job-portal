@@ -14,7 +14,7 @@ const CandidateLayout = () => {
   };
 
   return (
-    <div className={styles.dashboardContainer}>
+    <div className={`${styles.dashboardContainer} ${theme === 'dark' ? 'dark' : ''}`}>
       <CandidateNavbar 
         toggleSidebar={toggleSidebar} 
       />

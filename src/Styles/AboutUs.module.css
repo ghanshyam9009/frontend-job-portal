@@ -58,6 +58,13 @@
   color: #d1d5db;
 }
 
+.heroButtons {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: center;
+}
+
 .heroButton {
   background: #3b82f6;
   color: #ffffff;
@@ -72,6 +79,36 @@
 
 .heroButton:hover {
   background: #2563eb;
+}
+
+.themeToggleBtn {
+  background: transparent;
+  border: 2px solid #3b82f6;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #3b82f6;
+}
+
+.themeToggleBtn:hover {
+  background: #3b82f6;
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
+.dark .themeToggleBtn {
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.dark .themeToggleBtn:hover {
+  background: #60a5fa;
+  color: #ffffff;
 }
 
 .heroIcon {
@@ -500,5 +537,15 @@
   .heroButton {
     padding: 14px 28px;
     font-size: 14px;
+  }
+
+  .heroButtons {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .themeToggleBtn {
+    width: 45px;
+    height: 45px;
   }
 }

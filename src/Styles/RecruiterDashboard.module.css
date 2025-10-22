@@ -617,6 +617,7 @@
 
 .salaryInputs input {
   flex: 1;
+  max-width: 93px;
 }
 
 .salaryInputs span {
@@ -1886,4 +1887,1218 @@
     gap: 12px;
     text-align: center;
   }
+}
+
+/* Success Modal Styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.modalContent {
+  background: white;
+  border-radius: 12px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  animation: slideIn 0.3s ease;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.modalBody {
+  padding: 24px;
+  text-align: center;
+}
+
+.successIcon {
+  width: 60px;
+  height: 60px;
+  background: #22c55e;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 24px;
+  color: white;
+  font-weight: bold;
+}
+
+.successMessage {
+  font-size: 16px;
+  color: #374151;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.modalFooter {
+  padding: 0 24px 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.okButton {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.okButton:hover {
+  background: #2563eb;
+}
+
+.okButton:active {
+  transform: translateY(1px);
+}
+
+/* Dark theme modal styles */
+.dashboardContainer.dark .modalContent {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dashboardContainer.dark .modalHeader {
+  border-bottom-color: #334155;
+}
+
+.dashboardContainer.dark .modalHeader h2 {
+  color: #f1f5f9;
+}
+
+.dashboardContainer.dark .closeButton {
+  color: #94a3b8;
+}
+
+.dashboardContainer.dark .closeButton:hover {
+  background: #334155;
+  color: #f1f5f9;
+}
+
+.dashboardContainer.dark .successMessage {
+  color: #f1f5f9;
+}
+
+/* Modal animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Company Profile Styles */
+.companyProfileSection {
+  padding: 0;
+}
+
+.profileTabs {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.tabContent {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.profileForm {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid #e5e7eb;
+}
+
+.kycHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.kycStatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kycNotice {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.kycNotice p {
+  margin: 0;
+  color: #92400e;
+  font-size: 14px;
+}
+
+/* Applications Styles */
+.candidateApplicationsSection,
+.shortlistCandidatesSection {
+  padding: 0;
+}
+
+.applicationsList,
+.candidatesList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.applicationCard,
+.candidateCard {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.applicationCard:hover,
+.candidateCard:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-color: #d1d5db;
+}
+
+.applicationHeader,
+.candidateHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #f3f4f6;
+  padding-bottom: 12px;
+}
+
+.applicationInfo,
+.candidateInfo h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 8px 0;
+}
+
+.applicationInfo p,
+.candidateInfo p {
+  margin: 4px 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.applicationDate,
+.shortlistedDate {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.studentId {
+  font-weight: 500;
+  color: #374151;
+}
+
+.applicationStatus,
+.candidateStatus {
+  display: flex;
+  align-items: center;
+}
+
+.applicationDetails,
+.candidateDetails {
+  margin-bottom: 16px;
+}
+
+.coverLetter,
+.resumeSection {
+  margin-bottom: 12px;
+}
+
+.coverLetter h5,
+.resumeSection h5 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 8px 0;
+}
+
+.coverLetter p {
+  color: #6b7280;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.resumeLink {
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.2s ease;
+}
+
+.resumeLink:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.applicationActions,
+.candidateActions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.shortlistBtn {
+  background: #22c55e;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shortlistBtn:hover {
+  background: #16a34a;
+}
+
+.shortlistBtn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.pendingBtn {
+  background: #f59e0b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pendingBtn:hover {
+  background: #d97706;
+}
+
+.rejectBtn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rejectBtn:hover {
+  background: #dc2626;
+}
+
+.contactBtn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.contactBtn:hover {
+  background: #2563eb;
+}
+
+.interviewBtn {
+  background: #8b5cf6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.interviewBtn:hover {
+  background: #7c3aed;
+}
+
+.jobFilter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.jobSelect {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  color: #374151;
+  font-size: 14px;
+  min-width: 200px;
+}
+
+.loadingContainer,
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+}
+
+.backBtn {
+  background: #6b7280;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.backBtn:hover {
+  background: #4b5563;
+}
+
+/* Dark theme styles for new components */
+.dashboardContainer.dark .profileForm {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dashboardContainer.dark .applicationCard,
+.dashboardContainer.dark .candidateCard {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dashboardContainer.dark .applicationCard:hover,
+.dashboardContainer.dark .candidateCard:hover {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dashboardContainer.dark .applicationHeader,
+.dashboardContainer.dark .candidateHeader {
+  border-bottom-color: #334155;
+}
+
+.dashboardContainer.dark .applicationInfo h3,
+.dashboardContainer.dark .candidateInfo h3 {
+  color: #f1f5f9;
+}
+
+.dashboardContainer.dark .applicationInfo p,
+.dashboardContainer.dark .candidateInfo p {
+  color: #94a3b8;
+}
+
+.dashboardContainer.dark .coverLetter h5,
+.dashboardContainer.dark .resumeSection h5 {
+  color: #f1f5f9;
+}
+
+.dashboardContainer.dark .coverLetter p {
+  color: #94a3b8;
+}
+
+.dashboardContainer.dark .resumeLink {
+  color: #60a5fa;
+}
+
+.dashboardContainer.dark .resumeLink:hover {
+  color: #3b82f6;
+}
+
+.dashboardContainer.dark .jobSelect {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+.dashboardContainer.dark .kycNotice {
+  background: #451a03;
+  border-color: #d97706;
+}
+
+.dashboardContainer.dark .kycNotice p {
+  color: #fbbf24;
+}
+
+/* Membership Section Styles */
+.membershipSection {
+  padding: 0;
+}
+
+.paymentPlanCard {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  margin-bottom: 32px;
+}
+
+.planHeader {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.planIcon {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jobIcon {
+  font-size: 32px;
+}
+
+.planInfo h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px 0;
+}
+
+.planDescription {
+  font-size: 16px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.planDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.priceSection {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 24px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+}
+
+.price {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.currency {
+  font-size: 24px;
+  font-weight: 600;
+  color: #059669;
+}
+
+.amount {
+  font-size: 48px;
+  font-weight: 700;
+  color: #059669;
+}
+
+.priceDetails {
+  flex: 1;
+}
+
+.priceLabel {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 4px 0;
+}
+
+.validity {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.featuresList h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 16px 0;
+}
+
+.features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.features li {
+  padding: 8px 0;
+  font-size: 16px;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.paymentSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.payButton {
+  background: linear-gradient(135deg, #059669, #047857);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 16px 32px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.payButton:hover {
+  background: linear-gradient(135deg, #047857, #065f46);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.payButton:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.paymentNote {
+  font-size: 14px;
+  color: #6b7280;
+  text-align: center;
+  margin: 0;
+}
+
+.benefitsSection {
+  margin-top: 48px;
+}
+
+.benefitsSection h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  text-align: center;
+  margin: 0 0 32px 0;
+}
+
+.benefitsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 24px;
+}
+
+.benefitCard {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid #e5e7eb;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.benefitCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.benefitIcon {
+  font-size: 32px;
+  margin-bottom: 16px;
+}
+
+.benefitCard h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 8px 0;
+}
+
+.benefitCard p {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.errorMessage {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.errorMessage p {
+  color: #dc2626;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Settings Styles */
+.settingsSection {
+  padding: 0;
+}
+
+.settingsHeader {
+  margin-bottom: 32px;
+}
+
+.settingsContainer {
+  display: flex;
+  gap: 32px;
+}
+
+.settingsSidebar {
+  width: 250px;
+  flex-shrink: 0;
+}
+
+.settingsTab {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border: none;
+  background: white;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+}
+
+.settingsTab:hover {
+  background: #f8fafc;
+  color: #374151;
+}
+
+.settingsTab.activeTab {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.tabIcon {
+  font-size: 16px;
+}
+
+.settingsContent {
+  flex: 1;
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  border: 1px solid #e5e7eb;
+}
+
+.settingsPanel h3 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 24px 0;
+}
+
+.notificationsSection,
+.privacySection,
+.preferencesSection {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.notificationItem,
+.privacyItem,
+.preferenceItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.notificationInfo,
+.privacyInfo,
+.preferenceInfo {
+  flex: 1;
+}
+
+.notificationInfo h4,
+.privacyInfo h4,
+.preferenceInfo h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 4px 0;
+}
+
+.notificationInfo p,
+.privacyInfo p,
+.preferenceInfo p {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggleSlider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 24px;
+}
+
+.toggleSlider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+.toggle input:checked + .toggleSlider {
+  background-color: #3b82f6;
+}
+
+.toggle input:checked + .toggleSlider:before {
+  transform: translateX(26px);
+}
+
+.saveBtn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: flex-start;
+}
+
+.saveBtn:hover {
+  background: #2563eb;
+}
+
+/* Dark theme styles for new components */
+.dashboardContainer.dark .paymentPlanCard {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dashboardContainer.dark .planInfo h2 {
+  color: #f1f5f9;
+}
+
+.dashboardContainer.dark .planDescription {
+  color: #94a3b8;
+}
+
+.dashboardContainer.dark .priceSection {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.dashboardContainer.dark .priceLabel {
+  color: #f1f5f9;
+}
+
+.dashboardContainer.dark .featuresList h3 {
+  color: #f1f5f9;
+}
+
+.dashboardContainer.dark .features li {
+  color: #e2e8f0;
+}
+
+.dashboardContainer.dark .paymentNote {
+  color: #94a3b8;
+}
+
+.dashboardContainer.dark .benefitsSection h2 {
+  color: #f1f5f9;
+}
+
+.dashboardContainer.dark .benefitCard {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dashboardContainer.dark .benefitCard h3 {
+  color: #f1f5f9;
+}
+
+.dashboardContainer.dark .benefitCard p {
+  color: #94a3b8;
+}
+
+.dashboardContainer.dark .settingsTab {
+  background: #1e293b;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+.dashboardContainer.dark .settingsTab:hover {
+  background: #334155;
+  color: #f1f5f9;
+}
+
+.dashboardContainer.dark .settingsContent {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dashboardContainer.dark .settingsPanel h3 {
+  color: #f1f5f9;
+}
+
+.dashboardContainer.dark .notificationItem,
+.dashboardContainer.dark .privacyItem,
+.dashboardContainer.dark .preferenceItem {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.dashboardContainer.dark .notificationInfo h4,
+.dashboardContainer.dark .privacyInfo h4,
+.dashboardContainer.dark .preferenceInfo h4 {
+  color: #f1f5f9;
+}
+
+.dashboardContainer.dark .notificationInfo p,
+.dashboardContainer.dark .privacyInfo p,
+.dashboardContainer.dark .preferenceInfo p {
+  color: #94a3b8;
+}
+
+/* Dashboard Loading and Error States */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.loadingSpinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f4f6;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loadingContainer h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 8px 0;
+}
+
+.loadingContainer p {
+  font-size: 16px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.retryBtn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 16px;
+}
+
+.retryBtn:hover {
+  background: #2563eb;
+}
+
+/* Jobs Overview Section */
+.jobsOverview {
+  margin-bottom: 32px;
+}
+
+.jobsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.jobCard {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.jobCard:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-color: #d1d5db;
+}
+
+.jobHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.jobInfo h4 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 4px 0;
+}
+
+.jobInfo p {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.jobDetails {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.jobType,
+.jobMode,
+.jobDate {
+  font-size: 12px;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.jobActions {
+  display: flex;
+  gap: 12px;
+}
+
+.editJobBtn,
+.viewApplicationsBtn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.editJobBtn {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.editJobBtn:hover {
+  background: #e5e7eb;
+}
+
+.viewApplicationsBtn {
+  background: #3b82f6;
+  color: white;
+}
+
+.viewApplicationsBtn:hover {
+  background: #2563eb;
+}
+
+.postJobBtn {
+  background: #22c55e;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 16px;
+}
+
+.postJobBtn:hover {
+  background: #16a34a;
+}
+
+/* Dark theme styles for dashboard */
+.dashboardContainer.dark .loadingContainer h2 {
+  color: #f1f5f9;
+}
+
+.dashboardContainer.dark .loadingContainer p {
+  color: #94a3b8;
+}
+
+.dashboardContainer.dark .jobCard {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dashboardContainer.dark .jobCard:hover {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dashboardContainer.dark .jobInfo h4 {
+  color: #f1f5f9;
+}
+
+.dashboardContainer.dark .jobInfo p {
+  color: #94a3b8;
+}
+
+.dashboardContainer.dark .jobType,
+.dashboardContainer.dark .jobMode,
+.dashboardContainer.dark .jobDate {
+  color: #e2e8f0;
+  background: #334155;
+}
+
+.dashboardContainer.dark .editJobBtn {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.dashboardContainer.dark .editJobBtn:hover {
+  background: #475569;
 }

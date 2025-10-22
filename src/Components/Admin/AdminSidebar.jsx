@@ -112,7 +112,7 @@ const AdminSidebar = ({ isOpen, onClose }) => {
       {/* Mobile Overlay */}
       {isOpen && <div className={styles.mobileOverlay} onClick={onClose}></div>}
       
-      <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
+      <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''} ${theme === 'dark' ? styles.dark : ''}`}>
       <button className={styles.closeButton} onClick={onClose}>
         &times;
       </button>
@@ -151,9 +151,6 @@ const AdminSidebar = ({ isOpen, onClose }) => {
         </div>
       </div>
       
-      <div className={styles.footer}>
-        Made with ❤️
-      </div>
     </aside>
     </>
   );

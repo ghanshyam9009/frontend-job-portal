@@ -29,7 +29,7 @@ const AdminNavbar = ({ onLogout, onMobileMenuToggle }) => {
   };
 
   return (
-    <header className={`${styles.header} `}>
+    <header className={`${styles.header} ${theme === 'dark' ? styles.dark : ''}`}>
       <div className={styles.headerLeft}>
         <button className={styles.mobileMenuBtn} onClick={onMobileMenuToggle}>
           ☰
@@ -38,27 +38,17 @@ const AdminNavbar = ({ onLogout, onMobileMenuToggle }) => {
                          <img src={logo} alt="JobPortal Logo" />
                          <span>Bigsources Manpower Solution</span>
                        </div>
-        <div className={styles.searchContainer}>
-          <input 
-            type="text" 
-            placeholder="Search dashboard..." 
-            className={styles.searchInput}
-          />
-          <span className={styles.searchIcon}>🔍</span>
-        </div>
+   
       </div>
       
       <div className={styles.headerRight}>
-        <button className={styles.notificationBtn}>
-          🔔
-          <span className={styles.notificationBadge}>9</span>
-        </button>
+
         <button className={styles.themeToggle} onClick={toggleTheme}>
           {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
         </button>
-        <button className={styles.logoutBtn} onClick={handleLogout}>
+        {/* <button className={styles.logoutBtn} onClick={handleLogout}>
           Logout
-        </button>
+        </button> */}
         <div className={styles.profileSection}>
           <button className={styles.profilePicture} onClick={handleProfileClick}>
             <div className={styles.profileAvatar}>

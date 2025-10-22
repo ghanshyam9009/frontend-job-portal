@@ -25,6 +25,7 @@ import RecruiterLayout from './Components/Recruiter/RecruiterLayout'
 import RecruiterDashboard from './Pages/Recruiter/RecruiterDashboard'
 import PostJob from './Pages/Recruiter/PostJob'
 import ManageJobs from './Pages/Recruiter/ManageJobs'
+import EditJob from './Pages/Recruiter/EditJob'
 import CandidateApplications from './Pages/Recruiter/CandidateApplications'
 import ShortlistCandidates from './Pages/Recruiter/ShortlistCandidates'
 import CompanyProfile from './Pages/Recruiter/CompanyProfile'
@@ -84,6 +85,7 @@ function App() {
             <Route path="/recruiter/dashboard" element={<RecruiterDashboard />} />
             <Route path="/post-job" element={<PostJob />} />
             <Route path="/manage-jobs" element={<ManageJobs />} />
+            <Route path="/edit-job/:jobId" element={<EditJob />} />
             <Route path="/candidate-applications" element={<CandidateApplications />} />
             <Route path="/shortlist-candidates" element={<ShortlistCandidates />} />
             <Route path="/company-profile" element={<CompanyProfile />} />

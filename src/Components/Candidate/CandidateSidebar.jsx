@@ -109,9 +109,7 @@ const CandidateSidebar = ({ isOpen, toggleSidebar }) => {
         </div>
       </div>
       
-      <div className={styles.footer}>
-        Made with ❤️ for Job Seekers
-      </div>
+     
     </aside>
     </>
   );

@@ -1,12 +1,12 @@
 import React from "react";
 import { useTheme } from "../Contexts/ThemeContext";
-import { Building2, TrendingUp, Target, Star, Users, Briefcase, Calculator, FileText, Scale, Globe } from "lucide-react";
+import { Building2, TrendingUp, Target, Star, Users, Briefcase, Calculator, FileText, Scale, Globe, Sun, Moon } from "lucide-react";
 import styles from "../Styles/AboutUs.module.css";
 import HomeNav from "../Components/HomeNav";
 import Footer from "../Components/Footer";
 
 const AboutUs = () => {
-  const { theme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <div className={`${styles.pageContainer} ${theme === 'dark' ? styles.dark : ''}`}>
@@ -21,7 +21,10 @@ const AboutUs = () => {
             <p className={styles.heroSubtitle}>
               Empowering businesses through innovative HR solutions and professional recruitment services
             </p>
-            <button className={styles.heroButton}>Discover Our Journey</button>
+            <div className={styles.heroButtons}>
+              <button className={styles.heroButton}>Discover Our Journey</button>
+
+            </div>
           </div>
          
         </div>
@@ -31,19 +34,19 @@ const AboutUs = () => {
       <section className={styles.statsSection}>
         <div className={styles.statsContainer}>
           <div className={styles.statCard}>
-            <div className={styles.counterNumber} data-target="500" data-suffix="+">0+</div>
+            <div className={styles.counterNumber} data-target="500" data-suffix="+">89+</div>
             <div className={styles.statLabel}>Successful Placements</div>
           </div>
           <div className={styles.statCard}>
-            <div className={styles.counterNumber} data-target="150" data-suffix="+">0+</div>
+            <div className={styles.counterNumber} data-target="150" data-suffix="+">100+</div>
             <div className={styles.statLabel}>Partner Companies</div>
           </div>
           <div className={styles.statCard}>
-            <div className={styles.counterNumber} data-target="10" data-suffix="+">0+</div>
+            <div className={styles.counterNumber} data-target="10" data-suffix="+">10+</div>
             <div className={styles.statLabel}>Years of Excellence</div>
           </div>
           <div className={styles.statCard}>
-            <div className={styles.counterNumber} data-target="95" data-suffix="%">0%</div>
+            <div className={styles.counterNumber} data-target="95" data-suffix="%">98%</div>
             <div className={styles.statLabel}>Client Satisfaction</div>
           </div>
         </div>
