@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useTheme } from "../Contexts/ThemeContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useMemo } from "react";
+import { useAuth } from "../Contexts/AuthContext";
 import { Search, MapPin, Filter } from "lucide-react";
 import styles from "./JobListings.module.css";
 import HomeNav from "../Components/HomeNav";
@@ -9,7 +10,6 @@ import Footer from "../Components/Footer";
 import { jobService } from "../services/jobService";
 import { showError } from "../utils/errorHandler";
 import { candidateExternalService } from "../services/candidateExternalService";
-import { useAuth } from "../Contexts/AuthContext";
 
 const JobListings = () => {
   const { theme } = useTheme();
@@ -52,10 +52,12 @@ const JobListings = () => {
     setError(null);
 
     try {
+      // Use the general jobs API endpoint
       const apiUrl = 'https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs';
       const searchParams = {
         page: currentPage,
         limit: jobsPerPage,
+        status: 'approved', // Only fetch approved jobs
         ...(querySearch && { keyword: querySearch }),
         ...(queryLocation && { location: queryLocation }),
         ...(filters.jobType && { employment_type: filters.jobType }),
@@ -86,11 +88,11 @@ const JobListings = () => {
 
       const jobsData = await response.json();
 
-      if (jobsData.success || Array.isArray(jobsData)) {
+      if (jobsData.jobs || Array.isArray(jobsData)) {
         const jobsArray = jobsData.jobs || jobsData.data || jobsData;
         setJobs(Array.isArray(jobsArray) ? jobsArray : []);
-        setTotalJobs(jobsArray.length || 0);
-        setTotalPages(Math.max(1, Math.ceil((jobsArray.length || 0) / jobsPerPage)));
+        setTotalJobs(jobsData.count || jobsArray.length || 0);
+        setTotalPages(Math.max(1, Math.ceil((jobsData.count || jobsArray.length || 0) / jobsPerPage)));
       } else {
         throw new Error(jobsData.message || 'Failed to fetch jobs');
       }
@@ -503,7 +505,7 @@ const JobListings = () => {
                       {job.experience_required && (
                         <div className={styles.jobDetail}>
                           <span className={styles.detailIcon}>👔</span>
-                          <span>{job.experience_required}</span>
+                          <span>{job.experience_required.min_years} - {job.experience_required.max_years} years</span>
                         </div>
                       )}
                     </div>
@@ -529,9 +531,15 @@ const JobListings = () => {
                   <div className={styles.jobActions}>
                     <button
                       className={styles.viewBtn}
-                      onClick={() => handleJobClick(job)}
+                      onClick={() => {
+                        if (!isAuthenticated) {
+                          navigate('/candidate/login');
+                        } else {
+                          handleJobClick(job);
+                        }
+                      }}
                     >
-                      View Details
+                      Apply Now
                     </button>
                     <button 
                       className={styles.saveBtn}

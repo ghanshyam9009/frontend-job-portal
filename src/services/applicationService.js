@@ -6,8 +6,17 @@ export const applicationService = {
   // Apply for a job
   async applyForJob(jobId, applicationData) {
     return withErrorHandling(async () => {
-      const response = await apiClient.post(API_ENDPOINTS.applications.applyToJob(jobId), applicationData);
-      return response;
+      const response = await fetch(`https://api.bigsources.in/api/application/jobs/${jobId}/apply`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(applicationData),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
     }, 'Failed to submit application');
   },
 

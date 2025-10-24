@@ -49,8 +49,8 @@ const ProfileManagement = () => {
         profile_image: user.profile_image || '',
         bio: user.bio || '',
         resume: user.resume || null,
-        education: user.education || [{ degree: '', institution: '', year: '' }],
-        experience: user.experience || [{ title: '', company: '', duration: '' }],
+        education: Array.isArray(user.education) ? user.education : [{ degree: '', institution: '', year: '' }],
+        experience: Array.isArray(user.experience) ? user.experience : [{ title: '', company: '', duration: '' }],
         skills: user.skills || ''
       });
     }

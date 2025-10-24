@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../Contexts/AuthContext";
 import { Search, MapPin, Upload, Building2, Users, CheckCircle, Star, ArrowRight, UserPlus } from "lucide-react";
 import { FaFacebook, FaTwitter, FaLinkedin } from "react-icons/fa";
 import styles from "./HomePage.module.css";
@@ -62,6 +63,7 @@ const stats = [
 
 const Homepage = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [location, setLocation] = useState("");
   const [featuredJobs, setFeaturedJobs] = useState([]);
@@ -81,8 +83,23 @@ const Homepage = () => {
   useEffect(() => {
     const fetchFeaturedJobs = async () => {
       try {
-        const data = await candidateExternalService.getAllJobs();
-        const mapped = (data?.jobs || []).slice(0, 5).map((j, idx) => ({
+        // Fetch only approved jobs
+        const response = await fetch('https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs?status=approved&limit=5', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (!data || !data.jobs) {
+          throw new Error('Invalid response format');
+        }
+        const mapped = (data.jobs || []).slice(0, 5).map((j, idx) => ({
           id: j.job_id || idx,
           title: j.job_title,
           company_name: j.company_name || "",
@@ -123,6 +140,13 @@ const Homepage = () => {
     } finally {
       setDemoLoading(false);
     }
+  };
+
+  const handleJobClick = (job) => {
+    const jobSlug = job.job_title?.toLowerCase().replace(/\s+/g, '-') || job.id;
+    navigate(`/job/${jobSlug}`, {
+      state: { job }
+    });
   };
 
   return (
@@ -272,9 +296,9 @@ const Homepage = () => {
                   <div key={job.id} className={styles.jobCard}>
                     <div className={styles.jobContent}>
                       <div className={styles.jobLeft}>
-                        <div className={styles.jobLogo}>
+                        {/* <div className={styles.jobLogo}>
                           {job.company_logo || '🏢'}
-                        </div>
+                        </div> */}
                         <div className={styles.jobInfo}>
                           <h3 className={styles.jobTitle}>{job.title}</h3>
                           <div className={styles.jobMeta}>
@@ -290,7 +314,13 @@ const Homepage = () => {
                           </div>
                         </div>
                       </div>
-                      <button className={styles.applyButton} onClick={() => navigate(`/jobs/${job.id}`)}>
+                      <button className={styles.applyButton} onClick={() => {
+                        if (!isAuthenticated) {
+                          navigate('/candidate/login');
+                        } else {
+                          handleJobClick(job);
+                        }
+                      }}>
                         Apply Now
                       </button>
                     </div>

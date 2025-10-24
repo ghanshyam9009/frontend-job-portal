@@ -227,6 +227,7 @@
 .inputGroup {
   flex: 1;
   position: relative;
+  margin-top: 4px;
 }
 
 .inputIcon {

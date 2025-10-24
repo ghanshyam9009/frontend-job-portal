@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
+import { FaCheck, FaEye, FaEdit, FaTimes } from "react-icons/fa";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const ManageJobs = () => {
@@ -11,6 +12,8 @@ const ManageJobs = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [editingTask, setEditingTask] = useState(null);
   const jobsPerPage = 10;
 
   // Fetch jobs data
@@ -18,11 +21,18 @@ const ManageJobs = () => {
     const fetchJobs = async () => {
       try {
         setLoading(true);
-        const jobsData = await adminService.getPendingJobs(); // Using pending jobs for now
-        setJobs(jobsData);
-        setFilteredJobs(jobsData);
+        setError(null);
+        const jobsData = await adminService.getPendingJobs();
+        // Ensure jobsData is always an array
+        const jobsArray = Array.isArray(jobsData) ? jobsData : [];
+        setJobs(jobsArray);
+        setFilteredJobs(jobsArray);
       } catch (error) {
         console.error('Failed to fetch jobs:', error);
+        setError('Failed to fetch jobs. Please try again.');
+        // Set empty arrays on error
+        setJobs([]);
+        setFilteredJobs([]);
       } finally {
         setLoading(false);
       }
@@ -33,18 +43,19 @@ const ManageJobs = () => {
 
   // Filter jobs based on search and status
   useEffect(() => {
-    let filtered = jobs;
+    // Ensure jobs is always an array
+    let filtered = Array.isArray(jobs) ? jobs : [];
 
     if (searchTerm) {
-      filtered = filtered.filter(job =>
-        job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.location.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(task =>
+        task.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        task.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        task.task_id?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     if (statusFilter !== "all") {
-      filtered = filtered.filter(job => job.status === statusFilter);
+      filtered = filtered.filter(task => task.status === statusFilter);
     }
 
     setFilteredJobs(filtered);
@@ -55,10 +66,11 @@ const ManageJobs = () => {
     const statusStyles = {
       active: { class: 'statusActive', text: 'Active' },
       pending: { class: 'statusInProgress', text: 'Pending' },
+      fulfilled: { class: 'statusActive', text: 'Fulfilled' },
       expired: { class: 'statusBlocked', text: 'Expired' }
     };
     
-    const statusInfo = statusStyles[status] || statusStyles.active;
+    const statusInfo = statusStyles[status] || statusStyles.pending;
     return <span className={`${styles.statusBadge} ${styles[statusInfo.class]}`}>{statusInfo.text}</span>;
   };
 
@@ -70,11 +82,102 @@ const ManageJobs = () => {
     });
   };
 
-  // Pagination
-  const totalPages = Math.ceil(filteredJobs.length / jobsPerPage);
+  const handleApproveTask = async (task) => {
+    try {
+      setLoading(true);
+      let result;
+      
+      switch (task.category) {
+        case 'postnewjob':
+          result = await adminService.approveJob(task.task_id);
+          break;
+        case 'editjob':
+          result = await adminService.approveEditedJob(task.task_id);
+          break;
+        case 'closedjob':
+          result = await adminService.approveJobClosing(task.task_id);
+          break;
+        case 'newapplication':
+          result = await adminService.approveJobApplicationByStudent(task.task_id);
+          break;
+        case 'change status of application':
+          result = await adminService.approveApplicationStatusChanged(task.task_id);
+          break;
+        default:
+          throw new Error('Unknown task category');
+      }
+      
+      alert(`Job approved successfully: ${result.message || 'Job fulfilled'}`);
+      
+      // Refresh the jobs list
+      const jobsData = await adminService.getPendingJobs();
+      const jobsArray = Array.isArray(jobsData) ? jobsData : [];
+      setJobs(jobsArray);
+      setFilteredJobs(jobsArray);
+      
+    } catch (error) {
+      console.error('Failed to approve job:', error);
+      alert('Failed to approve job. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRejectTask = async (task) => {
+    try {
+      setLoading(true);
+      let result;
+
+      switch (task.category) {
+        case 'postnewjob':
+          result = await adminService.rejectJob(task.task_id);
+          break;
+        default:
+          throw new Error('Rejection not supported for this task type');
+      }
+
+      alert(`Job rejected successfully: ${result.message || 'Job rejected'}`);
+
+      // Refresh the jobs list
+      const jobsData = await adminService.getPendingJobs();
+      const jobsArray = Array.isArray(jobsData) ? jobsData : [];
+      setJobs(jobsArray);
+      setFilteredJobs(jobsArray);
+
+    } catch (error) {
+      console.error('Failed to reject job:', error);
+      alert('Failed to reject job. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditTask = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      const result = await adminService.editTask(editingTask.task_id, editingTask);
+      alert(`Job edited successfully: ${result.message || 'Job edited'}`);
+      setEditingTask(null);
+      // Refresh the jobs list
+      const jobsData = await adminService.getPendingJobs();
+      const jobsArray = Array.isArray(jobsData) ? jobsData : [];
+      setJobs(jobsArray);
+      setFilteredJobs(jobsArray);
+    } catch (error) {
+      console.error('Failed to edit job:', error);
+      alert('Failed to edit job. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Pagination - ensure filteredJobs is always an array
+  const safeFilteredJobs = Array.isArray(filteredJobs) ? filteredJobs : [];
+  const totalPages = Math.ceil(safeFilteredJobs.length / jobsPerPage);
   const startIndex = (currentPage - 1) * jobsPerPage;
   const endIndex = startIndex + jobsPerPage;
-  const currentJobs = filteredJobs.slice(startIndex, endIndex);
+  const currentJobs = safeFilteredJobs.slice(startIndex, endIndex);
 
   if (loading) {
     return (
@@ -87,11 +190,29 @@ const ManageJobs = () => {
     );
   }
 
+  // Handle error state
+  if (error) {
+    return (
+      <div className={`${styles.mainContent} ${theme === 'dark' ? styles.dark : ''}`}>
+        <div className={styles.errorContainer}>
+          <h2>Error Loading Jobs</h2>
+          <p>{error}</p>
+          <button 
+            className={styles.retryBtn}
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`${styles.mainContent} ${theme === 'dark' ? styles.dark : ''}`}>
       <div className={styles.contentHeader}>
         <h1 className={styles.pageTitle}>Manage Jobs</h1>
-        <p className={styles.pageSubtitle}>View and manage all job postings</p>
+        <p className={styles.pageSubtitle}>View and manage all pending jobs requiring approval</p>
       </div>
 
       {/* Filters and Search */}
@@ -99,7 +220,7 @@ const ManageJobs = () => {
         <div className={styles.searchBox}>
           <input
             type="text"
-            placeholder="Search by job title, company, or location..."
+            placeholder="Search by job title, category, or ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
@@ -112,69 +233,75 @@ const ManageJobs = () => {
             className={`${styles.filterBtn} ${statusFilter === 'all' ? styles.active : ''}`}
             onClick={() => setStatusFilter('all')}
           >
-            All ({jobs.length})
-          </button>
-          <button
-            className={`${styles.filterBtn} ${statusFilter === 'active' ? styles.active : ''}`}
-            onClick={() => setStatusFilter('active')}
-          >
-            Active ({jobs.filter(j => j.status === 'active').length})
+            All ({safeFilteredJobs.length})
           </button>
           <button
             className={`${styles.filterBtn} ${statusFilter === 'pending' ? styles.active : ''}`}
             onClick={() => setStatusFilter('pending')}
           >
-            Pending ({jobs.filter(j => j.status === 'pending').length})
+            Pending ({safeFilteredJobs.filter(j => j.status === 'pending').length})
+          </button>
+          <button
+            className={`${styles.filterBtn} ${statusFilter === 'fulfilled' ? styles.active : ''}`}
+            onClick={() => setStatusFilter('fulfilled')}
+          >
+            Fulfilled ({safeFilteredJobs.filter(j => j.status === 'fulfilled').length})
           </button>
         </div>
       </div>
 
-      {/* Jobs Table */}
+      {/* Tasks Table */}
       <div className={styles.tableContainer}>
         <table className={styles.dataTable}>
           <thead>
             <tr>
-              <th>Job Title</th>
-              <th>Company</th>
-              <th>Location</th>
-              <th>Salary</th>
-              <th>Type</th>
+              <th>Category</th>
               <th>Status</th>
-              <th>Posted</th>
+              <th>Created</th>
+              <th>Updated</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {currentJobs.map((job) => (
-              <tr key={job.id}>
+            {currentJobs.map((task) => (
+              <tr key={task.id}>
                 <td>
-                  <div className={styles.jobInfo}>
-                    <h4 className={styles.jobTitle}>{job.title}</h4>
-                    <p className={styles.jobDescription}>{job.description}</p>
-                  </div>
+                  <span className={styles.jobTypeBadge}>{task.category}</span>
                 </td>
-                <td>
-                  <div className={styles.companyInfo}>
-                    <span className={styles.companyName}>{job.company_name}</span>
-                  </div>
-                </td>
-                <td className={styles.locationCell}>{job.location}</td>
-                <td className={styles.salaryCell}>{job.salary}</td>
-                <td>
-                  <span className={styles.jobTypeBadge}>{job.job_type}</span>
-                </td>
-                <td>{getStatusBadge(job.status)}</td>
-                <td className={styles.dateCell}>{formatDate(job.posted_date)}</td>
+                <td>{getStatusBadge(task.status)}</td>
+                <td className={styles.dateCell}>{formatDate(task.posted_date)}</td>
+                <td className={styles.dateCell}>{formatDate(task.updated_date)}</td>
                 <td>
                   <div className={styles.actionButtons}>
-                    <button className={styles.actionBtn} title="View Job">
-                      👁️
+                    {task.status === 'pending' && (
+                      <>
+                        <button
+                          className={styles.actionBtn}
+                          title="Approve"
+                          onClick={() => handleApproveTask(task)}
+                        >
+                          <FaCheck />
+                        </button>
+                        {task.category === 'postnewjob' && (
+                          <button
+                            className={styles.actionBtn}
+                            title="Reject"
+                            onClick={() => handleRejectTask(task)}
+                          >
+                            <FaTimes />
+                          </button>
+                        )}
+                      </>
+                    )}
+                    <button className={styles.actionBtn} title="View Details">
+                      <FaEye />
                     </button>
-                    <button className={styles.actionBtn} title="Edit">
-                      ✏️
-                    </button>
-                    <button className={styles.actionBtn} title="Delete">
-                      🗑️
+                    <button
+                      className={styles.actionBtn}
+                      title="Edit"
+                      onClick={() => setEditingTask(task)}
+                    >
+                      <FaEdit />
                     </button>
                   </div>
                 </td>
@@ -207,11 +334,65 @@ const ManageJobs = () => {
         </div>
       )}
 
-      {filteredJobs.length === 0 && (
+      {safeFilteredJobs.length === 0 && (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>📄</div>
           <h3>No jobs found</h3>
           <p>No jobs match your current filters.</p>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editingTask && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: theme === 'dark' ? '#333' : '#fff',
+            padding: '20px',
+            borderRadius: '8px',
+            width: '400px',
+            maxWidth: '90%'
+          }}>
+            <h3>Edit Job</h3>
+            <form onSubmit={handleEditTask}>
+              {/* Don't share Job Title and Job ID */}
+              <div style={{ marginBottom: '10px' }}>
+                <label>Description:</label>
+                <textarea
+                  value={editingTask.description || ''}
+                  onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
+                  style={{ width: '100%', height: '100px' }}
+                />
+              </div>
+              <div style={{ marginBottom: '10px' }}>
+                <label>Category:</label>
+                <input
+                  type="text"
+                  value={editingTask.category || ''}
+                  onChange={(e) => setEditingTask({ ...editingTask, category: e.target.value })}
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <button type="submit" style={{ padding: '10px 20px', backgroundColor: '#007bff', color: '#fff', border: 'none', borderRadius: '4px' }}>
+                  Save
+                </button>
+                <button type="button" onClick={() => setEditingTask(null)} style={{ padding: '10px 20px', backgroundColor: '#6c757d', color: '#fff', border: 'none', borderRadius: '4px' }}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
