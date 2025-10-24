@@ -291,7 +291,7 @@ span{
 
   }
   span{
-    font-family: unset;
+    font-family: inherit;
 
   }
   .logo {

@@ -31,7 +31,12 @@ const ManageJobs = () => {
         setLoading(true);
         setError("");
         const data = await recruiterExternalService.getAllPostedJobs(employerId);
-        const mapped = (data?.jobs || []).map((j) => ({
+        const allJobs = data?.jobs || [];
+        
+        // Filter only approved jobs
+        const approvedJobs = allJobs.filter(job => job.status === 'approved' || job.status === 'Open');
+        
+        const mapped = approvedJobs.map((j) => ({
           id: j.job_id,
           title: j.job_title,
           company: j.company_name || "",

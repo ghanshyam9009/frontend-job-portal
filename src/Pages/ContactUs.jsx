@@ -112,7 +112,7 @@ const ContactUs = () => {
               <h3>Our Office</h3>
               <div className={styles.contactItem}>
                 <span className={styles.contactIcon}>📍</span>
-                <span>413 -A Prem trade center, 3rd Floor Maharani road Near Gujarati Girls college, Indore (M.P.)</span>
+                <span>A 32 chandra nagar near by barfani dham vijay nagar pin 452010</span>
               </div>
               <div className={styles.contactItem}>
                 <span className={styles.contactIcon}>📞</span>

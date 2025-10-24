@@ -34,7 +34,10 @@ const RecruiterDashboard = () => {
 
         // Fetch jobs data
         const jobsData = await recruiterExternalService.getAllPostedJobs(user?.employer_id || user?.id);
-        const jobsList = jobsData?.jobs || [];
+        const allJobs = jobsData?.jobs || [];
+        
+        // Filter only approved jobs
+        const jobsList = allJobs.filter(job => job.status === 'approved' || job.status === 'Open');
         setJobs(jobsList);
 
         // Calculate stats

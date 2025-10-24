@@ -52,25 +52,110 @@ export const adminService = {
   async getPendingJobs() {
     try {
       // Using the external service to get all tasks
-      return await adminExternalService.getAllTasks();
+      const response = await adminExternalService.getAllTasks();
+      // Ensure we return an array of jobs
+      if (response && Array.isArray(response.tasks)) {
+        return response.tasks.map(task => ({
+          id: task.task_id,
+          task_id: task.task_id,
+          category: task.category,
+          title: this.getTaskTitle(task),
+          company_name: task.company_name || 'Unknown Company',
+          location: task.location || 'Unknown Location',
+          salary: task.salary || 'Not specified',
+          job_type: task.employment_type || 'Unknown',
+          status: task.status || 'pending',
+          posted_date: task.created_at || new Date().toISOString(),
+          updated_date: task.updated_at || new Date().toISOString(),
+          description: task.description || 'No description available',
+          job_id: task.job_id,
+          recruiter_id: task.recruiter_id,
+          application_id: task.application_id,
+          student_id: task.student_id
+        }));
+      }
+      return [];
     } catch (error) {
-      throw error;
+      console.error('Error fetching pending jobs:', error);
+      return [];
     }
   },
 
-  async approveJob(jobId) {
+  getTaskTitle(task) {
+    switch (task.category) {
+      case 'postnewjob':
+        return `New Job Posting - Job ID: ${task.job_id || 'Unknown'}`;
+      case 'editjob':
+        return `Edit Job - Job ID: ${task.job_id || 'Unknown'}`;
+      case 'closedjob':
+        return `Close Job - Job ID: ${task.job_id || 'Unknown'}`;
+      case 'newapplication':
+        return `New Application - Student ID: ${task.student_id || 'Unknown'}`;
+      case 'change status of application':
+        return `Application Status Change - Application ID: ${task.application_id || 'Unknown'}`;
+      default:
+        return `${task.category || 'Unknown Task'}`;
+    }
+  },
+
+  async approveJob(taskId) {
     try {
       // Using the external service for job posting approval
-      return await adminExternalService.approveJobPosting(jobId, 1);
+      return await adminExternalService.approveJobPosting(taskId, 1);
     } catch (error) {
       throw error;
     }
   },
 
-  async rejectJob(jobId) {
+  async rejectJob(taskId) {
     try {
       // Using the external service for job posting rejection
-      return await adminExternalService.rejectJobPosting(jobId, 0);
+      return await adminExternalService.rejectJobPosting(taskId, 0);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async approveEditedJob(taskId) {
+    try {
+      return await adminExternalService.approveEditedJob(taskId);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async approveJobClosing(taskId) {
+    try {
+      return await adminExternalService.approveJobClosing(taskId);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async approveJobApplicationByStudent(taskId) {
+    try {
+      return await adminExternalService.approveJobApplicationByStudent(taskId);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async approveApplicationStatusChanged(taskId) {
+    try {
+      return await adminExternalService.approveApplicationStatusChanged(taskId);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async editTask(taskId, taskData) {
+    try {
+      // Placeholder for edit functionality
+      // Assuming an API endpoint exists or needs to be implemented
+      // For example, using adminExternalService.editTask if available
+      // return await adminExternalService.editTask(taskId, taskData);
+      console.log('Editing task:', taskId, taskData);
+      return { message: 'Task edited successfully (placeholder)' };
     } catch (error) {
       throw error;
     }
