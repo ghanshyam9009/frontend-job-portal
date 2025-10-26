@@ -2,6 +2,7 @@ import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext"; // Import useTheme
+import { Home, Users, Building, FileText, Clock, Building2, ClipboardList, CreditCard, Phone, BarChart3, Settings, Bell } from "lucide-react";
 import styles from "../../Styles/AdminSidebar.module.css";
 
 const AdminSidebar = ({ isOpen, onClose }) => {
@@ -14,82 +15,82 @@ const AdminSidebar = ({ isOpen, onClose }) => {
     {
       id: 'dashboard',
       label: 'Dashboard',
-      icon: '🏠',
+      icon: Home,
       path: '/admin/dashboard'
     },
     {
       id: 'candidates',
       label: 'Manage Candidates',
-      icon: '👥',
+      icon: Users,
       path: '/admin/candidates'
     },
     {
       id: 'employers',
       label: 'Manage Employers',
-      icon: '💼',
+      icon: Building,
       path: '/admin/employers'
     },
     {
       id: 'jobs',
       label: 'Manage Jobs',
-      icon: '📄',
+      icon: FileText,
       path: '/admin/jobs'
     },
     {
       id: 'pending-jobs',
       label: 'Pending Jobs',
-      icon: '⏳',
+      icon: Clock,
       path: '/admin/pending-jobs'
     },
     {
       id: 'government-jobs',
       label: 'Government Jobs',
-      icon: '🏛️',
+      icon: Building2,
       path: '/admin/government-jobs'
     },
     {
       id: 'job-applications',
       label: 'Job Applications',
-      icon: '📋',
+      icon: ClipboardList,
       path: '/admin/job-applications',
       badge: 12
     },
     {
       id: 'membership',
       label: 'Membership Plans',
-      icon: '💳',
+      icon: CreditCard,
       path: '/admin/membership'
     },
     {
       id: 'homepage-forms',
       label: 'Homepage Forms',
-      icon: '📝',
+      icon: FileText,
       path: '/admin/homepage-forms',
       badge: 5
     },
     {
       id: 'contact-forms',
       label: 'Contact Forms',
-      icon: '📞',
+      icon: Phone,
       path: '/admin/contact-forms',
       badge: 3
     },
     {
       id: 'reports',
       label: 'Reports',
-      icon: '📊',
+      icon: BarChart3,
       path: '/admin/reports'
     },
     {
       id: 'settings',
       label: 'Settings',
-      icon: '⚙️',
+      icon: Settings,
       path: '/admin/settings'
     },
     {
       id: 'notifications',
       label: 'Notifications',
-      icon: '🔔',
+      icon: Bell,
       path: '/admin/notifications',
       badge: 9
     }
@@ -124,7 +125,7 @@ const AdminSidebar = ({ isOpen, onClose }) => {
                 className={`${styles.navLink} ${isActive(item.path) ? styles.active : ''}`}
                 onClick={() => handleNavigation(item.path)}
               >
-                <span className={styles.navIcon}>{item.icon}</span>
+                <item.icon className={styles.navIcon} />
                 <span className={styles.navLabel}>{item.label}</span>
                 {item.badge && (
                   <span className={styles.notificationCount}>{item.badge}</span>

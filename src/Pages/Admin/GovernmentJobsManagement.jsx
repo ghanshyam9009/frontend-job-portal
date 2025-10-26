@@ -3,6 +3,7 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import { useAuth } from "../../Contexts/AuthContext";
 import { adminService } from "../../services/adminService";
 import { adminExternalService } from "../../services";
+import { Building2, Edit, Trash2, Search, RefreshCw } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const GovernmentJobsManagement = () => {
@@ -259,7 +260,7 @@ const GovernmentJobsManagement = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
           />
-          <span className={styles.searchIcon}>🔍</span>
+          <Search className={styles.searchIcon} />
         </div>
         
         <div className={styles.filterButtons}>
@@ -297,7 +298,7 @@ const GovernmentJobsManagement = () => {
               fetchJobs();
             }}
           >
-            🔄 Refresh
+            <RefreshCw size={16} /> Refresh
           </button>
         </div>
       </div>
@@ -341,14 +342,14 @@ const GovernmentJobsManagement = () => {
                       className={`${styles.actionBtn} ${styles.viewBtn}`}
                       title="Edit Job"
                     >
-                      ✏️
+                      <Edit size={16} />
                     </button>
                     <button 
                       onClick={() => handleDelete(job.id || job.job_id)}
                       className={`${styles.actionBtn} ${styles.rejectBtn}`}
                       title="Delete Job"
                     >
-                      🗑️
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </td>
@@ -383,7 +384,7 @@ const GovernmentJobsManagement = () => {
 
       {filteredJobs.length === 0 && (
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>🏛️</div>
+          <Building2 className={styles.emptyIcon} />
           <h3>No government jobs found</h3>
           <p>No government jobs match your current filters.</p>
         </div>

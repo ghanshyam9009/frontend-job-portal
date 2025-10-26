@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { recruiterExternalService } from "../../services";
+import { Plus, Users, Star, Building, FileText, Circle, Trophy, Calendar, Briefcase, Mail, ArrowLeft } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 
 const RecruiterDashboard = () => {
@@ -142,25 +143,25 @@ const RecruiterDashboard = () => {
     {
       title: "Post New Job",
       description: "Create and publish a new job posting",
-      icon: "➕",
+      icon: <Plus size={20} />,
       action: () => navigate('/post-job')
     },
     {
       title: "View Applications",
       description: "Review candidate applications",
-      icon: "👥",
+      icon: <Users size={20} />,
       action: () => navigate('/candidate-applications')
     },
     {
       title: "Shortlist Candidates",
       description: "Manage your candidate shortlist",
-      icon: "⭐",
+      icon: <Star size={20} />,
       action: () => navigate('/shortlist-candidates')
     },
     {
       title: "Company Profile",
       description: "Update your company information",
-      icon: "🏢",
+      icon: <Building size={20} />,
       action: () => navigate('/company-profile')
     }
   ];
@@ -219,42 +220,42 @@ const RecruiterDashboard = () => {
             <section className={styles.statsSection}>
               <div className={styles.statsGrid}>
                 <div className={styles.statCard}>
-                  <div className={styles.statIcon}>📄</div>
+                  <div className={styles.statIcon}><FileText size={24} /></div>
                   <div className={styles.statInfo}>
                     <h3>{stats.totalJobs}</h3>
                     <p>Total Jobs Posted</p>
                   </div>
                 </div>
                 <div className={styles.statCard}>
-                  <div className={styles.statIcon}>🟢</div>
+                  <div className={styles.statIcon}><Circle size={24} /></div>
                   <div className={styles.statInfo}>
                     <h3>{stats.activeJobs}</h3>
                     <p>Active Jobs</p>
                   </div>
                 </div>
                 <div className={styles.statCard}>
-                  <div className={styles.statIcon}>👥</div>
+                  <div className={styles.statIcon}><Users size={24} /></div>
                   <div className={styles.statInfo}>
                     <h3>{stats.totalApplications}</h3>
                     <p>Total Applications</p>
                   </div>
                 </div>
                 <div className={styles.statCard}>
-                  <div className={styles.statIcon}>⭐</div>
+                  <div className={styles.statIcon}><Star size={24} /></div>
                   <div className={styles.statInfo}>
                     <h3>{stats.shortlistedCandidates}</h3>
                     <p>Shortlisted</p>
                   </div>
                 </div>
                 <div className={styles.statCard}>
-                  <div className={styles.statIcon}>📅</div>
+                  <div className={styles.statIcon}><Calendar size={24} /></div>
                   <div className={styles.statInfo}>
                     <h3>{stats.interviewsScheduled}</h3>
                     <p>Interviews Scheduled</p>
                   </div>
                 </div>
                 <div className={styles.statCard}>
-                  <div className={styles.statIcon}>🎉</div>
+                  <div className={styles.statIcon}><Trophy size={24} /></div>
                   <div className={styles.statInfo}>
                     <h3>{stats.hired}</h3>
                     <p>Hired</p>
@@ -276,10 +277,10 @@ const RecruiterDashboard = () => {
               <div className={styles.jobsList}>
                 {jobs.length === 0 ? (
                   <div className={styles.emptyState}>
-                    <div className={styles.emptyIcon}>💼</div>
+                    <div className={styles.emptyIcon}><Briefcase size={48} /></div>
                     <h3>No Jobs Posted Yet</h3>
                     <p>Create your first job posting to start attracting candidates.</p>
-                    <button 
+                    <button
                       className={styles.postJobBtn}
                       onClick={() => navigate('/post-job')}
                     >
@@ -340,10 +341,10 @@ const RecruiterDashboard = () => {
                   <div className={styles.applicationsList}>
                     {recentApplications.length === 0 ? (
                       <div className={styles.emptyState}>
-                        <div className={styles.emptyIcon}>📄</div>
+                        <div className={styles.emptyIcon}><FileText size={48} /></div>
                         <h3>No Applications Yet</h3>
                         <p>Start posting jobs to receive applications from candidates.</p>
-                        <button 
+                        <button
                           className={styles.postJobBtn}
                           onClick={() => navigate('/post-job')}
                         >
@@ -369,17 +370,17 @@ const RecruiterDashboard = () => {
                             </span>
                           </div>
                           <div className={styles.applicationActions}>
-                            <button 
+                            <button
                               className={styles.viewResumeBtn}
                               onClick={() => window.open(application.resume_url, '_blank')}
                             >
-                              View Resume
+                              <FileText size={16} />
                             </button>
-                            <button 
+                            <button
                               className={styles.contactBtn}
                               onClick={() => alert('Contact functionality will be implemented')}
                             >
-                              Contact
+                              <Mail size={16} />
                             </button>
                           </div>
                         </div>

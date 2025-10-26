@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { recruiterExternalService } from "../../services";
+import { Home, Plus, FileText, Users, Star, Building, CreditCard, Settings } from "lucide-react";
 import styles from "./RecruiterSidebar.module.css";
 
 const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
@@ -11,6 +12,7 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
   const { user } = useAuth();
   const { theme } = useTheme();
   const [recruiterProfile, setRecruiterProfile] = useState(null);
+  const [applicationCount, setApplicationCount] = useState(0);
 
   useEffect(() => {
     const fetchRecruiterProfile = async () => {
@@ -27,54 +29,88 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
     fetchRecruiterProfile();
   }, [user?.employer_id, user?.id]);
 
+  // Fetch application count dynamically
+  useEffect(() => {
+    const fetchApplicationCount = async () => {
+      if (user?.employer_id || user?.id) {
+        try {
+          const jobsData = await recruiterExternalService.getAllPostedJobs(user.employer_id || user.id);
+          const jobsList = (jobsData?.jobs || []).filter(job => job.status === 'approved' || job.status === 'Open');
+
+          let totalApplications = 0;
+          for (const job of jobsList) {
+            try {
+              const applicationsData = await recruiterExternalService.getAllApplicants(job.job_id);
+              totalApplications += (applicationsData.applications || []).length;
+            } catch (err) {
+              console.error(`Failed to fetch applications for job ${job.job_id}:`, err);
+            }
+          }
+
+          setApplicationCount(totalApplications);
+        } catch (err) {
+          console.error('Failed to fetch application count:', err);
+        }
+      }
+    };
+
+    // Fetch immediately
+    fetchApplicationCount();
+
+    // Set up polling every 30 seconds for real-time updates
+    const interval = setInterval(fetchApplicationCount, 30000);
+
+    return () => clearInterval(interval);
+  }, [user?.employer_id, user?.id]);
+
   const menuItems = [
     {
       id: 'dashboard',
       label: 'Dashboard',
-      icon: '🏠',
+      icon: <Home size={20} />,
       path: '/recruiter/dashboard'
     },
     {
       id: 'post-job',
       label: 'Post Job',
-      icon: '➕',
+      icon: <Plus size={20} />,
       path: '/post-job'
     },
     {
       id: 'manage-jobs',
       label: 'Manage Posted Jobs',
-      icon: '📄',
+      icon: <FileText size={20} />,
       path: '/manage-jobs'
     },
     {
       id: 'applications',
       label: 'Candidate Applications',
-      icon: '👥',
+      icon: <Users size={20} />,
       path: '/candidate-applications',
-      badge: 12
+      badge: applicationCount
     },
     {
       id: 'shortlist',
       label: 'Shortlist Candidates',
-      icon: '⭐',
+      icon: <Star size={20} />,
       path: '/shortlist-candidates'
     },
     {
       id: 'profile',
       label: 'Company Profile',
-      icon: '🏢',
+      icon: <Building size={20} />,
       path: '/company-profile'
     },
     {
       id: 'membership',
       label: 'Membership & Tokens',
-      icon: '💳',
+      icon: <CreditCard size={20} />,
       path: '/membership-tokens'
     },
     {
       id: 'settings',
       label: 'Settings',
-      icon: '⚙️',
+      icon: <Settings size={20} />,
       path: '/recruiter-settings'
     }
   ];

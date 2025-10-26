@@ -4,6 +4,7 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
 import RecruiterSidebar from "../../Components/Recruiter/RecruiterSidebar";
 import { recruiterExternalService } from "../../services";
+import { Star, Mail, Calendar, ArrowLeft, FileText } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 
 const ShortlistCandidates = () => {
@@ -137,10 +138,10 @@ const ShortlistCandidates = () => {
             )}
             {filteredCandidates.length === 0 ? (
               <div className={styles.emptyState}>
-                <div className={styles.emptyIcon}>⭐</div>
+                <div className={styles.emptyIcon}><Star size={48} /></div>
                 <h3>No shortlisted candidates</h3>
                 <p>
-                  {selectedJob === "All" 
+                  {selectedJob === "All"
                     ? "You haven't shortlisted any candidates yet. Go to applications to shortlist candidates."
                     : "No candidates have been shortlisted for this job yet."
                   }
@@ -162,7 +163,7 @@ const ShortlistCandidates = () => {
                     </div>
                     <div className={styles.candidateStatus}>
                       <span className={`${styles.statusBadge} ${styles.statusActive}`}>
-                        ✓ Shortlisted
+                        <Star size={16} /> Shortlisted
                       </span>
                     </div>
                   </div>
@@ -174,36 +175,36 @@ const ShortlistCandidates = () => {
                     </div>
                     <div className={styles.resumeSection}>
                       <h5>Resume:</h5>
-                      <a 
-                        href={candidate.resume_url} 
-                        target="_blank" 
+                      <a
+                        href={candidate.resume_url}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className={styles.resumeLink}
                       >
-                        📄 View Resume
+                        <FileText size={16} />
                       </a>
                     </div>
                   </div>
 
                   <div className={styles.candidateActions}>
-                    <button 
+                    <button
                       className={`${styles.actionBtn} ${styles.contactBtn}`}
                       onClick={() => alert('Contact functionality will be implemented')}
                     >
-                      📧 Contact Candidate
+                      <Mail size={16} />
                     </button>
-                    <button 
+                    <button
                       className={`${styles.actionBtn} ${styles.interviewBtn}`}
                       onClick={() => alert('Interview scheduling will be implemented')}
                     >
-                      📅 Schedule Interview
+                      <Calendar size={16} />
                     </button>
-                    <button 
+                    <button
                       className={`${styles.actionBtn} ${styles.pendingBtn}`}
                       onClick={() => handleUpdateApplicationStatus(candidate.application_id, false)}
                       disabled={loading}
                     >
-                      ↩️ Remove from Shortlist
+                      <ArrowLeft size={16} />
                     </button>
                   </div>
                 </div>

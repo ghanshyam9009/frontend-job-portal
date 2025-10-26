@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
 import { adminExternalService } from "../../services";
+import { Eye, Check, X, User, Mail, Phone, Calendar, FileText } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const JobApplications = () => {
@@ -149,7 +150,7 @@ const JobApplications = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
           />
-          <span className={styles.searchIcon}>🔍</span>
+          <Search className={styles.searchIcon} />
         </div>
         
         <div className={styles.filterButtons}>
@@ -226,7 +227,7 @@ const JobApplications = () => {
                       className={`${styles.actionBtn} ${styles.viewBtn}`}
                       title="View Application"
                     >
-                      👁️
+                      <Eye size={16} />
                     </button>
                     {application.status === 'pending' && (
                       <>
@@ -235,14 +236,14 @@ const JobApplications = () => {
                           className={`${styles.actionBtn} ${styles.approveBtn}`}
                           title="Approve Application"
                         >
-                          ✅
+                          <Check size={16} />
                         </button>
                         <button 
                           onClick={() => handleReject(application.id)}
                           className={`${styles.actionBtn} ${styles.rejectBtn}`}
                           title="Reject Application"
                         >
-                          ❌
+                          <X size={16} />
                         </button>
                       </>
                     )}
@@ -279,7 +280,7 @@ const JobApplications = () => {
 
       {filteredApplications.length === 0 && (
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>📋</div>
+          <FileText className={styles.emptyIcon} />
           <h3>No applications found</h3>
           <p>No job applications match your current filters.</p>
         </div>
@@ -374,7 +375,7 @@ const JobApplications = () => {
                     rel="noopener noreferrer"
                     className={styles.resumeLink}
                   >
-                    📄 View Resume
+                    <FileText size={16} /> View Resume
                   </a>
                 </div>
               </div>

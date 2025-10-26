@@ -3,6 +3,7 @@ import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
 import RecruiterSidebar from "../../Components/Recruiter/RecruiterSidebar";
+import { CheckCircle, Clock, XCircle, Check } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 
 const CompanyProfile = () => {
@@ -377,9 +378,9 @@ const CompanyProfile = () => {
                     <h2>KYC Verification</h2>
                     <div className={styles.kycStatus}>
                       <span className={`${styles.statusBadge} ${getKycStatusColor(profileData.kyc_status)}`}>
-                        {profileData.kyc_status === 'verified' ? '✓ Verified' : 
-                         profileData.kyc_status === 'pending' ? '⏳ Pending Review' : 
-                         '❌ Not Verified'}
+                        {profileData.kyc_status === 'verified' ? <><CheckCircle size={16} /> Verified</> :
+                         profileData.kyc_status === 'pending' ? <><Clock size={16} /> Pending Review</> :
+                         <><XCircle size={16} /> Not Verified</>}
                       </span>
                     </div>
                   </div>
@@ -440,6 +441,9 @@ const CompanyProfile = () => {
                     </div>
                     
                     <div className={styles.formActions}>
+                      <button type="button" className={styles.backBtn} onClick={() => setCurrentStep(1)}>
+                        Go Back
+                      </button>
                       <button type="submit" className={styles.submitBtn} disabled={loading}>
                         {loading ? "Submitting..." : "Submit KYC for Verification"}
                       </button>
@@ -468,9 +472,9 @@ const CompanyProfile = () => {
               </button>
             </div>
             <div className={styles.modalBody}>
-              <div className={styles.successIcon}>✓</div>
+              <div className={styles.successIcon}><Check size={24} /></div>
               <p className={styles.successMessage}>
-                {profileData.kyc_status === 'pending' ? 
+                {profileData.kyc_status === 'pending' ?
                   'KYC information submitted successfully! It will be reviewed by our admin team.' :
                   'Company profile updated successfully!'
                 }

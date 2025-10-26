@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { jobService } from "../../services/jobService";
+import { Check } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 
 const PostJob = () => {
@@ -402,7 +403,7 @@ const PostJob = () => {
               </button>
             </div>
             <div className={styles.modalBody}>
-              <div className={styles.successIcon}>✓</div>
+              <div className={styles.successIcon}><Check size={24} /></div>
               <p className={styles.successMessage}>
                 Job posted successfully! It will be reviewed by an admin.
               </p>
