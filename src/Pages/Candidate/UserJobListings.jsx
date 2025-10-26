@@ -5,6 +5,7 @@ import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
 import CandidateSidebar from "../../Components/Candidate/CandidateSidebar";
 import styles from "./UserDashboard.module.css";
 import { candidateExternalService } from "../../services";
+import { candidateService } from "../../services/candidateService";
 
 const UserJobListings = () => {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ const UserJobListings = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [filters, setFilters] = useState({ keyword: "", location: "", employment_type: "" });
+  const [isPremium, setIsPremium] = useState(false);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -39,6 +41,7 @@ const UserJobListings = () => {
           salary: j.salary_range ? `₹${j.salary_range.min} - ₹${j.salary_range.max} / ${j.employment_type ? 'year' : ''}` : "",
           location: j.location || "",
           type: j.employment_type || "Full-time",
+          isPremium: Math.random() > 0.7, // Simulate premium jobs
         }));
         setJobs(mapped);
       } catch (e) {
@@ -49,6 +52,20 @@ const UserJobListings = () => {
     };
     fetchJobs();
   }, []);
+
+  useEffect(() => {
+    const fetchUserPremiumStatus = async () => {
+      if (user?.email) {
+        try {
+          const response = await candidateService.getUserPremiumStatus(user.email);
+          setIsPremium(response.data?.is_premium || false);
+        } catch (error) {
+          console.error('Error fetching premium status:', error);
+        }
+      }
+    };
+    fetchUserPremiumStatus();
+  }, [user]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -148,11 +165,18 @@ const UserJobListings = () => {
           <div className={styles.jobsGrid}>
             {loading && <div className={styles.emptyState}><h3>Loading jobs…</h3></div>}
             {error && <div className={styles.emptyState}><h3>{error}</h3></div>}
+            {isPremium && (
+              <div className={styles.premiumMessage}>
+                <span className={styles.premiumIcon}>👑</span>
+                <p>You are a premium member! Enjoy enhanced features and priority access to jobs.</p>
+              </div>
+            )}
             {jobs.map(job => (
               <div key={job.id} className={styles.jobCard}>
                 <div className={styles.jobCardHeader}>
                   <div className={styles.jobIcon}>💼</div>
                   <div className={styles.jobType}>{job.type}</div>
+                  {job.isPremium && <div className={styles.premiumBadge}>Premium</div>}
                 </div>
                 <h3 className={styles.jobTitle}>{job.title}</h3>
                 <p className={styles.jobCompany}>{job.company}</p>

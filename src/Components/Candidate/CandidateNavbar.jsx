@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import styles from "../../Styles/CandidateNavbar.module.css";
@@ -57,8 +57,10 @@ const CandidateNavbar = ({ toggleSidebar }) => {
           ☰
         </button>
         <div className={styles.logo}>
-          <img src={logo} alt="JobPortal Logo" />
-          <span>Bigsources Manpower Solution</span>
+          <Link to="/">
+            <img src={logo} alt="JobPortal Logo" />
+          </Link>
+          <span>Bigsources.in</span>
         </div>
       </div>
       

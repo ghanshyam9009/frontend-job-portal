@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext"; // Import useTheme
 import styles from "../../Styles/AdminNavbar.module.css";
@@ -35,8 +35,10 @@ const AdminNavbar = ({ onLogout, onMobileMenuToggle }) => {
           ☰
         </button>
            <div className={styles.logo}>
-                         <img src={logo} alt="JobPortal Logo" />
-                         <span>Bigsources Manpower Solution</span>
+                         <Link to="/">
+                           <img src={logo} alt="JobPortal Logo" />
+                         </Link>
+                         {/* <span>Bigsources Manpower Solution</span> */}
                        </div>
    
       </div>

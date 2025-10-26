@@ -24,6 +24,7 @@ const RecruiterDashboard = () => {
   });
   const [recentApplications, setRecentApplications] = useState([]);
   const [jobs, setJobs] = useState([]);
+  const [recruiterProfile, setRecruiterProfile] = useState(null);
 
   // Fetch dashboard data
   useEffect(() => {
@@ -97,6 +98,22 @@ const RecruiterDashboard = () => {
       setLoading(false);
     }
   }, [user, isPendingApproval]);
+
+  // Fetch recruiter profile
+  useEffect(() => {
+    const fetchRecruiterProfile = async () => {
+      if (user?.employer_id || user?.id) {
+        try {
+          const profile = await recruiterExternalService.getRecruiterProfile(user.employer_id || user.id);
+          setRecruiterProfile(profile);
+        } catch (err) {
+          console.error('Failed to fetch recruiter profile:', err);
+        }
+      }
+    };
+
+    fetchRecruiterProfile();
+  }, [user?.employer_id, user?.id]);
 
   // Helper function to get status class
   const getStatusClass = (status) => {
@@ -194,7 +211,7 @@ const RecruiterDashboard = () => {
           <>
             <section className={styles.dashboardHeader}>
               <div className={styles.welcomeSection}>
-                <h1>Welcome back, {user?.companyName || 'Recruiter'}!</h1>
+                <h1>Welcome back, {recruiterProfile?.name || 'Recruiter'}!</h1>
                 <p>Here's what's happening with your job postings and candidates.</p>
               </div>
             </section>

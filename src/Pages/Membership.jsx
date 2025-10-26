@@ -58,6 +58,23 @@ const candidatePlans = [
 
 const employerPlans = [
   {
+    name: "Basic",
+    description: "Free basic plan with 15 days trial and first job premium apply free.",
+    price: "Free",
+    validity: "15 Days",
+    features: [
+      { name: "15 days free trial", included: true },
+      { name: "First job premium apply free", included: true },
+      { name: "Basic job postings", included: true },
+      { name: "Access to candidate profiles", included: true },
+      { name: "Email support", included: true },
+      { name: "Standard job visibility", included: true },
+      { name: "Advanced candidate filtering", included: false },
+      { name: "Priority support", included: false }
+    ],
+    style: "employer"
+  },
+  {
     name: "Employer Plan",
     description: "Simple per-post payment model for flexible recruitment needs.",
     price: "₹300",
@@ -73,24 +90,6 @@ const employerPlans = [
       { name: "Advanced analytics", included: false }
     ],
     style: "employer"
-  },
-  {
-    name: "Premium Employer",
-    description: "Enhanced recruitment solution with advanced features and priority support.",
-    price: "₹800",
-    validity: "3 Months",
-    features: [
-      { name: "Unlimited job postings", included: true },
-      { name: "Featured job listings", included: true },
-      { name: "Advanced candidate filtering", included: true },
-      { name: "Priority support", included: true },
-      { name: "Detailed analytics dashboard", included: true },
-      { name: "Bulk candidate messaging", included: true },
-      { name: "Interview scheduling tools", included: false },
-      { name: "ATS integration", included: false }
-    ],
-    style: "employer",
-    comingSoon: true
   },
   {
     name: "Enterprise Solutions",

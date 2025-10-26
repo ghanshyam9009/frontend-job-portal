@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
+import { recruiterExternalService } from "../../services";
 import styles from "./RecruiterSidebar.module.css";
 
 const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
@@ -9,6 +10,22 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { theme } = useTheme();
+  const [recruiterProfile, setRecruiterProfile] = useState(null);
+
+  useEffect(() => {
+    const fetchRecruiterProfile = async () => {
+      if (user?.employer_id || user?.id) {
+        try {
+          const profile = await recruiterExternalService.getRecruiterProfile(user.employer_id || user.id);
+          setRecruiterProfile(profile);
+        } catch (err) {
+          console.error('Failed to fetch recruiter profile:', err);
+        }
+      }
+    };
+
+    fetchRecruiterProfile();
+  }, [user?.employer_id, user?.id]);
 
   const menuItems = [
     {
@@ -99,11 +116,8 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
       
       <div className={styles.userCard}>
         <div className={styles.userInfo}>
-          <div className={styles.userAvatar}>
-            {user?.companyName?.charAt(0)?.toUpperCase() || 'R'}
-          </div>
           <div className={styles.userDetails}>
-            <div className={styles.userName}>{user?.companyName || 'Company'}</div>
+            <div className={styles.userName}>{recruiterProfile?.company_name || 'Company'}</div>
             <div className={styles.userEmail}>{user?.email || 'company@example.com'}</div>
           </div>
         </div>

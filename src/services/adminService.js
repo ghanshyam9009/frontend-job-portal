@@ -205,7 +205,7 @@ export const adminService = {
   // Government Jobs Management Functions
   async createGovernmentJob(jobData) {
     try {
-      const response = await adminApiClient.post('/job/Govtjobs', jobData);
+      const response = await adminApiClient.post(API_ENDPOINTS.jobs.createGovernmentJob, jobData);
       return response;
     } catch (error) {
       throw error;
@@ -214,7 +214,7 @@ export const adminService = {
 
   async updateGovernmentJob(jobId, jobData) {
     try {
-      const response = await adminApiClient.put(`/job/updateGovtjobs/${jobId}`, jobData);
+      const response = await adminApiClient.post(API_ENDPOINTS.jobs.updateGovernmentJob(jobId), jobData);
       return response;
     } catch (error) {
       throw error;
@@ -223,10 +223,8 @@ export const adminService = {
 
   async getGovernmentJobs() {
     try {
-      // TODO: Replace with a real API endpoint for getting government jobs
-      console.warn('Mock getGovernmentJobs called');
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return [];
+      const response = await adminApiClient.get(API_ENDPOINTS.jobs.getGovernmentJobs);
+      return response.data || [];
     } catch (error) {
       throw error;
     }

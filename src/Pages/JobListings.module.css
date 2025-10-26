@@ -124,6 +124,7 @@
 }
 
 .searchButton {
+  margin-left: 19px;
   background: #3b82f6;
   color: white;
   border: none;
@@ -557,6 +558,24 @@
   color: #f9fafb;
 }
 
+.jobHeader {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.jobsInfo {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.dark .jobsInfo {
+  color: #d1d5db;
+}
+
 .jobsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -780,6 +799,56 @@
   display: block;
 }
 
+/* Sidebar Content */
+.sidebarContent {
+  padding: 20px 0;
+}
+
+.sidebarSection {
+  margin-bottom: 30px;
+}
+
+.sidebarSection h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 12px;
+}
+
+.dark .sidebarSection h3 {
+  color: #f8f9fa;
+}
+
+.categoryList,
+.tipsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.categoryList li,
+.tipsList li {
+  padding: 8px 0;
+  font-size: 14px;
+  color: #6b7280;
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.dark .categoryList li,
+.dark .tipsList li {
+  color: #d1d5db;
+  border-bottom-color: #374151;
+}
+
+.categoryList li:hover,
+.tipsList li:hover {
+  color: #3b82f6;
+}
+
+
+
 /* Responsive: stack on mobile */
 @media (max-width: 900px) {
   .mainContentNoSidebar {
@@ -894,7 +963,7 @@
 
 .jobDetails {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 6px;
   margin-bottom: 12px;
 }

@@ -50,7 +50,7 @@ const AdminLogin = () => {
       <div className={styles.leftPanel}>
         <div className={styles.header}>
           <img src={logo} alt="logo" className={styles.logo} />
-          <h1 className={styles.companyName}>Bigsources Manpower Solution</h1>
+          <h1 className={styles.companyName}>Bigsources.in</h1>
 
         </div>
         <div className={styles.formContainer}>
@@ -61,7 +61,6 @@ const AdminLogin = () => {
               <label className={styles.label}>
                 <span className={styles.labelText}>Email Address</span>
                 <div className={styles.inputWrapper}>
-                  <span className={styles.inputIcon}>✉️</span>
                   <input
                     type="email"
                     name="email"
@@ -79,7 +78,6 @@ const AdminLogin = () => {
               <label className={styles.label}>
                 <span className={styles.labelText}>Password</span>
                 <div className={styles.inputWrapper}>
-                  <span className={styles.inputIcon}>🔒</span>
                   <input
                     type="password"
                     name="password"

@@ -28,8 +28,7 @@ export { default as recruiterExternalService } from './recruiterExternalService'
 // External admin AWS approval endpoints
 export { default as adminExternalService } from './adminExternalService';
 
+export { recruiterService } from './recruiterService';
+
 // External candidate AWS endpoints
 export { default as candidateExternalService } from './candidateExternalService';
-
-
-

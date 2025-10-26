@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import styles from "../../Styles/AdminDashboard.module.css";
 import { planService } from "../../services/planService";
+import { candidateService } from "../../services/candidateService";
 
 const ManageMembershipPlans = () => {
   const { theme } = useTheme();
@@ -13,6 +14,8 @@ const ManageMembershipPlans = () => {
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentPlan, setCurrentPlan] = useState(null);
+  const [premiumPrices, setPremiumPrices] = useState({ gold: 400, platinum: 500, silver: 1000 });
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   const fetchPlans = async () => {
     setIsLoading(true);
@@ -30,7 +33,19 @@ const ManageMembershipPlans = () => {
 
   useEffect(() => {
     fetchPlans();
+    fetchPremiumPrices();
   }, [planType]);
+
+  const fetchPremiumPrices = async () => {
+    try {
+      const response = await candidateService.getPremiumPrices();
+      if (response.data) {
+        setPremiumPrices(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching premium prices:', error);
+    }
+  };
 
   const handleOpenAddModal = () => {
     setIsEditing(false);
@@ -112,6 +127,25 @@ const ManageMembershipPlans = () => {
     }
   };
 
+  const handlePremiumPriceChange = (e) => {
+    const { name, value } = e.target;
+    setPremiumPrices(prev => ({ ...prev, [name]: Number(value) }));
+  };
+
+  const handleUpdatePremiumPrices = async () => {
+    try {
+      await candidateService.updatePremiumPrices({
+        email: "admin@example.com", // Use a default admin email or get from context
+        ...premiumPrices
+      });
+      alert("Premium prices updated successfully!");
+      setShowPremiumModal(false);
+    } catch (error) {
+      console.error('Error updating premium prices:', error);
+      alert("Failed to update premium prices.");
+    }
+  };
+
   const getStatusBadge = (status) => {
     const isActive = status === 'Active';
     return (
@@ -133,9 +167,33 @@ const ManageMembershipPlans = () => {
           <button onClick={() => setPlanType("CANDIDATE")} className={planType === 'CANDIDATE' ? styles.activeFilter : ''}>Candidate Plans</button>
           <button onClick={() => setPlanType("RECRUITER")} className={planType === 'RECRUITER' ? styles.activeFilter : ''}>Recruiter Plans</button>
         </div>
-        <button className={styles.addBtn} onClick={handleOpenAddModal}>
-          + Add New Plan
-        </button>
+        <div>
+          <button className={styles.addBtn} onClick={() => setShowPremiumModal(true)}>
+            Manage Premium Prices
+          </button>
+          <button className={styles.addBtn} onClick={handleOpenAddModal}>
+            + Add New Plan
+          </button>
+        </div>
+      </div>
+
+      {/* Premium Prices Section */}
+      <div className={styles.premiumPricesSection}>
+        <h3>Premium Plan Prices</h3>
+        <div className={styles.premiumPricesGrid}>
+          <div className={styles.priceCard}>
+            <h4>Gold</h4>
+            <p>₹{premiumPrices.gold}</p>
+          </div>
+          <div className={styles.priceCard}>
+            <h4>Platinum</h4>
+            <p>₹{premiumPrices.platinum}</p>
+          </div>
+          <div className={styles.priceCard}>
+            <h4>Silver</h4>
+            <p>₹{premiumPrices.silver}</p>
+          </div>
+        </div>
       </div>
 
       {isLoading && <p>Loading plans...</p>}
@@ -227,6 +285,32 @@ const ManageMembershipPlans = () => {
               <div className={styles.modalActions}>
                 <button type="button" className={styles.cancelBtn} onClick={handleCloseModal}>Cancel</button>
                 <button type="submit" className={styles.submitBtn}>{isEditing ? "Save Changes" : "Create Plan"}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showPremiumModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h2>Update Premium Prices</h2>
+            <form onSubmit={(e) => { e.preventDefault(); handleUpdatePremiumPrices(); }}>
+              <div className={styles.formField}>
+                <label>Gold Price (₹)</label>
+                <input type="number" name="gold" value={premiumPrices.gold} onChange={handlePremiumPriceChange} required min="0" />
+              </div>
+              <div className={styles.formField}>
+                <label>Platinum Price (₹)</label>
+                <input type="number" name="platinum" value={premiumPrices.platinum} onChange={handlePremiumPriceChange} required min="0" />
+              </div>
+              <div className={styles.formField}>
+                <label>Silver Price (₹)</label>
+                <input type="number" name="silver" value={premiumPrices.silver} onChange={handlePremiumPriceChange} required min="0" />
+              </div>
+              <div className={styles.modalActions}>
+                <button type="button" className={styles.cancelBtn} onClick={() => setShowPremiumModal(false)}>Cancel</button>
+                <button type="submit" className={styles.submitBtn}>Update Prices</button>
               </div>
             </form>
           </div>
