@@ -5,6 +5,7 @@ import { Search, MapPin, Calendar, Building2, Users, Clock } from "lucide-react"
 import styles from "../Styles/GovernmentJobs.module.css";
 import HomeNav from "../Components/HomeNav";
 import Footer from "../Components/Footer";
+import { candidateExternalService } from "../services";
 
 const GovernmentJobs = () => {
   const { theme } = useTheme();
@@ -16,91 +17,33 @@ const GovernmentJobs = () => {
   const [locationFilter, setLocationFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
 
-  // Mock government jobs data
+  // Fetch government jobs data
   useEffect(() => {
-    const mockGovtJobs = [
-      {
-        id: "govt-1",
-        job_title: "SSC CGL 2025 Notification",
-        description: "Recruitment for various Group B & C posts in different ministries and departments.",
-        location: "India",
-        salary_range: "₹44,900 - ₹1,42,400",
-        employment_type: "Full-time",
-        department_name: "Staff Selection Commission",
-        application_deadline: "2025-12-31",
-        contact_email: "ssc@nic.in",
-        posted_date: "2025-01-15",
-        status: "Open",
-        total_posts: 7500,
-        application_fee: "₹100"
-      },
-      {
-        id: "govt-2",
-        job_title: "IBPS PO 2025",
-        description: "Probationary Officer recruitment in various public sector banks.",
-        location: "Pan India",
-        salary_range: "₹36,000 - ₹63,840",
-        employment_type: "Full-time",
-        department_name: "Institute of Banking Personnel Selection",
-        application_deadline: "2025-03-15",
-        contact_email: "ibps@ibps.in",
-        posted_date: "2025-01-10",
-        status: "Open",
-        total_posts: 4000,
-        application_fee: "₹850"
-      },
-      {
-        id: "govt-3",
-        job_title: "Railway Recruitment Board - NTPC",
-        description: "Non-Technical Popular Categories recruitment in Indian Railways.",
-        location: "All India",
-        salary_range: "₹19,900 - ₹35,400",
-        employment_type: "Full-time",
-        department_name: "Railway Recruitment Board",
-        application_deadline: "2025-04-30",
-        contact_email: "rrb@railnet.gov.in",
-        posted_date: "2025-01-05",
-        status: "Open",
-        total_posts: 35000,
-        application_fee: "₹500"
-      },
-      {
-        id: "govt-4",
-        job_title: "UPSC Civil Services 2025",
-        description: "Indian Administrative Service, Indian Police Service, and other Group A services.",
-        location: "India",
-        salary_range: "₹56,100 - ₹2,50,000",
-        employment_type: "Full-time",
-        department_name: "Union Public Service Commission",
-        application_deadline: "2025-02-21",
-        contact_email: "upsc@nic.in",
-        posted_date: "2024-12-20",
-        status: "Open",
-        total_posts: 1056,
-        application_fee: "₹100"
-      },
-      {
-        id: "govt-5",
-        job_title: "Defence Research and Development Organisation",
-        description: "Scientist and Engineer positions in DRDO laboratories.",
-        location: "Various Locations",
-        salary_range: "₹67,700 - ₹2,08,700",
-        employment_type: "Full-time",
-        department_name: "DRDO",
-        application_deadline: "2025-03-10",
-        contact_email: "recruitment@drdo.in",
-        posted_date: "2025-01-12",
-        status: "Open",
-        total_posts: 300,
-        application_fee: "₹100"
+    const fetchJobs = async () => {
+      try {
+        setLoading(true);
+        const jobsData = await candidateExternalService.getAllJobs();
+        // Filter for government jobs based on department_name or category
+        const govtJobs = (jobsData?.jobs || []).filter(job =>
+          job.department_name?.toLowerCase().includes('government') ||
+          job.department_name?.toLowerCase().includes('commission') ||
+          job.department_name?.toLowerCase().includes('board') ||
+          job.category?.toLowerCase().includes('government') ||
+          job.job_title?.toLowerCase().includes('govt') ||
+          job.job_title?.toLowerCase().includes('government')
+        );
+        setJobs(govtJobs);
+        setFilteredJobs(govtJobs);
+      } catch (error) {
+        console.error('Failed to fetch government jobs:', error);
+        setJobs([]);
+        setFilteredJobs([]);
+      } finally {
+        setLoading(false);
       }
-    ];
+    };
 
-    setTimeout(() => {
-      setJobs(mockGovtJobs);
-      setFilteredJobs(mockGovtJobs);
-      setLoading(false);
-    }, 1000);
+    fetchJobs();
   }, []);
 
   // Filter jobs based on search and filters
@@ -130,8 +73,11 @@ const GovernmentJobs = () => {
     setFilteredJobs(filtered);
   }, [searchTerm, locationFilter, departmentFilter, jobs]);
 
-  const handleJobClick = (jobId) => {
-    navigate(`/government-job/${jobId}`);
+  const handleJobClick = (job) => {
+    const jobSlug = job.job_title?.toLowerCase().replace(/\s+/g, '-') || job.id;
+    navigate(`/job/${jobSlug}`, {
+      state: { job }
+    });
   };
 
   const formatDate = (dateString) => {
@@ -164,16 +110,24 @@ const GovernmentJobs = () => {
       <HomeNav />
       <h1 className={styles.title}>Government Jobs</h1>
       <div className={styles.jobList}>
-        {filteredJobs.map((job) => (
-          <div key={job.id} className={styles.jobCard} onClick={() => handleJobClick(job.id)}>
-            <h2 className={styles.jobTitle}>{job.job_title}</h2>
-            <p className={styles.department}>{job.department_name}</p>
-            <div className={styles.details}>
-              <p className={styles.location}>{job.location}</p>
-              <button className={styles.applyButton}>Apply Now</button>
-            </div>
+        {filteredJobs.length === 0 ? (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIcon}>🏛️</div>
+            <h3>No government jobs found</h3>
+            <p>No government jobs match your current filters.</p>
           </div>
-        ))}
+        ) : (
+          filteredJobs.map((job) => (
+            <div key={job.id || job.job_id} className={styles.jobCard} onClick={() => handleJobClick(job)}>
+              <h2 className={styles.jobTitle}>{job.job_title || 'N/A'}</h2>
+              <p className={styles.department}>{job.department_name || 'N/A'}</p>
+              <div className={styles.details}>
+                <p className={styles.location}>{job.location || 'N/A'}</p>
+                <button className={styles.applyButton}>Apply Now</button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
       <Footer />
     </div>

@@ -45,6 +45,9 @@ const CompanyProfile = () => {
     address_proof: ""
   });
 
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 2;
+
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
   // Fetch profile data on component mount
@@ -203,11 +206,31 @@ const CompanyProfile = () => {
             <p>Manage your company information and KYC documents</p>
           </div>
 
+          {/* Step Indicator */}
+          <div className={styles.stepIndicator}>
+            <div className={styles.stepProgress}>
+              <div className={styles.progressBar} style={{ width: `${(currentStep / totalSteps) * 100}%` }}></div>
+            </div>
+            <div className={styles.steps}>
+              <div className={`${styles.step} ${currentStep >= 1 ? styles.active : ''}`}>
+                <div className={styles.stepNumber}>1</div>
+                <div className={styles.stepLabel}>Company Information</div>
+                <div className={styles.stepPercentage}>{currentStep >= 1 ? `${(1 / totalSteps) * 100}%` : '0%'}</div>
+              </div>
+              <div className={`${styles.step} ${currentStep >= 2 ? styles.active : ''}`}>
+                <div className={styles.stepNumber}>2</div>
+                <div className={styles.stepLabel}>KYC Verification</div>
+                <div className={styles.stepPercentage}>{currentStep >= 2 ? `${(2 / totalSteps) * 100}%` : '0%'}</div>
+              </div>
+            </div>
+          </div>
+
           <div className={styles.profileTabs}>
             <div className={styles.tabContent}>
               {/* Company Information Tab */}
-              <div className={styles.formSection}>
-                <h2>Company Information</h2>
+              {currentStep === 1 && (
+                <div className={styles.formSection}>
+                  <h2>Company Information</h2>
                 <form onSubmit={handleProfileUpdate} className={styles.profileForm}>
                   <div className={styles.formGrid}>
                     <div className={styles.formGroup}>
@@ -339,85 +362,91 @@ const CompanyProfile = () => {
                     <button type="submit" className={styles.submitBtn} disabled={loading}>
                       {loading ? "Updating..." : "Update Company Profile"}
                     </button>
-                  </div>
-                </form>
-              </div>
-
-              {/* KYC Section */}
-              <div className={styles.formSection}>
-                <div className={styles.kycHeader}>
-                  <h2>KYC Verification</h2>
-                  <div className={styles.kycStatus}>
-                    <span className={`${styles.statusBadge} ${getKycStatusColor(profileData.kyc_status)}`}>
-                      {profileData.kyc_status === 'verified' ? '✓ Verified' : 
-                       profileData.kyc_status === 'pending' ? '⏳ Pending Review' : 
-                       '❌ Not Verified'}
-                    </span>
-                  </div>
-                </div>
-                
-                <form onSubmit={handleKycUpdate} className={styles.profileForm}>
-                  <div className={styles.formGrid}>
-                    <div className={styles.formGroup}>
-                      <label>PAN Card Number *</label>
-                      <input
-                        type="text"
-                        value={kycData.pan_card}
-                        onChange={(e) => handleKycInputChange("pan_card", e.target.value.toUpperCase())}
-                        placeholder="ABCDE1234F"
-                        pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}"
-                        required
-                      />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label>GST Number</label>
-                      <input
-                        type="text"
-                        value={kycData.gst_number}
-                        onChange={(e) => handleKycInputChange("gst_number", e.target.value.toUpperCase())}
-                        placeholder="22ABCDE1234F1Z5"
-                      />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label>Registration Certificate Number</label>
-                      <input
-                        type="text"
-                        value={kycData.registration_certificate}
-                        onChange={(e) => handleKycInputChange("registration_certificate", e.target.value)}
-                        placeholder="Company registration number"
-                      />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label>Bank Account Number</label>
-                      <input
-                        type="text"
-                        value={kycData.bank_account}
-                        onChange={(e) => handleKycInputChange("bank_account", e.target.value)}
-                        placeholder="Bank account number"
-                      />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label>Address Proof</label>
-                      <input
-                        type="text"
-                        value={kycData.address_proof}
-                        onChange={(e) => handleKycInputChange("address_proof", e.target.value)}
-                        placeholder="Address proof document reference"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className={styles.kycNotice}>
-                    <p><strong>Note:</strong> KYC verification is required for posting jobs. Please ensure all information is accurate as it will be verified by our admin team.</p>
-                  </div>
-                  
-                  <div className={styles.formActions}>
-                    <button type="submit" className={styles.submitBtn} disabled={loading}>
-                      {loading ? "Submitting..." : "Submit KYC for Verification"}
+                    <button type="button" className={styles.nextBtn} onClick={() => setCurrentStep(2)}>
+                      Next: KYC Verification
                     </button>
                   </div>
                 </form>
-              </div>
+                </div>
+              )}
+
+              {/* KYC Section */}
+              {currentStep === 2 && (
+                <div className={styles.formSection}>
+                  <div className={styles.kycHeader}>
+                    <h2>KYC Verification</h2>
+                    <div className={styles.kycStatus}>
+                      <span className={`${styles.statusBadge} ${getKycStatusColor(profileData.kyc_status)}`}>
+                        {profileData.kyc_status === 'verified' ? '✓ Verified' : 
+                         profileData.kyc_status === 'pending' ? '⏳ Pending Review' : 
+                         '❌ Not Verified'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <form onSubmit={handleKycUpdate} className={styles.profileForm}>
+                    <div className={styles.formGrid}>
+                      <div className={styles.formGroup}>
+                        <label>PAN Card Number *</label>
+                        <input
+                          type="text"
+                          value={kycData.pan_card}
+                          onChange={(e) => handleKycInputChange("pan_card", e.target.value.toUpperCase())}
+                          placeholder="ABCDE1234F"
+                          pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}"
+                          required
+                        />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label>GST Number</label>
+                        <input
+                          type="text"
+                          value={kycData.gst_number}
+                          onChange={(e) => handleKycInputChange("gst_number", e.target.value.toUpperCase())}
+                          placeholder="22ABCDE1234F1Z5"
+                        />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label>Registration Certificate Number</label>
+                        <input
+                          type="text"
+                          value={kycData.registration_certificate}
+                          onChange={(e) => handleKycInputChange("registration_certificate", e.target.value)}
+                          placeholder="Company registration number"
+                        />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label>Bank Account Number</label>
+                        <input
+                          type="text"
+                          value={kycData.bank_account}
+                          onChange={(e) => handleKycInputChange("bank_account", e.target.value)}
+                          placeholder="Bank account number"
+                        />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label>Address Proof</label>
+                        <input
+                          type="text"
+                          value={kycData.address_proof}
+                          onChange={(e) => handleKycInputChange("address_proof", e.target.value)}
+                          placeholder="Address proof document reference"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className={styles.kycNotice}>
+                      <p><strong>Note:</strong> KYC verification is required for posting jobs. Please ensure all information is accurate as it will be verified by our admin team.</p>
+                    </div>
+                    
+                    <div className={styles.formActions}>
+                      <button type="submit" className={styles.submitBtn} disabled={loading}>
+                        {loading ? "Submitting..." : "Submit KYC for Verification"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
             </div>
           </div>
           

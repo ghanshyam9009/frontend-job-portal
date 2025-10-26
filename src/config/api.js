@@ -125,8 +125,8 @@ export const API_ENDPOINTS = {
     getByLocation: (location) => `/jobs/location/${location}`,
     getBySkills: '/jobs/skills',
     getGovernmentJobs: '/jobs/government',
-    createGovernmentJob: '/jobs/government',
-    updateGovernmentJob: (id) => `/jobs/government/${id}`
+    createGovernmentJob: '/job/Govtjobs',
+    updateGovernmentJob: (id) => `/job/updateGovtjobs/${id}`
   },
   
   // Applications
@@ -233,6 +233,14 @@ export const API_ENDPOINTS = {
     candidates: '/stats/candidates',
     employers: '/stats/employers',
     applications: '/stats/applications'
+  },
+
+  // Premium Features
+  premium: {
+    markJobPremium: '/premium/mark-job-premium',
+    markStudentPremium: '/premium/mark-student-premium',
+    getPremiumPrices: '/students/premium-prices',
+    updatePremiumPrices: '/admin/updates/premium-pricess'
   }
 };
 

@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
+import { candidateService } from "../../services/candidateService";
 import styles from "./UserDashboard.module.css";
 
 const MembershipPlans = () => {
@@ -10,91 +11,138 @@ const MembershipPlans = () => {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [prices, setPrices] = useState({ gold: 400, platinum: 500, silver: 1000 });
+  const [loading, setLoading] = useState(true);
 
- const membershipPlans = [
-  {
-    id: 'free',
-    name: 'Free',
-    price: '₹0',
-    period: 'forever',
-    description: 'Basic job searching features',
-    features: [
-      'Browse job listings',
-      'Save up to 5 jobs',
-      'Apply to 3 jobs per month',
-      'Basic profile visibility',
-      'Email support'
-    ],
-    limitations: [
-      'Limited job applications',
-      'Basic profile features',
-      'No priority support'
-    ],
-    popular: false,
-    buttonText: 'Current Plan',
-    buttonDisabled: true
-  },
-  {
-    id: 'premium',
-    name: 'Premium',
-    price: '₹1,699',
-    period: 'month',
-    description: 'Enhanced job searching experience',
-    features: [
-      'Unlimited job applications',
-      'Save unlimited jobs',
-      'Advanced profile visibility',
-      'Priority in search results',
-      'Direct messaging with employers',
-      'Application tracking',
-      'Resume builder',
-      'Email & phone support'
-    ],
-    limitations: [],
-    popular: true,
-    buttonText: 'Upgrade to Premium',
-    buttonDisabled: false
-  },
-  {
-    id: 'professional',
-    name: 'Professional',
-    price: '₹3,399',
-    period: 'month',
-    description: 'Complete career advancement suite',
-    features: [
-      'Everything in Premium',
-      'Personalized job recommendations',
-      'Interview preparation tools',
-      'Career coaching sessions',
-      'Salary negotiation guidance',
-      'LinkedIn profile optimization',
-      'Priority customer support',
-      'Advanced analytics'
-    ],
-    limitations: [],
-    popular: false,
-    buttonText: 'Upgrade to Professional',
-    buttonDisabled: false
-  }
-];
+  useEffect(() => {
+    const fetchPrices = async () => {
+      try {
+        const response = await candidateService.getPremiumPrices();
+        if (response.data) {
+          setPrices(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching premium prices:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPrices();
+  }, []);
+
+  const membershipPlans = [
+    {
+      id: 'free',
+      name: 'Free',
+      price: '₹0',
+      period: 'forever',
+      description: 'Basic job searching features',
+      features: [
+        'Browse job listings',
+        'Save up to 5 jobs',
+        'Apply to 3 jobs per month',
+        'Basic profile visibility',
+        'Email support'
+      ],
+      limitations: [
+        'Limited job applications',
+        'Basic profile features',
+        'No priority support'
+      ],
+      popular: false,
+      buttonText: 'Current Plan',
+      buttonDisabled: true
+    },
+    {
+      id: 'gold',
+      name: 'Gold',
+      price: `₹${prices.gold}`,
+      period: 'month',
+      description: 'Enhanced job searching experience',
+      features: [
+        'Unlimited job applications',
+        'Save unlimited jobs',
+        'Advanced profile visibility',
+        'Priority in search results',
+        'Direct messaging with employers',
+        'Application tracking',
+        'Resume builder',
+        'Email & phone support'
+      ],
+      limitations: [],
+      popular: true,
+      buttonText: 'Upgrade to Gold',
+      buttonDisabled: false
+    },
+    {
+      id: 'platinum',
+      name: 'Platinum',
+      price: `₹${prices.platinum}`,
+      period: 'month',
+      description: 'Complete career advancement suite',
+      features: [
+        'Everything in Gold',
+        'Personalized job recommendations',
+        'Interview preparation tools',
+        'Career coaching sessions',
+        'Salary negotiation guidance',
+        'LinkedIn profile optimization',
+        'Priority customer support',
+        'Advanced analytics'
+      ],
+      limitations: [],
+      popular: false,
+      buttonText: 'Upgrade to Platinum',
+      buttonDisabled: false
+    },
+    {
+      id: 'silver',
+      name: 'Silver',
+      price: `₹${prices.silver}`,
+      period: 'month',
+      description: 'Standard premium features',
+      features: [
+        '50 job applications per month',
+        'Save up to 50 jobs',
+        'Standard profile visibility',
+        'Basic messaging',
+        'Application tracking',
+        'Email support'
+      ],
+      limitations: [
+        'Limited applications',
+        'No priority support'
+      ],
+      popular: false,
+      buttonText: 'Upgrade to Silver',
+      buttonDisabled: false
+    }
+  ];
 
   const handlePlanSelect = (plan) => {
     setSelectedPlan(plan);
   };
 
-  const handleUpgrade = (plan) => {
+  const handleUpgrade = async (plan) => {
     if (plan.id === 'free') return;
-    
-    // Simulate payment process
-    alert(`Upgrading to ${plan.name} plan for ${plan.price}/${plan.period}...`);
-    
-    // Here you would integrate with payment gateway
-    // For demo purposes, we'll just show success message
-    setTimeout(() => {
-      alert(`Successfully upgraded to ${plan.name} plan!`);
-      // Update user membership in context
-      // navigate('/userdashboard');
-    }, 1000);
+
+    try {
+      // Call API to mark student as premium
+      const response = await candidateService.markStudentPremium({
+        email: user?.email,
+        is_premium: true,
+        plan: plan.id
+      });
+
+      if (response) {
+        alert(`Successfully upgraded to ${plan.name} plan!`);
+        // Update user membership in context or state
+        // For now, just show success
+      }
+    } catch (error) {
+      console.error('Error upgrading plan:', error);
+      alert('Failed to upgrade plan. Please try again.');
+    }
   };
 
   const currentPlan = user?.membership || 'free';

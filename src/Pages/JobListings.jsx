@@ -10,6 +10,7 @@ import Footer from "../Components/Footer";
 import { jobService } from "../services/jobService";
 import { showError } from "../utils/errorHandler";
 import { candidateExternalService } from "../services/candidateExternalService";
+import { candidateService } from "../services/candidateService";
 
 const JobListings = () => {
   const { theme } = useTheme();
@@ -41,7 +42,7 @@ const JobListings = () => {
   });
 
   const [currentPage, setCurrentPage] = useState(1);
-  const jobsPerPage = 10;
+  const jobsPerPage = 7;
 
   useEffect(() => {
     fetchJobs();
@@ -163,6 +164,33 @@ const JobListings = () => {
     } catch (error) {
       console.error('Error saving job:', error);
       alert('Failed to save job. Please try again.');
+    }
+  };
+
+  const handleMarkJobPremium = async (job) => {
+    try {
+      if (!isAuthenticated || !user) {
+        alert('Please log in to mark jobs as premium.');
+        return;
+      }
+
+      // Check if user is recruiter or admin
+      if (user.role !== 'recruiter' && user.role !== 'admin') {
+        alert('Only recruiters and admins can mark jobs as premium.');
+        return;
+      }
+
+      await candidateService.markJobPremium({
+        job_id: job.job_id || job.id,
+        is_premium: true,
+        category: 'job'
+      });
+
+      alert('Job marked as premium successfully!');
+      // Optionally, refresh jobs or update state
+    } catch (error) {
+      console.error('Error marking job as premium:', error);
+      alert('Failed to mark job as premium. Please try again.');
     }
   };
 
@@ -444,15 +472,49 @@ const JobListings = () => {
       )}
 
       {/* Main Content */}
-      <div className={styles.mainContent}>
-        <div className={styles.content}>
+      <div className={styles.mainContentNoSidebar}>
+        <div className={styles.filtersResponsive}>
           <div className={styles.heroBanner}>
             <div className={styles.heroText}>
               <h1>Featured Jobs</h1>
+              <p>Discover opportunities that match your skills</p>
             </div>
           </div>
 
+          {/* Attractive Content */}
+          <div className={styles.sidebarContent}>
+            <div className={styles.sidebarSection}>
+              <h3>Top Job Categories</h3>
+              <ul className={styles.categoryList}>
+                <li>Technology</li>
+                <li>Finance</li>
+                <li>Healthcare</li>
+                <li>Marketing</li>
+                <li>Sales</li>
+              </ul>
+            </div>
+
+
+
+            <div className={styles.sidebarSection}>
+              <h3>Quick Tips</h3>
+              <ul className={styles.tipsList}>
+                <li>Update your profile for better matches</li>
+                <li>Apply early for better chances</li>
+                <li>Customize your resume for each job</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.contentColumn}>
           <div className={styles.jobsSection}>
+            <div className={styles.jobHeader}>
+              <h2>Featured Jobs</h2>
+              <div className={styles.jobsInfo}>
+                Showing {Math.min((currentPage - 1) * jobsPerPage + 1, totalJobs)} - {Math.min(currentPage * jobsPerPage, totalJobs)} of {totalJobs} jobs
+              </div>
+            </div>
             <div className={styles.jobsColumn}>
               {loading && (
                 <div className={styles.loading}>
@@ -547,6 +609,14 @@ const JobListings = () => {
                     >
                       Save Job
                     </button>
+                    {(user?.role === 'recruiter' || user?.role === 'admin') && (
+                      <button 
+                        className={styles.premiumBtn}
+                        onClick={() => handleMarkJobPremium(job)}
+                      >
+                        Mark Premium
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

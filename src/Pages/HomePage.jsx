@@ -30,6 +30,8 @@ import relianceLogo from "../assets/relince.jfif";
 import techmahindraLogo from "../assets/techmahindra.jfif";
 import sbilifeLogo from "../assets/sbilife.jfif";
 import ltimindtreeLogo from "../assets/lit.jfif";
+import requestDemoImage from "../assets/Request free demo.png";
+import jobImage from "../assets/job.jfif";
 
 
 const companies = [
@@ -72,7 +74,7 @@ const Homepage = () => {
   const [demoError, setDemoError] = useState(null);
   const [demoSuccess, setDemoSuccess] = useState(false);
 
-  const popularSearches = [
+const popularSearches = [
     { title: "Jobs for Freshers", trend: "#1", image: image1, link: "/jobs?search=fresher" },
     { title: "Work from home Jobs", trend: "#2", image: image2, link: "/jobs?search=work from home" },
     { title: "Part time Jobs", trend: "#3", image: image3, link: "/jobs?search=part time" },
@@ -80,11 +82,92 @@ const Homepage = () => {
     { title: "Full time Jobs", trend: "#5", image: image2, link: "/jobs?search=full time" },
   ];
 
+const topJobRoles = [
+    {
+        title: "Work from Home",
+        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/workfromhome.svg",
+        count: "0 Active Jobs",
+        link: "/jobs?search=work from home"
+    },
+    {
+        title: "Accountant",
+        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Accountant.svg",
+        count: "6 Active Jobs",
+        link: "/jobs?search=accountant"
+    },
+    {
+        title: "BPO / Customer care",
+        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/BPO_Telecallers.svg",
+        count: "7 Active Jobs",
+        link: "/jobs?search=bpo"
+    },
+    {
+        title: "Data Entry / Back Office",
+        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Data_entry_Back_office.svg",
+        count: "0 Active Jobs",
+        link: "/jobs?search=data entry"
+    },
+    {
+        title: "Sales / Marketing",
+        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Sales.svg",
+        count: "58 Active Jobs",
+        link: "/jobs?search=sales"
+    },
+    {
+        title: "Receptionist / Front Office",
+        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Receptionist_Front_office.svg",
+        count: "0 Active Jobs",
+        link: "/jobs?search=receptionist"
+    },
+    {
+        title: "Hospitality Executives",
+        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Hospitality_Executives.svg",
+        count: "0 Active Jobs",
+        link: "/jobs?search=hospitality"
+    },
+    {
+        title: "Delivery",
+        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Delivery_boy.svg",
+        count: "4 Active Jobs",
+        link: "/jobs?search=delivery"
+    },
+    {
+        title: "Driver",
+        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Driver.svg",
+        count: "0 Active Jobs",
+        link: "/jobs?search=driver"
+    },
+    {
+        title: "Beauticians / Spa",
+        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Beauticians.svg",
+        count: "0 Active Jobs",
+        link: "/jobs?search=beautician"
+    },
+    {
+        title: "Mechanic",
+        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Mechanic.svg",
+        count: "0 Active Jobs",
+        link: "/jobs?search=mechanic"
+    },
+    {
+        title: "IT Software-Engineer",
+        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/IT-Software.svg",
+        count: "1 Active Jobs",
+        link: "/jobs?search=software engineer"
+    },
+    {
+        title: "Retail / Store Executive",
+        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Retail.svg",
+        count: "2 Active Jobs",
+        link: "/jobs?search=retail"
+    }
+];
+
   useEffect(() => {
     const fetchFeaturedJobs = async () => {
       try {
         // Fetch only approved jobs
-        const response = await fetch('https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs?status=approved&limit=5', {
+        const response = await fetch('https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs?status=approved&limit=7', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -99,7 +182,7 @@ const Homepage = () => {
         if (!data || !data.jobs) {
           throw new Error('Invalid response format');
         }
-        const mapped = (data.jobs || []).slice(0, 5).map((j, idx) => ({
+        const mapped = (data.jobs || []).slice(0, 7).map((j, idx) => ({
           id: j.job_id || idx,
           title: j.job_title,
           company_name: j.company_name || "",
@@ -264,19 +347,7 @@ const Homepage = () => {
       </section>
 
       {/* Top Hiring Companies */}
-      <section className={topHiringStyles.hiringCompaniesSection}>
-        <div className={topHiringStyles.hiringCompaniesContainer}>
-          <h2 className={topHiringStyles.hiringCompaniesTitle}>Top Hiring Companies</h2>
-          <div className={topHiringStyles.logoGrid}>
-            {topHiringCompanies.map((company, index) => (
-              <div key={index} className={topHiringStyles.logoCard}>
-                <img src={company.logo} alt={`${company.name} logo`} className={topHiringStyles.logoImage} />
-              </div>
-            ))}
-          </div>
-         
-        </div>
-      </section>
+     
 
       {/* Featured Jobs */}
       <section className={styles.jobsSection}>
@@ -285,12 +356,8 @@ const Homepage = () => {
             <div className={styles.jobsColumn}>
               <div className={styles.jobsHeader}>
                 <h2 className={styles.sectionTitle}>Featured Jobs</h2>
-                <button className={styles.viewAllBtn} onClick={() => navigate('/jobs')}>
-                  <span>View All</span>
-                  <ArrowRight className={styles.buttonIcon} />
-                </button>
               </div>
-              
+
               <div className={styles.jobsList}>
                 {featuredJobs.map((job) => (
                   <div key={job.id} className={styles.jobCard}>
@@ -326,13 +393,25 @@ const Homepage = () => {
                     </div>
                   </div>
                 ))}
+                <div className={styles.viewAllContainer}>
+                  <button className={styles.viewAllBtn} onClick={() => navigate('/jobs')}>
+                    <span>View All</span>
+                    <ArrowRight className={styles.buttonIcon} />
+                  </button>
+                </div>
               </div>
             </div>
             
             {/* Contact Form */}
             <form className={styles.contactForm} onSubmit={handleDemoSubmit}>
-              <h3 className={styles.formTitle}>Request Free Demo</h3>
+
+              <div className={styles.formImageContainer}>
+                <h3 className={styles.formTitle}>Request</h3>
+                <img src={requestDemoImage} alt="Request Free Demo" className={styles.formImage} />
+              </div>
               <div className={styles.formFields}>
+
+
                 <div className={styles.fieldGroup}>
                   <input 
                     type="text" 
@@ -389,17 +468,19 @@ const Homepage = () => {
                   <button type="submit" className={styles.submitBtn} disabled={demoLoading}>
                     {demoLoading ? "Sending..." : "Submit"}
                   </button>
-                  <button type="reset" className={styles.resetBtn} onClick={() => setDemoData({ fullName: "", email: "", message: "", userType: "candidate" })}>
-                    Reset
-                  </button>
+                   {/* <img src={jobImage} alt="Job Image" className={styles.formImage} /> */}
+
                 </div>
                 {demoSuccess && <p className={styles.successText}>Request sent successfully!</p>}
                 {demoError && <p className={styles.errorText}>{demoError}</p>}
               </div>
+
             </form>
           </div>
         </div>
       </section>
+
+
 
       {/* Employer Section */}
       <section className={styles.employerSection}>
@@ -453,6 +534,22 @@ const Homepage = () => {
         </div>
       </section>
 
+      {/* Top Job Roles Section */}
+      <section className={styles.topJobRolesSection}>
+        <div className={styles.topJobRolesContainer}>
+          <h2 className={styles.topJobRolesTitle}>Top Job Roles</h2>
+          <div className={styles.jobRolesGrid}>
+            {topJobRoles.map((role, index) => (
+              <div key={index} className={styles.jobRoleCard} onClick={() => navigate(role.link)}>
+                <img src={role.image} alt={role.title} className={styles.jobRoleImage} />
+                <div className={styles.jobRoleTitle}>{role.title}</div>
+                <div className={styles.jobRoleCount}>{role.count}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Popular Searches Section */}
       <section className={styles.popularSearchesSection}>
         <div className={styles.popularSearchesContainer}>
@@ -469,6 +566,21 @@ const Homepage = () => {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+
+ <section className={topHiringStyles.hiringCompaniesSection}>
+        <div className={topHiringStyles.hiringCompaniesContainer}>
+          <h2 className={topHiringStyles.hiringCompaniesTitle}>Top Hiring Companies</h2>
+          <div className={topHiringStyles.logoGrid}>
+            {topHiringCompanies.map((company, index) => (
+              <div key={index} className={topHiringStyles.logoCard}>
+                <img src={company.logo} alt={`${company.name} logo`} className={topHiringStyles.logoImage} />
+              </div>
+            ))}
+          </div>
+         
         </div>
       </section>
 

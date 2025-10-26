@@ -64,7 +64,7 @@ const AboutUs = () => {
               <Building2 className={styles.cardIcon} />
               <h3>Our Foundation</h3>
               <p>
-                Bigsources Manpower Solution PVT. LTD. is a young, vibrant and fast growing recruitment consultant with offices in Indore, with a prime objective of providing professional and value added services in terms of recruitment of quality manpower.
+                Bigsources.in is a young, vibrant and fast growing recruitment consultant with offices in Indore, with a prime objective of providing professional and value added services in terms of recruitment of quality manpower.
               </p>
               <p>
                 We have been providing our recruitment services to a large spectrum of reputed companies all across the nation. Our strategy is to provide professionalism of highest standard to our clients.
@@ -86,7 +86,7 @@ const AboutUs = () => {
               <Target className={styles.cardIcon} />
               <h3>Our Mission</h3>
               <p>
-                Bigsources Manpower Solution PVT. LTD. was established with a mission to provide world class Executive Search and Consulting services to our clients to help them enhance their competitiveness through quality human capital.
+                Bigsources.in was established with a mission to provide world class Executive Search and Consulting services to our clients to help them enhance their competitiveness through quality human capital.
               </p>
               <p>
                 At the same time we aim to help candidates achieve their career objectives. We have a highly motivated team of HR consultants with professional skills and proven expertise.

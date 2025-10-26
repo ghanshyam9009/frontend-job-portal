@@ -449,6 +449,7 @@
 @media (max-width: 480px) {
   .mainContent {
     padding: 12px;
+    margin-top: 20px;
   }
   
   .pageTitle {

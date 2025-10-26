@@ -13,6 +13,11 @@ export const recruiterExternalService = {
     return response.data;
   },
 
+  async getRecruiterProfile(employerId) {
+    const response = await axios.get(JOBS_URL, { params: { employer_id: employerId } });
+    return response.data;
+  },
+
   async getAllApplicants(jobId) {
     const response = await axios.get(APPLICANTS_URL, { params: { job_id: jobId } });
     return response.data;

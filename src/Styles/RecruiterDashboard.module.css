@@ -7,8 +7,8 @@
 }
 
 .main {
-  margin-left: 250px;
-  margin-top: 64px;
+  margin-left: 135px;
+  margin-top: 26px;
   padding: 24px;
   min-height: calc(100vh - 64px);
 }
@@ -543,7 +543,7 @@
 
 /* Job Posting Form Styles */
 .jobPostingSection {
-  max-width: 800px;
+     max-width: 1335px;
   margin: 0 auto;
 }
 
@@ -2093,6 +2093,116 @@
   margin: 0;
   color: #92400e;
   font-size: 14px;
+}
+
+/* Step Indicator Styles */
+.stepIndicator {
+  margin-bottom: 32px;
+}
+
+.stepProgress {
+  position: relative;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  margin-bottom: 16px;
+}
+
+.progressBar {
+  height: 100%;
+  background: #10b981;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.steps {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.step.active {
+  opacity: 1;
+}
+
+.stepNumber {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.step.active .stepNumber {
+  background: #10b981;
+  color: white;
+}
+
+.stepLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.step.active .stepLabel {
+  color: #111827;
+}
+
+.stepPercentage {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.step.active .stepPercentage {
+  color: #10b981;
+}
+
+/* Dark theme for step indicator */
+.dashboardContainer.dark .stepProgress {
+  background: #374151;
+}
+
+.dashboardContainer.dark .progressBar {
+  background: #10b981;
+}
+
+.dashboardContainer.dark .stepNumber {
+  background: #374151;
+  color: #9ca3af;
+}
+
+.dashboardContainer.dark .step.active .stepNumber {
+  background: #10b981;
+  color: white;
+}
+
+.dashboardContainer.dark .stepLabel {
+  color: #9ca3af;
+}
+
+.dashboardContainer.dark .step.active .stepLabel {
+  color: #f1f5f9;
+}
+
+.dashboardContainer.dark .stepPercentage {
+  color: #6b7280;
+}
+
+.dashboardContainer.dark .step.active .stepPercentage {
+  color: #10b981;
 }
 
 /* Applications Styles */
