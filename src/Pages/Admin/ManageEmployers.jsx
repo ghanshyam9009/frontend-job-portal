@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
-import { Eye, Edit, Ban, CheckCircle, Briefcase, X } from "lucide-react";
+import { Eye, Edit, Ban, CheckCircle, Briefcase, X, Search, Building } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const ManageEmployers = () => {
@@ -275,7 +275,7 @@ const ManageEmployers = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
           />
-          <span className={styles.searchIcon}>🔍</span>
+          <Search className={styles.searchIcon} />
         </div>
 
         <div className={styles.filterButtons}>

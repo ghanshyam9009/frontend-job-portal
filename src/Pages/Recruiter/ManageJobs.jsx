@@ -4,6 +4,7 @@ import { useAuth } from "../../Contexts/AuthContext";
 import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
 import RecruiterSidebar from "../../Components/Recruiter/RecruiterSidebar";
 import { useTheme } from "../../Contexts/ThemeContext";
+import { Edit, Users, RefreshCw, FileText, MapPin, Check, ArrowLeft, ExternalLink } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 import { recruiterExternalService } from "../../services";
 
@@ -42,7 +43,7 @@ const ManageJobs = () => {
           company: j.company_name || "",
           location: j.location || "",
           type: j.employment_type || "",
-          salary: j.salary_range ? `₹${Math.round(j.salary_range.min/100000)}L - ₹${Math.round(j.salary_range.max/100000)}L` : "",
+          salary: j.salary_range ? `${Math.round(j.salary_range.min/100000)}L - ${Math.round(j.salary_range.max/100000)}L` : "",
           status: (j.status || "Open").toLowerCase() === "open" ? "Active" : j.status,
           postedDate: (j.created_at || "").split("T")[0] || "",
           applications: 0,
@@ -63,29 +64,9 @@ const ManageJobs = () => {
     navigate(`/edit-job/${jobId}`);
   };
 
-  const handleDeleteJob = (jobId) => {
-    if (window.confirm("Are you sure you want to delete this job posting?")) {
-      setJobs(prev => prev.filter(job => job.id !== jobId));
-      alert("Job deleted successfully!");
-    }
-  };
 
-  const handleDuplicateJob = (jobId) => {
-    const jobToDuplicate = jobs.find(job => job.id === jobId);
-    if (jobToDuplicate) {
-      const duplicatedJob = {
-        ...jobToDuplicate,
-        id: Date.now(),
-        title: `${jobToDuplicate.title} (Copy)`,
-        status: "Draft",
-        postedDate: new Date().toISOString().split('T')[0],
-        applications: 0,
-        views: 0
-      };
-      setJobs(prev => [...prev, duplicatedJob]);
-      alert("Job duplicated successfully!");
-    }
-  };
+
+
 
   const handleToggleStatus = async (jobId) => {
     const job = jobs.find(j => j.id === jobId);
@@ -221,11 +202,11 @@ const ManageJobs = () => {
               <div className={styles.emptyState}><h3>{error}</h3></div>
             )}
             {filteredJobs.length === 0 ? (
-              <div className={styles.emptyState}>
-                <div className={styles.emptyIcon}>📄</div>
+                <div className={styles.emptyState}>
+                <div className={styles.emptyIcon}><FileText size={48} /></div>
                 <h3>No jobs found</h3>
                 <p>No jobs match your current filter criteria.</p>
-                <button 
+                <button
                   className={styles.primaryBtn}
                   onClick={() => navigate('/post-job')}
                 >
@@ -240,9 +221,9 @@ const ManageJobs = () => {
                       <h3 className={styles.jobTitle}>{job.title}</h3>
                       <div className={styles.jobMeta}>
                         <span className={styles.company}>{job.company}</span>
-                        <span className={styles.location}>📍 {job.location}</span>
+                        <span className={styles.location}><MapPin size={16} /> {job.location}</span>
                         <span className={styles.type}>{job.type}</span>
-                        <span className={styles.salary}>💰 {job.salary}</span>
+                        <span className={styles.salary}>{job.salary}</span>
                       </div>
                     </div>
                     <div className={styles.jobStatus}>
@@ -258,45 +239,29 @@ const ManageJobs = () => {
                       <span className={styles.statLabel}>Applications</span>
                     </div>
                     <div className={styles.statItem}>
-                      <span className={styles.statValue}>{job.views}</span>
-                      <span className={styles.statLabel}>Views</span>
-                    </div>
-                    <div className={styles.statItem}>
                       <span className={styles.statValue}>{job.postedDate}</span>
                       <span className={styles.statLabel}>Posted</span>
                     </div>
                   </div>
 
                   <div className={styles.jobActions}>
-                    <button 
+                    <button
                       className={styles.actionBtn}
                       onClick={() => handleEditJob(job.id)}
                     >
-                      ✏️ Edit
+                      <Edit size={16} />
                     </button>
-                    <button 
+                    <button
                       className={styles.actionBtn}
                       onClick={() => handleViewApplications(job.id)}
                     >
-                      👥 Applications ({job.applications})
+                      <Users size={16} />
                     </button>
-                    <button 
-                      className={styles.actionBtn}
-                      onClick={() => handleDuplicateJob(job.id)}
-                    >
-                      📋 Duplicate
-                    </button>
-                    <button 
+                    <button
                       className={styles.actionBtn}
                       onClick={() => handleToggleStatus(job.id)}
                     >
-                      {job.status === 'Active' ? '🔄 Close' : '🔄 Reopen'}
-                    </button>
-                    <button 
-                      className={`${styles.actionBtn} ${styles.deleteBtn}`}
-                      onClick={() => handleDeleteJob(job.id)}
-                    >
-                      🗑️ Delete
+                      <RefreshCw size={16} />
                     </button>
                   </div>
                 </div>
@@ -353,32 +318,32 @@ const ManageJobs = () => {
                           </div>
                           <div className={styles.resumeSection}>
                             <h5>Resume:</h5>
-                            <a 
-                              href={application.resume_url} 
-                              target="_blank" 
+                            <a
+                              href={application.resume_url}
+                              target="_blank"
                               rel="noopener noreferrer"
                               className={styles.resumeLink}
                             >
-                              📄 View Resume
+                              <ExternalLink size={16} />
                             </a>
                           </div>
                         </div>
                         <div className={styles.applicationActions}>
                           {application.status === 'Pending' ? (
-                            <button 
+                            <button
                               className={`${styles.actionBtn} ${styles.shortlistBtn}`}
                               onClick={() => handleUpdateApplicationStatus(application.application_id, true)}
                               disabled={loading}
                             >
-                              ✓ Shortlist
+                              <Check size={16} />
                             </button>
                           ) : (
-                            <button 
+                            <button
                               className={`${styles.actionBtn} ${styles.pendingBtn}`}
                               onClick={() => handleUpdateApplicationStatus(application.application_id, false)}
                               disabled={loading}
                             >
-                              ↩️ Move to Pending
+                              <ArrowLeft size={16} />
                             </button>
                           )}
                         </div>

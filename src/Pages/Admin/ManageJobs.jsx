@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
-import { FaCheck, FaEye, FaEdit, FaTimes } from "react-icons/fa";
+import { Check, Eye, Edit, X, Search, FileText } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const ManageJobs = () => {
@@ -225,7 +225,7 @@ const ManageJobs = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
           />
-          <span className={styles.searchIcon}>🔍</span>
+          <Search className={styles.searchIcon} />
         </div>
         
         <div className={styles.filterButtons}>
@@ -280,7 +280,7 @@ const ManageJobs = () => {
                           title="Approve"
                           onClick={() => handleApproveTask(task)}
                         >
-                          <FaCheck />
+                          <Check size={16} />
                         </button>
                         {task.category === 'postnewjob' && (
                           <button
@@ -288,20 +288,20 @@ const ManageJobs = () => {
                             title="Reject"
                             onClick={() => handleRejectTask(task)}
                           >
-                            <FaTimes />
+                            <X size={16} />
                           </button>
                         )}
                       </>
                     )}
                     <button className={styles.actionBtn} title="View Details">
-                      <FaEye />
+                      <Eye size={16} />
                     </button>
                     <button
                       className={styles.actionBtn}
                       title="Edit"
                       onClick={() => setEditingTask(task)}
                     >
-                      <FaEdit />
+                      <Edit size={16} />
                     </button>
                   </div>
                 </td>
@@ -336,7 +336,7 @@ const ManageJobs = () => {
 
       {safeFilteredJobs.length === 0 && (
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>📄</div>
+          <FileText className={styles.emptyIcon} />
           <h3>No jobs found</h3>
           <p>No jobs match your current filters.</p>
         </div>

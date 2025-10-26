@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
+import { Eye, Edit, Ban, Search, Users } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const ManageCandidates = () => {
@@ -103,7 +104,7 @@ const ManageCandidates = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
           />
-          <span className={styles.searchIcon}>🔍</span>
+          <Search className={styles.searchIcon} />
         </div>
         
         <div className={styles.filterButtons}>
@@ -180,13 +181,13 @@ const ManageCandidates = () => {
                 <td>
                   <div className={styles.actionButtons}>
                     <button className={styles.actionBtn} title="View Profile">
-                      👁️
+                      <Eye size={16} />
                     </button>
                     <button className={styles.actionBtn} title="Edit">
-                      ✏️
+                      <Edit size={16} />
                     </button>
                     <button className={styles.actionBtn} title="Block/Unblock">
-                      🚫
+                      <Ban size={16} />
                     </button>
                   </div>
                 </td>
@@ -221,7 +222,7 @@ const ManageCandidates = () => {
 
       {filteredCandidates.length === 0 && (
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>👥</div>
+          <Users className={styles.emptyIcon} />
           <h3>No candidates found</h3>
           <p>No candidates match your current filters.</p>
         </div>

@@ -5,6 +5,7 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import styles from "../../Styles/Auth.module.css";
 import HomeNav from "../../Components/HomeNav";
 import logo from "/favicon-icon.png";
+import { Briefcase, Building, Users } from "lucide-react";
 
 const AdminLogin = () => {
   const { theme, toggleTheme } = useTheme();
@@ -107,17 +108,17 @@ const AdminLogin = () => {
           <h2 className={styles.overlayTitle}>858 Open jobs waiting for you</h2>
           <div className={styles.statsContainer}>
             <div className={styles.statBox}>
-              <div className={styles.statIcon}>💼</div>
+              <Briefcase className={styles.statIcon} />
               <div className={styles.statNumber}>856</div>
               <div className={styles.statLabel}>Live Jobs</div>
             </div>
             <div className={styles.statBox}>
-              <div className={styles.statIcon}>🏢</div>
+              <Building className={styles.statIcon} />
               <div className={styles.statNumber}>729</div>
               <div className={styles.statLabel}>Companies</div>
             </div>
             <div className={styles.statBox}>
-              <div className={styles.statIcon}>👥</div>
+              <Users className={styles.statIcon} />
               <div className={styles.statNumber}>1496</div>
               <div className={styles.statLabel}>Candidates</div>
             </div>

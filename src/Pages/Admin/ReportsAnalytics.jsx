@@ -1,14 +1,15 @@
 import React, { useState } from "react";
+import { TrendingUp, TrendingDown, BarChart3, Users, FileText, DollarSign } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const ReportsAnalytics = () => {
   const [selectedPeriod, setSelectedPeriod] = useState("30days");
 
   const stats = [
-    { title: "Total Users", value: "2,543", change: "+12%", trend: "up" },
-    { title: "Active Jobs", value: "1,234", change: "+8%", trend: "up" },
-    { title: "Applications", value: "5,678", change: "+15%", trend: "up" },
-    { title: "Revenue", value: "$45,678", change: "+23%", trend: "up" }
+    { title: "Total Users", value: "2,543", change: "+12%", trend: "up", icon: Users },
+    { title: "Active Jobs", value: "1,234", change: "+8%", trend: "up", icon: FileText },
+    { title: "Applications", value: "5,678", change: "+15%", trend: "up", icon: FileText },
+    { title: "Revenue", value: "$45,678", change: "+23%", trend: "up", icon: DollarSign }
   ];
 
   return (
@@ -49,7 +50,7 @@ const ReportsAnalytics = () => {
             <div className={styles.statHeader}>
               <h3 className={styles.statTitle}>{stat.title}</h3>
               <span className={`${styles.statChange} ${styles[stat.trend]}`}>
-                {stat.change}
+                {stat.trend === 'up' ? <TrendingUp size={16} /> : <TrendingDown size={16} />} {stat.change}
               </span>
             </div>
             <div className={styles.statValue}>{stat.value}</div>
@@ -62,13 +63,13 @@ const ReportsAnalytics = () => {
         <div className={styles.chartCard}>
           <h3>User Growth</h3>
           <div className={styles.chartPlaceholder}>
-            📈 Chart will be implemented here
+            <TrendingUp size={48} /> Chart will be implemented here
           </div>
         </div>
         <div className={styles.chartCard}>
           <h3>Job Postings</h3>
           <div className={styles.chartPlaceholder}>
-            📊 Chart will be implemented here
+            <BarChart3 size={48} /> Chart will be implemented here
           </div>
         </div>
       </div>

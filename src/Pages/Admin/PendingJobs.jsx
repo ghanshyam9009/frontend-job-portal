@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../../services/adminService';
+import { Check, X, Eye, AlertTriangle } from 'lucide-react';
 import styles from '../../Styles/AdminDashboard.module.css';
 
 const PendingJobs = () => {
@@ -58,7 +59,7 @@ const PendingJobs = () => {
     return (
       <div className={styles.mainContent}>
         <div className={styles.errorContainer}>
-          <div className={styles.errorIcon}>⚠️</div>
+          <AlertTriangle className={styles.errorIcon} />
           <h3>Error Loading Jobs</h3>
           <p>{error}</p>
         </div>
@@ -75,7 +76,7 @@ const PendingJobs = () => {
 
       {pendingJobs.length === 0 ? (
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>✅</div>
+          <Check className={styles.emptyIcon} />
           <h3>All caught up!</h3>
           <p>No pending jobs to review at the moment.</p>
         </div>
@@ -120,20 +121,20 @@ const PendingJobs = () => {
                         className={`${styles.actionBtn} ${styles.approveBtn}`}
                         title="Approve Job"
                       >
-                        ✅
+                        <Check size={16} />
                       </button>
                       <button 
                         onClick={() => handleReject(job.id)} 
                         className={`${styles.actionBtn} ${styles.rejectBtn}`}
                         title="Reject Job"
                       >
-                        ❌
+                        <X size={16} />
                       </button>
                       <button 
                         className={`${styles.actionBtn} ${styles.viewBtn}`}
                         title="View Details"
                       >
-                        👁️
+                        <Eye size={16} />
                       </button>
                     </div>
                   </td>

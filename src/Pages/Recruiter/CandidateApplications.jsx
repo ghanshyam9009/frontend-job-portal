@@ -4,6 +4,7 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
 import RecruiterSidebar from "../../Components/Recruiter/RecruiterSidebar";
 import { recruiterExternalService } from "../../services";
+import { Check, X, ArrowLeft, FileText } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 
 const CandidateApplications = () => {
@@ -159,7 +160,7 @@ const CandidateApplications = () => {
             )}
             {filteredApplications.length === 0 ? (
               <div className={styles.emptyState}>
-                <div className={styles.emptyIcon}>📄</div>
+                <div className={styles.emptyIcon}><FileText size={48} /></div>
                 <h3>No applications found</h3>
                 <p>No applications match your current filter criteria.</p>
               </div>
@@ -188,13 +189,13 @@ const CandidateApplications = () => {
                     </div>
                     <div className={styles.resumeSection}>
                       <h5>Resume:</h5>
-                      <a 
-                        href={application.resume_url} 
-                        target="_blank" 
+                      <a
+                        href={application.resume_url}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className={styles.resumeLink}
                       >
-                        📄 View Resume
+                        <FileText size={16} />
                       </a>
                     </div>
                   </div>
@@ -202,36 +203,36 @@ const CandidateApplications = () => {
                   <div className={styles.applicationActions}>
                     {application.status === 'Pending' ? (
                       <>
-                        <button 
+                        <button
                           className={`${styles.actionBtn} ${styles.shortlistBtn}`}
                           onClick={() => handleUpdateApplicationStatus(application.application_id, true)}
                           disabled={loading}
                         >
-                          ✓ Shortlist
+                          <Check size={16} />
                         </button>
-                        <button 
+                        <button
                           className={`${styles.actionBtn} ${styles.rejectBtn}`}
                           onClick={() => handleUpdateApplicationStatus(application.application_id, false)}
                           disabled={loading}
                         >
-                          ❌ Reject
+                          <X size={16} />
                         </button>
                       </>
                     ) : application.status === 'Shortlisted' ? (
-                      <button 
+                      <button
                         className={`${styles.actionBtn} ${styles.pendingBtn}`}
                         onClick={() => handleUpdateApplicationStatus(application.application_id, false)}
                         disabled={loading}
                       >
-                        ↩️ Move to Pending
+                        <ArrowLeft size={16} />
                       </button>
                     ) : (
-                      <button 
+                      <button
                         className={`${styles.actionBtn} ${styles.shortlistBtn}`}
                         onClick={() => handleUpdateApplicationStatus(application.application_id, true)}
                         disabled={loading}
                       >
-                        ✓ Shortlist
+                        <Check size={16} />
                       </button>
                     )}
                   </div>

@@ -4,6 +4,7 @@ import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { jobService } from "../../services/jobService";
 import { recruiterExternalService } from "../../services";
+import { ArrowLeft, Check } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 
 const EditJob = () => {
@@ -227,11 +228,11 @@ const EditJob = () => {
         <section className={styles.jobPostingSection}>
           <div className={styles.sectionHeader}>
             <h1>Edit Job Posting</h1>
-            <button 
+            <button
               className={styles.backBtn}
               onClick={() => navigate('/recruiter/manage-jobs')}
             >
-              ← Back to Manage Jobs
+              <ArrowLeft size={16} />
             </button>
           </div>
           
@@ -476,7 +477,7 @@ const EditJob = () => {
               </button>
             </div>
             <div className={styles.modalBody}>
-              <div className={styles.successIcon}>✓</div>
+              <div className={styles.successIcon}><Check size={24} /></div>
               <p className={styles.successMessage}>
                 Job updated successfully!
               </p>

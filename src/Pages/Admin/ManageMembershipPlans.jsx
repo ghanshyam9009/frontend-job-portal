@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
+import { CreditCard, Edit, Trash2, Plus, RefreshCw } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 import { planService } from "../../services/planService";
 import { candidateService } from "../../services/candidateService";
@@ -172,7 +173,7 @@ const ManageMembershipPlans = () => {
             Manage Premium Prices
           </button>
           <button className={styles.addBtn} onClick={handleOpenAddModal}>
-            + Add New Plan
+            <Plus size={16} /> Add New Plan
           </button>
         </div>
       </div>

@@ -445,6 +445,22 @@
   border-bottom-color: #374151;
 }
 
+.dark .statItem {
+  background: #374151;
+}
+
+.dark .statItem:hover {
+  background: #4b5563;
+}
+
+.dark .statValue {
+  color: #ffffff;
+}
+
+.dark .statLabel {
+  color: #9ca3af;
+}
+
 .dark .candidateDetails {
   border-top-color: #374151;
   border-bottom-color: #374151;
@@ -944,6 +960,15 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 12px 16px;
+  transition: all 0.15s ease;
+}
+
+.statItem:hover {
+  background: #f1f5f9;
+  transform: translateY(-1px);
 }
 
 .statValue {

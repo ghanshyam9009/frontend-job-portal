@@ -10,6 +10,7 @@ import { applicationService } from "../../services/applicationService";
 import { studentService } from "../../services/studentService";
 import { employerService } from "../../services/employerService";
 import { showError } from "../../utils/errorHandler";
+import { Users, Building, FileText, Mail, Ticket, DollarSign, TrendingUp, TrendingDown } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const AdminDashboard = () => {
@@ -194,56 +195,56 @@ const AdminDashboard = () => {
           {/* KPI Cards */}
           <div className={styles.kpiGrid}>
             <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon}>👥</div>
+              <Users className={styles.kpiIcon} />
               <div className={styles.kpiContent}>
                 <h3 className={styles.kpiValue}>{dashboardData.stats.totalCandidates.toLocaleString()}</h3>
                 <p className={styles.kpiLabel}>Total Candidates</p>
-                <span className={`${styles.kpiChange} ${styles.positive}`}>+10% from last month</span>
+                <span className={`${styles.kpiChange} ${styles.positive}`}><TrendingUp size={16} /> +10% from last month</span>
               </div>
             </div>
 
             <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon}>💼</div>
+              <Building className={styles.kpiIcon} />
               <div className={styles.kpiContent}>
                 <h3 className={styles.kpiValue}>{dashboardData.stats.totalEmployers.toLocaleString()}</h3>
                 <p className={styles.kpiLabel}>Employers</p>
-                <span className={`${styles.kpiChange} ${styles.positive}`}>+5% from last month</span>
+                <span className={`${styles.kpiChange} ${styles.positive}`}><TrendingUp size={16} /> +5% from last month</span>
               </div>
             </div>
 
             <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon}>📄</div>
+              <FileText className={styles.kpiIcon} />
               <div className={styles.kpiContent}>
                 <h3 className={styles.kpiValue}>{dashboardData.stats.totalJobs.toLocaleString()}</h3>
                 <p className={styles.kpiLabel}>Jobs Posted</p>
-                <span className={`${styles.kpiChange} ${styles.negative}`}>-2% from last month</span>
+                <span className={`${styles.kpiChange} ${styles.negative}`}><TrendingDown size={16} /> -2% from last month</span>
               </div>
             </div>
 
             <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon}>✉️</div>
+              <Mail className={styles.kpiIcon} />
               <div className={styles.kpiContent}>
                 <h3 className={styles.kpiValue}>{dashboardData.stats.totalApplications.toLocaleString()}</h3>
                 <p className={styles.kpiLabel}>Applications</p>
-                <span className={`${styles.kpiChange} ${styles.positive}`}>+15% from last month</span>
+                <span className={`${styles.kpiChange} ${styles.positive}`}><TrendingUp size={16} /> +15% from last month</span>
               </div>
             </div>
 
             <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon}>🎫</div>
+              <Ticket className={styles.kpiIcon} />
               <div className={styles.kpiContent}>
                 <h3 className={styles.kpiValue}>{dashboardData.stats.totalTokens.toLocaleString()}</h3>
                 <p className={styles.kpiLabel}>Tokens Sold</p>
-                <span className={`${styles.kpiChange} ${styles.positive}`}>+15% from last month</span>
+                <span className={`${styles.kpiChange} ${styles.positive}`}><TrendingUp size={16} /> +15% from last month</span>
               </div>
             </div>
 
             <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon}>💰</div>
+              <DollarSign className={styles.kpiIcon} />
               <div className={styles.kpiContent}>
                 <h3 className={styles.kpiValue}>₹{dashboardData.stats.revenue.toLocaleString()}</h3>
                 <p className={styles.kpiLabel}>Revenue</p>
-                <span className={`${styles.kpiChange} ${styles.positive}`}>+8% from last month</span>
+                <span className={`${styles.kpiChange} ${styles.positive}`}><TrendingUp size={16} /> +8% from last month</span>
               </div>
             </div>
           </div>

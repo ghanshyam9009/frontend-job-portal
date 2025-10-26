@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../Contexts/ThemeContext';
+import { User, Building, Eye, Mail, Check, Search, FileText } from 'lucide-react';
 import styles from '../../Styles/AdminDashboard.module.css';
 
 const HomepageForms = () => {
@@ -87,7 +88,7 @@ const HomepageForms = () => {
   const getUserTypeBadge = (userType) => {
     return (
       <span className={`${styles.userTypeBadge} ${userType === 'candidate' ? styles.candidateBadge : styles.recruiterBadge}`}>
-        {userType === 'candidate' ? '👤 Candidate' : '💼 Recruiter'}
+        {userType === 'candidate' ? <><User size={16} /> Candidate</> : <><Building size={16} /> Recruiter</>}
       </span>
     );
   };
@@ -130,7 +131,7 @@ const HomepageForms = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
           />
-          <span className={styles.searchIcon}>🔍</span>
+          <Search className={styles.searchIcon} />
         </div>
         
         <div className={styles.filterButtons}>
@@ -196,13 +197,13 @@ const HomepageForms = () => {
                 <td>
                   <div className={styles.actionButtons}>
                     <button className={styles.actionBtn} title="View Details">
-                      👁️
+                      <Eye size={16} />
                     </button>
                     <button className={styles.actionBtn} title="Contact">
-                      📧
+                      <Mail size={16} />
                     </button>
                     <button className={styles.actionBtn} title="Mark as Contacted">
-                      ✅
+                      <Check size={16} />
                     </button>
                   </div>
                 </td>
@@ -214,7 +215,7 @@ const HomepageForms = () => {
 
       {filteredForms.length === 0 && (
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>📝</div>
+          <FileText className={styles.emptyIcon} />
           <h3>No forms found</h3>
           <p>No homepage demo forms match your current filters.</p>
         </div>

@@ -4,6 +4,7 @@ import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
 import RecruiterSidebar from "../../Components/Recruiter/RecruiterSidebar";
+import { Briefcase, Lightbulb, DollarSign, Rocket, Lock, Check } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 
 const MembershipTokens = () => {
@@ -70,7 +71,7 @@ const MembershipTokens = () => {
           <div className={styles.paymentPlanCard}>
             <div className={styles.planHeader}>
               <div className={styles.planIcon}>
-                <div className={styles.jobIcon}>💼</div>
+                <div className={styles.jobIcon}><Briefcase size={24} /></div>
               </div>
               <div className={styles.planInfo}>
                 <h2>Per Job Post Payment</h2>
@@ -95,13 +96,13 @@ const MembershipTokens = () => {
               <div className={styles.featuresList}>
                 <h3>What's Included:</h3>
                 <ul className={styles.features}>
-                  <li>✓ Job posting for 30 days</li>
-                  <li>✓ View all applications</li>
-                  <li>✓ Candidate management tools</li>
-                  <li>✓ Resume download access</li>
-                  <li>✓ Application status updates</li>
-                  <li>✓ Email notifications</li>
-                  <li>✓ 24/7 support</li>
+                  <li><Check size={16} /> Job posting for 30 days</li>
+                  <li><Check size={16} /> View all applications</li>
+                  <li><Check size={16} /> Candidate management tools</li>
+                  <li><Check size={16} /> Resume download access</li>
+                  <li><Check size={16} /> Application status updates</li>
+                  <li><Check size={16} /> Email notifications</li>
+                  <li><Check size={16} /> 24/7 support</li>
                 </ul>
               </div>
 
@@ -124,22 +125,22 @@ const MembershipTokens = () => {
             <h2>Why Choose Our Per-Post Model?</h2>
             <div className={styles.benefitsGrid}>
               <div className={styles.benefitCard}>
-                <div className={styles.benefitIcon}>💡</div>
+                <div className={styles.benefitIcon}><Lightbulb size={24} /></div>
                 <h3>Pay As You Go</h3>
                 <p>No monthly subscriptions. Pay only when you post a job.</p>
               </div>
               <div className={styles.benefitCard}>
-                <div className={styles.benefitIcon}>💰</div>
+                <div className={styles.benefitIcon}><DollarSign size={24} /></div>
                 <h3>Cost Effective</h3>
                 <p>Perfect for small businesses and occasional hiring needs.</p>
               </div>
               <div className={styles.benefitCard}>
-                <div className={styles.benefitIcon}>🚀</div>
+                <div className={styles.benefitIcon}><Rocket size={24} /></div>
                 <h3>Instant Access</h3>
                 <p>Start posting jobs immediately after payment confirmation.</p>
               </div>
               <div className={styles.benefitCard}>
-                <div className={styles.benefitIcon}>🔒</div>
+                <div className={styles.benefitIcon}><Lock size={24} /></div>
                 <h3>Secure Payments</h3>
                 <p>All payments are processed securely with industry-standard encryption.</p>
               </div>
@@ -168,7 +169,7 @@ const MembershipTokens = () => {
               </button>
             </div>
             <div className={styles.modalBody}>
-              <div className={styles.successIcon}>✓</div>
+              <div className={styles.successIcon}><Check size={24} /></div>
               <p className={styles.successMessage}>
                 Your payment of ₹300 has been processed successfully. You can now post your job!
               </p>

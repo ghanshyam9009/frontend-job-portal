@@ -4,6 +4,7 @@ import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
 import RecruiterSidebar from "../../Components/Recruiter/RecruiterSidebar";
+import { Building, Lock } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 
 const RecruiterSettings = () => {
@@ -28,27 +29,6 @@ const RecruiterSettings = () => {
       currentPassword: "",
       newPassword: "",
       confirmPassword: ""
-    },
-    notifications: {
-      emailNotifications: true,
-      jobApplicationAlerts: true,
-      candidateMessages: true,
-      weeklyReports: false,
-      marketingEmails: false,
-      systemUpdates: true
-    },
-    privacy: {
-      profileVisibility: "public",
-      showCompanyInfo: true,
-      allowDirectMessages: true,
-      shareJobPostings: true
-    },
-    preferences: {
-      autoPostToSocial: false,
-      emailTemplates: true,
-      candidateScreening: true,
-      interviewScheduling: true,
-      defaultJobDuration: "30"
     }
   });
 
@@ -90,11 +70,8 @@ const RecruiterSettings = () => {
   };
 
   const tabs = [
-    { id: 'profile', label: 'Company Profile', icon: '🏢' },
-    { id: 'password', label: 'Change Password', icon: '🔒' },
-    { id: 'notifications', label: 'Notifications', icon: '🔔' },
-    { id: 'privacy', label: 'Privacy', icon: '🔒' },
-    { id: 'preferences', label: 'Preferences', icon: '⚙️' }
+    { id: 'profile', label: 'Company Profile', icon: <Building size={20} /> },
+    { id: 'password', label: 'Change Password', icon: <Lock size={20} /> }
   ];
 
   return (
@@ -275,121 +252,7 @@ const RecruiterSettings = () => {
                 </div>
               )}
 
-              {activeTab === 'notifications' && (
-                <div className={styles.settingsPanel}>
-                  <h3>Notification Preferences</h3>
-                  <div className={styles.notificationsSection}>
-                    {Object.entries(settingsData.notifications).map(([key, value]) => (
-                      <div key={key} className={styles.notificationItem}>
-                        <div className={styles.notificationInfo}>
-                          <h4>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</h4>
-                          <p>Receive notifications for {key.toLowerCase().replace(/([A-Z])/g, ' $1')}</p>
-                        </div>
-                        <label className={styles.toggle}>
-                          <input
-                            type="checkbox"
-                            checked={value}
-                            onChange={(e) => handleInputChange('notifications', key, e.target.checked)}
-                          />
-                          <span className={styles.toggleSlider}></span>
-                        </label>
-                      </div>
-                    ))}
-                    <button 
-                      className={styles.saveBtn}
-                      onClick={() => handleSaveSettings('Notification')}
-                    >
-                      Save Notifications
-                    </button>
-                  </div>
-                </div>
-              )}
 
-              {activeTab === 'privacy' && (
-                <div className={styles.settingsPanel}>
-                  <h3>Privacy Settings</h3>
-                  <div className={styles.privacySection}>
-                    <div className={styles.formGroup}>
-                      <label>Profile Visibility</label>
-                      <select
-                        value={settingsData.privacy.profileVisibility}
-                        onChange={(e) => handleInputChange('privacy', 'profileVisibility', e.target.value)}
-                      >
-                        <option value="public">Public - Visible to all candidates</option>
-                        <option value="limited">Limited - Visible to applicants only</option>
-                        <option value="private">Private - Not visible to candidates</option>
-                      </select>
-                    </div>
-
-                    {Object.entries(settingsData.privacy).filter(([key]) => key !== 'profileVisibility').map(([key, value]) => (
-                      <div key={key} className={styles.privacyItem}>
-                        <div className={styles.privacyInfo}>
-                          <h4>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</h4>
-                          <p>Allow {key.toLowerCase().replace(/([A-Z])/g, ' $1')}</p>
-                        </div>
-                        <label className={styles.toggle}>
-                          <input
-                            type="checkbox"
-                            checked={value}
-                            onChange={(e) => handleInputChange('privacy', key, e.target.checked)}
-                          />
-                          <span className={styles.toggleSlider}></span>
-                        </label>
-                      </div>
-                    ))}
-                    <button 
-                      className={styles.saveBtn}
-                      onClick={() => handleSaveSettings('Privacy')}
-                    >
-                      Save Privacy Settings
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'preferences' && (
-                <div className={styles.settingsPanel}>
-                  <h3>Application Preferences</h3>
-                  <div className={styles.preferencesSection}>
-                    {Object.entries(settingsData.preferences).filter(([key]) => key !== 'defaultJobDuration').map(([key, value]) => (
-                      <div key={key} className={styles.preferenceItem}>
-                        <div className={styles.preferenceInfo}>
-                          <h4>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</h4>
-                          <p>Enable {key.toLowerCase().replace(/([A-Z])/g, ' $1')}</p>
-                        </div>
-                        <label className={styles.toggle}>
-                          <input
-                            type="checkbox"
-                            checked={value}
-                            onChange={(e) => handleInputChange('preferences', key, e.target.checked)}
-                          />
-                          <span className={styles.toggleSlider}></span>
-                        </label>
-                      </div>
-                    ))}
-                    
-                    <div className={styles.formGroup}>
-                      <label>Default Job Duration (days)</label>
-                      <select
-                        value={settingsData.preferences.defaultJobDuration}
-                        onChange={(e) => handleInputChange('preferences', 'defaultJobDuration', e.target.value)}
-                      >
-                        <option value="30">30 days</option>
-                        <option value="60">60 days</option>
-                        <option value="90">90 days</option>
-                        <option value="120">120 days</option>
-                      </select>
-                    </div>
-                    
-                    <button 
-                      className={styles.saveBtn}
-                      onClick={() => handleSaveSettings('Preferences')}
-                    >
-                      Save Preferences
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </section>

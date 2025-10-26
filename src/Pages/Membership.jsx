@@ -58,7 +58,7 @@ const candidatePlans = [
 
 const employerPlans = [
   {
-    name: "Basic",
+    name: "Basic Plan",
     description: "Free basic plan with 15 days trial and first job premium apply free.",
     price: "Free",
     validity: "15 Days",
