@@ -738,6 +738,10 @@
   border-color: #3b82f6;
   color: #fff;
 }
+main{
+      margin-left: 255px;
+
+}
 
 .mainContentNoSidebar {
   display: flex;

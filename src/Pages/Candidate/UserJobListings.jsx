@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
 import CandidateSidebar from "../../Components/Candidate/CandidateSidebar";
-import styles from "./UserDashboard.module.css";
+import styles from "./UserJobListings.module.css";
 import { candidateExternalService } from "../../services";
 import { candidateService } from "../../services/candidateService";
 import { Briefcase, Crown } from "lucide-react";

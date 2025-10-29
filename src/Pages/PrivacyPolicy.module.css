@@ -8,7 +8,7 @@
 }
 
 .dark .container {
-  background-color: #111827;
+  background: #111827;
   color: #f9fafb;
 }
 
@@ -16,8 +16,11 @@
 .mainContent {
   padding: 80px 0;
   flex: 1;
+  background-color: var(--background-color);
 }
-
+main {
+    margin-left: 0px;
+}
 .contentWrapper {
   max-width: 800px;
   margin: 0 auto;

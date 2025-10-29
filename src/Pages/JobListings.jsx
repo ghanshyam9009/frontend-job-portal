@@ -472,7 +472,7 @@ const JobListings = () => {
       )}
 
       {/* Main Content */}
-      <div className={styles.mainContentNoSidebar}>
+      <div className={styles.mainContentNoSidebar} style={{ marginLeft: '255px' }}>
         <div className={styles.filtersResponsive}>
           <div className={styles.heroBanner}>
             <div className={styles.heroText}>

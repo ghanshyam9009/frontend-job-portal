@@ -154,6 +154,7 @@ const Jobdescription = () => {
       <CandidateSidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       <main style={{
         flex: 1,
+        marginLeft: '255px' ,
         marginTop: '70px',
         padding: '20px',
         overflowY: 'auto',

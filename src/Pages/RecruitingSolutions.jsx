@@ -2,10 +2,13 @@ import React from 'react';
 import styles from './RecruitingSolutions.module.css';
 import HomeNav from '../Components/HomeNav';
 import Footer from '../Components/Footer';
+import { useTheme } from '../Contexts/ThemeContext';
 
 const RecruitingSolutions = () => {
+  const { theme } = useTheme();
+
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${theme === 'dark' ? styles.dark : ''}`}>
       <HomeNav />
       <main className={styles.mainContent}>
         <div className={styles.contentWrapper}>
