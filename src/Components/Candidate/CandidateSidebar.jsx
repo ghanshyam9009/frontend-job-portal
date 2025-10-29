@@ -104,7 +104,7 @@ const CandidateSidebar = ({ isOpen, toggleSidebar }) => {
             <User size={20} />
           </div> */}
           <div className={styles.userDetails}>
-            <div className={styles.userName}>{user?.name || 'User'}</div>
+            <div className={styles.userName}>{user?.full_name || user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Candidate'}</div>
             <div className={styles.userEmail}>{user?.email || 'user@example.com'}</div>
           </div>
         </div>

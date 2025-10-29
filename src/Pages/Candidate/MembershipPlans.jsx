@@ -4,7 +4,7 @@ import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
 import { candidateService } from "../../services/candidateService";
-import styles from "./UserDashboard.module.css";
+import styles from "./MembershipPlans.module.css";
 import { Check, AlertTriangle, Rocket, Crown, MessageCircle, BarChart3 } from "lucide-react";
 
 const MembershipPlans = () => {
@@ -80,8 +80,6 @@ const MembershipPlans = () => {
   };
 
   const handleUpgrade = async (plan) => {
-    if (plan.id === 'free') return;
-
     try {
       // Call API to mark student as premium
       const response = await candidateService.markStudentPremium({
@@ -101,8 +99,6 @@ const MembershipPlans = () => {
     }
   };
 
-  const currentPlan = user?.membership || 'free';
-
   return (
     <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
       <CandidateNavbar darkMode={theme === 'dark'} toggleDarkMode={toggleTheme} />
@@ -113,21 +109,13 @@ const MembershipPlans = () => {
             <p>Choose the plan that best fits your career goals</p>
           </div>
           
-          <div className={styles.currentPlan}>
-            <div className={styles.currentPlanCard}>
-              <h3>Current Plan</h3>
-              <div className={styles.currentPlanInfo}>
-                <span className={styles.planName}>{currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)}</span>
-                <span className={styles.planStatus}>Active</span>
-              </div>
-            </div>
-          </div>
+
 
           <div className={styles.plansGrid}>
             {membershipPlans.map((plan) => (
-              <div 
-                key={plan.id} 
-                className={`${styles.planCard} ${plan.popular ? styles.popularPlan : ''} ${currentPlan === plan.id ? styles.currentPlanCard : ''}`}
+              <div
+                key={plan.id}
+                className={`${styles.planCard} ${plan.popular ? styles.popularPlan : ''}`}
               >
                 {plan.popular && (
                   <div className={styles.popularBadge}>Most Popular</div>
@@ -170,11 +158,10 @@ const MembershipPlans = () => {
 
                 <div className={styles.planActions}>
                   <button
-                    className={`${styles.planButton} ${currentPlan === plan.id ? styles.currentButton : styles.upgradeButton}`}
+                    className={`${styles.planButton} ${styles.upgradeButton}`}
                     onClick={() => handleUpgrade(plan)}
-                    disabled={currentPlan === plan.id}
                   >
-                    {currentPlan === plan.id ? 'Current Plan' : plan.buttonText}
+                    {plan.buttonText}
                   </button>
                 </div>
               </div>
