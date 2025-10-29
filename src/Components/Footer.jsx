@@ -1,6 +1,7 @@
 import React from "react";
 import { FaFacebook, FaTwitter, FaLinkedin, FaInstagram } from "react-icons/fa";
 import styles from "./Footer.module.css";
+import logo from "../assets/logo.png";
 
 const Footer = () => {
   return (
@@ -11,7 +12,11 @@ const Footer = () => {
             <div className={styles.footerLogo}>
               <span className={styles.footerLogoText}></span>
             </div>
-            <p className={styles.footerDescription}>Connecting talent with opportunity worldwide.</p>
+            <div className={styles.logo}>
+                              <img src={logo} alt="JobPortal Logo" />
+                          
+                            Big<span style={{ color: '#4f72ab' }}>sources</span>.in
+                          </div>
             <div className={styles.socialLinks}>
               <a href="https://www.facebook.com/pages/Bigsources-Placement-Services/1530903963853104" 
                  target="_blank" 

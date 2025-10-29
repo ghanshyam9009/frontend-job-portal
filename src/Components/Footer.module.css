@@ -69,6 +69,7 @@
 .socialLinks {
   display: flex;
   gap: 1rem;
+  margin-left: 10px;
 }
 
 .socialLink {
@@ -124,4 +125,45 @@
   text-align: center;
   color: #9ca3af;
   font-size: 0.875rem;
+}
+.mobileLogo img {
+  height: 32px;
+  background: var(--background-color);
+  padding: 3px;
+  border-radius: 6px;
+}
+
+@media (max-width: 768px) {
+
+  .logo img {
+    height: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+
+    .logo img {
+    height: 32px;
+  }
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  flex-shrink: 1;
+  margin-bottom: 20px;
+}
+
+.logo img {
+  height: 40px;
+  width: auto;
+  /* background: var(--background-color); */
+ 
+}
+
+.mobileLogo img {
+  height: 32px;
+  background: var(--background-color);
+  padding: 3px;
+  border-radius: 6px;
 }
