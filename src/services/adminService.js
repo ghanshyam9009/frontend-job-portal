@@ -191,10 +191,34 @@ export const adminService = {
     }
   },
 
-  async approveRecruiter(recruiterId) {
+  async approveRecruiter(recruiter) {
     try {
-      const response = await adminApiClient.post(API_ENDPOINTS.admin.approveRecruiter, {
-        employer_id: recruiterId
+      const response = await adminApiClient.put(API_ENDPOINTS.admin.approveRecruiter, {
+        email: recruiter.email
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async updateRecruiter(recruiterId, recruiterData) {
+    try {
+      const response = await adminApiClient.put(API_ENDPOINTS.admin.updateRecruiter, {
+        employer_id: recruiterId,
+        ...recruiterData
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async rejectRecruiter(recruiter) {
+    try {
+      const response = await adminApiClient.put(API_ENDPOINTS.admin.rejectRecruiter, {
+        email: recruiter.email,
+        status: 'rejected'
       });
       return response;
     } catch (error) {
@@ -252,6 +276,51 @@ export const adminService = {
   async rejectApplication(applicationId) {
     try {
       const response = await adminApiClient.put(API_ENDPOINTS.applications.updateStatus(applicationId), { status: 'rejected' });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Premium Management Functions
+  async getPremiumPrices() {
+    try {
+      const response = await adminApiClient.get(API_ENDPOINTS.premium.getPremiumPrices);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async updatePremiumPrices(priceData) {
+    try {
+      const response = await adminApiClient.put(API_ENDPOINTS.premium.updatePremiumPrices, priceData);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async markJobPremium(jobId, isPremium = true, category = 'job') {
+    try {
+      const response = await adminApiClient.post(API_ENDPOINTS.premium.markJobPremium, {
+        job_id: jobId,
+        is_premium: isPremium,
+        category: category
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async markStudentPremium(email, isPremium = true, plan = 'gold') {
+    try {
+      const response = await adminApiClient.post(API_ENDPOINTS.premium.markStudentPremium, {
+        email: email,
+        is_premium: isPremium,
+        plan: plan
+      });
       return response;
     } catch (error) {
       throw error;

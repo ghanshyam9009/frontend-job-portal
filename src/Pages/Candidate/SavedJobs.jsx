@@ -5,6 +5,7 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
 import styles from "./UserDashboard.module.css";
 import { candidateExternalService } from "../../services";
+import { Briefcase, Star, X } from "lucide-react";
 
 const SavedJobs = () => {
   const navigate = useNavigate();
@@ -83,7 +84,7 @@ const SavedJobs = () => {
           )}
           {savedJobs.length === 0 ? (
             <div className={styles.emptyState}>
-              <div className={styles.emptyIcon}>⭐</div>
+              <div className={styles.emptyIcon}><Star size={48} /></div>
               <h3>No saved jobs yet</h3>
               <p>Start saving jobs you're interested in to see them here.</p>
               <button 
@@ -98,14 +99,14 @@ const SavedJobs = () => {
               {savedJobs.map(job => (
                 <div key={job.id} className={styles.jobCard}>
                   <div className={styles.jobCardHeader}>
-                    <div className={styles.jobIcon}>💼</div>
+                    <div className={styles.jobIcon}><Briefcase size={20} /></div>
                     <div className={styles.jobActions}>
-                      <button 
+                      <button
                         className={styles.removeBtn}
                         onClick={() => handleRemoveSaved(job.id)}
                         title="Remove from saved"
                       >
-                        ❌
+                        <X size={16} />
                       </button>
                     </div>
                   </div>

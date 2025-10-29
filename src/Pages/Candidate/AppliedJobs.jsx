@@ -5,6 +5,7 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
 import styles from "./UserDashboard.module.css";
 import { candidateExternalService } from "../../services";
+import { Briefcase, Eye, Calendar, PartyPopper, X, FileText } from "lucide-react";
 
 const AppliedJobs = () => {
   const navigate = useNavigate();
@@ -67,15 +68,15 @@ const AppliedJobs = () => {
   const getStatusIcon = (status) => {
     switch (status.toLowerCase()) {
       case 'under review':
-        return '👀';
+        return <Eye size={14} />;
       case 'interview scheduled':
-        return '📅';
+        return <Calendar size={14} />;
       case 'offer received':
-        return '🎉';
+        return <PartyPopper size={14} />;
       case 'rejected':
-        return '❌';
+        return <X size={14} />;
       default:
-        return '📋';
+        return <FileText size={14} />;
     }
   };
 
@@ -107,7 +108,7 @@ const AppliedJobs = () => {
           )}
           {appliedJobs.length === 0 ? (
             <div className={styles.emptyState}>
-              <div className={styles.emptyIcon}>📋</div>
+              <div className={styles.emptyIcon}><FileText size={48} /></div>
               <h3>No applications yet</h3>
               <p>Start applying to jobs to track your progress here.</p>
               <button 
@@ -122,7 +123,7 @@ const AppliedJobs = () => {
               {appliedJobs.map(job => (
                 <div key={job.id} className={styles.jobCard}>
                   <div className={styles.jobCardHeader}>
-                    <div className={styles.jobIcon}>💼</div>
+                    <div className={styles.jobIcon}><Briefcase size={20} /></div>
                     <div className={`${styles.jobStatus} ${getStatusColor(job.status)}`}>
                       <span className={styles.statusIcon}>{getStatusIcon(job.status)}</span>
                       {job.status}

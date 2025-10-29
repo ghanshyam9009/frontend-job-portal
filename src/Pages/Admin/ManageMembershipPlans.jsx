@@ -4,6 +4,7 @@ import { CreditCard, Edit, Trash2, Plus, RefreshCw } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 import { planService } from "../../services/planService";
 import { candidateService } from "../../services/candidateService";
+import { adminService } from "../../services/adminService";
 
 const ManageMembershipPlans = () => {
   const { theme } = useTheme();
@@ -135,12 +136,13 @@ const ManageMembershipPlans = () => {
 
   const handleUpdatePremiumPrices = async () => {
     try {
-      await candidateService.updatePremiumPrices({
+      await adminService.updatePremiumPrices({
         email: "admin@example.com", // Use a default admin email or get from context
         ...premiumPrices
       });
       alert("Premium prices updated successfully!");
       setShowPremiumModal(false);
+      fetchPremiumPrices();
     } catch (error) {
       console.error('Error updating premium prices:', error);
       alert("Failed to update premium prices.");

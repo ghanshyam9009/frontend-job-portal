@@ -48,11 +48,15 @@
   gap: 24px;
 }
 span{
-    margin-top: 5px;
-    margin-left: 5px;
+
+    margin-left: 0px;
+
+}
+img{
+      margin-right: 10px;
 }
 .logo {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 100;
         display: flex;
 }

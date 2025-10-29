@@ -6,6 +6,7 @@ import CandidateSidebar from "../../Components/Candidate/CandidateSidebar";
 import styles from "./UserDashboard.module.css";
 import { candidateExternalService } from "../../services";
 import { candidateService } from "../../services/candidateService";
+import { Briefcase, Crown } from "lucide-react";
 
 const UserJobListings = () => {
   const navigate = useNavigate();
@@ -167,14 +168,14 @@ const UserJobListings = () => {
             {error && <div className={styles.emptyState}><h3>{error}</h3></div>}
             {isPremium && (
               <div className={styles.premiumMessage}>
-                <span className={styles.premiumIcon}>👑</span>
+                <span className={styles.premiumIcon}><Crown size={20} /></span>
                 <p>You are a premium member! Enjoy enhanced features and priority access to jobs.</p>
               </div>
             )}
             {jobs.map(job => (
               <div key={job.id} className={styles.jobCard}>
                 <div className={styles.jobCardHeader}>
-                  <div className={styles.jobIcon}>💼</div>
+                  <div className={styles.jobIcon}><Briefcase size={20} /></div>
                   <div className={styles.jobType}>{job.type}</div>
                   {job.isPremium && <div className={styles.premiumBadge}>Premium</div>}
                 </div>

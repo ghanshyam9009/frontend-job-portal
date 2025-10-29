@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
 import styles from "./UserDashboard.module.css";
+import { Lock, Bell, Shield, Settings as SettingsIcon } from "lucide-react";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -91,10 +92,10 @@ const Settings = () => {
   };
 
   const sections = [
-    { id: 'password', label: 'Change Password', icon: '🔒' },
-    { id: 'notifications', label: 'Notification Preferences', icon: '🔔' },
-    { id: 'privacy', label: 'Privacy Settings', icon: '🔒' },
-    { id: 'preferences', label: 'Job Preferences', icon: '⚙️' }
+    { id: 'password', label: 'Change Password', icon: <Lock size={18} /> },
+    { id: 'notifications', label: 'Notification Preferences', icon: <Bell size={18} /> },
+    { id: 'privacy', label: 'Privacy Settings', icon: <Shield size={18} /> },
+    { id: 'preferences', label: 'Job Preferences', icon: <SettingsIcon size={18} /> }
   ];
 
   return (
@@ -361,5 +362,3 @@ const Settings = () => {
 };
 
 export default Settings;
-
-

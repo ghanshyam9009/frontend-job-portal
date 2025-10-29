@@ -5,6 +5,7 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
 import { candidateService } from "../../services/candidateService";
 import styles from "./UserDashboard.module.css";
+import { Check, AlertTriangle, Rocket, Crown, MessageCircle, BarChart3 } from "lucide-react";
 
 const MembershipPlans = () => {
   const navigate = useNavigate();
@@ -191,7 +192,7 @@ const MembershipPlans = () => {
                   <ul className={styles.featuresList}>
                     {plan.features.map((feature, index) => (
                       <li key={index} className={styles.feature}>
-                        <span className={styles.checkIcon}>✅</span>
+                        <span className={styles.checkIcon}><Check size={16} /></span>
                         {feature}
                       </li>
                     ))}
@@ -203,7 +204,7 @@ const MembershipPlans = () => {
                       <ul className={styles.limitationsList}>
                         {plan.limitations.map((limitation, index) => (
                           <li key={index} className={styles.limitation}>
-                            <span className={styles.limitIcon}>⚠️</span>
+                            <span className={styles.limitIcon}><AlertTriangle size={16} /></span>
                             {limitation}
                           </li>
                         ))}
@@ -229,22 +230,22 @@ const MembershipPlans = () => {
             <h3>Why Upgrade?</h3>
             <div className={styles.benefitsGrid}>
               <div className={styles.benefitCard}>
-                <div className={styles.benefitIcon}>🚀</div>
+                <div className={styles.benefitIcon}><Rocket size={48} /></div>
                 <h4>Unlimited Applications</h4>
                 <p>Apply to as many jobs as you want without restrictions</p>
               </div>
               <div className={styles.benefitCard}>
-                <div className={styles.benefitIcon}>👑</div>
+                <div className={styles.benefitIcon}><Crown size={48} /></div>
                 <h4>Priority Visibility</h4>
                 <p>Your profile appears higher in employer searches</p>
               </div>
               <div className={styles.benefitCard}>
-                <div className={styles.benefitIcon}>💬</div>
+                <div className={styles.benefitIcon}><MessageCircle size={48} /></div>
                 <h4>Direct Messaging</h4>
                 <p>Communicate directly with hiring managers</p>
               </div>
               <div className={styles.benefitCard}>
-                <div className={styles.benefitIcon}>📊</div>
+                <div className={styles.benefitIcon}><BarChart3 size={48} /></div>
                 <h4>Advanced Analytics</h4>
                 <p>Track your application success and profile views</p>
               </div>
