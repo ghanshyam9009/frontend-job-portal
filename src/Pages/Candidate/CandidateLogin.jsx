@@ -6,7 +6,7 @@ import { studentService } from "../../services/studentService";
 import { validateForm } from "../../utils/errorHandler";
 import styles from "../../Styles/Auth.module.css";
 import HomeNav from "../../Components/HomeNav";
-import logo from "/favicon-icon.png";
+import logo from "../../assets/logo.png";
 import { Briefcase, Building2, Users } from "lucide-react";
 
 const CandidateLogin = () => {

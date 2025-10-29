@@ -4,7 +4,6 @@
   margin: 0 auto;
   padding: 2rem;
   min-height: 100vh;
-  background-color: #f9fafb;
   color: #111827;
   border-radius: 16px;
   margin-top: 2rem;
@@ -12,7 +11,7 @@
 }
 
 .dark .container {
-  background-color: #1a1a1a;
+  background-color: transparent;
   color: #f9fafb;
   border: 1px solid #374151;
 }
@@ -85,7 +84,7 @@
   border: 2px solid #e2e8f0;
   cursor: pointer;
   transition: all 0.3s ease;
-  min-width: 180px;
+    min-width: 260px;
   position: relative;
 }
 

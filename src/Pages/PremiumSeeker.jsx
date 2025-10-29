@@ -3,8 +3,10 @@ import styles from "./PremiumSeeker.module.css";
 import HomeNav from "../Components/HomeNav";
 import Footer from "../Components/Footer";
 import { CheckCircle, Star, Users, Award, TrendingUp, Crown, ArrowRight, Phone, Mail, Calendar } from 'lucide-react';
+import { useTheme } from "../Contexts/ThemeContext";
 
 const PremiumSeeker = () => {
+  const { theme } = useTheme();
   const executiveFeatures = [
     "Executive Career Coach with 15+ years experience",
     "Bi-weekly one-on-one strategy sessions",
@@ -109,7 +111,7 @@ const PremiumSeeker = () => {
   ];
 
   return (
-    <div className={styles.pageContainer}>
+    <div className={`${styles.pageContainer} ${theme === 'dark' ? styles.dark : ''}`}>
       <HomeNav />
 
       {/* Hero Section */}
@@ -177,37 +179,7 @@ const PremiumSeeker = () => {
         </div>
       </section>
 
-      {/* Pricing Tiers */}
-      <section className={styles.pricingSection}>
-        <div className={styles.container}>
-          <h2 className={styles.sectionTitle}>Choose Your Executive Track</h2>
-          <div className={styles.pricingGrid}>
-            {pricingTiers.map((tier, index) => (
-              <div key={index} className={`${styles.pricingCard} ${tier.popular ? styles.popular : ''}`}>
-                {tier.popular && <div className={styles.popularBadge}>Most Popular</div>}
-                <div className={styles.pricingHeader}>
-                  <h3 className={styles.pricingTitle}>{tier.name}</h3>
-                  <div className={styles.pricingMeta}>
-                    <span className={styles.duration}>{tier.duration}</span>
-                    <span className={styles.price}>{tier.price}</span>
-                  </div>
-                </div>
-                <div className={styles.pricingFeatures}>
-                  {tier.features.map((feature, i) => (
-                    <div key={i} className={styles.featureItem}>
-                      <CheckCircle size={16} />
-                      <span>{feature}</span>
-                    </div>
-                  ))}
-                </div>
-                <button className={`${styles.pricingBtn} ${tier.popular ? styles.popularBtn : ''}`}>
-                  {tier.popular ? 'Start Leadership Track' : 'Choose Executive Track'}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+
 
       {/* Process Section */}
       <section className={styles.processSection}>
@@ -271,30 +243,7 @@ const PremiumSeeker = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className={styles.ctaSection}>
-        <div className={styles.container}>
-          <div className={styles.ctaContent}>
-            <h2>Ready for Executive Leadership?</h2>
-            <p>Join elite professionals who have reached the C-suite with our premium program</p>
-            <div className={styles.ctaButtons}>
-              <button className={styles.ctaPrimaryBtn}>Apply for Premium Program</button>
-              <button className={styles.ctaSecondaryBtn}>
-                <Calendar size={20} />
-                Schedule Executive Consultation
-              </button>
-              <button className={styles.ctaSecondaryBtn}>
-                <Phone size={20} />
-                Call: +91-9876543210
-              </button>
-              <button className={styles.ctaSecondaryBtn}>
-                <Mail size={20} />
-                Email: premium@careerportal.com
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
+
 
       <Footer />
     </div>

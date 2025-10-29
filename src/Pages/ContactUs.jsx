@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useTheme } from "../Contexts/ThemeContext";
-import { FaFacebook, FaTwitter, FaLinkedin, FaEnvelope } from "react-icons/fa";
+import { FaFacebook, FaTwitter, FaLinkedin, FaEnvelope, FaMapMarkerAlt, FaPhone } from "react-icons/fa";
 import styles from "../Styles/ContactUs.module.css";
 import HomeNav from "../Components/HomeNav";
 import Footer from "../Components/Footer";
@@ -111,15 +111,15 @@ const ContactUs = () => {
             <div className={styles.infoCard}>
               <h3>Our Office</h3>
               <div className={styles.contactItem}>
-                <span className={styles.contactIcon}>📍</span>
+                <span className={styles.contactIcon}><FaMapMarkerAlt /></span>
                 <span>A 32 chandra nagar near by barfani dham vijay nagar pin 452010</span>
               </div>
               <div className={styles.contactItem}>
-                <span className={styles.contactIcon}>📞</span>
+                <span className={styles.contactIcon}><FaPhone /></span>
                 <span>BDM- Siddharth Sharma- 9755556617</span>
               </div>
               <div className={styles.contactItem}>
-                <span className={styles.contactIcon}>📞</span>
+                <span className={styles.contactIcon}><FaPhone /></span>
                 <span>Parul Sharma- 9993588502</span>
               </div>
               <div className={styles.contactItem}>

@@ -16,6 +16,7 @@ import AppliedJobs from './Pages/Candidate/AppliedJobs'
 import ProfileManagement from './Pages/Candidate/ProfileManagement'
 import Settings from './Pages/Candidate/Settings'
 import Membership from './Pages/Membership'
+import MembershipPlans from './Pages/Candidate/MembershipPlans'
 import CandidateMembership from './Pages/Candidate/CandidateMembership'
 import RecruiterMembership from './Pages/Recruiter/RecruiterMembership'
 import CandidateLayout from './Components/Candidate/CandidateLayout'
@@ -47,6 +48,14 @@ import GovernmentJobsManagement from './Pages/Admin/GovernmentJobsManagement'
 import JobApplications from './Pages/Admin/JobApplications'
 import ResetPassword from './Pages/Auth/ResetPassword'
 import CareerServices from './Pages/CareerServices'
+import FastTrack from './Pages/FastTrack'
+import PremiumSeeker from './Pages/PremiumSeeker'
+import CompanyReviews from './Pages/CompanyReviews'
+import SalaryTools from './Pages/SalaryTools'
+import EmployerBranding from './Pages/EmployerBranding'
+import RecruitingSolutions from './Pages/RecruitingSolutions'
+import PrivacyPolicy from './Pages/PrivacyPolicy'
+import TermsOfService from './Pages/TermsOfService'
 
 function App() {
   return (
@@ -59,6 +68,14 @@ function App() {
           <Route path="/job/:slug" element={<Jobdescription />} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/contact" element={<ContactUs />} />
+          <Route path="/fast-track" element={<FastTrack />} />
+          <Route path="/premium-seeker" element={<PremiumSeeker />} />
+          <Route path="/company-reviews" element={<CompanyReviews />} />
+          <Route path="/salary-tools" element={<SalaryTools />} />
+          <Route path="/employer-branding" element={<EmployerBranding />} />
+          <Route path="/recruiting-solutions" element={<RecruitingSolutions />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/membership" element={<Membership />} />
           <Route path="/career-services" element={<CareerServices />} />
           <Route path="/candidate-membership" element={<CandidateMembership />} />
@@ -74,7 +91,7 @@ function App() {
             <Route path="/my-applications" element={<AppliedJobs />} />
             <Route path="/profile" element={<ProfileManagement />} />
             <Route path="/settings" element={<Settings />} />
-            <Route path="/membership-plans" element={<Membership />} />
+            <Route path="/membership-plans" element={<MembershipPlans />} />
           </Route>
 
 

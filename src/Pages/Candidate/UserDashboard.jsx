@@ -1,21 +1,33 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
-import CandidateSidebar from "../../Components/Candidate/CandidateSidebar";
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { useTheme } from "../../Contexts/ThemeContext";
 import styles from "./UserDashboard.module.css";
-const UserDashboard = () => {
-  const [darkMode, setDarkMode] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const toggleDarkMode = () => setDarkMode(!darkMode);
-  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
-  const closeSidebar = () => setSidebarOpen(false);
+const UserDashboard = () => {
+  const navigate = useNavigate();
+  const { theme } = useTheme();
+
+  const handleQuickAction = (action) => {
+    switch (action) {
+      case 'jobs':
+        navigate('/userjoblistings');
+        break;
+      case 'profile':
+        navigate('/profile');
+        break;
+      case 'saved':
+        navigate('/saved-jobs');
+        break;
+      case 'settings':
+        navigate('/settings');
+        break;
+      default:
+        break;
+    }
+  };
 
   return (
-    <div className={styles.dashboardContainer}>
-      <CandidateNavbar toggleSidebar={toggleSidebar} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <CandidateSidebar darkMode={darkMode} isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
-      <main className={styles.main} style={{ marginLeft: "0px" }}>
+    <div className={`${styles.container} ${theme === 'dark' ? styles.dark : ''}`}>
       <section className={styles.kpis}>
         <div className={styles.kpiCard}>
           <div className={styles.kpiHeader}>Saved Jobs</div>
@@ -47,16 +59,36 @@ const UserDashboard = () => {
           <h3>Quick Actions</h3>
           <ul>
             <li>
-              <button className={styles.qaItem}>Find New Jobs</button>
+              <button
+                className={styles.qaItem}
+                onClick={() => handleQuickAction('jobs')}
+              >
+                Find New Jobs
+              </button>
             </li>
             <li>
-              <button className={styles.qaItem}>Update Profile</button>
+              <button
+                className={styles.qaItem}
+                onClick={() => handleQuickAction('profile')}
+              >
+                Update Profile
+              </button>
             </li>
             <li>
-              <button className={styles.qaItem}>View Saved Searches</button>
+              <button
+                className={styles.qaItem}
+                onClick={() => handleQuickAction('saved')}
+              >
+                View Saved Jobs
+              </button>
             </li>
             <li>
-              <button className={styles.qaItem}>Complete Onboarding</button>
+              <button
+                className={styles.qaItem}
+                onClick={() => handleQuickAction('settings')}
+              >
+                Settings
+              </button>
             </li>
           </ul>
         </div>
@@ -87,7 +119,6 @@ const UserDashboard = () => {
           </ul>
         </div>
       </section>
-      </main>
     </div>
   );
 };

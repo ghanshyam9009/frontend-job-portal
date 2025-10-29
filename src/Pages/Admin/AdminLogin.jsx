@@ -4,7 +4,7 @@ import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import styles from "../../Styles/Auth.module.css";
 import HomeNav from "../../Components/HomeNav";
-import logo from "/favicon-icon.png";
+import logo from "../../assets/logo.png";
 import { Briefcase, Building, Users } from "lucide-react";
 
 const AdminLogin = () => {

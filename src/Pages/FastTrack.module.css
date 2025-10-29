@@ -3,13 +3,20 @@
   background-color: #f8f9fa;
   color: #333;
   min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark .pageContainer {
+  background-color: #111827;
+  color: #f9fafb;
 }
 
 .hero {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1e293b 0%, #374151 100%);
   color: white;
   padding: 4rem 2rem;
   text-align: center;
+  transition: background 0.3s ease;
 }
 
 .heroContent {
@@ -125,12 +132,22 @@
   text-align: center;
   margin-bottom: 3rem;
   color: #333;
+  transition: color 0.3s ease;
+}
+
+.dark .sectionTitle {
+  color: #f9fafb;
 }
 
 /* Highlights Section */
 .highlightsSection {
   padding: 4rem 0;
   background: white;
+  transition: background-color 0.3s ease;
+}
+
+.dark .highlightsSection {
+  background: #1f2937;
 }
 
 .highlightsGrid {
@@ -146,7 +163,13 @@
   padding: 1rem;
   background: #f8f9fa;
   border-radius: 8px;
-  border-left: 4px solid #667eea;
+  border-left: 4px solid #1f2937;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.dark .highlightItem {
+  background: #374151;
+  border-left-color: #60a5fa;
 }
 
 .checkIcon {
@@ -158,6 +181,11 @@
 .processSection {
   padding: 4rem 0;
   background: #f8f9fa;
+  transition: background-color 0.3s ease;
+}
+
+.dark .processSection {
+  background: #111827;
 }
 
 .processGrid {
@@ -176,10 +204,15 @@
   border-radius: 12px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   position: relative;
+  transition: background-color 0.3s ease;
+}
+
+.dark .processStep {
+  background: #1f2937;
 }
 
 .stepNumber {
-  background: #667eea;
+  background: #1f2937;
   color: white;
   width: 50px;
   height: 50px;
@@ -190,6 +223,11 @@
   font-size: 1.5rem;
   font-weight: bold;
   flex-shrink: 0;
+  transition: background-color 0.3s ease;
+}
+
+.dark .stepNumber {
+  background: #60a5fa;
 }
 
 .stepContent {
@@ -201,11 +239,21 @@
   font-weight: bold;
   margin-bottom: 0.5rem;
   color: #333;
+  transition: color 0.3s ease;
+}
+
+.dark .stepTitle {
+  color: #f9fafb;
 }
 
 .stepDescription {
   color: #666;
   line-height: 1.6;
+  transition: color 0.3s ease;
+}
+
+.dark .stepDescription {
+  color: #d1d5db;
 }
 
 .arrowIcon {
@@ -225,6 +273,11 @@
 .testimonialsSection {
   padding: 4rem 0;
   background: white;
+  transition: background-color 0.3s ease;
+}
+
+.dark .testimonialsSection {
+  background: #1f2937;
 }
 
 .testimonialsGrid {
@@ -238,6 +291,12 @@
   padding: 2rem;
   border-radius: 12px;
   border-left: 4px solid #ffd700;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.dark .testimonialCard {
+  background: #374151;
+  border-left-color: #fbbf24;
 }
 
 .testimonialHeader {
@@ -251,6 +310,11 @@
 
 .star {
   color: #ffd700;
+  transition: color 0.3s ease;
+}
+
+.dark .star {
+  color: #fbbf24;
 }
 
 .testimonialContent {
@@ -259,6 +323,11 @@
   margin-bottom: 1.5rem;
   color: #555;
   font-style: italic;
+  transition: color 0.3s ease;
+}
+
+.dark .testimonialContent {
+  color: #d1d5db;
 }
 
 .testimonialAuthor {
@@ -271,25 +340,41 @@
   font-weight: bold;
   color: #333;
   margin-bottom: 0.2rem;
+  transition: color 0.3s ease;
+}
+
+.dark .authorName {
+  color: #f9fafb;
 }
 
 .authorRole {
-  color: #667eea;
+  color: #1f2937;
   font-size: 0.9rem;
   margin-bottom: 0.2rem;
+  transition: color 0.3s ease;
+}
+
+.dark .authorRole {
+  color: #60a5fa;
 }
 
 .authorCompany {
   color: #666;
   font-size: 0.9rem;
+  transition: color 0.3s ease;
+}
+
+.dark .authorCompany {
+  color: #9ca3af;
 }
 
 /* CTA Section */
 .ctaSection {
   padding: 4rem 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1e293b 0%, #374151 100%);
   color: white;
   text-align: center;
+  transition: background 0.3s ease;
 }
 
 .ctaContent h2 {

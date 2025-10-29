@@ -53,14 +53,14 @@ const CandidateSidebar = ({ isOpen, toggleSidebar }) => {
       id: 'membership',
       label: 'Membership',
       icon: <CreditCard size={20} />,
-      path: '/membership'
+      path: '/membership-plans'
     },
-    {
-      id: 'settings',
-      label: 'Settings',
-      icon: <Settings size={20} />,
-      path: '/settings'
-    }
+    // {
+    //   id: 'settings',
+    //   label: 'Settings',
+    //   icon: <Settings size={20} />,
+    //   path: '/settings'
+    // }
   ];
 
   const handleNavigation = (path) => {

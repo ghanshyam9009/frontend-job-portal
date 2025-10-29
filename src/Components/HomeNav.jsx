@@ -126,8 +126,8 @@ const HomeNav = () => {
             {showCareerDropdown && (
               <div className={styles.dropdownContent}>
                 <a href="/career-services">Job Seeker Services</a>
-                <a href="#">Fast Track Career</a>
-                <a href="#">Premium Seeker</a>
+                <a href="/fast-track">Fast Track Career</a>
+                <a href="/premium-seeker">Premium Seeker</a>
               </div>
             )}
           </li>

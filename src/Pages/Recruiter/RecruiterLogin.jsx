@@ -5,7 +5,7 @@ import { useTheme } from "../../Contexts/ThemeContext"; // Import useTheme
 import { CheckCircle, Clock, XCircle } from "lucide-react";
 import styles from "../../Styles/Auth.module.css";
 import HomeNav from "../../Components/HomeNav";
-import logo from "/favicon-icon.png";
+import logo from "../../assets/logo.png";
 
 const RecruiterLogin = () => {
   const { theme, toggleTheme } = useTheme(); // Use theme context
