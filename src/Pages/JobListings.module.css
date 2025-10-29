@@ -658,6 +658,7 @@
   cursor: pointer;
   transition: background 0.2s ease;
    align-self: flex-start;
+       max-width: 150px;
 }
 
 .viewBtn:hover {
@@ -1059,7 +1060,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   flex: 1;
-      margin-left: 20px;
+      max-width: 150px;
 
 }
 

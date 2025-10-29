@@ -3,15 +3,22 @@
   background-color: #f8f9fa;
   color: #333;
   min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark .pageContainer {
+  background-color: #111827;
+  color: #f9fafb;
 }
 
 .hero {
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  background: linear-gradient(135deg, #1e293b 0%, #374151 100%);
   color: white;
   padding: 4rem 2rem;
   text-align: center;
   position: relative;
   overflow: hidden;
+  transition: background 0.3s ease;
 }
 
 .hero::before {
@@ -142,12 +149,22 @@
   text-align: center;
   margin-bottom: 3rem;
   color: #333;
+  transition: color 0.3s ease;
+}
+
+.dark .sectionTitle {
+  color: #f9fafb;
 }
 
 /* Overview Section */
 .overviewSection {
   padding: 4rem 0;
   background: white;
+  transition: background-color 0.3s ease;
+}
+
+.dark .overviewSection {
+  background: #1f2937;
 }
 
 .overviewGrid {
@@ -166,6 +183,11 @@
   line-height: 1.7;
   color: #555;
   margin-bottom: 2rem;
+  transition: color 0.3s ease;
+}
+
+.dark .overviewText {
+  color: #d1d5db;
 }
 
 .overviewHighlights {
@@ -181,7 +203,13 @@
   padding: 1rem;
   background: #f8f9fa;
   border-radius: 8px;
-  border-left: 4px solid #2c3e50;
+  border-left: 4px solid #1f2937;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.dark .highlight {
+  background: #374151;
+  border-left-color: #60a5fa;
 }
 
 .overviewVisual {
@@ -191,15 +219,16 @@
 }
 
 .tierBadge {
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  background: linear-gradient(135deg, #1e293b 0%, #374151 100%);
   color: white;
   padding: 2rem 3rem;
   border-radius: 50%;
   font-size: 1.5rem;
   font-weight: bold;
   text-align: center;
-  box-shadow: 0 10px 30px rgba(44, 62, 80, 0.3);
+  box-shadow: 0 10px 30px rgba(30, 41, 59, 0.3);
   position: relative;
+  transition: background 0.3s ease;
 }
 
 .tierBadge::after {
@@ -214,6 +243,11 @@
 .pricingSection {
   padding: 4rem 0;
   background: #f8f9fa;
+  transition: background-color 0.3s ease;
+}
+
+.dark .pricingSection {
+  background: #111827;
 }
 
 .pricingGrid {
@@ -228,7 +262,11 @@
   padding: 2rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   position: relative;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+.dark .pricingCard {
+  background: #1f2937;
 }
 
 .pricingCard:hover {
@@ -263,6 +301,11 @@
   font-weight: bold;
   color: #333;
   margin-bottom: 1rem;
+  transition: color 0.3s ease;
+}
+
+.dark .pricingTitle {
+  color: #f9fafb;
 }
 
 .pricingMeta {
@@ -278,12 +321,23 @@
   border-radius: 20px;
   font-size: 0.9rem;
   color: #666;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark .duration {
+  background: #374151;
+  color: #d1d5db;
 }
 
 .price {
   font-size: 2rem;
   font-weight: bold;
-  color: #2c3e50;
+  color: #1f2937;
+  transition: color 0.3s ease;
+}
+
+.dark .price {
+  color: #60a5fa;
 }
 
 .pricingFeatures {
@@ -296,6 +350,7 @@
   gap: 0.8rem;
   margin-bottom: 0.8rem;
   padding: 0.5rem 0;
+  transition: color 0.3s ease;
 }
 
 .featureIcon {
@@ -305,7 +360,7 @@
 
 .pricingBtn {
   width: 100%;
-  background: #2c3e50;
+  background: #1f2937;
   color: white;
   border: none;
   padding: 1rem;
@@ -330,6 +385,11 @@
 .processSection {
   padding: 4rem 0;
   background: white;
+  transition: background-color 0.3s ease;
+}
+
+.dark .processSection {
+  background: #1f2937;
 }
 
 .processGrid {
@@ -346,12 +406,17 @@
   background: #f8f9fa;
   padding: 2rem;
   border-radius: 12px;
-  border-left: 4px solid #2c3e50;
+  border-left: 4px solid #1f2937;
   position: relative;
+  transition: background-color 0.3s ease;
+}
+
+.dark .processStep {
+  background: #374151;
 }
 
 .stepNumber {
-  background: #2c3e50;
+  background: #1f2937;
   color: white;
   width: 50px;
   height: 50px;
@@ -362,6 +427,11 @@
   font-size: 1.5rem;
   font-weight: bold;
   flex-shrink: 0;
+  transition: background-color 0.3s ease;
+}
+
+.dark .stepNumber {
+  background: #60a5fa;
 }
 
 .stepContent {
@@ -373,11 +443,21 @@
   font-weight: bold;
   margin-bottom: 0.5rem;
   color: #333;
+  transition: color 0.3s ease;
+}
+
+.dark .stepTitle {
+  color: #f9fafb;
 }
 
 .stepDescription {
   color: #666;
   line-height: 1.6;
+  transition: color 0.3s ease;
+}
+
+.dark .stepDescription {
+  color: #d1d5db;
 }
 
 .arrowIcon {
@@ -385,18 +465,29 @@
   right: -1rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #2c3e50;
+  color: #1f2937;
   background: white;
   padding: 0.5rem;
   border-radius: 50%;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   z-index: 2;
+  transition: color 0.3s ease, background-color 0.3s ease;
+}
+
+.dark .arrowIcon {
+  color: #60a5fa;
+  background: #1f2937;
 }
 
 /* Features Section */
 .featuresSection {
   padding: 4rem 0;
   background: #f8f9fa;
+  transition: background-color 0.3s ease;
+}
+
+.dark .featuresSection {
+  background: #111827;
 }
 
 .featuresGrid {
@@ -414,6 +505,11 @@
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   border-left: 4px solid #ffd700;
+  transition: background-color 0.3s ease;
+}
+
+.dark .featureItem {
+  background: #1f2937;
 }
 
 .featureIcon {
@@ -425,6 +521,11 @@
 .testimonialsSection {
   padding: 4rem 0;
   background: white;
+  transition: background-color 0.3s ease;
+}
+
+.dark .testimonialsSection {
+  background: #1f2937;
 }
 
 .testimonialsGrid {
@@ -437,8 +538,14 @@
   background: #f8f9fa;
   padding: 2rem;
   border-radius: 12px;
-  border-left: 4px solid #2c3e50;
+  border-left: 4px solid #1f2937;
   position: relative;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.dark .testimonialCard {
+  background: #374151;
+  border-left-color: #60a5fa;
 }
 
 .testimonialHeader {
@@ -452,6 +559,11 @@
 
 .star {
   color: #ffd700;
+  transition: color 0.3s ease;
+}
+
+.dark .star {
+  color: #fbbf24;
 }
 
 .testimonialContent {
@@ -460,6 +572,11 @@
   margin-bottom: 1.5rem;
   color: #555;
   font-style: italic;
+  transition: color 0.3s ease;
+}
+
+.dark .testimonialContent {
+  color: #d1d5db;
 }
 
 .testimonialAuthor {
@@ -472,25 +589,41 @@
   font-weight: bold;
   color: #333;
   margin-bottom: 0.2rem;
+  transition: color 0.3s ease;
+}
+
+.dark .authorName {
+  color: #f9fafb;
 }
 
 .authorRole {
-  color: #2c3e50;
+  color: #1f2937;
   font-size: 0.9rem;
   margin-bottom: 0.2rem;
+  transition: color 0.3s ease;
+}
+
+.dark .authorRole {
+  color: #60a5fa;
 }
 
 .authorCompany {
   color: #666;
   font-size: 0.9rem;
+  transition: color 0.3s ease;
+}
+
+.dark .authorCompany {
+  color: #9ca3af;
 }
 
 /* CTA Section */
 .ctaSection {
   padding: 4rem 0;
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  background: linear-gradient(135deg, #1e293b 0%, #374151 100%);
   color: white;
   text-align: center;
+  transition: background 0.3s ease;
 }
 
 .ctaContent h2 {

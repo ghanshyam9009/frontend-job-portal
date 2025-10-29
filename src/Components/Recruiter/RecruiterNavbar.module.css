@@ -54,7 +54,9 @@ span{
 .logo {
     font-size: 16px;
     font-weight: 100;
-        display: flex;
+    display: flex;
+    font-weight: 600;
+    font-size: large;
 }
 span{
   margin-top: 0px;

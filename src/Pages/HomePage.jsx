@@ -82,86 +82,89 @@ const popularSearches = [
     { title: "Full time Jobs", trend: "#5", image: image2, link: "/jobs?search=full time" },
   ];
 
-const topJobRoles = [
+  const [topJobRoles, setTopJobRoles] = useState([]);
+
+  // Static job role definitions with search terms
+  const jobRoleDefinitions = [
     {
-        title: "Work from Home",
-        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/workfromhome.svg",
-        count: "0 Active Jobs",
-        link: "/jobs?search=work from home"
+      title: "Work from Home",
+      image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/workfromhome.svg",
+      keywords: ["work from home", "remote", "wfh", "home based"],
+      link: "/jobs?search=work from home"
     },
     {
-        title: "Accountant",
-        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Accountant.svg",
-        count: "6 Active Jobs",
-        link: "/jobs?search=accountant"
+      title: "Accountant",
+      image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Accountant.svg",
+      keywords: ["accountant", "finance", "accounts", "auditor"],
+      link: "/jobs?search=accountant"
     },
     {
-        title: "BPO / Customer care",
-        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/BPO_Telecallers.svg",
-        count: "7 Active Jobs",
-        link: "/jobs?search=bpo"
+      title: "BPO / Customer care",
+      image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/BPO_Telecallers.svg",
+      keywords: ["bpo", "customer care", "telecaller", "call center", "customer service"],
+      link: "/jobs?search=bpo"
     },
     {
-        title: "Data Entry / Back Office",
-        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Data_entry_Back_office.svg",
-        count: "0 Active Jobs",
-        link: "/jobs?search=data entry"
+      title: "Data Entry / Back Office",
+      image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Data_entry_Back_office.svg",
+      keywords: ["data entry", "back office", "admin", "clerical"],
+      link: "/jobs?search=data entry"
     },
     {
-        title: "Sales / Marketing",
-        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Sales.svg",
-        count: "58 Active Jobs",
-        link: "/jobs?search=sales"
+      title: "Sales / Marketing",
+      image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Sales.svg",
+      keywords: ["sales", "marketing", "business development", "sales executive"],
+      link: "/jobs?search=sales"
     },
     {
-        title: "Receptionist / Front Office",
-        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Receptionist_Front_office.svg",
-        count: "0 Active Jobs",
-        link: "/jobs?search=receptionist"
+      title: "Receptionist / Front Office",
+      image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Receptionist_Front_office.svg",
+      keywords: ["receptionist", "front office", "front desk"],
+      link: "/jobs?search=receptionist"
     },
     {
-        title: "Hospitality Executives",
-        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Hospitality_Executives.svg",
-        count: "0 Active Jobs",
-        link: "/jobs?search=hospitality"
+      title: "Hospitality Executives",
+      image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Hospitality_Executives.svg",
+      keywords: ["hospitality", "hotel", "restaurant", "food service"],
+      link: "/jobs?search=hospitality"
     },
     {
-        title: "Delivery",
-        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Delivery_boy.svg",
-        count: "4 Active Jobs",
-        link: "/jobs?search=delivery"
+      title: "Delivery",
+      image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Delivery_boy.svg",
+      keywords: ["delivery", "rider", "logistics"],
+      link: "/jobs?search=delivery"
     },
     {
-        title: "Driver",
-        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Driver.svg",
-        count: "0 Active Jobs",
-        link: "/jobs?search=driver"
+      title: "Driver",
+      image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Driver.svg",
+      keywords: ["driver", "transport", "chaffeour"],
+      link: "/jobs?search=driver"
     },
     {
-        title: "Beauticians / Spa",
-        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Beauticians.svg",
-        count: "0 Active Jobs",
-        link: "/jobs?search=beautician"
+      title: "Beauticians / Spa",
+      image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Beauticians.svg",
+      keywords: ["beautician", "spa", "salon", "beauty"],
+      link: "/jobs?search=beautician"
     },
     {
-        title: "Mechanic",
-        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Mechanic.svg",
-        count: "0 Active Jobs",
-        link: "/jobs?search=mechanic"
+      title: "Mechanic",
+      image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Mechanic.svg",
+      keywords: ["mechanic", "automobile", "car repair"],
+      link: "/jobs?search=mechanic"
     },
     {
-        title: "IT Software-Engineer",
-        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/IT-Software.svg",
-        count: "1 Active Jobs",
-        link: "/jobs?search=software engineer"
+      title: "IT Software-Engineer",
+      image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/IT-Software.svg",
+      keywords: ["software engineer", "developer", "programmer", "it", "tech"],
+      link: "/jobs?search=software engineer"
     },
     {
-        title: "Retail / Store Executive",
-        image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Retail.svg",
-        count: "2 Active Jobs",
-        link: "/jobs?search=retail"
+      title: "Retail / Store Executive",
+      image: "https://d3isa0ssinyrxx.cloudfront.net/images/design/logos/role_icons/Retail.svg",
+      keywords: ["retail", "store executive", "shop", "sales associate"],
+      link: "/jobs?search=retail"
     }
-];
+  ];
 
   useEffect(() => {
     const fetchFeaturedJobs = async () => {
@@ -197,7 +200,61 @@ const topJobRoles = [
       }
     };
 
+    const fetchTopJobRoles = async () => {
+      try {
+        // Fetch jobs for counting (limit to reasonable number)
+        const response = await fetch('https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs?status=approved&limit=500', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (!data || !data.jobs) {
+          throw new Error('Invalid response format');
+        }
+
+        const jobs = data.jobs || [];
+
+        // Count jobs by category using keyword matching
+        const roleCounts = jobRoleDefinitions.map(role => {
+          const count = jobs.filter(job => {
+            const jobTitle = (job.job_title || "").toLowerCase();
+            const jobDescription = (job.description || "").toLowerCase();
+            const searchText = jobTitle + " " + jobDescription;
+
+            return role.keywords.some(keyword =>
+              searchText.includes(keyword.toLowerCase())
+            );
+          }).length;
+
+          return {
+            ...role,
+            count: count,
+            countText: `${count} Active Job${count !== 1 ? 's' : ''}`
+          };
+        });
+
+        setTopJobRoles(roleCounts);
+      } catch (error) {
+        console.error("Failed to fetch Top Job Roles:", error);
+        // Fallback to static data with 0 counts
+        const fallbackRoles = jobRoleDefinitions.map(role => ({
+          ...role,
+          count: 0,
+          countText: "0 Active Jobs"
+        }));
+        setTopJobRoles(fallbackRoles);
+      }
+    };
+
     fetchFeaturedJobs();
+    fetchTopJobRoles();
   }, []);
 
   const handleSearch = () => {

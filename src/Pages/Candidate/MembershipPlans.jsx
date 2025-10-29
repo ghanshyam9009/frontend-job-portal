@@ -12,113 +12,68 @@ const MembershipPlans = () => {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [selectedPlan, setSelectedPlan] = useState(null);
-  const [prices, setPrices] = useState({ gold: 400, platinum: 500, silver: 1000 });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchPrices = async () => {
-      try {
-        const response = await candidateService.getPremiumPrices();
-        if (response.data) {
-          setPrices(response.data);
-        }
-      } catch (error) {
-        console.error('Error fetching premium prices:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPrices();
-  }, []);
-
-  const membershipPlans = [
-    {
-      id: 'free',
-      name: 'Free',
-      price: '₹0',
-      period: 'forever',
-      description: 'Basic job searching features',
-      features: [
-        'Browse job listings',
-        'Save up to 5 jobs',
-        'Apply to 3 jobs per month',
-        'Basic profile visibility',
-        'Email support'
-      ],
-      limitations: [
-        'Limited job applications',
-        'Basic profile features',
-        'No priority support'
-      ],
-      popular: false,
-      buttonText: 'Current Plan',
-      buttonDisabled: true
-    },
-    {
-      id: 'gold',
-      name: 'Gold',
-      price: `₹${prices.gold}`,
-      period: 'month',
-      description: 'Enhanced job searching experience',
-      features: [
-        'Unlimited job applications',
-        'Save unlimited jobs',
-        'Advanced profile visibility',
-        'Priority in search results',
-        'Direct messaging with employers',
-        'Application tracking',
-        'Resume builder',
-        'Email & phone support'
-      ],
-      limitations: [],
-      popular: true,
-      buttonText: 'Upgrade to Gold',
-      buttonDisabled: false
-    },
+  const candidatePlans = [
     {
       id: 'platinum',
-      name: 'Platinum',
-      price: `₹${prices.platinum}`,
-      period: 'month',
-      description: 'Complete career advancement suite',
+      name: "Platinum",
+      description: "Perfect for beginners starting their coding journey with government jobs access.",
+      price: "₹200",
+      validity: "1 Month",
       features: [
-        'Everything in Gold',
-        'Personalized job recommendations',
-        'Interview preparation tools',
-        'Career coaching sessions',
-        'Salary negotiation guidance',
-        'LinkedIn profile optimization',
-        'Priority customer support',
-        'Advanced analytics'
+        "Access to all job listings",
+        "Priority application review",
+        "Profile highlighted to recruiters",
+        "Email and SMS job alerts",
+        "Resume writing assistance",
+        "Access to government job listings"
       ],
-      limitations: [],
-      popular: false,
-      buttonText: 'Upgrade to Platinum',
-      buttonDisabled: false
+      style: "platinum"
     },
     {
       id: 'silver',
-      name: 'Silver',
-      price: `₹${prices.silver}`,
-      period: 'month',
-      description: 'Standard premium features',
+      name: "Silver",
+      description: "Go all in — with expert support & 3 Months access including government jobs.",
+      price: "₹500",
+      validity: "3 Months",
       features: [
-        '50 job applications per month',
-        'Save up to 50 jobs',
-        'Standard profile visibility',
-        'Basic messaging',
-        'Application tracking',
-        'Email support'
+        "Access to all job listings",
+        "Priority application review",
+        "Profile highlighted to recruiters",
+        "Email and SMS job alerts",
+        "Resume writing assistance",
+        "Access to government job listings"
       ],
-      limitations: [
-        'Limited applications',
-        'No priority support'
+      style: "silver",
+      recommended: true
+    },
+    {
+      id: 'gold',
+      name: "Gold",
+      description: "Premium access with backend support and 100% job security guarantee.",
+      price: "₹1000",
+      validity: "6 Months",
+      features: [
+        "Access to all job listings",
+        "Priority application review",
+        "Profile highlighted to recruiters",
+        "Email and SMS job alerts",
+        "Resume writing assistance",
+        "Backend support for job applications",
+        "100% job security guarantee",
+        "Access to government job listings"
       ],
-      popular: false,
-      buttonText: 'Upgrade to Silver',
-      buttonDisabled: false
+      style: "gold"
     }
   ];
+
+  const membershipPlans = candidatePlans.map(plan => ({
+    ...plan,
+    period: plan.validity.toLowerCase(),
+    limitations: [],
+    popular: plan.recommended || false,
+    buttonText: 'Choose Plan',
+    buttonDisabled: false
+  }));
 
   const handlePlanSelect = (plan) => {
     setSelectedPlan(plan);

@@ -37,30 +37,30 @@ const Footer = () => {
           <div className={styles.footerColumn}>
             <h4 className={styles.footerColumnTitle}>Job Seekers</h4>
             <div className={styles.footerLinks}>
-              <a href="/job-listings" className={styles.footerLink}>Find Jobs</a>
-              <a href="/candidate/profile" className={styles.footerLink}>Upload Resume</a>
-              <a href="#" className={styles.footerLink}>Company Reviews</a>
-              <a href="#" className={styles.footerLink}>Salary Tools</a>
+              <a href="/jobs" className={styles.footerLink}>Find Jobs</a>
+              <a href="/candidate/login" className={styles.footerLink}>Upload Resume</a>
+              <a href="/company-reviews" className={styles.footerLink}>Company Reviews</a>
+              <a href="/salary-tools" className={styles.footerLink}>Salary Tools</a>
             </div>
           </div>
-          
+
           <div className={styles.footerColumn}>
             <h4 className={styles.footerColumnTitle}>Employers</h4>
             <div className={styles.footerLinks}>
-              <a href="/recruiter/post-job" className={styles.footerLink}>Post a Job</a>
-              <a href="/recruiter/shortlist-candidates" className={styles.footerLink}>Search Resumes</a>
-              <a href="#" className={styles.footerLink}>Employer Branding</a>
-              <a href="#" className={styles.footerLink}>Recruiting Solutions</a>
+              <a href="/post-job" className={styles.footerLink}>Post a Job</a>
+              <a href="/shortlist-candidates" className={styles.footerLink}>Search Resumes</a>
+              <a href="/employer-branding" className={styles.footerLink}>Employer Branding</a>
+              <a href="/recruiting-solutions" className={styles.footerLink}>Recruiting Solutions</a>
             </div>
           </div>
-          
+
           <div className={styles.footerColumn}>
             <h4 className={styles.footerColumnTitle}>Company</h4>
             <div className={styles.footerLinks}>
               <a href="/about" className={styles.footerLink}>About Us</a>
               <a href="/contact" className={styles.footerLink}>Contact Us</a>
-              <a href="#" className={styles.footerLink}>Privacy Policy</a>
-              <a href="#" className={styles.footerLink}>Terms of Service</a>
+              <a href="/privacy-policy" className={styles.footerLink}>Privacy Policy</a>
+              <a href="/terms-of-service" className={styles.footerLink}>Terms of Service</a>
             </div>
           </div>
         </div>
@@ -69,7 +69,7 @@ const Footer = () => {
       <div className={styles.footerBottom}>
         <div className={styles.footerBottomContent}>
           <div className={styles.copyright}>
-            Copyright © Bigsources Manpower Solution PVT. LTD. 2025. All Rights Reserved
+            Copyright © Bigsources.in 2025. All Rights Reserved
           </div>
         </div>
       </div>

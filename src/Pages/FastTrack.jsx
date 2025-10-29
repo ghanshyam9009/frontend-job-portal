@@ -3,8 +3,10 @@ import styles from "./FastTrack.module.css";
 import HomeNav from "../Components/HomeNav";
 import Footer from "../Components/Footer";
 import { CheckCircle, Clock, Users, Award, TrendingUp, Star, ArrowRight, Phone, Mail } from 'lucide-react';
+import { useTheme } from "../Contexts/ThemeContext";
 
 const FastTrack = () => {
+  const { theme } = useTheme();
   const programHighlights = [
     "Personal Career Coach assigned to you",
     "Weekly one-on-one strategy sessions",
@@ -76,7 +78,7 @@ const FastTrack = () => {
   ];
 
   return (
-    <div className={styles.pageContainer}>
+    <div className={`${styles.pageContainer} ${theme === 'dark' ? styles.dark : ''}`}>
       <HomeNav />
 
       {/* Hero Section */}
