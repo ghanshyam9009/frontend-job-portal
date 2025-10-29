@@ -18,7 +18,6 @@ import Settings from './Pages/Candidate/Settings'
 import Membership from './Pages/Membership'
 import CandidateMembership from './Pages/Candidate/CandidateMembership'
 import RecruiterMembership from './Pages/Recruiter/RecruiterMembership'
-import Messages from './Pages/Candidate/Messages'
 import CandidateLayout from './Components/Candidate/CandidateLayout'
 import RecruiterLogin from './Pages/Recruiter/RecruiterLogin'
 import RecruiterLayout from './Components/Recruiter/RecruiterLayout'
@@ -76,7 +75,6 @@ function App() {
             <Route path="/profile" element={<ProfileManagement />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/membership-plans" element={<Membership />} />
-            <Route path="/messages" element={<Messages />} />
           </Route>
 
 

@@ -34,7 +34,7 @@
 }
 
 .logo img {
-  height: 50px;
+  height: 40px;
   width: auto;
   /* background: var(--background-color); */
  
@@ -286,7 +286,11 @@ span{
   transition: all 0.3s ease;
   transform-origin: center;
 }
+span{
+  margin-top: 0px;
+  margin-left: 0px;
 
+}
 .hamburger span:nth-child(1) {
   transform: translateY(-6px);
 }

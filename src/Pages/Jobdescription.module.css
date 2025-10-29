@@ -4,12 +4,76 @@
   padding: 70px 16px 64px;
 }
 
-.headerCard {
+/* Theme support for cards */
+.lightCard {
   background: #fff;
- 
-  padding: 24px;
+}
 
+.darkCard {
+  background: #2d3748;
+  color: #ffffff;
+}
+
+.lightRelatedCard {
+  background: #fff;
+}
+
+.darkRelatedCard {
+  background: #374151;
+  color: #ffffff;
+}
+
+/* Theme support for text elements */
+.darkCard .companyRow {
+  color: #d1d5db;
+}
+
+.darkCard .metaRow {
+  color: #9ca3af;
+}
+
+.darkCard .list {
+  color: #d1d5db;
+}
+
+.darkCard .smallPrint {
+  color: #9ca3af;
+}
+
+.darkRelatedCard .relatedTitle {
+  color: #ffffff;
+}
+
+.darkRelatedCard .relatedMeta {
+  color: #9ca3af;
+}
+
+/* Skill tags theme */
+.lightSkill {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.darkSkill {
+  background: #374151;
+  color: #60a5fa;
+}
+
+/* Remove unused page class from original */
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 70px 16px 64px;
+}
+
+/* Original headerCard maintained for compatibility */
+.headerCard {
+  padding: 24px;
   margin-bottom: 20px;
+}
+
+main{
+  margin-left: 240px;
 }
 
 .headerTop {
@@ -59,9 +123,6 @@
 .metaDot { color: #d1d5db; }
 
 .contentCard {
-  background: #fff;
-
-
   padding: 24px;
 
 }
@@ -175,5 +236,3 @@
   .headerTop { align-items: flex-start; flex-direction: column; }
   .relatedGrid { grid-template-columns: 1fr; }
 }
-
-

@@ -67,7 +67,7 @@ span{
 }
 
 .logo {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 100;
         display: flex;
 }
@@ -191,7 +191,11 @@ span{
   border-radius: 50%;
   object-fit: cover;
 }
+span{
+  margin-top: 0px;
+  margin-left: 0px;
 
+}
 .profileAvatar {
   width: 40px;
   height: 40px;

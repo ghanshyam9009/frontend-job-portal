@@ -60,15 +60,15 @@ const CandidateNavbar = ({ toggleSidebar }) => {
           <Link to="/">
             <img src={logo} alt="JobPortal Logo" />
           </Link>
-          <span>Bigsources.in</span>
+          Big<span style={{ color: '#4f72ab' }}>sources</span>.in
         </div>
       </div>
       
       <div className={styles.headerRight}>
-        <button className={styles.notificationBtn}>
+        {/* <button className={styles.notificationBtn}>
           🔔
           <span className={styles.notificationBadge}>3</span>
-        </button>
+        </button> */}
         <button className={styles.themeToggle} onClick={handleThemeToggle}>
           {currentTheme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
         </button>

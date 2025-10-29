@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
-import { Check, Eye, Edit, X, Search, FileText } from "lucide-react";
+import { Check, Eye, Edit, X, Search, FileText, Star } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const ManageJobs = () => {
@@ -172,6 +172,30 @@ const ManageJobs = () => {
     }
   };
 
+  const handleMarkJobPremium = async (task, isPremium = true) => {
+    if (!task.job_id) {
+      alert('Cannot mark this job as premium: Job ID not found');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const result = await adminService.markJobPremium(task.job_id, isPremium, 'job');
+      alert(`Job successfully marked as ${isPremium ? 'premium' : 'non-premium'}: ${result.message || 'Success'}`);
+      
+      // Refresh the jobs list
+      const jobsData = await adminService.getPendingJobs();
+      const jobsArray = Array.isArray(jobsData) ? jobsData : [];
+      setJobs(jobsArray);
+      setFilteredJobs(jobsArray);
+    } catch (error) {
+      console.error('Failed to mark job as premium:', error);
+      alert('Failed to mark job as premium. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Pagination - ensure filteredJobs is always an array
   const safeFilteredJobs = Array.isArray(filteredJobs) ? filteredJobs : [];
   const totalPages = Math.ceil(safeFilteredJobs.length / jobsPerPage);
@@ -292,6 +316,16 @@ const ManageJobs = () => {
                           </button>
                         )}
                       </>
+                    )}
+                    {task.job_id && (
+                      <button
+                        className={styles.actionBtn}
+                        title="Mark as Premium"
+                        onClick={() => handleMarkJobPremium(task, true)}
+                        style={{ color: '#FFD700' }}
+                      >
+                        <Star size={16} />
+                      </button>
                     )}
                     <button className={styles.actionBtn} title="View Details">
                       <Eye size={16} />

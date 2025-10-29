@@ -107,14 +107,13 @@ const GovernmentJobsManagement = () => {
     try {
       if (editingJob) {
         await adminService.updateGovernmentJob(editingJob.id, {
-          admin_id: user?.admin_id || user?.id,
           salary_range: formData.salary_range,
           status: "Closed" // Update to closed or keep as is
         });
         setEditingJob(null);
       } else {
         await adminService.createGovernmentJob({
-          admin_id: user?.admin_id || user?.id,
+          admin_id: String(user?.admin_id || user?.id),
           job_title: formData.job_title,
           description: formData.description,
           location: formData.location,
@@ -122,7 +121,9 @@ const GovernmentJobsManagement = () => {
           employment_type: formData.employment_type,
           department_name: formData.department_name,
           application_deadline: formData.application_deadline,
-          contact_email: formData.contact_email
+          contact_email: formData.contact_email,
+          total_posts: formData.total_posts,
+          application_fee: formData.application_fee
         });
       }
       

@@ -64,7 +64,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
             <img src={logo} alt="JobPortal Logo" />
           <Link to="/">
           </Link>
-          <span>Bigsources.in</span>
+          Big<span style={{ color: '#4f72ab' }}>sources</span>.in
         </div>
       
       </div>

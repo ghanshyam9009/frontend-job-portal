@@ -69,12 +69,13 @@ const HomeNav = () => {
   return (
     <nav className={`${styles.navbar} ${isScrolled ? styles.scrolled : ""}`}>
       <div className={styles.navContainer}>
-        <div className={styles.logo}>
-          <Link to="/">
-            <img src={logo} alt="JobPortal Logo" />
-          </Link>
-          {/* <span >Bigsources Manpower Solution</span> */}
-        </div>
+               <div className={styles.logo}>
+                   <img src={logo} alt="JobPortal Logo" />
+                 <Link to="/">
+                 </Link>
+                 Big<span style={{ color: '#4f72ab' }}>sources</span>.in
+               </div>
+             
 
         {/* Desktop Navigation */}
         <ul className={styles.navLinks}>
