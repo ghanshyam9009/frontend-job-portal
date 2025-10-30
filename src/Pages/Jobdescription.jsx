@@ -3,6 +3,8 @@ import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../Contexts/AuthContext";
 import { useTheme } from "../Contexts/ThemeContext";
 import { applicationService } from "../services/applicationService";
+import { candidateExternalService } from "../services/candidateExternalService";
+import { studentService } from "../services/studentService";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import CandidateSidebar from "../Components/Candidate/CandidateSidebar";
 import styles from "./Jobdescription.module.css";
@@ -12,11 +14,20 @@ const Jobdescription = () => {
   const [applicationError, setApplicationError] = useState("");
   const [applicationSuccess, setApplicationSuccess] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [hasApplied, setHasApplied] = useState(false);
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const { slug } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -35,6 +46,31 @@ const Jobdescription = () => {
   useEffect(() => {
     fetchJobDetails();
   }, [slug]);
+
+  // Check if user has already applied for this job
+  useEffect(() => {
+    const checkAppliedStatus = async () => {
+      if (!isAuthenticated || !user || !job) return;
+
+      try {
+        const userId = user?.user_id || user?.id || user?.student_id;
+        if (!userId) return;
+
+        const data = await candidateExternalService.getAppliedJobs(userId);
+        const applications = data?.applications || data?.jobs || [];
+        const alreadyApplied = applications.some(app =>
+          (app.job_id || app.id) === (job.job_id || job.id)
+        );
+        setHasApplied(alreadyApplied);
+      } catch (error) {
+        console.error('Error checking application status:', error);
+      }
+    };
+
+    if (job && !loading) {
+      checkAppliedStatus();
+    }
+  }, [isAuthenticated, user, job, loading]);
 
   const fetchJobDetails = async () => {
     setLoading(true);
@@ -105,6 +141,12 @@ const Jobdescription = () => {
       return;
     }
 
+    // Check if already applied
+    if (hasApplied) {
+      setApplicationError("You have already applied for this job");
+      return;
+    }
+
     // Check if user has premium membership or is within 45-day trial
     if (user?.membership === 'premium') {
       // Allow apply
@@ -121,24 +163,52 @@ const Jobdescription = () => {
       }
       // Within 45 days, allow apply
     }
-    
+
     setIsApplying(true);
     setApplicationError("");
     setApplicationSuccess("");
 
     try {
+      // Get student_id - first try user object, then fetch profile if needed
+      let studentId = user?.user_id || user?.id || user?.student_id;
+
+      if (!studentId && user?.email) {
+        try {
+          // Fetch student profile to get student_id
+          const profileResponse = await studentService.getProfile(user.email);
+          if (profileResponse?.success && profileResponse?.data) {
+            const profile = profileResponse.data;
+            studentId = profile.id || profile.user_id || profile.student_id;
+          }
+        } catch (profileError) {
+          console.error('Error fetching student profile:', profileError);
+        }
+      }
+
+      if (!studentId) {
+        console.error('Student ID not found in user or profile:', user);
+        setApplicationError("Unable to identify student. Please try logging out and logging back in.");
+        setIsApplying(false);
+        return;
+      }
+
       const applicationData = {
-        student_id: user.id,
-        resume_url: "https://myresume.com/johndoe.pdf", // Replace with actual resume URL
-        cover_letter: "I am excited to apply for this role." // Replace with actual cover letter
+        student_id: studentId,
+        resume_url: user.resume_url || "https://myresume.com/johndoe.pdf", // Use user profile resume if available
+        cover_letter: user.cover_letter || "I am excited to apply for this role." // Use user profile cover letter if available
       };
+
+      console.log('Applying for job with student_id:', studentId, 'applicationData:', applicationData); // Debug log
+
       const response = await applicationService.applyForJob(job.job_id || job.id, applicationData);
       if (response.success) {
-        setApplicationSuccess("Application submitted successfully!");
+        setApplicationSuccess("You have successfully applied for this job");
+        setHasApplied(true); // Mark as applied
       } else {
         setApplicationError(response.message || "Failed to submit application");
       }
     } catch (error) {
+      console.error('Application error:', error); // Debug log
       setApplicationError("An error occurred while submitting the application");
     } finally {
       setIsApplying(false);
@@ -154,12 +224,13 @@ const Jobdescription = () => {
       <CandidateSidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       <main style={{
         flex: 1,
-        marginLeft: '255px' ,
-        marginTop: '70px',
-        padding: '20px',
+        marginLeft: windowWidth >= 1024 ? (sidebarOpen ? '0px' : '225px') : '0px', // Only apply margin on desktop+
+        marginTop: windowWidth >= 768 ? '70px' : '56px', // Reduced margin on mobile
+        padding: windowWidth >= 768 ? '20px' : '10px', // Reduced padding on mobile
         overflowY: 'auto',
         backgroundColor: theme === 'dark' ? '#1a1a1a' : '#f9fafb',
-        color: theme === 'dark' ? '#ffffff' : '#000000'
+        color: theme === 'dark' ? '#ffffff' : '#000000',
+        transition: 'margin-left 0.3s ease',
       }}>
         {loading && (
           <div style={{
@@ -221,9 +292,34 @@ const Jobdescription = () => {
           <>
         <section className={`${styles.headerCard} ${theme === 'dark' ? styles.darkCard : styles.lightCard}`}>
           <div className={styles.headerTop}>
-            <h1 className={styles.title}>{derivedTitle}</h1>
-            <button className={styles.applyBtn} onClick={handleApplyClick}>Apply Now</button>
+            <div className={styles.titleContainer}>
+              <h1 className={styles.title}>{derivedTitle}</h1>
+              {job?.is_premium && (
+                <div className={styles.premiumBadge}>
+                  <span className={styles.premiumCrown}>👑</span>
+                  Premium
+                </div>
+              )}
+            </div>
+            <button
+              className={styles.applyBtn}
+              onClick={handleApplyClick}
+              disabled={hasApplied}
+              style={hasApplied ? { backgroundColor: '#6b7280', cursor: 'not-allowed' } : {}}
+            >
+              {hasApplied ? 'Applied' : 'Apply Now'}
+            </button>
           </div>
+          {applicationSuccess && (
+            <div className={styles.successMessage}>
+              {applicationSuccess}
+            </div>
+          )}
+          {applicationError && (
+            <div className={styles.errorMessage}>
+              {applicationError}
+            </div>
+          )}
           <div className={styles.companyRow}>
             <div className={styles.companyIcon}>🏢</div>
             <div className={styles.companyName}>{job?.company_name || 'Company Name'}</div>

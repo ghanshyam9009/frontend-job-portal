@@ -42,7 +42,7 @@ const UserJobListings = () => {
           salary: j.salary_range ? `₹${j.salary_range.min} - ₹${j.salary_range.max} / ${j.employment_type ? 'year' : ''}` : "",
           location: j.location || "",
           type: j.employment_type || "Full-time",
-          isPremium: Math.random() > 0.7, // Simulate premium jobs
+          isPremium: j.is_premium || false, // Use actual premium status
         }));
         setJobs(mapped);
       } catch (e) {
@@ -90,6 +90,7 @@ const UserJobListings = () => {
         salary: j.salary_range ? `₹${j.salary_range.min} - ₹${j.salary_range.max} / ${j.employment_type ? 'year' : ''}` : "",
         location: j.location || "",
         type: j.employment_type || "Full-time",
+        isPremium: j.is_premium || false, // Use actual premium status
       }));
       setJobs(mapped);
     } catch (e) {

@@ -1603,6 +1603,28 @@ img {
   margin-top: 0.5rem;
 }
 
+/* Premium Badge */
+.premiumBadge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 10px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+  z-index: 10;
+}
+
+.premiumCrown {
+  font-size: 12px;
+}
+
 /* Responsive design for job roles */
 @media (max-width: 768px) {
   .jobRolesGrid {

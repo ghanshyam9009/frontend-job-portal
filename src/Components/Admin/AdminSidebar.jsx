@@ -37,6 +37,12 @@ const AdminSidebar = ({ isOpen, onClose }) => {
       path: '/admin/jobs'
     },
     {
+      id: 'job-application-reports',
+      label: 'Job Application Reports',
+      icon: BarChart3,
+      path: '/admin/job-application-reports'
+    },
+    {
       id: 'pending-jobs',
       label: 'Pending Jobs',
       icon: Clock,

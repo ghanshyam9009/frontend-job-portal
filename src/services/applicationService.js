@@ -6,16 +6,13 @@ export const applicationService = {
   // Apply for a job
   async applyForJob(jobId, applicationData) {
     return withErrorHandling(async () => {
-      const requestData = {
-        ...applicationData,
-        job_id: jobId
-      };
+      // jobId is in URL path, don't include it in body
       const response = await fetch(`https://api.bigsources.in/api/application/jobs/${jobId}/apply`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestData),
+        body: JSON.stringify(applicationData),
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));

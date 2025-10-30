@@ -47,6 +47,7 @@ import HomepageForms from './Pages/Admin/HomepageForms'
 import ContactForms from './Pages/Admin/ContactForms'
 import GovernmentJobsManagement from './Pages/Admin/GovernmentJobsManagement'
 import JobApplications from './Pages/Admin/JobApplications'
+import JobApplicationReports from './Pages/Admin/JobApplicationReports'
 import ResetPassword from './Pages/Auth/ResetPassword'
 import CareerServices from './Pages/CareerServices'
 import FastTrack from './Pages/FastTrack'
@@ -126,6 +127,7 @@ function App() {
             <Route path="/admin/contact-forms" element={<ContactForms />} />
             <Route path="/admin/government-jobs" element={<GovernmentJobsManagement />} />
             <Route path="/admin/job-applications" element={<JobApplications />} />
+            <Route path="/admin/job-application-reports" element={<JobApplicationReports />} />
           </Route>
         </Routes>
       </BrowserRouter>
