@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { recruiterExternalService } from "../../services";
+import { useSidebar } from "../../Contexts/SidebarContext";
 import { Plus, Users, Star, Building, FileText, Circle, Trophy, Calendar, Briefcase, Mail, ArrowLeft } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 
@@ -37,14 +38,25 @@ const RecruiterDashboard = () => {
         // Fetch jobs data
         const jobsData = await recruiterExternalService.getAllPostedJobs(user?.employer_id || user?.id);
         const allJobs = jobsData?.jobs || [];
-        
-        // Filter only approved jobs
-        const jobsList = allJobs.filter(job => job.status === 'approved' || job.status === 'Open');
+
+        // Debug logging
+        console.log('Dashboard - Employer ID:', user?.employer_id || user?.id);
+        console.log('Dashboard - Raw jobs data:', allJobs);
+
+        // Filter jobs - be more inclusive to show all valid jobs
+        const jobsList = allJobs.filter(job => job && job.job_id && job.job_title);
+        console.log('Dashboard - Filtered jobs:', jobsList);
+
         setJobs(jobsList);
 
         // Calculate stats
         const totalJobs = jobsList.length;
-        const activeJobs = jobsList.filter(job => job.status?.toLowerCase() === 'open' || job.status?.toLowerCase() === 'active').length;
+        const activeJobs = jobsList.filter(job =>
+          job.status?.toLowerCase() === 'open' ||
+          job.status?.toLowerCase() === 'active' ||
+          job.status?.toLowerCase() === 'approved' ||
+          !job.status // include jobs without status
+        ).length;
         
         // Fetch applications for all jobs to calculate total applications and recent ones
         let allApplications = [];
@@ -212,7 +224,7 @@ const RecruiterDashboard = () => {
           <>
             <section className={styles.dashboardHeader}>
               <div className={styles.welcomeSection}>
-                <h1>Welcome back, {recruiterProfile?.name || 'Recruiter'}!</h1>
+                <h1>Welcome back, {recruiterProfile?.company_name || recruiterProfile?.name || 'Recruiter'}!</h1>
                 <p>Here's what's happening with your job postings and candidates.</p>
               </div>
             </section>

@@ -73,7 +73,6 @@
     display: none;
   }
 }
-
 .progressStep {
   display: flex;
   align-items: center;
@@ -702,4 +701,34 @@
   .stepTitle {
     font-size: 0.6rem;
   }
+}
+
+/* Validation Styles */
+.inputError {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+.errorMessage {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+.dark .errorMessage {
+  color: #fca5a5;
+}
+
+.buttonError {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
 }

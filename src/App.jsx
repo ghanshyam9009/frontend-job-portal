@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './Contexts/AuthContext'
+import { SidebarProvider } from './Contexts/SidebarContext'
 import ProtectedRoute from './Components/ProtectedRoute'
 import HomePage from './Pages/HomePage'
 import JobListings from './Pages/JobListings'
@@ -56,12 +57,14 @@ import EmployerBranding from './Pages/EmployerBranding'
 import RecruitingSolutions from './Pages/RecruitingSolutions'
 import PrivacyPolicy from './Pages/PrivacyPolicy'
 import TermsOfService from './Pages/TermsOfService'
+import PaymentSuccess from './Pages/PaymentSuccess'
 
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
+      <SidebarProvider>
+        <BrowserRouter>
+          <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/jobs" element={<JobListings />} />
           <Route path="/government-jobs" element={<GovernmentJobs />} />
@@ -80,6 +83,7 @@ function App() {
           <Route path="/career-services" element={<CareerServices />} />
           <Route path="/candidate-membership" element={<CandidateMembership />} />
           <Route path="/recruiter-membership" element={<RecruiterMembership />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/candidate/login" element={<CandidateLogin />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
@@ -125,6 +129,7 @@ function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      </SidebarProvider>
     </AuthProvider>
   )
 }

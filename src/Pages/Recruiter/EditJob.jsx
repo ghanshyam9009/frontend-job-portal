@@ -144,8 +144,8 @@ const EditJob = () => {
       };
 
       // Update job using the provided API endpoint
-      const response = await fetch(`http://api.bigsources.in/api/job/Updatejobs/${jobId}`, {
-        method: 'PUT',
+      const response = await fetch(`https://api.bigsources.in/api/job/Updatejobs/${jobId}`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -168,7 +168,7 @@ const EditJob = () => {
   const handleCloseSuccessModal = () => {
     setShowSuccessModal(false);
     setSuccess(false);
-    navigate('/recruiter/manage-jobs');
+    navigate('/manage-jobs');
   };
 
   // Handle escape key press to close modal
@@ -213,7 +213,7 @@ const EditJob = () => {
         <main className={styles.main}>
           <div className={styles.errorContainer}>
             <h2>Error: {error}</h2>
-            <button onClick={() => navigate('/recruiter/manage-jobs')}>
+            <button onClick={() => navigate('/manage-jobs')}>
               Back to Manage Jobs
             </button>
           </div>
@@ -230,7 +230,7 @@ const EditJob = () => {
             <h1>Edit Job Posting</h1>
             <button
               className={styles.backBtn}
-              onClick={() => navigate('/recruiter/manage-jobs')}
+              onClick={() => navigate('/manage-jobs')}
             >
               <ArrowLeft size={16} />
             </button>
@@ -451,7 +451,7 @@ const EditJob = () => {
             </div>
 
             <div className={styles.formActions}>
-              <button type="button" onClick={() => navigate('/recruiter/manage-jobs')} className={styles.draftBtn}>
+              <button type="button" onClick={() => navigate('/manage-jobs')} className={styles.draftBtn}>
                 Cancel
               </button>
               <button type="submit" className={styles.submitBtn} disabled={loading}>

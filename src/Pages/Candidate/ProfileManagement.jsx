@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../Contexts/AuthContext';
 import { useTheme } from '../../Contexts/ThemeContext';
 import { studentService } from '../../services/studentService';
-import { ChevronLeft, ChevronRight, Check, User, MapPin, Briefcase, GraduationCap, Award } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, User, MapPin, Briefcase, GraduationCap, Award, AlertCircle } from 'lucide-react';
 import styles from './ProfileManagement.module.css';
 
 const ProfileManagement = () => {
@@ -34,6 +34,8 @@ const ProfileManagement = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [completedSteps, setCompletedSteps] = useState([]);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [touchedFields, setTouchedFields] = useState({});
 
   const steps = [
     {
@@ -73,6 +75,157 @@ const ProfileManagement = () => {
     }
   ];
 
+  // Validation functions
+  const validateField = (name, value) => {
+    let error = '';
+
+    switch (name) {
+      case 'full_name':
+        if (!value.trim()) {
+          error = 'Full name is required';
+        } else if (value.trim().length < 2) {
+          error = 'Full name must be at least 2 characters';
+        } else if (!/^[a-zA-Z\s]+$/.test(value.trim())) {
+          error = 'Full name can only contain letters and spaces';
+        }
+        break;
+
+      case 'phone_number':
+        if (value && !/^\+?[\d\s\-\(\)]+$/.test(value)) {
+          error = 'Please enter a valid phone number';
+        }
+        break;
+
+      case 'username':
+        if (value && (value.length < 3 || value.length > 20)) {
+          error = 'Username must be between 3 and 20 characters';
+        } else if (value && !/^[a-zA-Z0-9_]+$/.test(value)) {
+          error = 'Username can only contain letters, numbers, and underscores';
+        }
+        break;
+
+      case 'dob':
+        if (value) {
+          const birthDate = new Date(value);
+          const today = new Date();
+          const age = today.getFullYear() - birthDate.getFullYear();
+          if (age < 16) {
+            error = 'You must be at least 16 years old';
+          } else if (age > 100) {
+            error = 'Please enter a valid date of birth';
+          }
+        }
+        break;
+
+      case 'address.city':
+        if (formData.address.city && !/^[a-zA-Z\s\-']+$/.test(formData.address.city)) {
+          error = 'City name can only contain letters, spaces, hyphens, and apostrophes';
+        }
+        break;
+
+      case 'address.zip':
+        if (formData.address.zip && !/^[a-zA-Z0-9\s\-]+$/.test(formData.address.zip)) {
+          error = 'Please enter a valid ZIP/postal code';
+        }
+        break;
+
+      case 'profile_image':
+        if (value && !/^https?:\/\/.+/.test(value)) {
+          error = 'Please enter a valid URL';
+        }
+        break;
+
+      case 'bio':
+        if (value && value.length > 500) {
+          error = 'Bio must be less than 500 characters';
+        }
+        break;
+
+      case 'skills':
+        if (value && value.split(',').length > 20) {
+          error = 'You can add up to 20 skills';
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    return error;
+  };
+
+  const validateStep = (stepIndex) => {
+    const currentStepConfig = steps[stepIndex];
+    const errors = {};
+
+    // Validate all fields in the current step
+    currentStepConfig.fields.forEach(field => {
+      let value;
+      let fieldName = field;
+
+      if (field.startsWith('address.')) {
+        const addressField = field.split('.')[1];
+        value = formData.address[addressField];
+        fieldName = `address.${addressField}`;
+      } else if (field === 'education') {
+        // Validate education array
+        formData.education.forEach((edu, index) => {
+          if (!edu.degree.trim()) {
+            errors[`education_${index}_degree`] = 'Degree is required';
+          }
+          if (!edu.institution.trim()) {
+            errors[`education_${index}_institution`] = 'Institution is required';
+          }
+        });
+        return;
+      } else if (field === 'experience') {
+        // Validate experience array
+        formData.experience.forEach((exp, index) => {
+          if (!exp.title.trim()) {
+            errors[`experience_${index}_title`] = 'Job title is required';
+          }
+          if (!exp.company.trim()) {
+            errors[`experience_${index}_company`] = 'Company name is required';
+          }
+        });
+        return;
+      } else {
+        value = formData[field];
+      }
+
+      const error = validateField(field, value);
+      if (error && (!touchedFields[fieldName] || value)) {
+        errors[fieldName] = error;
+      }
+    });
+
+    if (stepIndex === 0) {
+      // Personal info validation
+      if (!formData.full_name.trim()) {
+        errors.full_name = 'Full name is required';
+      }
+    }
+
+    return errors;
+  };
+
+  const validateFileUpload = (file) => {
+    if (!file) return '';
+
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    if (!allowedTypes.includes(file.type)) {
+      return 'Please upload a PDF, DOC, or DOCX file';
+    }
+
+    if (file.size > maxSize) {
+      return 'File size must be less than 5MB';
+    }
+
+    return '';
+  };
+
   useEffect(() => {
     if (user) {
       setFormData({
@@ -101,25 +254,62 @@ const ProfileManagement = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+
+    // Mark field as touched
+    setTouchedFields({ ...touchedFields, [name]: true });
+
+    // Validate on change
+    const error = validateField(name, value);
+    setValidationErrors({ ...validationErrors, [name]: error });
   };
 
   const handleAddressChange = (e) => {
     const { name, value } = e.target;
+    const fieldName = `address.${name}`;
     setFormData({
       ...formData,
       address: { ...formData.address, [name]: value }
     });
+
+    // Mark field as touched
+    setTouchedFields({ ...touchedFields, [fieldName]: true });
+
+    // Validate on change
+    const error = validateField(fieldName, value);
+    setValidationErrors({ ...validationErrors, [fieldName]: error });
   };
 
   const handleFileChange = (e) => {
-    setFormData({ ...formData, resume: e.target.files[0] });
+    const file = e.target.files[0];
+    const error = validateFileUpload(file);
+
+    setFormData({ ...formData, resume: file });
+    setValidationErrors({ ...validationErrors, resume: error });
+
+    // Mark field as touched
+    setTouchedFields({ ...touchedFields, resume: true });
   };
 
   const handleDynamicChange = (e, index, type) => {
     const { name, value } = e.target;
+    const fieldKey = `${type}_${index}_${name}`;
+
+    // Mark field as touched
+    setTouchedFields({ ...touchedFields, [fieldKey]: true });
+
+    // Update form data
     const list = [...formData[type]];
     list[index][name] = value;
     setFormData({ ...formData, [type]: list });
+
+    // Validate required fields for dynamic sections
+    const errors = { ...validationErrors };
+    if (name === 'degree' || name === 'institution') {
+      errors[fieldKey] = value.trim() ? '' : `${name.charAt(0).toUpperCase() + name.slice(1)} is required`;
+    } else if (name === 'title' || name === 'company') {
+      errors[fieldKey] = value.trim() ? '' : `${name.charAt(0).toUpperCase() + name.slice(1)} is required`;
+    }
+    setValidationErrors(errors);
   };
 
   const addDynamicField = (type) => {
@@ -137,10 +327,20 @@ const ProfileManagement = () => {
   };
 
   const nextStep = () => {
+    // Validate current step before proceeding
+    const stepErrors = validateStep(currentStep);
+
+    if (Object.keys(stepErrors).length > 0) {
+      setValidationErrors({ ...validationErrors, ...stepErrors });
+      setError('Please fix the errors before proceeding to the next step');
+      return;
+    }
+
     if (!completedSteps.includes(currentStep)) {
       setCompletedSteps([...completedSteps, currentStep]);
     }
     setCurrentStep(currentStep + 1);
+    setError(''); // Clear any previous errors
   };
 
   const prevStep = () => {
@@ -202,8 +402,15 @@ const ProfileManagement = () => {
                   value={formData.full_name}
                   onChange={handleInputChange}
                   placeholder="Enter your full name"
+                  className={validationErrors.full_name ? styles.inputError : ''}
                   required
                 />
+                {validationErrors.full_name && (
+                  <div className={styles.errorMessage}>
+                    <AlertCircle size={14} />
+                    {validationErrors.full_name}
+                  </div>
+                )}
               </div>
 
               <div className={styles.formGroup}>

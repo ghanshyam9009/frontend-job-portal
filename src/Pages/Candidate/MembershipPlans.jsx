@@ -4,14 +4,17 @@ import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
 import { candidateService } from "../../services/candidateService";
+import { paymentService } from "../../services/paymentService";
 import styles from "./MembershipPlans.module.css";
-import { Check, AlertTriangle, Rocket, Crown, MessageCircle, BarChart3 } from "lucide-react";
+import { Check, AlertTriangle, Rocket, Crown, MessageCircle, BarChart3, Loader2 } from "lucide-react";
 
 const MembershipPlans = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [processingPlan, setProcessingPlan] = useState(null);
   const candidatePlans = [
     {
       id: 'platinum',
@@ -80,22 +83,104 @@ const MembershipPlans = () => {
   };
 
   const handleUpgrade = async (plan) => {
-    try {
-      // Call API to mark student as premium
-      const response = await candidateService.markStudentPremium({
-        email: user?.email,
-        is_premium: true,
-        plan: plan.id
-      });
+    if (!user) {
+      alert('Please login to upgrade your plan.');
+      navigate('/candidate/login');
+      return;
+    }
 
-      if (response) {
-        alert(`Successfully upgraded to ${plan.name} plan!`);
-        // Update user membership in context or state
-        // For now, just show success
+    setProcessingPlan(plan.id);
+    setLoading(true);
+
+    try {
+      // Get plan details from configuration
+      const planDetails = paymentService.getPlanDetails('candidate', plan.id);
+      if (!planDetails) {
+        throw new Error('Plan configuration not found');
       }
+
+      // Create Razorpay order
+      const orderResponse = await paymentService.createRazorpayOrder(
+        planDetails.price,
+        'INR',
+        {
+          id: user.id,
+          firstName: user.firstName || user.name || 'User',
+          lastName: user.lastName || '',
+          email: user.email,
+          phone: user.phone || ''
+        },
+        plan.id,
+        'candidate'
+      );
+
+      // Initialize Razorpay checkout
+      const options = {
+        key: 'rzp_test_RNj6wvo7aRv2Zf', // Test Key ID
+        amount: orderResponse.amount, // Amount in paisa
+        currency: orderResponse.currency,
+        name: 'Job Portal',
+        description: `${plan.name} Plan - ${plan.validity}`,
+        order_id: orderResponse.id,
+        prefill: {
+          name: `${user.firstName || user.name || 'User'} ${user.lastName || ''}`,
+          email: user.email,
+          contact: user.phone || ''
+        },
+        notes: {
+          user_id: user.id,
+          user_type: 'candidate',
+          plan_type: plan.id,
+          plan_name: plan.name
+        },
+        theme: {
+          color: '#3399cc'
+        },
+        handler: async function (response) {
+          try {
+            // Verify payment on backend
+            await paymentService.verifyRazorpayPayment(
+              response.razorpay_payment_id,
+              response.razorpay_order_id,
+              response.razorpay_signature,
+              {
+                user_id: user.id,
+                email: user.email,
+                plan_type: plan.id,
+                user_type: 'candidate'
+              }
+            );
+
+            // Update user membership
+            await paymentService.updateUserMembership(
+              user.id,
+              plan.id,
+              'candidate',
+              {
+                paymentId: response.razorpay_payment_id,
+                email: user.email
+              }
+            );
+
+            alert(`Successfully upgraded to ${plan.name} plan! Welcome to premium.`);
+            // Optionally refresh user data or redirect
+
+          } catch (verifyError) {
+            console.error('Payment verification failed:', verifyError);
+            alert('Payment verification failed. Please contact support.');
+          }
+        }
+      };
+
+      const rzp = paymentService.initializeRazorpayCheckout(options);
+      rzp.open();
+
     } catch (error) {
-      console.error('Error upgrading plan:', error);
-      alert('Failed to upgrade plan. Please try again.');
+      console.error('Error initiating payment:', error);
+      alert('Failed to initiate payment. Please try again.');
+    } finally {
+      setLoading(false);
+      setProcessingPlan(null);
     }
   };
 
@@ -160,8 +245,16 @@ const MembershipPlans = () => {
                   <button
                     className={`${styles.planButton} ${styles.upgradeButton}`}
                     onClick={() => handleUpgrade(plan)}
+                    disabled={loading || processingPlan === plan.id}
                   >
-                    {plan.buttonText}
+                    {processingPlan === plan.id ? (
+                      <>
+                        <Loader2 size={16} className={styles.spinner} />
+                        Processing...
+                      </>
+                    ) : (
+                      plan.buttonText
+                    )}
                   </button>
                 </div>
               </div>

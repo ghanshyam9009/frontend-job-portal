@@ -14,8 +14,23 @@ export const recruiterExternalService = {
   },
 
   async getRecruiterProfile(employerId) {
-    const response = await axios.get(JOBS_URL, { params: { employer_id: employerId } });
-    return response.data;
+    try {
+      const response = await axios.get(JOBS_URL, { params: { employer_id: employerId } });
+      // Extract company name from the first job's company_name field
+      const data = response.data;
+      if (data && data.jobs && data.jobs.length > 0) {
+        const firstJob = data.jobs[0];
+        return {
+          company_name: firstJob.company_name,
+          employer_id: employerId,
+          jobs: data.jobs
+        };
+      }
+      return { company_name: null, employer_id: employerId, jobs: [] };
+    } catch (error) {
+      console.error('Error fetching recruiter profile:', error);
+      return { company_name: null, employer_id: employerId, jobs: [] };
+    }
   },
 
   async getAllApplicants(jobId) {

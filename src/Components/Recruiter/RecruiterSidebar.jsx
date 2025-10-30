@@ -87,7 +87,7 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
       label: 'Candidate Applications',
       icon: <Users size={20} />,
       path: '/candidate-applications',
-      badge: applicationCount
+      // badge: applicationCount
     },
     {
       id: 'shortlist',
@@ -103,7 +103,7 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
     },
     {
       id: 'membership',
-      label: 'Membership & Tokens',
+      label: 'Membership',
       icon: <CreditCard size={20} />,
       path: '/membership-tokens'
     },
@@ -153,8 +153,8 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
       <div className={styles.userCard}>
         <div className={styles.userInfo}>
           <div className={styles.userDetails}>
-            <div className={styles.userName}>{recruiterProfile?.company_name || 'Company'}</div>
-            <div className={styles.userEmail}>{user?.email || 'company@example.com'}</div>
+            <div className={styles.userName}>{recruiterProfile?.company_name || recruiterProfile?.name || 'Company'}</div>
+            <div className={styles.userEmail}>{user?.email || 'recruiter@example.com'}</div>
           </div>
         </div>
       </div>

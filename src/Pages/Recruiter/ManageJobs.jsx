@@ -1,18 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
+import { useSidebar } from "../../Contexts/SidebarContext";
 import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
 import RecruiterSidebar from "../../Components/Recruiter/RecruiterSidebar";
 import { useTheme } from "../../Contexts/ThemeContext";
-import { Edit, Users, RefreshCw, FileText, MapPin, Check, ArrowLeft, ExternalLink } from "lucide-react";
+import { Edit, Users, CircleX, FileText, MapPin, Check, ArrowLeft, ExternalLink } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 import { recruiterExternalService } from "../../services";
 
 const ManageJobs = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { sidebarOpen } = useSidebar();
   const { theme, toggleTheme } = useTheme();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -26,16 +27,32 @@ const ManageJobs = () => {
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
   useEffect(() => {
-    const employerId = user?.employer_id || user?.id || "emp-12345";
+    const employerId = user?.employer_id || user?.id;
     const fetchJobs = async () => {
       try {
         setLoading(true);
         setError("");
+
+        // Only fetch if we have a valid employer ID
+        if (!employerId) {
+          console.warn('No employer ID available');
+          setJobs([]);
+          return;
+        }
+
         const data = await recruiterExternalService.getAllPostedJobs(employerId);
         const allJobs = data?.jobs || [];
-        
-        // Filter only approved jobs
-        const approvedJobs = allJobs.filter(job => job.status === 'approved' || job.status === 'Open');
+
+        // Debug: Log the raw jobs data
+        console.log('Raw jobs data:', allJobs);
+        console.log('Employer ID:', employerId);
+        console.log('User object:', user);
+
+        // Filter jobs - be more inclusive with status check
+        // Show all jobs for this employer, regardless of status for debugging
+        const approvedJobs = allJobs.filter(job => job && job.job_id && job.job_title);
+
+        console.log('Filtered jobs:', approvedJobs);
         
         const mapped = approvedJobs.map((j) => ({
           id: j.job_id,
@@ -261,7 +278,7 @@ const ManageJobs = () => {
                       className={styles.actionBtn}
                       onClick={() => handleToggleStatus(job.id)}
                     >
-                      <RefreshCw size={16} />
+                      <CircleX size={16} />
                     </button>
                   </div>
                 </div>

@@ -87,8 +87,8 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
           {showProfileDropdown && (
             <div className={styles.profileDropdown}>
               <div className={styles.profileInfo}>
-                <div className={styles.profileName}>{recruiterProfile?.company_name || 'Company'}</div>
-                <div className={styles.profileEmail}>{user?.email || 'company@example.com'}</div>
+                <div className={styles.profileName}>{recruiterProfile?.company_name || recruiterProfile?.name || 'Company'}</div>
+                <div className={styles.profileEmail}>{user?.email || 'recruiter@example.com'}</div>
               </div>
               <div className={styles.dropdownDivider}></div>
               <button className={styles.dropdownItem} onClick={() => navigate('/recruiter/dashboard')}>
