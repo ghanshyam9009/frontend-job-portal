@@ -167,32 +167,32 @@ const JobListings = () => {
     }
   };
 
-  const handleMarkJobPremium = async (job) => {
-    try {
-      if (!isAuthenticated || !user) {
-        alert('Please log in to mark jobs as premium.');
-        return;
-      }
+  // const handleMarkJobPremium = async (job) => {
+  //   try {
+  //     if (!isAuthenticated || !user) {
+  //       alert('Please log in to mark jobs as premium.');
+  //       return;
+  //     }
 
-      // Check if user is recruiter or admin
-      if (user.role !== 'recruiter' && user.role !== 'admin') {
-        alert('Only recruiters and admins can mark jobs as premium.');
-        return;
-      }
+  //     // Check if user is recruiter or admin
+  //     if (user.role !== 'recruiter' && user.role !== 'admin') {
+  //       alert('Only recruiters and admins can mark jobs as premium.');
+  //       return;
+  //     }
 
-      await candidateService.markJobPremium({
-        job_id: job.job_id || job.id,
-        is_premium: true,
-        category: 'job'
-      });
+  //     await candidateService.markJobPremium({
+  //       job_id: job.job_id || job.id,
+  //       is_premium: true,
+  //       category: 'job'
+  //     });
 
-      alert('Job marked as premium successfully!');
-      // Optionally, refresh jobs or update state
-    } catch (error) {
-      console.error('Error marking job as premium:', error);
-      alert('Failed to mark job as premium. Please try again.');
-    }
-  };
+  //     alert('Job marked as premium successfully!');
+  //     // Optionally, refresh jobs or update state
+  //   } catch (error) {
+  //     console.error('Error marking job as premium:', error);
+  //     alert('Failed to mark job as premium. Please try again.');
+  //   }
+  // };
 
   const formatSalary = (salaryRange) => {
     if (!salaryRange) return "Salary not specified";
@@ -472,7 +472,7 @@ const JobListings = () => {
       )}
 
       {/* Main Content */}
-      <div className={styles.mainContentNoSidebar} style={{ marginLeft: '255px' }}>
+      <div className={styles.mainContentNoSidebar} >
         <div className={styles.filtersResponsive}>
           <div className={styles.heroBanner}>
             <div className={styles.heroText}>
@@ -609,14 +609,14 @@ const JobListings = () => {
                     >
                       Save Job
                     </button>
-                    {(user?.role === 'recruiter' || user?.role === 'admin') && (
+                    {/* {(user?.role === 'recruiter' || user?.role === 'admin') && (
                       <button 
                         className={styles.premiumBtn}
                         onClick={() => handleMarkJobPremium(job)}
                       >
                         Mark Premium
                       </button>
-                    )}
+                    )} */}
                   </div>
                 </div>
               ))}

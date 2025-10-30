@@ -55,24 +55,58 @@ export const adminService = {
       const response = await adminExternalService.getAllTasks();
       // Ensure we return an array of jobs
       if (response && Array.isArray(response.tasks)) {
-        return response.tasks.map(task => ({
-          id: task.task_id,
-          task_id: task.task_id,
-          category: task.category,
-          title: this.getTaskTitle(task),
-          company_name: task.company_name || 'Unknown Company',
-          location: task.location || 'Unknown Location',
-          salary: task.salary || 'Not specified',
-          job_type: task.employment_type || 'Unknown',
-          status: task.status || 'pending',
-          posted_date: task.created_at || new Date().toISOString(),
-          updated_date: task.updated_at || new Date().toISOString(),
-          description: task.description || 'No description available',
-          job_id: task.job_id,
-          recruiter_id: task.recruiter_id,
-          application_id: task.application_id,
-          student_id: task.student_id
-        }));
+        // Create a map to cache company names and avoid duplicate API calls
+        const companyCache = new Map();
+
+        // Process tasks and fetch company names for recruits with recruiter_id
+        const processedTasks = await Promise.all(
+          response.tasks.map(async (task) => {
+            let company_name = task.company_name || 'Unknown Company';
+
+            // If we have a recruiter_id, fetch company name using the jobs API
+            if (task.recruiter_id && !companyCache.has(task.recruiter_id)) {
+              try {
+                // Import recruiterExternalService dynamically to avoid circular dependency
+                const { recruiterExternalService } = await import('./recruiterExternalService');
+                const recruiterData = await recruiterExternalService.getAllPostedJobs(task.recruiter_id);
+                if (recruiterData && recruiterData.jobs && recruiterData.jobs.length > 0) {
+                  company_name = recruiterData.jobs[0].company_name || company_name;
+                }
+                companyCache.set(task.recruiter_id, company_name);
+              } catch (error) {
+                console.error(`Error fetching company for recruiter ${task.recruiter_id}:`, error);
+                // Use cached value if available, otherwise keep default
+                if (companyCache.has(task.recruiter_id)) {
+                  company_name = companyCache.get(task.recruiter_id);
+                }
+              }
+            } else if (task.recruiter_id && companyCache.has(task.recruiter_id)) {
+              // Use cached company name
+              company_name = companyCache.get(task.recruiter_id);
+            }
+
+            return {
+              id: task.task_id,
+              task_id: task.task_id,
+              category: task.category,
+              title: this.getTaskTitle(task),
+              company_name: company_name,
+              location: task.location || 'Unknown Location',
+              salary: task.salary || 'Not specified',
+              job_type: task.employment_type || 'Unknown',
+              status: task.status || 'pending',
+              posted_date: task.created_at || new Date().toISOString(),
+              updated_date: task.updated_at || new Date().toISOString(),
+              description: task.description || 'No description available',
+              job_id: task.job_id,
+              recruiter_id: task.recruiter_id,
+              application_id: task.application_id,
+              student_id: task.student_id
+            };
+          })
+        );
+
+        return processedTasks;
       }
       return [];
     } catch (error) {
@@ -324,6 +358,74 @@ export const adminService = {
       return response;
     } catch (error) {
       throw error;
+    }
+  },
+
+  // Job Applications Summary Functions
+  async getJobsWithApplicationCounts() {
+    try {
+      // Fetch all active jobs using the external API (same as JobListings.jsx)
+      const apiUrl = 'https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs';
+      const searchParams = {
+        page: 1,
+        limit: 1000, // Get all active jobs
+        status: 'approved'
+      };
+
+      const queryString = new URLSearchParams(searchParams).toString();
+      const response = await fetch(`${apiUrl}?${queryString}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const jobsData = await response.json();
+      const jobs = jobsData?.jobs || jobsData.data || jobsData || [];
+
+      // Debug: Log jobs to check structure
+      console.log('Fetched jobs from external API:', jobs);
+
+      // Fetch applicants for each job individually
+      const { recruiterExternalService } = await import('./recruiterExternalService');
+
+      const jobsWithCounts = await Promise.all(
+        jobs.slice(0, 10).map(async (job) => { // Limit to first 10 jobs for testing
+          try {
+            console.log(`Fetching applicants for job ${job.job_id || job.id}`);
+            // Get applicants for this specific job
+            const applicantsData = await recruiterExternalService.getAllApplicants(job.job_id || job.id);
+            console.log(`API response for job ${job.job_id || job.id}:`, applicantsData);
+
+            // The API returns an array of applicants with student_id, count them
+            const applicationCount = applicantsData && Array.isArray(applicantsData) ? applicantsData.length : 0;
+
+            return {
+              ...job,
+              application_count: applicationCount,
+              applications: applicantsData || []
+            };
+          } catch (error) {
+            console.error(`Failed to fetch applicants for job ${job.id}:`, error);
+            // Return job with zero applications on error
+            return {
+              ...job,
+              application_count: 0,
+              applications: []
+            };
+          }
+        })
+      );
+
+      console.log('Jobs with counts:', jobsWithCounts);
+      return jobsWithCounts;
+    } catch (error) {
+      console.error('Failed to fetch jobs with application counts:', error);
+      return [];
     }
   }
 };

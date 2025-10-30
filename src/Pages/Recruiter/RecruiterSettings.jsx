@@ -83,7 +83,6 @@ const RecruiterSettings = () => {
             <h1>Settings</h1>
             <p>Manage your account settings and preferences</p>
           </div>
-          
           <div className={styles.settingsContainer}>
             <div className={styles.settingsSidebar}>
               {tabs.map(tab => (

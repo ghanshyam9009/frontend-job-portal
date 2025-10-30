@@ -192,7 +192,8 @@ const popularSearches = [
           location: j.location || "",
           salary: j.salary_range ? `₹${j.salary_range.min} - ₹${j.salary_range.max}` : "",
           job_type: j.employment_type || "Full-time",
-          company_logo: null
+          company_logo: null,
+          is_premium: j.is_premium || false
         }));
         setFeaturedJobs(mapped);
       } catch (error) {
@@ -418,6 +419,12 @@ const popularSearches = [
               <div className={styles.jobsList}>
                 {featuredJobs.map((job) => (
                   <div key={job.id} className={styles.jobCard}>
+                    {job.is_premium && (
+                      <div className={styles.premiumBadge}>
+                        <span className={styles.premiumCrown}>👑</span>
+                        Premium
+                      </div>
+                    )}
                     <div className={styles.jobContent}>
                       <div className={styles.jobLeft}>
                         {/* <div className={styles.jobLogo}>

@@ -550,9 +550,40 @@
   gap: 8px;
 }
 
+.companyIcon {
+  color: var(--text-color);
+}
+
 .companyName {
   font-weight: 500;
   color: var(--text-color);
+}
+
+/* Application Count */
+.applicationCount {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.countBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 20px;
+  padding: 0 6px;
+  background: #3b82f6;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 10px;
+}
+
+.disabledBtn {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  pointer-events: none;
 }
 
 .locationCell {
@@ -681,8 +712,9 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
   margin-top: 20px;
+  flex-wrap: wrap;
 }
 
 .paginationBtn {
@@ -703,6 +735,35 @@
 .paginationBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.pageNumber {
+  padding: 8px 12px;
+  border: var(--input-border);
+  border-radius: 4px;
+  background: var(--input-background);
+  color: var(--text-color);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 36px;
+  text-align: center;
+}
+
+.pageNumber:hover {
+  background: var(--background-color);
+}
+
+.pageNumber.activePage {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.paginationDots {
+  color: var(--text-color);
+  font-size: 14px;
+  padding: 0 4px;
 }
 
 .paginationInfo {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
+import { recruiterExternalService } from "../../services/recruiterExternalService";
 import { Check, Eye, Edit, X, Search, FileText, Star } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
@@ -14,6 +15,35 @@ const ManageJobs = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
+  const [recruiterDetails, setRecruiterDetails] = useState(null);
+  const [jobData, setJobData] = useState({
+    job_title: "",
+    company_name: "",
+    location: "",
+    employment_type: "Full-Time",
+    work_mode: "On-site",
+    salary_range: {
+      min: "",
+      max: "",
+      currency: "INR",
+    },
+    experience_required: {
+      min_years: "",
+      max_years: "",
+    },
+    skills_required: [],
+    description: "",
+    responsibilities: "",
+    qualifications: "",
+    application_deadline: "",
+    contact_email: "",
+    job_status: "open",
+  });
+
+  const [applicationData, setApplicationData] = useState([]);
+  const [applicantDetails, setApplicantDetails] = useState(null);
+  const [newSkill, setNewSkill] = useState("");
+  const [loadingJobEdit, setLoadingJobEdit] = useState(false);
   const jobsPerPage = 10;
 
   // Fetch jobs data
@@ -61,6 +91,170 @@ const ManageJobs = () => {
     setFilteredJobs(filtered);
     setCurrentPage(1);
   }, [searchTerm, statusFilter, jobs]);
+
+  // Fetch job/application data when editing
+  useEffect(() => {
+    const fetchEditData = async () => {
+      if (!editingTask) {
+        return;
+      }
+
+      try {
+        setLoadingJobEdit(true);
+
+        // Determine what type of data to fetch based on category
+        if (editingTask.category === 'editjob' || editingTask.category === 'postnewjob') {
+          // For job editing, fetch job data
+          if (!editingTask.job_id || !editingTask.recruiter_id) {
+            setLoadingJobEdit(false);
+            return;
+          }
+
+          console.log('Fetching job data for task:', editingTask);
+          // Fetch job data from recruiter's posted jobs
+          const jobsData = await recruiterExternalService.getAllPostedJobs(editingTask.recruiter_id);
+          console.log('Retrieved jobs data:', jobsData);
+          const job = jobsData?.jobs?.find(j => j.job_id === editingTask.job_id);
+          console.log('Found job:', job);
+
+          if (job) {
+            setJobData({
+              job_title: job.job_title || "",
+              company_name: job.company_name || "",
+              location: job.location || "",
+              employment_type: job.employment_type || "Full-Time",
+              work_mode: job.work_mode || "On-site",
+              salary_range: {
+                min: job.salary_range?.min || "",
+                max: job.salary_range?.max || "",
+                currency: job.salary_range?.currency || "INR",
+              },
+              experience_required: {
+                min_years: job.experience_required?.min_years || "",
+                max_years: job.experience_required?.max_years || "",
+              },
+              skills_required: job.skills_required || [],
+              description: job.description || "",
+              responsibilities: Array.isArray(job.responsibilities) ? job.responsibilities.join("\n") : job.responsibilities || "",
+              qualifications: Array.isArray(job.qualifications) ? job.qualifications.join("\n") : job.qualifications || "",
+              application_deadline: job.application_deadline || "",
+              contact_email: job.contact_email || "",
+              job_status: job.job_status || "open",
+            });
+
+            // Fetch recruiter details for company name
+            const recruiterDetails = await recruiterExternalService.getRecruiterCompanyName(editingTask.recruiter_id);
+            setRecruiterDetails(recruiterDetails);
+          } else {
+            alert('Job not found or you may not have permission to edit this job');
+            setEditingTask(null);
+          }
+        } else if (editingTask.category === 'newapplication' || editingTask.category === 'change status of application') {
+          // For application-related tasks, fetch application/job details
+          if (!editingTask.job_id) {
+            setLoadingJobEdit(false);
+            return;
+          }
+
+          console.log('Fetching application data for task:', editingTask);
+
+          // Set basic application info from task data
+          setApplicantDetails({
+            application_id: editingTask.application_id,
+            student_id: editingTask.student_id,
+            job_id: editingTask.job_id,
+            recruiter_id: editingTask.recruiter_id,
+            task_category: editingTask.category,
+            task_id: editingTask.task_id
+          });
+
+          // Fetch application details using the get all applicants API
+          try {
+            const applicantsData = await recruiterExternalService.getApplicantsByJobId(editingTask.job_id);
+            console.log('Retrieved applicants data:', applicantsData);
+
+            if (applicantsData && Array.isArray(applicantsData.applicants)) {
+              const application = applicantsData.applicants.find(app => app.application_id === editingTask.application_id);
+
+              if (application) {
+                setApplicantDetails(prevDetails => ({
+                  ...prevDetails,
+                  name: application.name || "",
+                  email: application.email || "",
+                  phone: application.phone || "",
+                  skills: application.skills || [],
+                  experience: application.experience || "",
+                  education: application.education || "",
+                  resume_link: application.resume_link || "",
+                  status: application.status || "pending",
+                  applied_date: application.applied_date || "",
+                  updated_date: application.updated_date || ""
+                }));
+              }
+
+              // Store all applicants for this job to show in a list
+              setApplicationData(applicantsData.applicants);
+
+              // Get recruiter details for context
+              if (editingTask.recruiter_id) {
+                const recruiterDetails = await recruiterExternalService.getRecruiterCompanyName(editingTask.recruiter_id);
+                setRecruiterDetails(recruiterDetails);
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching application details:', error);
+            // Continue with basic task data even if applications fetch fails
+          }
+        } else {
+          console.log('Unsupported edit category:', editingTask.category);
+        }
+
+      } catch (error) {
+        console.error('Failed to load data for editing:', error);
+        alert('Failed to load data for editing');
+        setEditingTask(null);
+      } finally {
+        setLoadingJobEdit(false);
+      }
+    };
+
+    fetchEditData();
+  }, [editingTask]);
+
+  const handleInputChange = (field, value) => {
+    const keys = field.split(".");
+    if (keys.length > 1) {
+      setJobData((prev) => ({
+        ...prev,
+        [keys[0]]: {
+          ...prev[keys[0]],
+          [keys[1]]: value,
+        },
+      }));
+    } else {
+      setJobData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    }
+  };
+
+  const handleAddSkill = () => {
+    if (newSkill.trim() && !jobData.skills_required.includes(newSkill.trim())) {
+      setJobData((prev) => ({
+        ...prev,
+        skills_required: [...prev.skills_required, newSkill.trim()],
+      }));
+      setNewSkill("");
+    }
+  };
+
+  const handleRemoveSkill = (skill) => {
+    setJobData((prev) => ({
+      ...prev,
+      skills_required: prev.skills_required.filter((s) => s !== skill),
+    }));
+  };
 
   const getStatusBadge = (status) => {
     const statusStyles = {
@@ -152,23 +346,57 @@ const ManageJobs = () => {
     }
   };
 
-  const handleEditTask = async (e) => {
+  const handleEditJobSubmit = async (e) => {
     e.preventDefault();
     try {
-      setLoading(true);
-      const result = await adminService.editTask(editingTask.task_id, editingTask);
-      alert(`Job edited successfully: ${result.message || 'Job edited'}`);
+      setLoadingJobEdit(true);
+
+      const jobPayload = {
+        ...jobData,
+        employer_id: editingTask.recruiter_id,
+        responsibilities: jobData.responsibilities.split("\n").filter(r => r.trim()),
+        qualifications: jobData.qualifications.split("\n").filter(q => q.trim()),
+      };
+
+      // Update job using the recruiter API
+      await recruiterExternalService.updateJob(editingTask.job_id, jobPayload);
+      alert('Job updated successfully');
       setEditingTask(null);
+      setJobData({
+        job_title: "",
+        company_name: "",
+        location: "",
+        employment_type: "Full-Time",
+        work_mode: "On-site",
+        salary_range: {
+          min: "",
+          max: "",
+          currency: "INR",
+        },
+        experience_required: {
+          min_years: "",
+          max_years: "",
+        },
+        skills_required: [],
+        description: "",
+        responsibilities: "",
+        qualifications: "",
+        application_deadline: "",
+        contact_email: "",
+        job_status: "open",
+      });
+      setRecruiterDetails(null);
+
       // Refresh the jobs list
       const jobsData = await adminService.getPendingJobs();
       const jobsArray = Array.isArray(jobsData) ? jobsData : [];
       setJobs(jobsArray);
       setFilteredJobs(jobsArray);
     } catch (error) {
-      console.error('Failed to edit job:', error);
-      alert('Failed to edit job. Please try again.');
+      console.error('Failed to update job:', error);
+      alert('Failed to update job. Please try again.');
     } finally {
-      setLoading(false);
+      setLoadingJobEdit(false);
     }
   };
 
@@ -280,6 +508,7 @@ const ManageJobs = () => {
           <thead>
             <tr>
               <th>Category</th>
+              <th>Company</th>
               <th>Status</th>
               <th>Created</th>
               <th>Updated</th>
@@ -292,6 +521,7 @@ const ManageJobs = () => {
                 <td>
                   <span className={styles.jobTypeBadge}>{task.category}</span>
                 </td>
+                <td>{task.company_name || 'N/A'}</td>
                 <td>{getStatusBadge(task.status)}</td>
                 <td className={styles.dateCell}>{formatDate(task.posted_date)}</td>
                 <td className={styles.dateCell}>{formatDate(task.updated_date)}</td>
@@ -376,7 +606,7 @@ const ManageJobs = () => {
         </div>
       )}
 
-      {/* Edit Modal */}
+      {/* Edit Job Modal */}
       {editingTask && (
         <div style={{
           position: 'fixed',
@@ -388,44 +618,398 @@ const ManageJobs = () => {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          zIndex: 1000
+          zIndex: 1000,
+          overflowY: 'auto'
         }}>
           <div style={{
             backgroundColor: theme === 'dark' ? '#333' : '#fff',
             padding: '20px',
             borderRadius: '8px',
-            width: '400px',
-            maxWidth: '90%'
+            width: '800px',
+            maxWidth: '90%',
+            maxHeight: '90%',
+            overflowY: 'auto',
+            color: theme === 'dark' ? '#fff' : '#000'
           }}>
-            <h3>Edit Job</h3>
-            <form onSubmit={handleEditTask}>
-              {/* Don't share Job Title and Job ID */}
-              <div style={{ marginBottom: '10px' }}>
-                <label>Description:</label>
-                <textarea
-                  value={editingTask.description || ''}
-                  onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
-                  style={{ width: '100%', height: '100px' }}
-                />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3>
+                {editingTask.category === 'newapplication' || editingTask.category === 'change status of application'
+                  ? 'View Application Details'
+                  : 'Edit Job Posting'
+                }
+              </h3>
+              <button
+                onClick={() => setEditingTask(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  color: theme === 'dark' ? '#fff' : '#000'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {recruiterDetails && (
+              <div style={{
+                background: '#f8f9fa',
+                padding: '10px',
+                borderRadius: '4px',
+                marginBottom: '20px',
+                color: '#333'
+              }}>
+                <strong>Company:</strong> {recruiterDetails.company_name || 'Unknown'}
               </div>
-              <div style={{ marginBottom: '10px' }}>
-                <label>Category:</label>
-                <input
-                  type="text"
-                  value={editingTask.category || ''}
-                  onChange={(e) => setEditingTask({ ...editingTask, category: e.target.value })}
-                  style={{ width: '100%' }}
-                />
+            )}
+
+            {loadingJobEdit ? (
+              <div style={{ textAlign: 'center', padding: '20px' }}>
+                <div>Loading data...</div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <button type="submit" style={{ padding: '10px 20px', backgroundColor: '#007bff', color: '#fff', border: 'none', borderRadius: '4px' }}>
-                  Save
-                </button>
-                <button type="button" onClick={() => setEditingTask(null)} style={{ padding: '10px 20px', backgroundColor: '#6c757d', color: '#fff', border: 'none', borderRadius: '4px' }}>
-                  Cancel
-                </button>
-              </div>
-            </form>
+            ) : (
+              <>
+                {/* Application Details View */}
+                {(editingTask.category === 'newapplication' || editingTask.category === 'change status of application') && applicantDetails && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <h4>Application Information</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                      <div>
+                        <label style={{ fontWeight: 'bold' }}>Application ID:</label>
+                        <p>{applicantDetails.application_id}</p>
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 'bold' }}>Student ID:</label>
+                        <p>{applicantDetails.student_id}</p>
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 'bold' }}>Applicant Name:</label>
+                        <p>{applicantDetails.name || 'Not available'}</p>
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 'bold' }}>Email:</label>
+                        <p>{applicantDetails.email || 'Not available'}</p>
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 'bold' }}>Phone:</label>
+                        <p>{applicantDetails.phone || 'Not available'}</p>
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 'bold' }}>Application Status:</label>
+                        <p style={{ textTransform: 'capitalize' }}>
+                          <span style={{
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            backgroundColor: applicantDetails.status === 'approved' ? '#28a745' :
+                                           applicantDetails.status === 'rejected' ? '#dc3545' : '#ffc107',
+                            color: '#fff'
+                          }}>
+                            {applicantDetails.status || 'pending'}
+                          </span>
+                        </p>
+                      </div>
+                      <div style={{ gridColumn: 'span 2' }}>
+                        <label style={{ fontWeight: 'bold' }}>Skills:</label>
+                        <p>
+                          {applicantDetails.skills && Array.isArray(applicantDetails.skills)
+                            ? applicantDetails.skills.join(', ')
+                            : 'Not available'
+                          }
+                        </p>
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 'bold' }}>Experience:</label>
+                        <p>{applicantDetails.experience || 'Not available'}</p>
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 'bold' }}>Education:</label>
+                        <p>{applicantDetails.education || 'Not available'}</p>
+                      </div>
+                      <div style={{ gridColumn: 'span 2' }}>
+                        <label style={{ fontWeight: 'bold' }}>Applied Date:</label>
+                        <p>{applicantDetails.applied_date ? new Date(applicantDetails.applied_date).toLocaleDateString() : 'Not available'}</p>
+                      </div>
+                      {applicantDetails.resume_link && (
+                        <div style={{ gridColumn: 'span 2' }}>
+                          <label style={{ fontWeight: 'bold' }}>Resume:</label>
+                          <p>
+                            <a href={applicantDetails.resume_link} target="_blank" rel="noopener noreferrer"
+                               style={{ color: '#007bff', textDecoration: 'underline' }}>
+                              View Resume
+                            </a>
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {applicantDetails.task_category === 'change status of application' && (
+                      <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#e9ecef', borderRadius: '4px' }}>
+                        <h5>Task Information</h5>
+                        <p><strong>Requested Action:</strong> Application status change request</p>
+                        <p><strong>Task ID:</strong> {applicantDetails.task_id}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Job Edit Form (only show for job edits) */}
+                {!(editingTask.category === 'newapplication' || editingTask.category === 'change status of application') && (
+                  <form onSubmit={handleEditJobSubmit}>
+                    {/* Basic Information */}
+                    <div style={{ marginBottom: '20px' }}>
+                      <h4>Basic Information</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <div>
+                          <label>Job Title *</label>
+                          <input
+                            type="text"
+                            value={jobData.job_title}
+                            onChange={(e) => handleInputChange('job_title', e.target.value)}
+                            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label>Company Name *</label>
+                          <input
+                            type="text"
+                            value={jobData.company_name}
+                            onChange={(e) => handleInputChange('company_name', e.target.value)}
+                            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label>Location *</label>
+                          <input
+                            type="text"
+                            value={jobData.location}
+                            onChange={(e) => handleInputChange('location', e.target.value)}
+                            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label>Employment Type *</label>
+                          <select
+                            value={jobData.employment_type}
+                            onChange={(e) => handleInputChange('employment_type', e.target.value)}
+                            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                            required
+                          >
+                            <option value="Full-Time">Full-time</option>
+                            <option value="Part-Time">Part-time</option>
+                            <option value="Contract">Contract</option>
+                            <option value="Internship">Internship</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label>Work Mode *</label>
+                          <select
+                            value={jobData.work_mode}
+                            onChange={(e) => handleInputChange('work_mode', e.target.value)}
+                            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                            required
+                          >
+                            <option value="On-site">On-site</option>
+                            <option value="Remote">Remote</option>
+                            <option value="Hybrid">Hybrid</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label>Contact Email</label>
+                          <input
+                            type="email"
+                            value={jobData.contact_email}
+                            onChange={(e) => handleInputChange('contact_email', e.target.value)}
+                            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Salary Range */}
+                      <div style={{ marginTop: '10px' }}>
+                        <label>Salary Range</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <select
+                            value={jobData.salary_range.currency}
+                            onChange={(e) => handleInputChange('salary_range.currency', e.target.value)}
+                            style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                          >
+                            <option value="INR">INR (₹)</option>
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                            <option value="GBP">GBP (£)</option>
+                          </select>
+                          <input
+                            type="number"
+                            placeholder="Min"
+                            value={jobData.salary_range.min}
+                            onChange={(e) => handleInputChange('salary_range.min', e.target.value)}
+                            style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px', flex: '1' }}
+                          />
+                          <span>-</span>
+                          <input
+                            type="number"
+                            placeholder="Max"
+                            value={jobData.salary_range.max}
+                            onChange={(e) => handleInputChange('salary_range.max', e.target.value)}
+                            style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px', flex: '1' }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Experience Required */}
+                      <div style={{ marginTop: '10px' }}>
+                        <label>Experience Required (Years)</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <input
+                            type="number"
+                            placeholder="Min"
+                            value={jobData.experience_required.min_years}
+                            onChange={(e) => handleInputChange('experience_required.min_years', e.target.value)}
+                            style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px', flex: '1' }}
+                          />
+                          <span>-</span>
+                          <input
+                            type="number"
+                            placeholder="Max"
+                            value={jobData.experience_required.max_years}
+                            onChange={(e) => handleInputChange('experience_required.max_years', e.target.value)}
+                            style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px', flex: '1' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Job Details */}
+                    <div style={{ marginBottom: '20px' }}>
+                      <h4>Job Details</h4>
+                      <div>
+                        <label>Description *</label>
+                        <textarea
+                          value={jobData.description}
+                          onChange={(e) => handleInputChange('description', e.target.value)}
+                          rows={6}
+                          style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                          required
+                        />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' }}>
+                        <div>
+                          <label>Responsibilities *</label>
+                          <textarea
+                            value={jobData.responsibilities}
+                            onChange={(e) => handleInputChange('responsibilities', e.target.value)}
+                            rows={4}
+                            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label>Qualifications *</label>
+                          <textarea
+                            value={jobData.qualifications}
+                            onChange={(e) => handleInputChange('qualifications', e.target.value)}
+                            rows={4}
+                            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Skills */}
+                    <div style={{ marginBottom: '20px' }}>
+                      <h4>Skills</h4>
+                      <div style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
+                        <input
+                          type="text"
+                          placeholder="Add a required skill"
+                          value={newSkill}
+                          onChange={(e) => setNewSkill(e.target.value)}
+                          onKeyPress={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddSkill(); } }}
+                          style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px', flex: '1' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddSkill}
+                          style={{ padding: '8px 12px', backgroundColor: '#007bff', color: '#fff', border: 'none', borderRadius: '4px' }}
+                        >
+                          Add
+                        </button>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                        {jobData.skills_required.map((skill, index) => (
+                          <span
+                            key={index}
+                            style={{
+                              background: '#f0f0f0',
+                              padding: '4px 8px',
+                              borderRadius: '12px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '5px'
+                            }}
+                          >
+                            {skill}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSkill(skill)}
+                              style={{ border: 'none', background: 'none', color: '#ff0000', cursor: 'pointer' }}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Application Deadline */}
+                    <div style={{ marginBottom: '20px' }}>
+                      <label>Application Deadline</label>
+                      <input
+                        type="date"
+                        value={jobData.application_deadline}
+                        onChange={(e) => handleInputChange('application_deadline', e.target.value)}
+                        style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                      />
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setEditingTask(null)}
+                        style={{ padding: '10px 20px', backgroundColor: '#6c757d', color: '#fff', border: 'none', borderRadius: '4px' }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        style={{ padding: '10px 20px', backgroundColor: '#007bff', color: '#fff', border: 'none', borderRadius: '4px' }}
+                        disabled={loadingJobEdit}
+                      >
+                        {loadingJobEdit ? 'Updating...' : 'Update Job'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* Action Buttons for Application View */}
+                {(editingTask.category === 'newapplication' || editingTask.category === 'change status of application') && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+                    <button
+                      onClick={() => setEditingTask(null)}
+                      style={{ padding: '10px 20px', backgroundColor: '#6c757d', color: '#fff', border: 'none', borderRadius: '4px' }}
+                    >
+                      Close
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}
