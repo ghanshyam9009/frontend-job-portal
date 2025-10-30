@@ -7,8 +7,8 @@
 }
 
 .main {
-  margin-left: 135px;
-  margin-top: 26px;
+  margin-left: 240px;
+  margin-top: 40px;
   padding: 24px;
   min-height: calc(100vh - 64px);
 }
@@ -498,31 +498,112 @@
     margin-left: 0;
     padding: 16px;
   }
-  
+
+  .welcomeSection h1 {
+    font-size: 24px;
+    line-height: 1.2;
+  }
+
+  .welcomeSection p {
+    font-size: 16px;
+    margin: 8px 0;
+  }
+
   .statsGrid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
   }
-  
+
   .statCard {
     padding: 16px;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
-  
+
   .statIcon {
     font-size: 24px;
     width: 36px;
     height: 36px;
+    flex-shrink: 0;
   }
-  
+
+  .statInfo {
+    text-align: right;
+    flex: 1;
+  }
+
   .statInfo h3 {
     font-size: 24px;
+    margin: 0;
   }
-  
-  .welcomeSection h1 {
-    font-size: 24px;
+
+  .statInfo p {
+    font-size: 14px;
+    margin: 4px 0 0 0;
   }
-  
-  .welcomeSection p {
-    font-size: 16px;
+
+  .contentGrid {
+    gap: 16px;
+  }
+
+  .applicationsList,
+  .quickActions {
+    padding: 16px;
+  }
+
+  /* Job card mobile improvements */
+  .jobCard {
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .jobHeader {
+    margin-bottom: 12px;
+  }
+
+  .jobMeta {
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+    font-size: 12px;
+  }
+
+  .jobMeta span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .jobActions {
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  .actionBtn {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+
+  .actionCard {
+    padding: 12px;
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .actionIcon {
+    font-size: 18px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .actionsGrid {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 }
 
@@ -1037,34 +1118,64 @@
     gap: 16px;
     align-items: stretch;
   }
-  
+
   .filterTabs {
     justify-content: center;
   }
-  
+
   .statsSummary {
     justify-content: center;
     gap: 16px;
   }
-  
+
   .jobHeader {
     flex-direction: column;
     gap: 12px;
   }
-  
+
   .jobMeta {
     flex-direction: column;
     gap: 8px;
   }
-  
+
   .jobStats {
     flex-direction: column;
     gap: 16px;
     text-align: center;
   }
-  
+
   .jobActions {
     justify-content: center;
+  }
+
+  /* Settings Mobile Resposiveness */
+  .settingsContainer {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .settingsSidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .settingsTab {
+    justify-content: center;
+    font-size: 16px;
+    padding: 18px 20px;
+    border-radius: 8px;
+  }
+
+  .settingsContent {
+    padding: 24px 16px;
+  }
+
+  .saveBtn {
+    width: 100%;
+    padding: 14px 24px;
+    font-size: 16px;
+    margin-top: 20px;
   }
 }
 

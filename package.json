@@ -13,6 +13,7 @@
     "@react-oauth/google": "^0.12.2",
     "axios": "^1.12.2",
     "lucide-react": "^0.544.0",
+    "razorpay": "^2.9.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^5.5.0",

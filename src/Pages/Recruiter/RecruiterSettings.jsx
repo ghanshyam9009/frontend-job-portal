@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
+import { useSidebar } from "../../Contexts/SidebarContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
 import RecruiterSidebar from "../../Components/Recruiter/RecruiterSidebar";
@@ -10,8 +11,8 @@ import styles from "../../Styles/RecruiterDashboard.module.css";
 const RecruiterSettings = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { sidebarOpen, toggleSidebar } = useSidebar();
   const { theme, toggleTheme } = useTheme();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
   const [settingsData, setSettingsData] = useState({
     profile: {
@@ -31,8 +32,6 @@ const RecruiterSettings = () => {
       confirmPassword: ""
     }
   });
-
-  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
   const handleInputChange = (section, field, value) => {
     setSettingsData(prev => ({

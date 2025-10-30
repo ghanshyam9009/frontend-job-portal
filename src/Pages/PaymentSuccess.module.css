@@ -1,0 +1,257 @@
+/* Payment Success Page Styles */
+.pageContainer {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  padding-top: 80px; /* Account for navbar */
+}
+
+.pageContainer.dark {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+.successContainer {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.successCard {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  text-align: center;
+}
+
+.pageContainer.dark .successCard {
+  background: #2d3748;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+.statusSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.successIcon {
+  color: #10b981;
+  animation: checkmark 0.8s ease-in-out;
+}
+
+@keyframes checkmark {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.errorIcon {
+  color: #ef4444;
+}
+
+.loadingIcon {
+  color: #3b82f6;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.statusSection h2 {
+  color: #1f2937;
+  font-size: 2rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.pageContainer.dark .statusSection h2 {
+  color: #f9fafb;
+}
+
+.statusSection p {
+  color: #6b7280;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.pageContainer.dark .statusSection p {
+  color: #d1d5db;
+}
+
+.paymentDetails {
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  text-align: left;
+}
+
+.pageContainer.dark .paymentDetails {
+  background: #374151;
+}
+
+.paymentDetails p {
+  margin: 0.5rem 0;
+  font-family: monospace;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.pageContainer.dark .paymentDetails p {
+  color: #e5e7eb;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.primaryButton {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.primaryButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.secondaryButton {
+  background: transparent;
+  color: #6b7280;
+  border: 2px solid #d1d5db;
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pageContainer.dark .secondaryButton {
+  color: #9ca3af;
+  border-color: #4b5563;
+}
+
+.secondaryButton:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.pageContainer.dark .secondaryButton:hover {
+  background: #374151;
+  border-color: #6b7280;
+}
+
+.redirectText {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  margin-top: 1rem;
+}
+
+.errorDetails {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  text-align: left;
+}
+
+.pageContainer.dark .errorDetails {
+  background: #451a1a;
+  border-color: #7f1d1d;
+}
+
+.errorDetails p {
+  margin: 0.5rem 0;
+  color: #dc2626;
+}
+
+.pageContainer.dark .errorDetails p {
+  color: #fca5a5;
+}
+
+.helpSection {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+}
+
+.pageContainer.dark .helpSection {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+.helpSection h3 {
+  color: #1f2937;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+}
+
+.pageContainer.dark .helpSection h3 {
+  color: #f9fafb;
+}
+
+.helpSection p {
+  color: #6b7280;
+  margin: 0.5rem 0;
+  font-size: 0.875rem;
+}
+
+.pageContainer.dark .helpSection p {
+  color: #d1d5db;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .successContainer {
+    padding: 1rem;
+  }
+
+  .successCard {
+    padding: 1.5rem;
+  }
+
+  .statusSection h2 {
+    font-size: 1.5rem;
+  }
+
+  .actionButtons {
+    flex-direction: column;
+  }
+
+  .primaryButton,
+  .secondaryButton {
+    width: 100%;
+  }
+}
