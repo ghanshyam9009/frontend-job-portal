@@ -2,21 +2,7 @@ import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext"; // Import useTheme
-import {
-  Home,
-  Users,
-  Briefcase,
-  FileText,
-  Clock,
-  Building2,
-  ClipboardList,
-  CreditCard,
-  File,
-  Phone,
-  BarChart3,
-  Settings,
-  Bell
-} from "lucide-react";
+import { Home, Users, Building, FileText, Clock, Building2, ClipboardList, CreditCard, Phone, BarChart3, Settings, Bell } from "lucide-react";
 import styles from "../../Styles/AdminSidebar.module.css";
 
 const AdminSidebar = ({ isOpen, onClose }) => {
@@ -41,7 +27,7 @@ const AdminSidebar = ({ isOpen, onClose }) => {
     {
       id: 'employers',
       label: 'Manage Employers',
-      icon: Briefcase,
+      icon: Building,
       path: '/admin/employers'
     },
     {
@@ -49,6 +35,12 @@ const AdminSidebar = ({ isOpen, onClose }) => {
       label: 'Manage Jobs',
       icon: FileText,
       path: '/admin/jobs'
+    },
+    {
+      id: 'job-application-reports',
+      label: 'Job Application Reports',
+      icon: BarChart3,
+      path: '/admin/job-application-reports'
     },
     {
       id: 'pending-jobs',
@@ -78,7 +70,7 @@ const AdminSidebar = ({ isOpen, onClose }) => {
     {
       id: 'homepage-forms',
       label: 'Homepage Forms',
-      icon: File,
+      icon: FileText,
       path: '/admin/homepage-forms',
       badge: 5
     },
@@ -127,7 +119,7 @@ const AdminSidebar = ({ isOpen, onClose }) => {
       {/* Mobile Overlay */}
       {isOpen && <div className={styles.mobileOverlay} onClick={onClose}></div>}
       
-      <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
+      <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''} ${theme === 'dark' ? styles.dark : ''}`}>
       <button className={styles.closeButton} onClick={onClose}>
         &times;
       </button>
@@ -166,9 +158,6 @@ const AdminSidebar = ({ isOpen, onClose }) => {
         </div>
       </div>
       
-      <div className={styles.footer}>
-        Made with ❤️
-      </div>
     </aside>
     </>
   );

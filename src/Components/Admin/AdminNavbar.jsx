@@ -1,20 +1,16 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext"; // Import useTheme
-import { authService } from "../../services/authService";
 import styles from "../../Styles/AdminNavbar.module.css";
 import logo from "../../assets/favicon-icon.png";
-import { Sun, Moon, Clock } from "lucide-react";
+import { Sun, Moon } from "lucide-react";
 
 const AdminNavbar = ({ onLogout, onMobileMenuToggle }) => {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const { theme, toggleTheme } = useTheme(); // Use theme context
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const [sessionTime, setSessionTime] = useState('');
-
- 
 
   const handleProfileClick = () => {
     setShowProfileDropdown(!showProfileDropdown);
@@ -33,32 +29,32 @@ const AdminNavbar = ({ onLogout, onMobileMenuToggle }) => {
   };
 
   return (
-    <header className={`${styles.header} `}>
+    <header className={`${styles.header} ${theme === 'dark' ? styles.dark : ''}`}>
       <div className={styles.headerLeft}>
         <button className={styles.mobileMenuBtn} onClick={onMobileMenuToggle}>
           ☰
         </button>
-           <div className={styles.logo}>
-                         <img src={logo} alt="JobPortal Logo" />
-                         <span>Bigsources Manpower Solution</span>
-                       </div>
+       
 
+
+                               <div className={styles.logo}>
+                                   <img src={logo} alt="JobPortal Logo" />
+                                 <Link to="/">
+                                 </Link>
+                                 Big<span style={{ color: '#4f72ab' }}>sources</span>.in
+                               </div>
+                             
+   
       </div>
       
       <div className={styles.headerRight}>
-        {/* Session Timer */}
-       
 
-        <button className={styles.notificationBtn}>
-          🔔
-          <span className={styles.notificationBadge}>9</span>
-        </button>
         <button className={styles.themeToggle} onClick={toggleTheme}>
           {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
         </button>
-        <button className={styles.logoutBtn} onClick={handleLogout}>
+        {/* <button className={styles.logoutBtn} onClick={handleLogout}>
           Logout
-        </button>
+        </button> */}
         <div className={styles.profileSection}>
           <button className={styles.profilePicture} onClick={handleProfileClick}>
             <div className={styles.profileAvatar}>

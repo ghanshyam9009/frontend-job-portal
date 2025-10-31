@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './Contexts/AuthContext'
+import { SidebarProvider } from './Contexts/SidebarContext'
 import ProtectedRoute from './Components/ProtectedRoute'
 import HomePage from './Pages/HomePage'
 import JobListings from './Pages/JobListings'
@@ -16,15 +17,16 @@ import AppliedJobs from './Pages/Candidate/AppliedJobs'
 import ProfileManagement from './Pages/Candidate/ProfileManagement'
 import Settings from './Pages/Candidate/Settings'
 import Membership from './Pages/Membership'
+import MembershipPlans from './Pages/Candidate/MembershipPlans'
 import CandidateMembership from './Pages/Candidate/CandidateMembership'
 import RecruiterMembership from './Pages/Recruiter/RecruiterMembership'
-import Messages from './Pages/Candidate/Messages'
 import CandidateLayout from './Components/Candidate/CandidateLayout'
 import RecruiterLogin from './Pages/Recruiter/RecruiterLogin'
 import RecruiterLayout from './Components/Recruiter/RecruiterLayout'
 import RecruiterDashboard from './Pages/Recruiter/RecruiterDashboard'
 import PostJob from './Pages/Recruiter/PostJob'
 import ManageJobs from './Pages/Recruiter/ManageJobs'
+import EditJob from './Pages/Recruiter/EditJob'
 import CandidateApplications from './Pages/Recruiter/CandidateApplications'
 import ShortlistCandidates from './Pages/Recruiter/ShortlistCandidates'
 import CompanyProfile from './Pages/Recruiter/CompanyProfile'
@@ -45,24 +47,44 @@ import HomepageForms from './Pages/Admin/HomepageForms'
 import ContactForms from './Pages/Admin/ContactForms'
 import GovernmentJobsManagement from './Pages/Admin/GovernmentJobsManagement'
 import JobApplications from './Pages/Admin/JobApplications'
+import JobApplicationReports from './Pages/Admin/JobApplicationReports'
 import ResetPassword from './Pages/Auth/ResetPassword'
 import CareerServices from './Pages/CareerServices'
+import FastTrack from './Pages/FastTrack'
+import PremiumSeeker from './Pages/PremiumSeeker'
+import CompanyReviews from './Pages/CompanyReviews'
+import SalaryTools from './Pages/SalaryTools'
+import EmployerBranding from './Pages/EmployerBranding'
+import RecruitingSolutions from './Pages/RecruitingSolutions'
+import PrivacyPolicy from './Pages/PrivacyPolicy'
+import TermsOfService from './Pages/TermsOfService'
+import PaymentSuccess from './Pages/PaymentSuccess'
 
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
+      <SidebarProvider>
+        <BrowserRouter>
+          <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/jobs" element={<JobListings />} />
           <Route path="/government-jobs" element={<GovernmentJobs />} />
           <Route path="/job/:slug" element={<Jobdescription />} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/contact" element={<ContactUs />} />
+          <Route path="/fast-track" element={<FastTrack />} />
+          <Route path="/premium-seeker" element={<PremiumSeeker />} />
+          <Route path="/company-reviews" element={<CompanyReviews />} />
+          <Route path="/salary-tools" element={<SalaryTools />} />
+          <Route path="/employer-branding" element={<EmployerBranding />} />
+          <Route path="/recruiting-solutions" element={<RecruitingSolutions />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/membership" element={<Membership />} />
           <Route path="/career-services" element={<CareerServices />} />
           <Route path="/candidate-membership" element={<CandidateMembership />} />
           <Route path="/recruiter-membership" element={<RecruiterMembership />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/candidate/login" element={<CandidateLogin />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
@@ -74,8 +96,7 @@ function App() {
             <Route path="/my-applications" element={<AppliedJobs />} />
             <Route path="/profile" element={<ProfileManagement />} />
             <Route path="/settings" element={<Settings />} />
-            <Route path="/membership-plans" element={<Membership />} />
-            <Route path="/messages" element={<Messages />} />
+            <Route path="/membership-plans" element={<MembershipPlans />} />
           </Route>
 
 
@@ -84,6 +105,7 @@ function App() {
             <Route path="/recruiter/dashboard" element={<RecruiterDashboard />} />
             <Route path="/post-job" element={<PostJob />} />
             <Route path="/manage-jobs" element={<ManageJobs />} />
+            <Route path="/edit-job/:jobId" element={<EditJob />} />
             <Route path="/candidate-applications" element={<CandidateApplications />} />
             <Route path="/shortlist-candidates" element={<ShortlistCandidates />} />
             <Route path="/company-profile" element={<CompanyProfile />} />
@@ -105,9 +127,11 @@ function App() {
             <Route path="/admin/contact-forms" element={<ContactForms />} />
             <Route path="/admin/government-jobs" element={<GovernmentJobsManagement />} />
             <Route path="/admin/job-applications" element={<JobApplications />} />
+            <Route path="/admin/job-application-reports" element={<JobApplicationReports />} />
           </Route>
         </Routes>
       </BrowserRouter>
+      </SidebarProvider>
     </AuthProvider>
   )
 }

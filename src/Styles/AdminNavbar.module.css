@@ -28,9 +28,6 @@
   color: #6b7280;
   transition: all 0.3s ease;
 }
-span{
-    font-family: 'Open Sans';
-}
 
 .themeToggle:hover {
   background: #f9fafb;
@@ -70,7 +67,7 @@ span{
 }
 
 .logo {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 100;
         display: flex;
 }
@@ -194,7 +191,11 @@ span{
   border-radius: 50%;
   object-fit: cover;
 }
+span{
+  margin-top: 0px;
+  margin-left: 0px;
 
+}
 .profileAvatar {
   width: 40px;
   height: 40px;
@@ -291,14 +292,19 @@ span{
 @media (max-width: 480px) {
   .header {
     height: 56px;
+
   }
-  
+  span{
+    font-family: inherit;
+
+  }
   .logo {
-    font-size: 18px;
+    font-size: 12px;
   }
   
   .profilePicture img {
     width: 32px;
     height: 32px;
   }
+
 }

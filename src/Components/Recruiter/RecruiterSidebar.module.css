@@ -139,39 +139,41 @@
 }
 
 /* Dark Theme */
-.dark {
+:global(.dark) .dark,
+:global(.dark) .sidebar.dark,
+:global(.dark) .sidebar {
   background: #1f2937;
   border-right: 1px solid #374151;
 }
 
-.dark .closeButton {
+:global(.dark) .closeButton {
   color: #9ca3af;
 }
 
-.dark .navLink {
+:global(.dark) .navLink {
   color: #d1d5db;
 }
 
-.dark .navLink:hover {
+:global(.dark) .navLink:hover {
   background: #374151;
   color: #ffffff;
 }
 
-.dark .navLink.active {
+:global(.dark) .navLink.active {
   background: #374151;
   color: #ffffff;
   border-left-color: #3b82f6;
 }
 
-.dark .userCard {
+:global(.dark) .userCard {
   border-top: 1px solid #374151;
 }
 
-.dark .userName {
+:global(.dark) .userName {
   color: #ffffff;
 }
 
-.dark .userEmail {
+:global(.dark) .userEmail {
   color: #9ca3af;
 }
 

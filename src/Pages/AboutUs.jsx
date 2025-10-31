@@ -1,12 +1,12 @@
 import React from "react";
 import { useTheme } from "../Contexts/ThemeContext";
-import { Building2, TrendingUp, Target, Star, Users, Briefcase, Calculator, FileText, Scale, Globe } from "lucide-react";
+import { Building2, TrendingUp, Target, Star, Users, Briefcase, Calculator, FileText, Scale, Globe, Sun, Moon } from "lucide-react";
 import styles from "../Styles/AboutUs.module.css";
 import HomeNav from "../Components/HomeNav";
 import Footer from "../Components/Footer";
 
 const AboutUs = () => {
-  const { theme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <div className={`${styles.pageContainer} ${theme === 'dark' ? styles.dark : ''}`}>
@@ -21,7 +21,10 @@ const AboutUs = () => {
             <p className={styles.heroSubtitle}>
               Empowering businesses through innovative HR solutions and professional recruitment services
             </p>
-            <button className={styles.heroButton}>Discover Our Journey</button>
+            <div className={styles.heroButtons}>
+              <button className={styles.heroButton}>Discover Our Journey</button>
+
+            </div>
           </div>
          
         </div>
@@ -31,19 +34,19 @@ const AboutUs = () => {
       <section className={styles.statsSection}>
         <div className={styles.statsContainer}>
           <div className={styles.statCard}>
-            <div className={styles.counterNumber} data-target="500" data-suffix="+">0+</div>
+            <div className={styles.counterNumber} data-target="500" data-suffix="+">89+</div>
             <div className={styles.statLabel}>Successful Placements</div>
           </div>
           <div className={styles.statCard}>
-            <div className={styles.counterNumber} data-target="150" data-suffix="+">0+</div>
+            <div className={styles.counterNumber} data-target="150" data-suffix="+">100+</div>
             <div className={styles.statLabel}>Partner Companies</div>
           </div>
           <div className={styles.statCard}>
-            <div className={styles.counterNumber} data-target="10" data-suffix="+">0+</div>
+            <div className={styles.counterNumber} data-target="10" data-suffix="+">10+</div>
             <div className={styles.statLabel}>Years of Excellence</div>
           </div>
           <div className={styles.statCard}>
-            <div className={styles.counterNumber} data-target="95" data-suffix="%">0%</div>
+            <div className={styles.counterNumber} data-target="95" data-suffix="%">98%</div>
             <div className={styles.statLabel}>Client Satisfaction</div>
           </div>
         </div>
@@ -61,7 +64,7 @@ const AboutUs = () => {
               <Building2 className={styles.cardIcon} />
               <h3>Our Foundation</h3>
               <p>
-                Bigsources Manpower Solution PVT. LTD. is a young, vibrant and fast growing recruitment consultant with offices in Indore, with a prime objective of providing professional and value added services in terms of recruitment of quality manpower.
+                Bigsources.in is a young, vibrant and fast growing recruitment consultant with offices in Indore, with a prime objective of providing professional and value added services in terms of recruitment of quality manpower.
               </p>
               <p>
                 We have been providing our recruitment services to a large spectrum of reputed companies all across the nation. Our strategy is to provide professionalism of highest standard to our clients.
@@ -83,7 +86,7 @@ const AboutUs = () => {
               <Target className={styles.cardIcon} />
               <h3>Our Mission</h3>
               <p>
-                Bigsources Manpower Solution PVT. LTD. was established with a mission to provide world class Executive Search and Consulting services to our clients to help them enhance their competitiveness through quality human capital.
+                Bigsources.in was established with a mission to provide world class Executive Search and Consulting services to our clients to help them enhance their competitiveness through quality human capital.
               </p>
               <p>
                 At the same time we aim to help candidates achieve their career objectives. We have a highly motivated team of HR consultants with professional skills and proven expertise.

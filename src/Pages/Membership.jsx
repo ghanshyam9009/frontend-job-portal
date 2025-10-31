@@ -9,9 +9,7 @@ const candidatePlans = [
   {
     name: "Platinum",
     description: "Perfect for beginners starting their coding journey with government jobs access.",
-    regularPrice: "₹200",
-    discount: "20% OFF",
-    offerPrice: "₹200",
+    price: "₹200",
     validity: "1 Month",
     features: [
       { name: "Access to all job listings", included: true },
@@ -26,10 +24,7 @@ const candidatePlans = [
   {
     name: "Silver",
     description: "Go all in — with expert support & 3 Months access including government jobs.",
-    originalPrice: "₹600",
-    regularPrice: "₹500",
-    discount: "17% OFF",
-    offerPrice: "₹500",
+    price: "₹500",
     validity: "3 Months",
     features: [
       { name: "Access to all job listings", included: true },
@@ -45,10 +40,7 @@ const candidatePlans = [
   {
     name: "Gold",
     description: "Premium access with backend support and 100% job security guarantee.",
-    originalPrice: "₹1200",
-    regularPrice: "₹1000",
-    discount: "17% OFF",
-    offerPrice: "₹1000",
+    price: "₹1000",
     validity: "6 Months",
     features: [
       { name: "Access to all job listings", included: true },
@@ -66,12 +58,26 @@ const candidatePlans = [
 
 const employerPlans = [
   {
+    name: "Basic Plan",
+    description: "Free basic plan with 15 days trial and first job premium apply free.",
+    price: "Free",
+    validity: "15 Days",
+    features: [
+      { name: "15 days free trial", included: true },
+      { name: "First job premium apply free", included: true },
+      { name: "Basic job postings", included: true },
+      { name: "Access to candidate profiles", included: true },
+      { name: "Email support", included: true },
+      { name: "Standard job visibility", included: true },
+      { name: "Advanced candidate filtering", included: false },
+      { name: "Priority support", included: false }
+    ],
+    style: "employer"
+  },
+  {
     name: "Employer Plan",
     description: "Simple per-post payment model for flexible recruitment needs.",
-    originalPrice: "₹400",
-    regularPrice: "₹300",
-    discount: "25% OFF",
-    offerPrice: "₹300",
+    price: "₹300",
     validity: "Per Job Post",
     features: [
       { name: "Pay per job post", included: true },
@@ -84,6 +90,24 @@ const employerPlans = [
       { name: "Advanced analytics", included: false }
     ],
     style: "employer"
+  },
+  {
+    name: "Enterprise Solutions",
+    description: "Complete recruitment platform for large organizations with custom integrations.",
+    price: "₹2000",
+    validity: "6 Months",
+    features: [
+      { name: "Unlimited job postings", included: true },
+      { name: "Custom company branding", included: true },
+      { name: "ATS integration", included: true },
+      { name: "Interview scheduling tools", included: true },
+      { name: "Advanced reporting", included: true },
+      { name: "Dedicated account manager", included: true },
+      { name: "Custom API access", included: true },
+      { name: "White-label solutions", included: true }
+    ],
+    style: "employer",
+    comingSoon: true
   }
 ];
 
@@ -122,10 +146,7 @@ const Membership = () => {
                 <h3 className={styles.planTitle}>{plan.name}</h3>
                 <p className={styles.planDescription}>{plan.description}</p>
                 <div className={styles.priceSection}>
-                  {plan.originalPrice && <p className={styles.originalPrice}>Original: <del>{plan.originalPrice}</del></p>}
-                  <p className={styles.regularPrice}>Regular: {plan.regularPrice} <span className={styles.discount}>{plan.discount}</span></p>
-                  <p className={styles.offerPrice}>Offer Price: {plan.offerPrice}</p>
-                  {plan.coupon && <p className={styles.coupon}>Coupon: {plan.coupon}</p>}
+                  <p className={styles.planPrice}>Price: {plan.price}</p>
                 </div>
                 <p className={styles.validity}>Validity: {plan.validity}</p>
                 <div className={styles.featuresSection}>
@@ -148,15 +169,15 @@ const Membership = () => {
           <h2 className={styles.sectionTitle}>For Employers</h2>
           <div className={styles.planGrid}>
             {employerPlans.map((plan, index) => (
-              <div key={index} className={`${styles.planCard} ${styles[plan.style] || ''} ${plan.recommended ? styles.recommended : ''}`}>
+              <div key={index} className={`${styles.planCard} ${styles[plan.style] || ''} ${plan.recommended ? styles.recommended : ''} ${plan.comingSoon ? styles.comingSoon : ''}`}>
                 {plan.recommended && <div className={styles.recommendedBadge}>Most Popular</div>}
+                {plan.comingSoon && <div className={styles.comingSoonBadge}>Coming Soon</div>}
                 <h3 className={styles.planTitle}>{plan.name}</h3>
                 <p className={styles.planDescription}>{plan.description}</p>
                 <div className={styles.priceSection}>
-                  {plan.originalPrice && <p className={styles.originalPrice}>Original: <del>{plan.originalPrice}</del></p>}
-                  <p className={styles.regularPrice}>Regular: {plan.regularPrice} <span className={styles.discount}>{plan.discount}</span></p>
-                  <p className={styles.offerPrice}>Offer Price: {plan.offerPrice}</p>
-                  {plan.coupon && <p className={styles.coupon}>Coupon: {plan.coupon}</p>}
+
+                  <p className={styles.price}> Price: {plan.price}</p>
+                
                 </div>
                 <p className={styles.validity}>Validity: {plan.validity}</p>
                 <div className={styles.featuresSection}>
@@ -170,7 +191,9 @@ const Membership = () => {
                     ))}
                   </ul>
                 </div>
-                <button className={styles.planButton}>Choose Plan</button>
+                <button className={`${styles.planButton} ${plan.comingSoon ? styles.disabledButton : ''}`} disabled={plan.comingSoon}>
+                  {plan.comingSoon ? 'Coming Soon' : 'Choose Plan'}
+                </button>
               </div>
             ))}
           </div>

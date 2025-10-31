@@ -1,13 +1,11 @@
 // API Configuration
 const API_CONFIG = {
   development: {
-
     baseURL: 'https://api.bigsources.in/api',
     timeout: 10000
   },
   production: {
     baseURL: 'https://api.bigsources.in/api',
-    // baseURL: 'http://18.141.113.253:/api',
     timeout: 15000
   }
 };
@@ -80,7 +78,9 @@ export const API_ENDPOINTS = {
     update: (id) => `/admin/${id}`,
     delete: (id) => `/admin/${id}`,
     getAllRecruiters: '/admin/get-all-recruiter',
-    approveRecruiter: '/admin/approved-recruiter'
+    approveRecruiter: '/admin/approved-recruiter',
+    updateRecruiter: '/admin/update-recruiter',
+    rejectRecruiter: '/admin/approved-recruiter'
   },
 
   // Users
@@ -116,7 +116,7 @@ export const API_ENDPOINTS = {
   jobs: {
     getAll: '/jobs',
     getById: (id) => `/jobs/${id}`,
-    create: '/jobs',
+    create: '/job/jobs',
     update: (id) => `/jobs/${id}`,
     delete: (id) => `/jobs/${id}`,
     search: '/jobs/search',
@@ -127,8 +127,8 @@ export const API_ENDPOINTS = {
     getByLocation: (location) => `/jobs/location/${location}`,
     getBySkills: '/jobs/skills',
     getGovernmentJobs: '/jobs/government',
-    createGovernmentJob: '/jobs/government',
-    updateGovernmentJob: (id) => `/jobs/government/${id}`
+    createGovernmentJob: '/job/Govtjobs',
+    updateGovernmentJob: (id) => `/job/updateGovtjobs/${id}`
   },
   
   // Applications
@@ -235,6 +235,14 @@ export const API_ENDPOINTS = {
     candidates: '/stats/candidates',
     employers: '/stats/employers',
     applications: '/stats/applications'
+  },
+
+  // Premium Features
+  premium: {
+    markJobPremium: '/premium/mark-job-premium',
+    markStudentPremium: '/premium/mark-student-premium',
+    getPremiumPrices: '/students/premium-prices',
+    updatePremiumPrices: '/admin/updates/premium-pricess'
   }
 };
 

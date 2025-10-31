@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../Contexts/AuthContext';
 import { useTheme } from '../../Contexts/ThemeContext';
 import { studentService } from '../../services/studentService';
+import { ChevronLeft, ChevronRight, Check, User, MapPin, Briefcase, GraduationCap, Award, AlertCircle } from 'lucide-react';
 import styles from './ProfileManagement.module.css';
 
 const ProfileManagement = () => {
   const { user, updateUser } = useAuth();
   const { theme } = useTheme();
+  const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
     full_name: '',
     phone_number: '',
@@ -27,9 +29,202 @@ const ProfileManagement = () => {
     experience: [{ title: '', company: '', duration: '' }],
     skills: ''
   });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [completedSteps, setCompletedSteps] = useState([]);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [touchedFields, setTouchedFields] = useState({});
+
+  const steps = [
+    {
+      id: 'personal',
+      title: 'Personal Info',
+      description: 'Basic personal details',
+      icon: User,
+      fields: ['full_name', 'phone_number', 'username', 'dob', 'gender']
+    },
+    {
+      id: 'address',
+      title: 'Address',
+      description: 'Your location details',
+      icon: MapPin,
+      fields: ['address.street', 'address.city', 'address.state', 'address.zip', 'address.country']
+    },
+    {
+      id: 'professional',
+      title: 'Professional',
+      description: 'Bio and professional info',
+      icon: Briefcase,
+      fields: ['profile_image', 'bio', 'skills']
+    },
+    {
+      id: 'education',
+      title: 'Education',
+      description: 'Academic background',
+      icon: GraduationCap,
+      fields: ['education']
+    },
+    {
+      id: 'experience',
+      title: 'Experience',
+      description: 'Work experience',
+      icon: Award,
+      fields: ['experience']
+    }
+  ];
+
+  // Validation functions
+  const validateField = (name, value) => {
+    let error = '';
+
+    switch (name) {
+      case 'full_name':
+        if (!value.trim()) {
+          error = 'Full name is required';
+        } else if (value.trim().length < 2) {
+          error = 'Full name must be at least 2 characters';
+        } else if (!/^[a-zA-Z\s]+$/.test(value.trim())) {
+          error = 'Full name can only contain letters and spaces';
+        }
+        break;
+
+      case 'phone_number':
+        if (value && !/^\+?[\d\s\-\(\)]+$/.test(value)) {
+          error = 'Please enter a valid phone number';
+        }
+        break;
+
+      case 'username':
+        if (value && (value.length < 3 || value.length > 20)) {
+          error = 'Username must be between 3 and 20 characters';
+        } else if (value && !/^[a-zA-Z0-9_]+$/.test(value)) {
+          error = 'Username can only contain letters, numbers, and underscores';
+        }
+        break;
+
+      case 'dob':
+        if (value) {
+          const birthDate = new Date(value);
+          const today = new Date();
+          const age = today.getFullYear() - birthDate.getFullYear();
+          if (age < 16) {
+            error = 'You must be at least 16 years old';
+          } else if (age > 100) {
+            error = 'Please enter a valid date of birth';
+          }
+        }
+        break;
+
+      case 'address.city':
+        if (formData.address.city && !/^[a-zA-Z\s\-']+$/.test(formData.address.city)) {
+          error = 'City name can only contain letters, spaces, hyphens, and apostrophes';
+        }
+        break;
+
+      case 'address.zip':
+        if (formData.address.zip && !/^[a-zA-Z0-9\s\-]+$/.test(formData.address.zip)) {
+          error = 'Please enter a valid ZIP/postal code';
+        }
+        break;
+
+      case 'profile_image':
+        if (value && !/^https?:\/\/.+/.test(value)) {
+          error = 'Please enter a valid URL';
+        }
+        break;
+
+      case 'bio':
+        if (value && value.length > 500) {
+          error = 'Bio must be less than 500 characters';
+        }
+        break;
+
+      case 'skills':
+        if (value && value.split(',').length > 20) {
+          error = 'You can add up to 20 skills';
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    return error;
+  };
+
+  const validateStep = (stepIndex) => {
+    const currentStepConfig = steps[stepIndex];
+    const errors = {};
+
+    // Validate all fields in the current step
+    currentStepConfig.fields.forEach(field => {
+      let value;
+      let fieldName = field;
+
+      if (field.startsWith('address.')) {
+        const addressField = field.split('.')[1];
+        value = formData.address[addressField];
+        fieldName = `address.${addressField}`;
+      } else if (field === 'education') {
+        // Validate education array
+        formData.education.forEach((edu, index) => {
+          if (!edu.degree.trim()) {
+            errors[`education_${index}_degree`] = 'Degree is required';
+          }
+          if (!edu.institution.trim()) {
+            errors[`education_${index}_institution`] = 'Institution is required';
+          }
+        });
+        return;
+      } else if (field === 'experience') {
+        // Validate experience array
+        formData.experience.forEach((exp, index) => {
+          if (!exp.title.trim()) {
+            errors[`experience_${index}_title`] = 'Job title is required';
+          }
+          if (!exp.company.trim()) {
+            errors[`experience_${index}_company`] = 'Company name is required';
+          }
+        });
+        return;
+      } else {
+        value = formData[field];
+      }
+
+      const error = validateField(field, value);
+      if (error && (!touchedFields[fieldName] || value)) {
+        errors[fieldName] = error;
+      }
+    });
+
+    if (stepIndex === 0) {
+      // Personal info validation
+      if (!formData.full_name.trim()) {
+        errors.full_name = 'Full name is required';
+      }
+    }
+
+    return errors;
+  };
+
+  const validateFileUpload = (file) => {
+    if (!file) return '';
+
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    if (!allowedTypes.includes(file.type)) {
+      return 'Please upload a PDF, DOC, or DOCX file';
+    }
+
+    if (file.size > maxSize) {
+      return 'File size must be less than 5MB';
+    }
+
+    return '';
+  };
 
   useEffect(() => {
     if (user) {
@@ -49,8 +244,8 @@ const ProfileManagement = () => {
         profile_image: user.profile_image || '',
         bio: user.bio || '',
         resume: user.resume || null,
-        education: user.education || [{ degree: '', institution: '', year: '' }],
-        experience: user.experience || [{ title: '', company: '', duration: '' }],
+        education: Array.isArray(user.education) && user.education.length > 0 ? user.education : [{ degree: '', institution: '', year: '' }],
+        experience: Array.isArray(user.experience) && user.experience.length > 0 ? user.experience : [{ title: '', company: '', duration: '' }],
         skills: user.skills || ''
       });
     }
@@ -59,25 +254,62 @@ const ProfileManagement = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+
+    // Mark field as touched
+    setTouchedFields({ ...touchedFields, [name]: true });
+
+    // Validate on change
+    const error = validateField(name, value);
+    setValidationErrors({ ...validationErrors, [name]: error });
   };
 
   const handleAddressChange = (e) => {
     const { name, value } = e.target;
+    const fieldName = `address.${name}`;
     setFormData({
       ...formData,
       address: { ...formData.address, [name]: value }
     });
+
+    // Mark field as touched
+    setTouchedFields({ ...touchedFields, [fieldName]: true });
+
+    // Validate on change
+    const error = validateField(fieldName, value);
+    setValidationErrors({ ...validationErrors, [fieldName]: error });
   };
 
   const handleFileChange = (e) => {
-    setFormData({ ...formData, resume: e.target.files[0] });
+    const file = e.target.files[0];
+    const error = validateFileUpload(file);
+
+    setFormData({ ...formData, resume: file });
+    setValidationErrors({ ...validationErrors, resume: error });
+
+    // Mark field as touched
+    setTouchedFields({ ...touchedFields, resume: true });
   };
 
   const handleDynamicChange = (e, index, type) => {
     const { name, value } = e.target;
+    const fieldKey = `${type}_${index}_${name}`;
+
+    // Mark field as touched
+    setTouchedFields({ ...touchedFields, [fieldKey]: true });
+
+    // Update form data
     const list = [...formData[type]];
     list[index][name] = value;
     setFormData({ ...formData, [type]: list });
+
+    // Validate required fields for dynamic sections
+    const errors = { ...validationErrors };
+    if (name === 'degree' || name === 'institution') {
+      errors[fieldKey] = value.trim() ? '' : `${name.charAt(0).toUpperCase() + name.slice(1)} is required`;
+    } else if (name === 'title' || name === 'company') {
+      errors[fieldKey] = value.trim() ? '' : `${name.charAt(0).toUpperCase() + name.slice(1)} is required`;
+    }
+    setValidationErrors(errors);
   };
 
   const addDynamicField = (type) => {
@@ -94,8 +326,32 @@ const ProfileManagement = () => {
     setFormData({ ...formData, [type]: list });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const nextStep = () => {
+    // Validate current step before proceeding
+    const stepErrors = validateStep(currentStep);
+
+    if (Object.keys(stepErrors).length > 0) {
+      setValidationErrors({ ...validationErrors, ...stepErrors });
+      setError('Please fix the errors before proceeding to the next step');
+      return;
+    }
+
+    if (!completedSteps.includes(currentStep)) {
+      setCompletedSteps([...completedSteps, currentStep]);
+    }
+    setCurrentStep(currentStep + 1);
+    setError(''); // Clear any previous errors
+  };
+
+  const prevStep = () => {
+    setCurrentStep(currentStep - 1);
+  };
+
+  const goToStep = (stepIndex) => {
+    setCurrentStep(stepIndex);
+  };
+
+  const handleSubmit = async () => {
     setError('');
     setSuccess('');
     setLoading(true);
@@ -117,6 +373,8 @@ const ProfileManagement = () => {
       if (response.success) {
         updateUser(response.data);
         setSuccess('Profile updated successfully');
+        // Mark all steps as completed
+        setCompletedSteps([0, 1, 2, 3, 4]);
       } else {
         setError(response.message || 'Failed to update profile');
       }
@@ -127,111 +385,424 @@ const ProfileManagement = () => {
     }
   };
 
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 0: // Personal Information
+        return (
+          <div className={styles.stepContent}>
+            <h3 className={styles.stepTitle}>Personal Information</h3>
+            <p className={styles.stepDescription}>Tell us about yourself to get started.</p>
+
+            <div className={styles.formGrid}>
+              <div className={styles.formGroup}>
+                <label>Full Name *</label>
+                <input
+                  type="text"
+                  name="full_name"
+                  value={formData.full_name}
+                  onChange={handleInputChange}
+                  placeholder="Enter your full name"
+                  className={validationErrors.full_name ? styles.inputError : ''}
+                  required
+                />
+                {validationErrors.full_name && (
+                  <div className={styles.errorMessage}>
+                    <AlertCircle size={14} />
+                    {validationErrors.full_name}
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Phone Number</label>
+                <input
+                  type="tel"
+                  name="phone_number"
+                  value={formData.phone_number}
+                  onChange={handleInputChange}
+                  placeholder="+1 (555) 123-4567"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Username</label>
+                <input
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  placeholder="Choose a username"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Date of Birth</label>
+                <input
+                  type="date"
+                  name="dob"
+                  value={formData.dob}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Gender</label>
+                <select name="gender" value={formData.gender} onChange={handleInputChange}>
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 1: // Address
+        return (
+          <div className={styles.stepContent}>
+            <h3 className={styles.stepTitle}>Address Information</h3>
+            <p className={styles.stepDescription}>Where are you located?</p>
+
+            <div className={styles.formGrid}>
+              <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                <label>Street Address</label>
+                <input
+                  type="text"
+                  name="street"
+                  value={formData.address.street}
+                  onChange={handleAddressChange}
+                  placeholder="123 Main St"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>City</label>
+                <input
+                  type="text"
+                  name="city"
+                  value={formData.address.city}
+                  onChange={handleAddressChange}
+                  placeholder="New York"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>State/Province</label>
+                <input
+                  type="text"
+                  name="state"
+                  value={formData.address.state}
+                  onChange={handleAddressChange}
+                  placeholder="NY"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>ZIP/Postal Code</label>
+                <input
+                  type="text"
+                  name="zip"
+                  value={formData.address.zip}
+                  onChange={handleAddressChange}
+                  placeholder="10001"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Country</label>
+                <select
+                  name="country"
+                  value={formData.address.country}
+                  onChange={handleAddressChange}
+                >
+                  <option value="">Select Country</option>
+                  <option value="US">United States</option>
+                  <option value="CA">Canada</option>
+                  <option value="UK">United Kingdom</option>
+                  <option value="IN">India</option>
+                  <option value="AU">Australia</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 2: // Professional
+        return (
+          <div className={styles.stepContent}>
+            <h3 className={styles.stepTitle}>Professional Information</h3>
+            <p className={styles.stepDescription}>Share your professional background and skills.</p>
+
+            <div className={styles.formGrid}>
+              <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                <label>Profile Image URL</label>
+                <input
+                  type="url"
+                  name="profile_image"
+                  value={formData.profile_image}
+                  onChange={handleInputChange}
+                  placeholder="https://example.com/profile.jpg"
+                />
+              </div>
+
+              <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                <label>Professional Bio</label>
+                <textarea
+                  name="bio"
+                  value={formData.bio}
+                  onChange={handleInputChange}
+                  rows="4"
+                  placeholder="Tell us about your professional background, interests, and career goals..."
+                />
+              </div>
+
+              <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                <label>Skills (comma-separated)</label>
+                <input
+                  type="text"
+                  name="skills"
+                  value={formData.skills}
+                  onChange={handleInputChange}
+                  placeholder="JavaScript, React, Node.js, Python"
+                />
+              </div>
+
+              <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                <label>Resume/CV</label>
+                <input
+                  type="file"
+                  name="resume"
+                  onChange={handleFileChange}
+                  accept=".pdf,.doc,.docx"
+                />
+                <small className={styles.fileHelp}>Accepted formats: PDF, DOC, DOCX (Max 5MB)</small>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 3: // Education
+        return (
+          <div className={styles.stepContent}>
+            <h3 className={styles.stepTitle}>Education</h3>
+            <p className={styles.stepDescription}>Share your educational background.</p>
+
+            <div className={styles.dynamicSection}>
+              {formData.education.map((edu, index) => (
+                <div key={index} className={styles.dynamicGroup}>
+                  <div className={styles.formGroup}>
+                    <label>Degree/Course *</label>
+                    <input
+                      type="text"
+                      name="degree"
+                      value={edu.degree}
+                      onChange={(e) => handleDynamicChange(e, index, 'education')}
+                      placeholder="Bachelor of Computer Science"
+                      required
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label>Institution *</label>
+                    <input
+                      type="text"
+                      name="institution"
+                      value={edu.institution}
+                      onChange={(e) => handleDynamicChange(e, index, 'education')}
+                      placeholder="University Name"
+                      required
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label>Year</label>
+                    <input
+                      type="text"
+                      name="year"
+                      value={edu.year}
+                      onChange={(e) => handleDynamicChange(e, index, 'education')}
+                      placeholder="2023"
+                    />
+                  </div>
+                  {formData.education.length > 1 && (
+                    <button
+                      type="button"
+                      className={styles.removeBtn}
+                      onClick={() => removeDynamicField(index, 'education')}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              <button
+                type="button"
+                className={styles.addBtn}
+                onClick={() => addDynamicField('education')}
+              >
+                + Add Education
+              </button>
+            </div>
+          </div>
+        );
+
+      case 4: // Experience
+        return (
+          <div className={styles.stepContent}>
+            <h3 className={styles.stepTitle}>Work Experience</h3>
+            <p className={styles.stepDescription}>Share your professional experience.</p>
+
+            <div className={styles.dynamicSection}>
+              {formData.experience.map((exp, index) => (
+                <div key={index} className={styles.dynamicGroup}>
+                  <div className={styles.formGroup}>
+                    <label>Job Title *</label>
+                    <input
+                      type="text"
+                      name="title"
+                      value={exp.title}
+                      onChange={(e) => handleDynamicChange(e, index, 'experience')}
+                      placeholder="Software Developer"
+                      required
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label>Company *</label>
+                    <input
+                      type="text"
+                      name="company"
+                      value={exp.company}
+                      onChange={(e) => handleDynamicChange(e, index, 'experience')}
+                      placeholder="Company Name"
+                      required
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label>Duration</label>
+                    <input
+                      type="text"
+                      name="duration"
+                      value={exp.duration}
+                      onChange={(e) => handleDynamicChange(e, index, 'experience')}
+                      placeholder="2020 - 2023"
+                    />
+                  </div>
+                  {formData.experience.length > 1 && (
+                    <button
+                      type="button"
+                      className={styles.removeBtn}
+                      onClick={() => removeDynamicField(index, 'experience')}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              <button
+                type="button"
+                className={styles.addBtn}
+                onClick={() => addDynamicField('experience')}
+              >
+                + Add Experience
+              </button>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className={`${styles.profileContainer} ${theme === 'dark' ? styles.dark : ''}`}>
-      <h2 className={styles.profileHeader}>Profile Management</h2>
-      <form onSubmit={handleSubmit} className={styles.profileForm}>
-        {error && <p className={styles.error}>{error}</p>}
-        {success && <p className={styles.success}>{success}</p>}
+    <div className={`${styles.container} ${theme === 'dark' ? styles.dark : ''}`}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>Complete Your Profile</h1>
+        <p className={styles.subtitle}>Fill in your details step by step</p>
+      </div>
 
-        <fieldset className={styles.fieldset}>
-          <legend>Personal Information</legend>
-          <div className={styles.formGroup}>
-            <label>Full Name</label>
-            <input type="text" name="full_name" value={formData.full_name} onChange={handleInputChange} />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Phone Number</label>
-            <input type="text" name="phone_number" value={formData.phone_number} onChange={handleInputChange} />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Username</label>
-            <input type="text" name="username" value={formData.username} onChange={handleInputChange} />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Date of Birth</label>
-            <input type="date" name="dob" value={formData.dob} onChange={handleInputChange} />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Gender</label>
-            <input type="text" name="gender" value={formData.gender} onChange={handleInputChange} />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Profile Image URL</label>
-            <input type="text" name="profile_image" value={formData.profile_image} onChange={handleInputChange} />
-          </div>
-        </fieldset>
+      {/* Progress Bar */}
+      <div className={styles.progressContainer}>
+        <div className={styles.progressBar}>
+          {steps.map((step, index) => {
+            const StepIcon = step.icon;
+            const isCompleted = completedSteps.includes(index);
+            const isCurrent = index === currentStep;
 
-        <fieldset className={styles.fieldset}>
-          <legend>Address</legend>
-          <div className={styles.formGroup}>
-            <label>Street</label>
-            <input type="text" name="street" value={formData.address.street} onChange={handleAddressChange} />
-          </div>
-          <div className={styles.formGroup}>
-            <label>City</label>
-            <input type="text" name="city" value={formData.address.city} onChange={handleAddressChange} />
-          </div>
-          <div className={styles.formGroup}>
-            <label>State</label>
-            <input type="text" name="state" value={formData.address.state} onChange={handleAddressChange} />
-          </div>
-          <div className={styles.formGroup}>
-            <label>ZIP Code</label>
-            <input type="text" name="zip" value={formData.address.zip} onChange={handleAddressChange} />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Country</label>
-            <input type="text" name="country" value={formData.address.country} onChange={handleAddressChange} />
-          </div>
-        </fieldset>
+            return (
+              <div
+                key={step.id}
+                className={`${styles.progressStep} ${isCurrent ? styles.current : ''} ${isCompleted ? styles.completed : ''}`}
+                onClick={() => goToStep(index)}
+              >
+                <div className={styles.stepIcon}>
+                  {isCompleted ? <Check size={16} /> : <StepIcon size={16} />}
+                </div>
+                <div className={styles.stepText}>
+                  <div className={styles.stepTitle}>{step.title}</div>
+                  <div className={styles.stepDescription}>{step.description}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
-        <fieldset className={styles.fieldset}>
-          <legend>Professional Information</legend>
-          <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-            <label>Bio</label>
-            <textarea name="bio" value={formData.bio} onChange={handleInputChange}></textarea>
+      {/* Form Content */}
+      <div className={styles.formContainer}>
+        {error && (
+          <div className={styles.alert} style={{ backgroundColor: '#fee2e2', color: '#dc2626' }}>
+            {error}
           </div>
-          <div className={styles.formGroup}>
-            <label>Resume</label>
-            <input type="file" name="resume" onChange={handleFileChange} />
+        )}
+        {success && (
+          <div className={styles.alert} style={{ backgroundColor: '#dcfce7', color: '#16a34a' }}>
+            {success}
           </div>
-          <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-            <label>Skills (comma-separated)</label>
-            <input type="text" name="skills" value={formData.skills} onChange={handleInputChange} />
+        )}
+
+        {renderStepContent()}
+
+        {/* Navigation Buttons */}
+        <div className={styles.navigation}>
+          <button
+            type="button"
+            className={styles.navBtn}
+            onClick={prevStep}
+            disabled={currentStep === 0}
+          >
+            <ChevronLeft size={16} />
+            Previous
+          </button>
+
+          <div className={styles.stepIndicator}>
+            Step {currentStep + 1} of {steps.length}
           </div>
-        </fieldset>
 
-        <fieldset className={styles.fieldset}>
-          <legend>Education</legend>
-          {formData.education.map((edu, index) => (
-            <div key={index} className={styles.dynamicGroup}>
-              <input type="text" name="degree" placeholder="Degree" value={edu.degree} onChange={(e) => handleDynamicChange(e, index, 'education')} />
-              <input type="text" name="institution" placeholder="Institution" value={edu.institution} onChange={(e) => handleDynamicChange(e, index, 'education')} />
-              <input type="text" name="year" placeholder="Year" value={edu.year} onChange={(e) => handleDynamicChange(e, index, 'education')} />
-              {formData.education.length > 1 && <button type="button" onClick={() => removeDynamicField(index, 'education')}>Remove</button>}
-            </div>
-          ))}
-          <button type="button" onClick={() => addDynamicField('education')}>Add Education</button>
-        </fieldset>
-
-        <fieldset className={styles.fieldset}>
-          <legend>Experience</legend>
-          {formData.experience.map((exp, index) => (
-            <div key={index} className={styles.dynamicGroup}>
-              <input type="text" name="title" placeholder="Job Title" value={exp.title} onChange={(e) => handleDynamicChange(e, index, 'experience')} />
-              <input type="text" name="company" placeholder="Company" value={exp.company} onChange={(e) => handleDynamicChange(e, index, 'experience')} />
-              <input type="text" name="duration" placeholder="Duration (e.g., 2020-2022)" value={exp.duration} onChange={(e) => handleDynamicChange(e, index, 'experience')} />
-              {formData.experience.length > 1 && <button type="button" onClick={() => removeDynamicField(index, 'experience')}>Remove</button>}
-            </div>
-          ))}
-          <button type="button" onClick={() => addDynamicField('experience')}>Add Experience</button>
-        </fieldset>
-
-        <button type="submit" className={styles.submitButton} disabled={loading}>
-          {loading ? 'Updating...' : 'Update Profile'}
-        </button>
-      </form>
+          {currentStep < steps.length - 1 ? (
+            <button
+              type="button"
+              className={`${styles.navBtn} ${styles.primary}`}
+              onClick={nextStep}
+            >
+              Next
+              <ChevronRight size={16} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={`${styles.navBtn} ${styles.primary} ${styles.final}`}
+              onClick={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? 'Saving...' : 'Complete Profile'}
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

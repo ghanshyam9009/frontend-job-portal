@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
+import { useAuth } from "../../Contexts/AuthContext";
 import { adminService } from "../../services/adminService";
 import { adminExternalService } from "../../services";
+import { Building2, Edit, Trash2, Search, RefreshCw } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const GovernmentJobsManagement = () => {
   const { theme } = useTheme();
+  const { user } = useAuth();
   const [jobs, setJobs] = useState([]);
   const [filteredJobs, setFilteredJobs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
   const jobsPerPage = 10;
@@ -33,20 +37,22 @@ const GovernmentJobsManagement = () => {
   });
 
   // Fetch government jobs data
+  const fetchJobs = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const jobsData = await adminService.getGovernmentJobs();
+      setJobs(jobsData);
+      setFilteredJobs(jobsData);
+    } catch (error) {
+      console.error('Failed to fetch government jobs:', error);
+      setError('Failed to fetch government jobs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        setLoading(true);
-        const jobsData = await adminService.getGovernmentJobs();
-        setJobs(jobsData);
-        setFilteredJobs(jobsData);
-      } catch (error) {
-        console.error('Failed to fetch government jobs:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchJobs();
   }, []);
 
@@ -100,22 +106,29 @@ const GovernmentJobsManagement = () => {
     e.preventDefault();
     try {
       if (editingJob) {
-        await adminService.updateGovernmentJob(editingJob.id, formData);
-        // Update local state
-        setJobs(jobs.map(job => 
-          job.id === editingJob.id ? { ...job, ...formData } : job
-        ));
+        await adminService.updateGovernmentJob(editingJob.id, {
+          salary_range: formData.salary_range,
+          status: "Closed" // Update to closed or keep as is
+        });
         setEditingJob(null);
       } else {
-        const newJob = await adminService.createGovernmentJob({
-          ...formData,
-          admin_id: "1758822687400", // This should come from auth context
-          posted_date: new Date().toISOString().split('T')[0],
-          status: "Open"
+        await adminService.createGovernmentJob({
+          admin_id: String(user?.admin_id || user?.id),
+          job_title: formData.job_title,
+          description: formData.description,
+          location: formData.location,
+          salary_range: formData.salary_range,
+          employment_type: formData.employment_type,
+          department_name: formData.department_name,
+          application_deadline: formData.application_deadline,
+          contact_email: formData.contact_email,
+          total_posts: formData.total_posts,
+          application_fee: formData.application_fee
         });
-        setJobs([newJob, ...jobs]);
       }
       
+      // Refresh jobs data
+      await fetchJobs();
       setShowAddModal(false);
       setFormData({
         job_title: "",
@@ -129,6 +142,7 @@ const GovernmentJobsManagement = () => {
         total_posts: "",
         application_fee: ""
       });
+      alert(editingJob ? 'Government job updated successfully!' : 'Government job created successfully!');
     } catch (error) {
       console.error('Failed to save job:', error);
       alert('Failed to save job. Please try again.');
@@ -234,6 +248,9 @@ const GovernmentJobsManagement = () => {
         </div>
       </div>
 
+      {/* Error Display */}
+      {error && <p className={styles.errorText}>{error}</p>}
+
       {/* Filters and Search */}
       <div className={styles.filtersContainer}>
         <div className={styles.searchBox}>
@@ -244,7 +261,7 @@ const GovernmentJobsManagement = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
           />
-          <span className={styles.searchIcon}>🔍</span>
+          <Search className={styles.searchIcon} />
         </div>
         
         <div className={styles.filterButtons}>
@@ -275,6 +292,15 @@ const GovernmentJobsManagement = () => {
           >
             + Add Government Job
           </button>
+          <button 
+            className={styles.addBtn}
+            onClick={() => {
+              setError("");
+              fetchJobs();
+            }}
+          >
+            <RefreshCw size={16} /> Refresh
+          </button>
         </div>
       </div>
 
@@ -295,21 +321,21 @@ const GovernmentJobsManagement = () => {
           </thead>
           <tbody>
             {currentJobs.map((job) => (
-              <tr key={job.id}>
+              <tr key={job.id || job.job_id}>
                 <td>
                   <div className={styles.jobInfo}>
-                    <h4 className={styles.jobTitle}>{job.job_title}</h4>
-                    <p className={styles.jobDescription}>{job.description}</p>
+                    <h4 className={styles.jobTitle}>{job.job_title || 'N/A'}</h4>
+                    <p className={styles.jobDescription}>{job.description || 'N/A'}</p>
                   </div>
                 </td>
                 <td>
-                  <span className={styles.departmentTag}>{job.department_name}</span>
+                  <span className={styles.departmentTag}>{job.department_name || 'N/A'}</span>
                 </td>
-                <td className={styles.locationCell}>{job.location}</td>
-                <td className={styles.salaryCell}>{job.salary_range}</td>
-                <td>{job.total_posts}</td>
-                <td className={styles.dateCell}>{formatDate(job.application_deadline)}</td>
-                <td>{getStatusBadge(job.status)}</td>
+                <td className={styles.locationCell}>{job.location || 'N/A'}</td>
+                <td className={styles.salaryCell}>{job.salary_range || 'N/A'}</td>
+                <td>{job.total_posts || 'N/A'}</td>
+                <td className={styles.dateCell}>{job.application_deadline ? formatDate(job.application_deadline) : 'N/A'}</td>
+                <td>{getStatusBadge(job.status || 'Open')}</td>
                 <td>
                   <div className={styles.actionButtons}>
                     <button 
@@ -317,14 +343,14 @@ const GovernmentJobsManagement = () => {
                       className={`${styles.actionBtn} ${styles.viewBtn}`}
                       title="Edit Job"
                     >
-                      ✏️
+                      <Edit size={16} />
                     </button>
                     <button 
-                      onClick={() => handleDelete(job.id)}
+                      onClick={() => handleDelete(job.id || job.job_id)}
                       className={`${styles.actionBtn} ${styles.rejectBtn}`}
                       title="Delete Job"
                     >
-                      🗑️
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </td>
@@ -359,7 +385,7 @@ const GovernmentJobsManagement = () => {
 
       {filteredJobs.length === 0 && (
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>🏛️</div>
+          <Building2 className={styles.emptyIcon} />
           <h3>No government jobs found</h3>
           <p>No government jobs match your current filters.</p>
         </div>

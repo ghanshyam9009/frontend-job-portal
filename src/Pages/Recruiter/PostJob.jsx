@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { jobService } from "../../services/jobService";
+import { Check } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 
 const PostJob = () => {
@@ -12,6 +13,7 @@ const PostJob = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [jobData, setJobData] = useState({
     job_title: "",
     company_name: user?.company_name || "",
@@ -86,10 +88,31 @@ const PostJob = () => {
         qualifications: jobData.qualifications.split("\n"),
       };
       await jobService.createJob(jobPayload);
-      setSuccess("Job posted successfully! It will be reviewed by an admin.");
-      setTimeout(() => {
-        navigate('/recruiter/manage-jobs');
-      }, 3000);
+      setShowSuccessModal(true);
+      // Clear form data after successful submission
+      setJobData({
+        job_title: "",
+        company_name: user?.company_name || "",
+        location: "",
+        employment_type: "Full-Time",
+        work_mode: "On-site",
+        salary_range: {
+          min: "",
+          max: "",
+          currency: "INR",
+        },
+        experience_required: {
+          min_years: "",
+          max_years: "",
+        },
+        skills_required: [],
+        description: "",
+        responsibilities: "",
+        qualifications: "",
+        application_deadline: "",
+        contact_email: user?.email || "",
+        job_status: "open",
+      });
     } catch (err) {
       setError("Failed to post job. Please try again.");
       console.error(err);
@@ -102,6 +125,35 @@ const PostJob = () => {
     alert("Job saved as draft!");
   };
 
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+    setSuccess(false);
+  };
+
+  // Handle escape key press to close modal
+  useEffect(() => {
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape' && showSuccessModal) {
+        handleCloseSuccessModal();
+      }
+    };
+
+    if (showSuccessModal) {
+      document.addEventListener('keydown', handleEscapeKey);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [showSuccessModal]);
+
+  // Handle click outside modal to close
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) {
+      handleCloseSuccessModal();
+    }
+  };
+
   return (
     <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
       <main className={styles.main}>
@@ -110,7 +162,6 @@ const PostJob = () => {
             <h1>Post New Job</h1>
           </div>
           
-          {success && <p className={styles.successText}>{success}</p>}
           <form onSubmit={handleSubmit} className={styles.jobForm}>
             <div className={styles.formSection}>
               <h2>Basic Information</h2>
@@ -337,6 +388,37 @@ const PostJob = () => {
           </form>
         </section>
       </main>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className={styles.modalOverlay} onClick={handleOverlayClick}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h2>Success!</h2>
+              <button 
+                className={styles.closeButton}
+                onClick={handleCloseSuccessModal}
+              >
+                ×
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.successIcon}><Check size={24} /></div>
+              <p className={styles.successMessage}>
+                Job posted successfully! It will be reviewed by an admin.
+              </p>
+            </div>
+            <div className={styles.modalFooter}>
+              <button 
+                className={styles.okButton}
+                onClick={handleCloseSuccessModal}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

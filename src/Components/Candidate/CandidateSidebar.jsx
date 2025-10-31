@@ -2,6 +2,7 @@ import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
+import { Home, Building, Star, ClipboardList, User, CreditCard, Settings } from "lucide-react";
 import styles from "../../Styles/CandidateSidebar.module.css";
 
 const CandidateSidebar = ({ isOpen, toggleSidebar }) => {
@@ -14,52 +15,52 @@ const CandidateSidebar = ({ isOpen, toggleSidebar }) => {
     {
       id: 'dashboard',
       label: 'Dashboard',
-      icon: '🏠',
+      icon: <Home size={20} />,
       path: '/userdashboard'
     },
     {
       id: 'jobs',
       label: 'Job Listings',
-      icon: '💼',
+      icon: <Building size={20} />,
       path: '/userjoblistings'
     },
     {
       id: 'saved',
       label: 'Saved Jobs',
-      icon: '⭐',
+      icon: <Star size={20} />,
       path: '/saved-jobs'
     },
     {
       id: 'applications',
       label: 'My Applications',
-      icon: '📋',
+      icon: <ClipboardList size={20} />,
       path: '/my-applications'
     },
     {
       id: 'profile',
       label: 'Profile',
-      icon: '👤',
+      icon: <User size={20} />,
       path: '/profile'
     },
-    {
-      id: 'messages',
-      label: 'Messages',
-      icon: '💬',
-      path: '/messages',
-      badge: 2
-    },
+    // {
+    //   id: 'messages',
+    //   label: 'Messages',
+    //   icon: '💬',
+    //   path: '/messages',
+    //   badge: 2
+    // },
     {
       id: 'membership',
       label: 'Membership',
-      icon: '💳',
-      path: '/membership'
+      icon: <CreditCard size={20} />,
+      path: '/membership-plans'
     },
-    {
-      id: 'settings',
-      label: 'Settings',
-      icon: '⚙️',
-      path: '/settings'
-    }
+    // {
+    //   id: 'settings',
+    //   label: 'Settings',
+    //   icon: <Settings size={20} />,
+    //   path: '/settings'
+    // }
   ];
 
   const handleNavigation = (path) => {
@@ -99,19 +100,16 @@ const CandidateSidebar = ({ isOpen, toggleSidebar }) => {
       
       <div className={styles.userCard}>
         <div className={styles.userInfo}>
-          <div className={styles.userAvatar}>
-            {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-          </div>
+          {/* <div className={styles.userAvatar}>
+            <User size={20} />
+          </div> */}
           <div className={styles.userDetails}>
-            <div className={styles.userName}>{user?.name || 'User'}</div>
+            <div className={styles.userName}>{user?.full_name || user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Candidate'}</div>
             <div className={styles.userEmail}>{user?.email || 'user@example.com'}</div>
           </div>
         </div>
       </div>
       
-      <div className={styles.footer}>
-        Made with ❤️ for Job Seekers
-      </div>
     </aside>
     </>
   );

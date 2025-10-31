@@ -99,7 +99,57 @@ export const candidateService = {
   // Get candidate saved jobs
   async getCandidateSavedJobs(candidateId) {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.savedJobs.getByCandidate(candidateId));
+      const response = await apiClient.get(API_ENDPOINTS.savedJobs.getByUser(candidateId));
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Mark job as premium
+  async markJobPremium(jobData) {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.premium.markJobPremium, jobData);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Mark student as premium
+  async markStudentPremium(studentData) {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.premium.markStudentPremium, studentData);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Get premium prices
+  async getPremiumPrices() {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.premium.getPremiumPrices);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Get user premium status
+  async getUserPremiumStatus(email) {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.students.getProfile(email));
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Update premium prices (admin only)
+  async updatePremiumPrices(priceData) {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.premium.updatePremiumPrices, priceData);
       return response;
     } catch (error) {
       throw error;
@@ -108,7 +158,3 @@ export const candidateService = {
 };
 
 export default candidateService;
-
-
-
-

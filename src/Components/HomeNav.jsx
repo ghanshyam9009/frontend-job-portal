@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import styles from "./HomeNav.module.css";
-import logo from "../assets/favicon-icon.png";
+import logo from "../assets/logo.png";
 import { useTheme } from "../Contexts/ThemeContext";
 import { Sun, Moon } from 'lucide-react';
 
@@ -69,10 +69,13 @@ const HomeNav = () => {
   return (
     <nav className={`${styles.navbar} ${isScrolled ? styles.scrolled : ""}`}>
       <div className={styles.navContainer}>
-        <div className={styles.logo}>
-          <img src={logo} alt="JobPortal Logo" />
-          <span >Bigsources Manpower Solution</span>
-        </div>
+               <div className={styles.logo}>
+                   <img src={logo} alt="JobPortal Logo" />
+                 <Link to="/">
+                 </Link>
+                 Big<span style={{ color: '#4f72ab' }}>sources</span>.in
+               </div>
+             
 
         {/* Desktop Navigation */}
         <ul className={styles.navLinks}>
@@ -123,8 +126,8 @@ const HomeNav = () => {
             {showCareerDropdown && (
               <div className={styles.dropdownContent}>
                 <a href="/career-services">Job Seeker Services</a>
-                <a href="#">Fast Track Career</a>
-                <a href="#">Premium Seeker</a>
+                <a href="/fast-track">Fast Track Career</a>
+                <a href="/premium-seeker">Premium Seeker</a>
               </div>
             )}
           </li>
@@ -145,7 +148,7 @@ const HomeNav = () => {
           
           <div className={styles.authButtons}>
             <a href="/candidate/login" className={styles.candidateBtn}>
-              Login / Signup
+              Candidate Login
             </a>
             <div className={styles.dropdown}>
               <button className={styles.dropdownBtn} onClick={toggleDropdown}>
@@ -179,7 +182,9 @@ const HomeNav = () => {
             <div className={styles.mobileMenu} onClick={(e) => e.stopPropagation()}>
               <div className={styles.mobileMenuHeader}>
                 <div className={styles.mobileLogo}>
-                  <img src={logo} alt="JobPortal Logo" />
+                  <Link to="/">
+                    <img src={logo} alt="JobPortal Logo" />
+                  </Link>
                 </div>
                 <button className={styles.closeBtn} onClick={closeMobileMenu}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
@@ -254,7 +259,7 @@ const HomeNav = () => {
               {/* Mobile Auth Buttons */}
               <div className={styles.mobileAuthButtons}>
                 <a href="/candidate/login" className={styles.mobileCandidateBtn} onClick={closeMobileMenu}>
-                  Login / Signup
+                  Candidate Login
                 </a>
                 
                 <div className={styles.mobileEmployerSection}>

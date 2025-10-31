@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../Contexts/ThemeContext';
+import { User, Building, Eye, Mail, Check, Search, Phone } from 'lucide-react';
 import styles from '../../Styles/AdminDashboard.module.css';
 
 const ContactForms = () => {
@@ -69,7 +70,7 @@ const ContactForms = () => {
   const getUserTypeBadge = (userType) => {
     return (
       <span className={`${styles.userTypeBadge} ${userType === 'candidate' ? styles.candidateBadge : styles.recruiterBadge}`}>
-        {userType === 'candidate' ? '👤 Candidate' : '💼 Recruiter'}
+        {userType === 'candidate' ? <><User size={16} /> Candidate</> : <><Building size={16} /> Recruiter</>}
       </span>
     );
   };
@@ -112,7 +113,7 @@ const ContactForms = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
           />
-          <span className={styles.searchIcon}>🔍</span>
+          <Search className={styles.searchIcon} />
         </div>
         
         <div className={styles.filterButtons}>
@@ -178,13 +179,13 @@ const ContactForms = () => {
                 <td>
                   <div className={styles.actionButtons}>
                     <button className={styles.actionBtn} title="View Details">
-                      👁️
+                      <Eye size={16} />
                     </button>
                     <button className={styles.actionBtn} title="Reply">
-                      📧
+                      <Mail size={16} />
                     </button>
                     <button className={styles.actionBtn} title="Mark as Resolved">
-                      ✅
+                      <Check size={16} />
                     </button>
                   </div>
                 </td>
@@ -196,7 +197,7 @@ const ContactForms = () => {
 
       {filteredForms.length === 0 && (
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>📞</div>
+          <Phone className={styles.emptyIcon} />
           <h3>No contact forms found</h3>
           <p>No contact form submissions match your current filters.</p>
         </div>

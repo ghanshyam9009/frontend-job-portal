@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Eye, Trash2, Mail, Check, Bell } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const NotificationsLogs = () => {
@@ -116,10 +117,10 @@ const NotificationsLogs = () => {
                 <td>
                   <div className={styles.actionButtons}>
                     <button className={styles.actionBtn} title="Mark as Read">
-                      ✅
+                      <Check size={16} />
                     </button>
                     <button className={styles.actionBtn} title="Delete">
-                      🗑️
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </td>
@@ -131,7 +132,7 @@ const NotificationsLogs = () => {
 
       {notifications.length === 0 && (
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>🔔</div>
+          <Bell className={styles.emptyIcon} />
           <h3>No notifications</h3>
           <p>No notifications to display at the moment.</p>
         </div>

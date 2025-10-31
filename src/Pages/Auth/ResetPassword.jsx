@@ -151,7 +151,7 @@ const ResetPassword = () => {
       <div className={styles.leftPanel}>
         <div className={styles.header}>
           <img src={logo} alt="logo" className={styles.logo} />
-          <h1 className={styles.companyName}>Bigsources Manpower Solution</h1>
+          <h1 className={styles.companyName}>Bigsources.in</h1>
 
         </div>
         <div className={styles.formContainer}>

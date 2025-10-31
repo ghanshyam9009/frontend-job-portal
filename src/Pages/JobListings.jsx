@@ -2,15 +2,19 @@ import React, { useState, useEffect } from "react";
 import { useTheme } from "../Contexts/ThemeContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useMemo } from "react";
+import { useAuth } from "../Contexts/AuthContext";
 import { Search, MapPin, Filter } from "lucide-react";
 import styles from "./JobListings.module.css";
 import HomeNav from "../Components/HomeNav";
 import Footer from "../Components/Footer";
 import { jobService } from "../services/jobService";
 import { showError } from "../utils/errorHandler";
+import { candidateExternalService } from "../services/candidateExternalService";
+import { candidateService } from "../services/candidateService";
 
 const JobListings = () => {
   const { theme } = useTheme();
+  const { user, isAuthenticated } = useAuth();
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const navigate = useNavigate();
   const locationHook = useLocation();
@@ -38,7 +42,7 @@ const JobListings = () => {
   });
 
   const [currentPage, setCurrentPage] = useState(1);
-  const jobsPerPage = 10;
+  const jobsPerPage = 7;
 
   useEffect(() => {
     fetchJobs();
@@ -49,10 +53,12 @@ const JobListings = () => {
     setError(null);
 
     try {
+      // Use the general jobs API endpoint
       const apiUrl = 'https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs';
       const searchParams = {
         page: currentPage,
         limit: jobsPerPage,
+        status: 'approved', // Only fetch approved jobs
         ...(querySearch && { keyword: querySearch }),
         ...(queryLocation && { location: queryLocation }),
         ...(filters.jobType && { employment_type: filters.jobType }),
@@ -83,11 +89,11 @@ const JobListings = () => {
 
       const jobsData = await response.json();
 
-      if (jobsData.success || Array.isArray(jobsData)) {
+      if (jobsData.jobs || Array.isArray(jobsData)) {
         const jobsArray = jobsData.jobs || jobsData.data || jobsData;
         setJobs(Array.isArray(jobsArray) ? jobsArray : []);
-        setTotalJobs(jobsArray.length || 0);
-        setTotalPages(Math.max(1, Math.ceil((jobsArray.length || 0) / jobsPerPage)));
+        setTotalJobs(jobsData.count || jobsArray.length || 0);
+        setTotalPages(Math.max(1, Math.ceil((jobsData.count || jobsArray.length || 0) / jobsPerPage)));
       } else {
         throw new Error(jobsData.message || 'Failed to fetch jobs');
       }
@@ -133,6 +139,60 @@ const JobListings = () => {
       state: { job }
     });
   };
+
+  const handleSaveJob = async (job) => {
+    try {
+      if (!isAuthenticated || !user) {
+        alert('Please log in to save jobs.');
+        navigate('/candidate/login');
+        return;
+      }
+      
+      const userId = user.user_id || user.id;
+      if (!userId) {
+        alert('User ID not found. Please log in again.');
+        navigate('/candidate/login');
+        return;
+      }
+
+      await candidateExternalService.bookmarkJob({ 
+        user_id: userId, 
+        job_id: job.job_id || job.id 
+      });
+      
+      alert('Job saved successfully!');
+    } catch (error) {
+      console.error('Error saving job:', error);
+      alert('Failed to save job. Please try again.');
+    }
+  };
+
+  // const handleMarkJobPremium = async (job) => {
+  //   try {
+  //     if (!isAuthenticated || !user) {
+  //       alert('Please log in to mark jobs as premium.');
+  //       return;
+  //     }
+
+  //     // Check if user is recruiter or admin
+  //     if (user.role !== 'recruiter' && user.role !== 'admin') {
+  //       alert('Only recruiters and admins can mark jobs as premium.');
+  //       return;
+  //     }
+
+  //     await candidateService.markJobPremium({
+  //       job_id: job.job_id || job.id,
+  //       is_premium: true,
+  //       category: 'job'
+  //     });
+
+  //     alert('Job marked as premium successfully!');
+  //     // Optionally, refresh jobs or update state
+  //   } catch (error) {
+  //     console.error('Error marking job as premium:', error);
+  //     alert('Failed to mark job as premium. Please try again.');
+  //   }
+  // };
 
   const formatSalary = (salaryRange) => {
     if (!salaryRange) return "Salary not specified";
@@ -412,15 +472,49 @@ const JobListings = () => {
       )}
 
       {/* Main Content */}
-      <div className={styles.mainContent}>
-        <div className={styles.content}>
+      <div className={styles.mainContentNoSidebar} >
+        <div className={styles.filtersResponsive}>
           <div className={styles.heroBanner}>
             <div className={styles.heroText}>
               <h1>Featured Jobs</h1>
+              <p>Discover opportunities that match your skills</p>
             </div>
           </div>
 
+          {/* Attractive Content */}
+          <div className={styles.sidebarContent}>
+            <div className={styles.sidebarSection}>
+              <h3>Top Job Categories</h3>
+              <ul className={styles.categoryList}>
+                <li>Technology</li>
+                <li>Finance</li>
+                <li>Healthcare</li>
+                <li>Marketing</li>
+                <li>Sales</li>
+              </ul>
+            </div>
+
+
+
+            <div className={styles.sidebarSection}>
+              <h3>Quick Tips</h3>
+              <ul className={styles.tipsList}>
+                <li>Update your profile for better matches</li>
+                <li>Apply early for better chances</li>
+                <li>Customize your resume for each job</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.contentColumn}>
           <div className={styles.jobsSection}>
+            <div className={styles.jobHeader}>
+              <h2>Featured Jobs</h2>
+              <div className={styles.jobsInfo}>
+                Showing {Math.min((currentPage - 1) * jobsPerPage + 1, totalJobs)} - {Math.min(currentPage * jobsPerPage, totalJobs)} of {totalJobs} jobs
+              </div>
+            </div>
             <div className={styles.jobsColumn}>
               {loading && (
                 <div className={styles.loading}>
@@ -473,7 +567,7 @@ const JobListings = () => {
                       {job.experience_required && (
                         <div className={styles.jobDetail}>
                           <span className={styles.detailIcon}>👔</span>
-                          <span>{job.experience_required}</span>
+                          <span>{job.experience_required.min_years} - {job.experience_required.max_years} years</span>
                         </div>
                       )}
                     </div>
@@ -499,13 +593,30 @@ const JobListings = () => {
                   <div className={styles.jobActions}>
                     <button
                       className={styles.viewBtn}
-                      onClick={() => handleJobClick(job)}
+                      onClick={() => {
+                        if (!isAuthenticated) {
+                          navigate('/candidate/login');
+                        } else {
+                          handleJobClick(job);
+                        }
+                      }}
                     >
-                      View Details
+                      Apply Now
                     </button>
-                    <button className={styles.saveBtn}>
+                    <button 
+                      className={styles.saveBtn}
+                      onClick={() => handleSaveJob(job)}
+                    >
                       Save Job
                     </button>
+                    {/* {(user?.role === 'recruiter' || user?.role === 'admin') && (
+                      <button 
+                        className={styles.premiumBtn}
+                        onClick={() => handleMarkJobPremium(job)}
+                      >
+                        Mark Premium
+                      </button>
+                    )} */}
                   </div>
                 </div>
               ))}

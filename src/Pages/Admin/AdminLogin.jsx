@@ -4,7 +4,8 @@ import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import styles from "../../Styles/Auth.module.css";
 import HomeNav from "../../Components/HomeNav";
-import logo from "/favicon-icon.png";
+import logo from "../../assets/logo.png";
+import { Briefcase, Building, Users } from "lucide-react";
 
 const AdminLogin = () => {
   const { theme, toggleTheme } = useTheme();
@@ -50,7 +51,7 @@ const AdminLogin = () => {
       <div className={styles.leftPanel}>
         <div className={styles.header}>
           <img src={logo} alt="logo" className={styles.logo} />
-          <h1 className={styles.companyName}>Bigsources Manpower Solution</h1>
+          <h1 className={styles.companyName}>Bigsources.in</h1>
 
         </div>
         <div className={styles.formContainer}>
@@ -61,7 +62,6 @@ const AdminLogin = () => {
               <label className={styles.label}>
                 <span className={styles.labelText}>Email Address</span>
                 <div className={styles.inputWrapper}>
-                  <span className={styles.inputIcon}>✉️</span>
                   <input
                     type="email"
                     name="email"
@@ -79,7 +79,6 @@ const AdminLogin = () => {
               <label className={styles.label}>
                 <span className={styles.labelText}>Password</span>
                 <div className={styles.inputWrapper}>
-                  <span className={styles.inputIcon}>🔒</span>
                   <input
                     type="password"
                     name="password"
@@ -109,17 +108,17 @@ const AdminLogin = () => {
           <h2 className={styles.overlayTitle}>858 Open jobs waiting for you</h2>
           <div className={styles.statsContainer}>
             <div className={styles.statBox}>
-              <div className={styles.statIcon}>💼</div>
+              <Briefcase className={styles.statIcon} />
               <div className={styles.statNumber}>856</div>
               <div className={styles.statLabel}>Live Jobs</div>
             </div>
             <div className={styles.statBox}>
-              <div className={styles.statIcon}>🏢</div>
+              <Building className={styles.statIcon} />
               <div className={styles.statNumber}>729</div>
               <div className={styles.statLabel}>Companies</div>
             </div>
             <div className={styles.statBox}>
-              <div className={styles.statIcon}>👥</div>
+              <Users className={styles.statIcon} />
               <div className={styles.statNumber}>1496</div>
               <div className={styles.statLabel}>Candidates</div>
             </div>

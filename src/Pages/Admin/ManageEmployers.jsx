@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
-import { Eye, Edit, Ban, CheckCircle, Briefcase, X } from "lucide-react";
+import { Eye, Edit, CheckCircle, Briefcase, X, Search, Building } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const ManageEmployers = () => {
@@ -16,6 +16,7 @@ const ManageEmployers = () => {
   const [actionLoading, setActionLoading] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [selectedRecruiter, setSelectedRecruiter] = useState(null);
   const [editFormData, setEditFormData] = useState({
     companyName: "",
@@ -26,6 +27,7 @@ const ManageEmployers = () => {
     companySize: "",
     location: ""
   });
+  const [message, setMessage] = useState({ type: '', text: '' });
   const recruitersPerPage = 10;
 
   // Fetch recruiters data
@@ -77,20 +79,22 @@ const ManageEmployers = () => {
   }, [searchTerm, statusFilter, approvalFilter, recruiters]);
 
   // Handle recruiter approval
-  const handleApproveRecruiter = async (recruiterId) => {
+  const handleApproveRecruiter = async (recruiter) => {
     try {
-      setActionLoading(recruiterId);
-      await adminService.approveRecruiter(recruiterId);
+      setActionLoading(recruiter.employer_id);
+      await adminService.approveRecruiter(recruiter);
 
       // Refresh the data
       const response = await adminService.getAllRecruiters();
       setRecruiters(response.recruiters || []);
       setFilteredRecruiters(response.recruiters || []);
 
-      alert('Recruiter approved successfully!');
+      setMessage({ type: 'success', text: 'Recruiter approved successfully!' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } catch (error) {
       console.error('Failed to approve recruiter:', error);
-      alert('Failed to approve recruiter. Please try again.');
+      setMessage({ type: 'error', text: 'Failed to approve recruiter. Please try again.' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } finally {
       setActionLoading(null);
     }
@@ -98,7 +102,8 @@ const ManageEmployers = () => {
 
   // Handle view recruiter details
   const handleViewRecruiter = (recruiter) => {
-    alert(`Viewing details for: ${recruiter.full_name || recruiter.company_name}\nEmail: ${recruiter.email}\nStatus: ${recruiter.status}\nApproval: ${recruiter.hasadminapproved ? 'Approved' : 'Pending'}`);
+    setSelectedRecruiter(recruiter);
+    setShowViewModal(true);
   };
 
   // Handle edit recruiter - open modal
@@ -119,33 +124,22 @@ const ManageEmployers = () => {
   // Handle edit form submission
   const handleEditSubmit = async () => {
     try {
-      // In a real implementation, you would call an API to update the recruiter
-      // For now, we'll just show a success message and update the local state
-      const updatedRecruiters = recruiters.map(r => {
-        if (r.employer_id === selectedRecruiter.employer_id) {
-          return {
-            ...r,
-            company_name: editFormData.companyName,
-            full_name: editFormData.contactPerson,
-            email: editFormData.email,
-            phone_number: editFormData.phone,
-            industry: editFormData.industry,
-            company_size: editFormData.companySize,
-            location: editFormData.location
-          };
-        }
-        return r;
-      });
+      await adminService.updateRecruiter(selectedRecruiter.employer_id, editFormData);
 
-      setRecruiters(updatedRecruiters);
-      setFilteredRecruiters(updatedRecruiters);
+      // Refresh the data
+      const response = await adminService.getAllRecruiters();
+      setRecruiters(response.recruiters || []);
+      setFilteredRecruiters(response.recruiters || []);
+
       setShowEditModal(false);
       setSelectedRecruiter(null);
 
-      alert('Recruiter updated successfully!');
+      setMessage({ type: 'success', text: 'Recruiter updated successfully!' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } catch (error) {
       console.error('Failed to update recruiter:', error);
-      alert('Failed to update recruiter. Please try again.');
+      setMessage({ type: 'error', text: 'Failed to update recruiter. Please try again.' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     }
   };
 
@@ -158,60 +152,26 @@ const ManageEmployers = () => {
   // Handle reject confirmation
   const handleRejectConfirm = async () => {
     try {
-      // In a real implementation, you would call an API to reject the recruiter
-      // For now, we'll just show a success message and update the local state
-      const updatedRecruiters = recruiters.map(r => {
-        if (r.employer_id === selectedRecruiter.employer_id) {
-          return {
-            ...r,
-            hasadminapproved: false,
-            status: 'rejected'
-          };
-        }
-        return r;
-      });
+      await adminService.rejectRecruiter(selectedRecruiter);
 
-      setRecruiters(updatedRecruiters);
-      setFilteredRecruiters(updatedRecruiters);
+      // Refresh the data
+      const response = await adminService.getAllRecruiters();
+      setRecruiters(response.recruiters || []);
+      setFilteredRecruiters(response.recruiters || []);
+
       setShowRejectModal(false);
       setSelectedRecruiter(null);
 
-      alert('Recruiter rejected successfully!');
+      setMessage({ type: 'success', text: 'Recruiter rejected successfully!' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } catch (error) {
       console.error('Failed to reject recruiter:', error);
-      alert('Failed to reject recruiter. Please try again.');
+      setMessage({ type: 'error', text: 'Failed to reject recruiter. Please try again.' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     }
   };
 
-  // Handle block/unblock recruiter
-  const handleBlockRecruiter = async (recruiter) => {
-    const action = recruiter.status === 'active' ? 'block' : 'unblock';
-    const confirmMessage = `Are you sure you want to ${action} this recruiter: ${recruiter.full_name || recruiter.company_name}?`;
 
-    if (window.confirm(confirmMessage)) {
-      try {
-        // In a real implementation, you would call an API to update the recruiter status
-        // For now, we'll just show a success message and update the local state
-        const updatedRecruiters = recruiters.map(r => {
-          if (r.employer_id === recruiter.employer_id) {
-            return {
-              ...r,
-              status: r.status === 'active' ? 'blocked' : 'active'
-            };
-          }
-          return r;
-        });
-
-        setRecruiters(updatedRecruiters);
-        setFilteredRecruiters(updatedRecruiters);
-
-        alert(`Recruiter ${action}ed successfully!`);
-      } catch (error) {
-        console.error(`Failed to ${action} recruiter:`, error);
-        alert(`Failed to ${action} recruiter. Please try again.`);
-      }
-    }
-  };
 
   const getStatusBadge = (status) => {
     const statusStyles = {
@@ -256,6 +216,13 @@ const ManageEmployers = () => {
         <p className={styles.pageSubtitle}>View and manage all registered employers and companies</p>
       </div>
 
+      {/* Message Display */}
+      {message.text && (
+        <div className={`${styles.message} ${message.type === 'success' ? styles.success : styles.error}`}>
+          {message.text}
+        </div>
+      )}
+
       {/* Recruiter Management Info */}
       <div className={styles.managementInfo}>
         <div className={styles.infoCard}>
@@ -275,7 +242,7 @@ const ManageEmployers = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
           />
-          <span className={styles.searchIcon}>🔍</span>
+          <Search className={styles.searchIcon} />
         </div>
 
         <div className={styles.filterButtons}>
@@ -382,7 +349,7 @@ const ManageEmployers = () => {
                         <button
                           className={`${styles.actionBtn} ${styles.approveBtn}`}
                           title="Approve Recruiter"
-                          onClick={() => handleApproveRecruiter(recruiter.employer_id)}
+                          onClick={() => handleApproveRecruiter(recruiter)}
                           disabled={actionLoading === recruiter.employer_id}
                         >
                           {actionLoading === recruiter.employer_id ? '⏳' : <CheckCircle />}
@@ -396,13 +363,7 @@ const ManageEmployers = () => {
                         </button>
                       </>
                     )}
-                    <button
-                      className={styles.actionBtn}
-                      title="Block/Unblock"
-                      onClick={() => handleBlockRecruiter(recruiter)}
-                    >
-                      <Ban />
-                    </button>
+
                   </div>
                 </td>
               </tr>
@@ -548,6 +509,79 @@ const ManageEmployers = () => {
                 onClick={handleEditSubmit}
               >
                 Update Recruiter
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Modal */}
+      {showViewModal && selectedRecruiter && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <Eye className={styles.modalIcon} />
+              <h2>Recruiter Details</h2>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label>Company Name</label>
+                  <p>{selectedRecruiter.company_name || 'N/A'}</p>
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Contact Person</label>
+                  <p>{selectedRecruiter.full_name || 'N/A'}</p>
+                </div>
+              </div>
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label>Email</label>
+                  <p>{selectedRecruiter.email || 'N/A'}</p>
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Phone</label>
+                  <p>{selectedRecruiter.phone_number || selectedRecruiter.phone || 'N/A'}</p>
+                </div>
+              </div>
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label>Industry</label>
+                  <p>{selectedRecruiter.industry || 'N/A'}</p>
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Company Size</label>
+                  <p>{selectedRecruiter.company_size || 'N/A'}</p>
+                </div>
+              </div>
+              <div className={styles.formGroup}>
+                <label>Location</label>
+                <p>{selectedRecruiter.location || 'N/A'}</p>
+              </div>
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label>Status</label>
+                  <p>{getStatusBadge(selectedRecruiter.status)}</p>
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Approval</label>
+                  <p>{selectedRecruiter.hasadminapproved ? 'Approved' : 'Pending'}</p>
+                </div>
+              </div>
+              <div className={styles.formGroup}>
+                <label>Joined Date</label>
+                <p>{formatDate(selectedRecruiter.created_at)}</p>
+              </div>
+            </div>
+            <div className={styles.modalActions}>
+              <button
+                className={styles.cancelBtn}
+                onClick={() => {
+                  setShowViewModal(false);
+                  setSelectedRecruiter(null);
+                }}
+              >
+                Close
               </button>
             </div>
           </div>
