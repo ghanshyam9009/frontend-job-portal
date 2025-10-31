@@ -43,7 +43,18 @@ const UserJobListings = () => {
           location: j.location || "",
           type: j.employment_type || "Full-time",
           isPremium: j.is_premium || false, // Use actual premium status
+          created_at: j.created_at
         }));
+
+        // Sort: Premium jobs first, then latest jobs on top
+        mapped.sort((a, b) => {
+          if (a.isPremium && !b.isPremium) return -1;
+          if (!a.isPremium && b.isPremium) return 1;
+          const dateA = new Date(a.created_at || 0);
+          const dateB = new Date(b.created_at || 0);
+          return dateB - dateA;
+        });
+
         setJobs(mapped);
       } catch (e) {
         setError(typeof e === 'string' ? e : e?.message || 'Failed to load jobs');
@@ -91,7 +102,18 @@ const UserJobListings = () => {
         location: j.location || "",
         type: j.employment_type || "Full-time",
         isPremium: j.is_premium || false, // Use actual premium status
+        created_at: j.created_at
       }));
+
+      // Sort: Premium jobs first, then latest jobs on top
+      mapped.sort((a, b) => {
+        if (a.isPremium && !b.isPremium) return -1;
+        if (!a.isPremium && b.isPremium) return 1;
+        const dateA = new Date(a.created_at || 0);
+        const dateB = new Date(b.created_at || 0);
+        return dateB - dateA;
+      });
+
       setJobs(mapped);
     } catch (e) {
       setError(typeof e === 'string' ? e : e?.message || 'Failed to filter jobs');

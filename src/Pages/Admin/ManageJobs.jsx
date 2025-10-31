@@ -71,28 +71,66 @@ const ManageJobs = () => {
     fetchJobs();
   }, []);
 
-  // Filter jobs based on search and status
+  // Group and filter jobs based on search and status
   useEffect(() => {
     // Ensure jobs is always an array
-    let filtered = Array.isArray(jobs) ? jobs : [];
+    let tasks = Array.isArray(jobs) ? jobs : [];
 
+    // Group tasks by job_id to show each job only once
+    const groupedJobs = {};
+
+    tasks.forEach(task => {
+      const jobId = task.job_id || `no-job-${task.id}`;
+
+      if (!groupedJobs[jobId]) {
+        groupedJobs[jobId] = {
+          id: task.id,
+          job_id: task.job_id,
+          company_name: task.company_name || 'N/A',
+          title: task.title || task.category,
+          posted_date: task.posted_date,
+          updated_date: task.updated_date,
+          tasks: []
+        };
+      }
+
+      // Add this task to the job's tasks array
+      groupedJobs[jobId].tasks.push(task);
+    });
+
+    // Convert grouped jobs back to array and sort by latest created date first
+    let filtered = Object.values(groupedJobs);
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.posted_date || 0);
+      const dateB = new Date(b.posted_date || 0);
+      return dateB - dateA; // Latest first
+    });
+
+    // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter(task =>
-        task.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        task.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        task.task_id?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(job =>
+        job.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.job_id?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
+    // Apply status filter - check if any task in the job matches the status
     if (statusFilter !== "all") {
-      filtered = filtered.filter(task => task.status === statusFilter);
+      filtered = filtered.filter(job =>
+        job.tasks.some(task => task.status === statusFilter)
+      );
     }
 
     setFilteredJobs(filtered);
     setCurrentPage(1);
   }, [searchTerm, statusFilter, jobs]);
 
-  // Fetch job/application data when editing
+  // Cache for recruiter details to avoid multiple API calls
+  const [recruiterCache, setRecruiterCache] = useState({});
+  const [batchRecruiterFetch, setBatchRecruiterFetch] = useState(false);
+
+  // Optimized fetch job/application data when editing
   useEffect(() => {
     const fetchEditData = async () => {
       if (!editingTask) {
@@ -101,6 +139,14 @@ const ManageJobs = () => {
 
       try {
         setLoadingJobEdit(true);
+
+        // Check cache for recruiter details first
+        let recruiterDetails = recruiterCache[editingTask.recruiter_id];
+        if (!recruiterDetails && editingTask.recruiter_id) {
+          recruiterDetails = await recruiterExternalService.getRecruiterCompanyName(editingTask.recruiter_id);
+          setRecruiterCache(prev => ({ ...prev, [editingTask.recruiter_id]: recruiterDetails }));
+        }
+        setRecruiterDetails(recruiterDetails);
 
         // Determine what type of data to fetch based on category
         if (editingTask.category === 'editjob' || editingTask.category === 'postnewjob') {
@@ -141,10 +187,6 @@ const ManageJobs = () => {
               contact_email: job.contact_email || "",
               job_status: job.job_status || "open",
             });
-
-            // Fetch recruiter details for company name
-            const recruiterDetails = await recruiterExternalService.getRecruiterCompanyName(editingTask.recruiter_id);
-            setRecruiterDetails(recruiterDetails);
           } else {
             alert('Job not found or you may not have permission to edit this job');
             setEditingTask(null);
@@ -192,14 +234,13 @@ const ManageJobs = () => {
                 }));
               }
 
-              // Store all applicants for this job to show in a list
-              setApplicationData(applicantsData.applicants);
-
-              // Get recruiter details for context
-              if (editingTask.recruiter_id) {
-                const recruiterDetails = await recruiterExternalService.getRecruiterCompanyName(editingTask.recruiter_id);
-                setRecruiterDetails(recruiterDetails);
-              }
+              // Store all applicants for this job to show in a list - sort by latest first
+              const sortedApplicants = applicantsData.applicants.sort((a, b) => {
+                const dateA = new Date(a.applied_date || 0);
+                const dateB = new Date(b.applied_date || 0);
+                return dateB - dateA; // Latest first
+              });
+              setApplicationData(sortedApplicants);
             }
           } catch (error) {
             console.error('Error fetching application details:', error);
@@ -219,7 +260,7 @@ const ManageJobs = () => {
     };
 
     fetchEditData();
-  }, [editingTask]);
+  }, [editingTask, recruiterCache]);
 
   const handleInputChange = (field, value) => {
     const keys = field.split(".");
@@ -502,75 +543,115 @@ const ManageJobs = () => {
         </div>
       </div>
 
-      {/* Tasks Table */}
+      {/* Jobs Table */}
       <div className={styles.tableContainer}>
         <table className={styles.dataTable}>
           <thead>
             <tr>
-              <th>Category</th>
               <th>Company</th>
-              <th>Status</th>
+              <th>Pending Tasks</th>
               <th>Created</th>
               <th>Updated</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {currentJobs.map((task) => (
-              <tr key={task.id}>
-                <td>
-                  <span className={styles.jobTypeBadge}>{task.category}</span>
-                </td>
-                <td>{task.company_name || 'N/A'}</td>
-                <td>{getStatusBadge(task.status)}</td>
-                <td className={styles.dateCell}>{formatDate(task.posted_date)}</td>
-                <td className={styles.dateCell}>{formatDate(task.updated_date)}</td>
-                <td>
-                  <div className={styles.actionButtons}>
-                    {task.status === 'pending' && (
-                      <>
+            {currentJobs.map((job) => {
+              // Count tasks by type and status - ensure tasks array exists
+              const tasks = job.tasks || [];
+              const pendingTasks = tasks.filter(task => task.status === 'pending');
+              const fulfilledTasks = tasks.filter(task => task.status === 'fulfilled');
+              const taskSummary = [];
+
+              if (pendingTasks.length > 0) {
+                const categories = [...new Set(pendingTasks.map(t => t.category))];
+                taskSummary.push(`${pendingTasks.length} pending (${categories.join(', ')})`);
+              }
+              if (fulfilledTasks.length > 0) {
+                taskSummary.push(`${fulfilledTasks.length} fulfilled`);
+              }
+
+              return (
+                <tr key={job.job_id || job.id}>
+                  <td>{job.company_name || 'N/A'}</td>
+                  <td>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {taskSummary.map((summary, index) => (
+                        <span key={index} className={styles.taskBadge}>
+                          {summary}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td className={styles.dateCell}>{formatDate(job.posted_date)}</td>
+                  <td className={styles.dateCell}>{formatDate(job.updated_date)}</td>
+                  <td>
+                    <div className={styles.actionButtons}>
+                      {/* Show all available actions for this job */}
+                      {job.tasks && job.tasks.some(task => task.status === 'pending' && (task.category === 'postnewjob' || task.category === 'editjob')) && (
                         <button
-                          className={styles.actionBtn}
-                          title="Approve"
-                          onClick={() => handleApproveTask(task)}
+                          className={styles.approveBtn}
+                          onClick={() => {
+                            const pendingTask = job.tasks.find(t => t.status === 'pending' && (t.category === 'postnewjob' || t.category === 'editjob'));
+                            if (pendingTask) handleApproveTask(pendingTask);
+                          }}
                         >
-                          <Check size={16} />
+                          Approve
                         </button>
-                        {task.category === 'postnewjob' && (
+                      )}
+
+                      {job.tasks && job.tasks.some(task => task.status === 'pending' && task.category === 'postnewjob') && (
+                        <button
+                          className={styles.rejectBtn}
+                          onClick={() => handleRejectTask(job.tasks.find(t => t.category === 'postnewjob' && t.status === 'pending'))}
+                        >
+                          Reject
+                        </button>
+                      )}
+
+                      {job.tasks && job.tasks.some(task => task.category === 'newapplication' || task.category === 'change status of application') && (
+                        <button
+                          className={styles.viewBtn}
+                          onClick={() => {
+                            const appTask = job.tasks.find(t => t.category === 'newapplication' || t.category === 'change status of application');
+                            if (appTask) setEditingTask(appTask);
+                          }}
+                        >
+                          View Applications
+                        </button>
+                      )}
+
+                      {job.tasks && job.tasks.some(task => task.category === 'editjob' || task.category === 'postnewjob') && (
+                        <button
+                          className={styles.editBtn}
+                          onClick={() => {
+                            const jobTask = job.tasks.find(t => t.category === 'editjob' || t.category === 'postnewjob');
+                            if (jobTask) setEditingTask(jobTask);
+                          }}
+                        >
+                          Edit Job
+                        </button>
+                      )}
+
+                      {job.job_id && job.tasks && job.tasks.length > 0 && (
+                        job.is_premium ? (
+                          <span className={styles.premiumMarked}>
+                            Premium Marked
+                          </span>
+                        ) : (
                           <button
-                            className={styles.actionBtn}
-                            title="Reject"
-                            onClick={() => handleRejectTask(task)}
+                            className={styles.premiumBtn}
+                            onClick={() => handleMarkJobPremium(job.tasks[0], true)}
                           >
-                            <X size={16} />
+                            Mark Premium
                           </button>
-                        )}
-                      </>
-                    )}
-                    {task.job_id && (
-                      <button
-                        className={styles.actionBtn}
-                        title="Mark as Premium"
-                        onClick={() => handleMarkJobPremium(task, true)}
-                        style={{ color: '#FFD700' }}
-                      >
-                        <Star size={16} />
-                      </button>
-                    )}
-                    <button className={styles.actionBtn} title="View Details">
-                      <Eye size={16} />
-                    </button>
-                    <button
-                      className={styles.actionBtn}
-                      title="Edit"
-                      onClick={() => setEditingTask(task)}
-                    >
-                      <Edit size={16} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                        )
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

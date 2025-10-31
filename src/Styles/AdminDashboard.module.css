@@ -607,6 +607,16 @@
   font-weight: 500;
 }
 
+.taskBadge {
+  display: inline-block;
+  padding: 2px 6px;
+  background: #f3f4f6;
+  color: #374151;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
 .approveBtn {
   background: #d1fae5 !important;
   border-color: #10b981 !important;
@@ -635,6 +645,27 @@
 
 .viewBtn:hover {
   background: #c7d2fe !important;
+}
+
+.infoBtn {
+  background: #dbeafe !important;
+  border-color: #3b82f6 !important;
+  color: #1d4ed8 !important;
+}
+
+.infoBtn:hover {
+  background: #bfdbfe !important;
+}
+
+.exportBtn {
+  background: #dcfce7 !important;
+  border-color: #16a34a !important;
+  color: #166534 !important;
+  margin-left: 4px;
+}
+
+.exportBtn:hover {
+  background: #bbf7d0 !important;
 }
 
 .errorContainer {

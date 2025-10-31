@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
-import { Search, Download, Users, Building, MapPin, Calendar } from "lucide-react";
+import { Search, Download, Users, Building, MapPin, Calendar, Eye } from "lucide-react";
 import * as XLSX from 'xlsx';
 import styles from "../../Styles/AdminDashboard.module.css";
 
@@ -13,6 +13,8 @@ const JobApplicationReports = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedJob, setSelectedJob] = useState(null);
   const jobsPerPage = 10;
 
   // Fetch jobs with application counts
@@ -64,9 +66,49 @@ const JobApplicationReports = () => {
     return `${salary.min || salary.max} ${salary.currency || 'INR'}`;
   };
 
-  const handleExportToExcel = (job) => {
+  const handleViewApplications = (job) => {
+    // If applications are not loaded yet, show loading indicator
+    if (job.application_count > 0 && (!job.applications || job.applications.length === 0)) {
+      alert('Applications data is loading. Please wait a moment and try again.');
+      return;
+    }
+
+    // Show applications in a modal or detailed view
+    const applications = job.applications || [];
+    if (applications.length === 0) {
+      alert('No applications found for this job.');
+      return;
+    }
+
+    // Create a popup/modal with application details
+    const modalContent = `
+      Applications for: ${job.job_title} - ${job.company_name}
+
+      ${applications.map((app, index) => `
+        Application ${index + 1}:
+        - Name: ${app.name || app.candidate_name || 'Not provided'}
+        - Email: ${app.email || app.candidate_email || 'Not provided'}
+        - Phone: ${app.phone || app.candidate_phone || 'Not provided'}
+        - Experience: ${app.experience || 'Not provided'}
+        - Skills: ${app.skills || 'Not provided'}
+        - Applied Date: ${formatDate(app.applied_date || app.application_date)}
+        - Status: ${app.status || 'pending'}
+        ------------------
+      `).join('\n')}
+
+      Total Applications: ${job.application_count}
+    `;
+
+    alert(modalContent); // Simple alert for now, could be enhanced to a proper modal
+  };
+
+  const handleExportToExcel = async (job) => {
     console.log('Exporting Excel for job:', job);
-    console.log('Applications data:', job.applications);
+
+    if (job.application_count > 0 && (!job.applications || job.applications.length === 0)) {
+      alert('Applications data is loading. Please wait a moment and try again.');
+      return;
+    }
 
     if (!job.applications || job.applications.length === 0) {
       alert('No applications to export for this job.');
@@ -96,6 +138,8 @@ const JobApplicationReports = () => {
         .replace(/[^a-zA-Z0-9_]/g, '_');
 
       console.log('Attempting to download file:', filename);
+
+      // Try to trigger download manually if needed
       XLSX.writeFile(wb, filename);
 
     } catch (error) {
@@ -243,7 +287,15 @@ const JobApplicationReports = () => {
                 <td>
                   <div className={styles.actionButtons}>
                     <button
-                      className={`${styles.actionBtn} ${job.application_count > 0 ? styles.viewBtn : styles.disabledBtn}`}
+                      className={`${styles.actionBtn} ${job.application_count > 0 ? styles.infoBtn : styles.disabledBtn}`}
+                      title="View Applications"
+                      onClick={() => handleViewApplications(job)}
+                      disabled={job.application_count === 0}
+                    >
+                      <Eye size={16} />
+                    </button>
+                    <button
+                      className={`${styles.actionBtn} ${job.application_count > 0 ? styles.exportBtn : styles.disabledBtn}`}
                       title="Export to Excel"
                       onClick={() => handleExportToExcel(job)}
                       disabled={job.application_count === 0}

@@ -48,63 +48,71 @@ export const adminService = {
     }
   },
 
+  // Optimized function to fetch all recruiter data in one call
+  async getAllRecruiterData() {
+    try {
+      // Get all recruiters first
+      const recruitersResponse = await this.getAllRecruiters();
+      const recruiters = recruitersResponse?.recruiters || recruitersResponse || [];
+
+      // Create a map of recruiter_id to company_name
+      const recruiterMap = {};
+      recruiters.forEach(recruiter => {
+        if (recruiter.employer_id) {
+          recruiterMap[recruiter.employer_id] = {
+            company_name: recruiter.company_name || 'Unknown Company',
+            email: recruiter.email,
+            status: recruiter.status
+          };
+        }
+      });
+
+      return recruiterMap;
+    } catch (error) {
+      console.error('Error fetching all recruiter data:', error);
+      return {};
+    }
+  },
+
   // Job Management Functions
   async getPendingJobs() {
     try {
       // Using the external service to get all tasks
       const response = await adminExternalService.getAllTasks();
+
+      // Fetch all recruiter data in one optimized call
+      const recruiterData = await this.getAllRecruiterData();
+
       // Ensure we return an array of jobs
       if (response && Array.isArray(response.tasks)) {
-        // Create a map to cache company names and avoid duplicate API calls
-        const companyCache = new Map();
+        // Process tasks with pre-fetched recruiter data
+        const processedTasks = response.tasks.map((task) => {
+          let company_name = task.company_name || 'Unknown Company';
 
-        // Process tasks and fetch company names for recruits with recruiter_id
-        const processedTasks = await Promise.all(
-          response.tasks.map(async (task) => {
-            let company_name = task.company_name || 'Unknown Company';
+          // Use pre-fetched recruiter data if available
+          if (task.recruiter_id && recruiterData[task.recruiter_id]) {
+            company_name = recruiterData[task.recruiter_id].company_name;
+          }
 
-            // If we have a recruiter_id, fetch company name using the jobs API
-            if (task.recruiter_id && !companyCache.has(task.recruiter_id)) {
-              try {
-                // Import recruiterExternalService dynamically to avoid circular dependency
-                const { recruiterExternalService } = await import('./recruiterExternalService');
-                const recruiterData = await recruiterExternalService.getAllPostedJobs(task.recruiter_id);
-                if (recruiterData && recruiterData.jobs && recruiterData.jobs.length > 0) {
-                  company_name = recruiterData.jobs[0].company_name || company_name;
-                }
-                companyCache.set(task.recruiter_id, company_name);
-              } catch (error) {
-                console.error(`Error fetching company for recruiter ${task.recruiter_id}:`, error);
-                // Use cached value if available, otherwise keep default
-                if (companyCache.has(task.recruiter_id)) {
-                  company_name = companyCache.get(task.recruiter_id);
-                }
-              }
-            } else if (task.recruiter_id && companyCache.has(task.recruiter_id)) {
-              // Use cached company name
-              company_name = companyCache.get(task.recruiter_id);
-            }
-
-            return {
-              id: task.task_id,
-              task_id: task.task_id,
-              category: task.category,
-              title: this.getTaskTitle(task),
-              company_name: company_name,
-              location: task.location || 'Unknown Location',
-              salary: task.salary || 'Not specified',
-              job_type: task.employment_type || 'Unknown',
-              status: task.status || 'pending',
-              posted_date: task.created_at || new Date().toISOString(),
-              updated_date: task.updated_at || new Date().toISOString(),
-              description: task.description || 'No description available',
-              job_id: task.job_id,
-              recruiter_id: task.recruiter_id,
-              application_id: task.application_id,
-              student_id: task.student_id
-            };
-          })
-        );
+          return {
+            id: task.task_id,
+            task_id: task.task_id,
+            category: task.category,
+            title: this.getTaskTitle(task),
+            company_name: company_name,
+            location: task.location || 'Unknown Location',
+            salary: task.salary || 'Not specified',
+            job_type: task.employment_type || 'Unknown',
+            status: task.status || 'pending',
+            posted_date: task.created_at || new Date().toISOString(),
+            updated_date: task.updated_at || new Date().toISOString(),
+            description: task.description || 'No description available',
+            job_id: task.job_id,
+            recruiter_id: task.recruiter_id,
+            application_id: task.application_id,
+            student_id: task.student_id
+          };
+        });
 
         return processedTasks;
       }

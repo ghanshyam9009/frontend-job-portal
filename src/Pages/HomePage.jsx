@@ -193,9 +193,21 @@ const popularSearches = [
           salary: j.salary_range ? `₹${j.salary_range.min} - ₹${j.salary_range.max}` : "",
           job_type: j.employment_type || "Full-time",
           company_logo: null,
-          is_premium: j.is_premium || false
+          is_premium: j.is_premium || false,
+          created_at: j.created_at || j.posted_date
         }));
-        setFeaturedJobs(mapped);
+
+        // Sort: Premium jobs first, then by latest date
+        const sortedJobs = mapped.sort((a, b) => {
+          if (a.is_premium && !b.is_premium) return -1;
+          if (!a.is_premium && b.is_premium) return 1;
+          // If both premium or both not, sort by date (latest first)
+          const dateA = new Date(a.created_at || 0);
+          const dateB = new Date(b.created_at || 0);
+          return dateB - dateA;
+        });
+
+        setFeaturedJobs(sortedJobs);
       } catch (error) {
         console.error("Failed to fetch featured jobs:", error);
       }

@@ -91,9 +91,28 @@ const JobListings = () => {
 
       if (jobsData.jobs || Array.isArray(jobsData)) {
         const jobsArray = jobsData.jobs || jobsData.data || jobsData;
-        setJobs(Array.isArray(jobsArray) ? jobsArray : []);
-        setTotalJobs(jobsData.count || jobsArray.length || 0);
-        setTotalPages(Math.max(1, Math.ceil((jobsData.count || jobsArray.length || 0) / jobsPerPage)));
+        const validJobs = Array.isArray(jobsArray) ? jobsArray : [];
+
+        // Sort: Premium jobs first, then latest jobs on top
+        validJobs.sort((a, b) => {
+          if ((a.is_premium || false) && !(b.is_premium || false)) return -1;
+          if (!(a.is_premium || false) && (b.is_premium || false)) return 1;
+          const dateA = new Date(a.created_at || a.posted_date || 0);
+          const dateB = new Date(b.created_at || b.posted_date || 0);
+          return dateB - dateA;
+        });
+
+        // Debug: Check if any jobs are premium
+        const premiumJobs = validJobs.filter(job => job.is_premium);
+        console.log('Total jobs:', validJobs.length);
+        console.log('Premium jobs:', premiumJobs.length);
+        if (premiumJobs.length > 0) {
+          console.log('Premium job IDs:', premiumJobs.map(job => job.job_id || job.id));
+        }
+
+        setJobs(validJobs);
+        setTotalJobs(jobsData.count || validJobs.length || 0);
+        setTotalPages(Math.max(1, Math.ceil((jobsData.count || validJobs.length || 0) / jobsPerPage)));
       } else {
         throw new Error(jobsData.message || 'Failed to fetch jobs');
       }
@@ -545,6 +564,12 @@ const JobListings = () => {
 
               {!loading && !error && jobs.map(job => (
                 <div key={job.job_id || job.id} className={styles.jobCard}>
+                  {job.is_premium && (
+                    <div className={styles.premiumBadge}>
+                      <span className={styles.premiumCrown}>👑</span>
+                      Premium
+                    </div>
+                  )}
                   <div className={styles.jobCardHeader}>
                     <div className={styles.jobIcon}>💻</div>
                     <div className={styles.jobType}>{job.employment_type || job.type || 'Full-time'}</div>
