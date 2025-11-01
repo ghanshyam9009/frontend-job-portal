@@ -93,7 +93,10 @@ const UserDashboard = () => {
 
         // Fetch saved jobs count
         const savedJobsData = await candidateExternalService.getBookmarkedJobs(user.user_id);
-        const savedJobsCount = savedJobsData?.bookmarked_jobs?.length || savedJobsData?.jobs?.length || 0;
+        // Handle both array and single object responses
+        const jobsArray = savedJobsData?.bookmarked_jobs || savedJobsData?.jobs || [];
+        const normalizedJobs = Array.isArray(jobsArray) ? jobsArray : [jobsArray];
+        const savedJobsCount = normalizedJobs.length;
 
         // Fetch applied jobs count
         const appliedJobsData = await candidateExternalService.getAppliedJobs(user.user_id);

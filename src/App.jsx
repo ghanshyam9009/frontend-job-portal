@@ -39,14 +39,10 @@ import ManageCandidates from './Pages/Admin/ManageCandidates'
 import ManageEmployers from './Pages/Admin/ManageEmployers'
 import AdminManageJobs from './Pages/Admin/ManageJobs'
 import ReportsAnalytics from './Pages/Admin/ReportsAnalytics'
-import AdminSettings from './Pages/Admin/AdminSettings'
-import NotificationsLogs from './Pages/Admin/NotificationsLogs'
 import ManageMembershipPlans from './Pages/Admin/ManageMembershipPlans'
-import PendingJobs from './Pages/Admin/PendingJobs'
 import HomepageForms from './Pages/Admin/HomepageForms'
 import ContactForms from './Pages/Admin/ContactForms'
 import GovernmentJobsManagement from './Pages/Admin/GovernmentJobsManagement'
-import JobApplications from './Pages/Admin/JobApplications'
 import JobApplicationReports from './Pages/Admin/JobApplicationReports'
 import ResetPassword from './Pages/Auth/ResetPassword'
 import CareerServices from './Pages/CareerServices'
@@ -119,14 +115,10 @@ function App() {
             <Route path="/admin/employers" element={<ManageEmployers />} />
             <Route path="/admin/jobs" element={<AdminManageJobs />} />
             <Route path="/admin/reports" element={<ReportsAnalytics />} />
-            <Route path="/admin/settings" element={<AdminSettings />} />
-            <Route path="/admin/notifications" element={<NotificationsLogs />} />
             <Route path="/admin/membership" element={<ManageMembershipPlans />} />
-            <Route path="/admin/pending-jobs" element={<PendingJobs />} />
             <Route path="/admin/homepage-forms" element={<HomepageForms />} />
             <Route path="/admin/contact-forms" element={<ContactForms />} />
             <Route path="/admin/government-jobs" element={<GovernmentJobsManagement />} />
-            <Route path="/admin/job-applications" element={<JobApplications />} />
             <Route path="/admin/job-application-reports" element={<JobApplicationReports />} />
           </Route>
         </Routes>

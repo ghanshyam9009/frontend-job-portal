@@ -23,7 +23,10 @@ const SavedJobs = () => {
         setLoading(true);
         setError("");
         const data = await candidateExternalService.getBookmarkedJobs(userId);
-        const mapped = (data?.bookmarked_jobs || data?.jobs || []).map((j, idx) => ({
+        // Handle both array and single object responses
+        const jobsArray = data?.bookmarked_jobs || data?.jobs || [];
+        const normalizedJobs = Array.isArray(jobsArray) ? jobsArray : [jobsArray];
+        const mapped = normalizedJobs.map((j, idx) => ({
           id: j.job_id || idx,
           title: j.job_title,
           company: j.company_name || "",

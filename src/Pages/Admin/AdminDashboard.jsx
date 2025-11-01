@@ -4,11 +4,9 @@ import AdminNavbar from "../../Components/Admin/AdminNavbar";
 import AdminSidebar from "../../Components/Admin/AdminSidebar";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
-import { taskService } from "../../services/taskService";
-import { jobService } from "../../services/jobService";
-import { applicationService } from "../../services/applicationService";
-import { studentService } from "../../services/studentService";
-import { employerService } from "../../services/employerService";
+import { adminExternalService } from "../../services/adminExternalService";
+import { candidateExternalService } from "../../services/candidateExternalService";
+import { recruiterExternalService } from "../../services/recruiterExternalService";
 import { showError } from "../../utils/errorHandler";
 import { Users, Building, FileText, Mail, Ticket, DollarSign, TrendingUp, TrendingDown } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
@@ -47,56 +45,64 @@ const AdminDashboard = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      
-      // Load all dashboard data in parallel
+
+      // Load all dashboard data in parallel using working external APIs
       const [
-        candidatesResult,
-        employersResult,
         jobsResult,
-        applicationsResult,
         tasksResult
       ] = await Promise.allSettled([
-        studentService.getAllStudents(),
-        employerService.getAllEmployers(),
-        jobService.getAllJobs(),
-        applicationService.getAllApplications(),
-        taskService.getAllTasks()
+        candidateExternalService.getAllJobs(),
+        adminExternalService.getAllTasks()
       ]);
 
       // Process results
-      const candidates = candidatesResult.status === 'fulfilled' ? candidatesResult.value.data || [] : [];
-      const employers = employersResult.status === 'fulfilled' ? employersResult.value.data || [] : [];
-      const jobs = jobsResult.status === 'fulfilled' ? jobsResult.value.data || [] : [];
-      const applications = applicationsResult.status === 'fulfilled' ? applicationsResult.value.data || [] : [];
-      const tasks = tasksResult.status === 'fulfilled' ? tasksResult.value.data || [] : [];
+      const jobsData = jobsResult.status === 'fulfilled' ? jobsResult.value : { jobs: [] };
+      const tasksData = tasksResult.status === 'fulfilled' ? tasksResult.value : { tasks: [] };
+
+      const jobs = jobsData.jobs || [];
+      const tasks = tasksData.tasks || [];
+
+      // Get unique employers from jobs data
+      const employerMap = new Map();
+      jobs.forEach(job => {
+        if (job.company_name && job.employer_id) {
+          employerMap.set(job.employer_id, {
+            employer_id: job.employer_id,
+            company_name: job.company_name
+          });
+        }
+      });
+      const employers = Array.from(employerMap.values());
 
       // Calculate stats
       const stats = {
-        totalCandidates: candidates.length,
+        totalCandidates: 0, // Will be updated when candidates API is available
         totalEmployers: employers.length,
         totalJobs: jobs.length,
-        totalApplications: applications.length,
+        totalApplications: 0, // Will be updated when applications API is available
         totalTokens: 25000, // Mock data - replace with actual API
         revenue: 123456 // Mock data - replace with actual API
       };
 
       // Get recent jobs (last 5)
       const recentJobs = jobs
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .sort((a, b) => new Date(b.created_at || b.posted_date || 0) - new Date(a.created_at || a.posted_date || 0))
         .slice(0, 5)
         .map(job => ({
-          id: job.job_id,
-          title: job.job_title,
+          id: job.job_id || job.id,
+          title: job.job_title || job.title,
           company: job.company_name || 'Unknown Company',
           status: job.status || 'active',
-          datePosted: job.created_at
+          datePosted: job.created_at || job.posted_date
         }));
 
       // Get top employers by job count
       const employerJobCounts = {};
       jobs.forEach(job => {
         const employerId = job.employer_id;
-        employerJobCounts[employerId] = (employerJobCounts[employerId] || 0) + 1;
+        if (employerId) {
+          employerJobCounts[employerId] = (employerJobCounts[employerId] || 0) + 1;
+        }
       });
 
       const topEmployers = Object.entries(employerJobCounts)

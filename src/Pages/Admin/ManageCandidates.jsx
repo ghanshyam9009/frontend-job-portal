@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
-import { candidateService } from "../../services/candidateService";
 import { Eye, Edit, Ban, Search, Users, Check, X, FileText } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 

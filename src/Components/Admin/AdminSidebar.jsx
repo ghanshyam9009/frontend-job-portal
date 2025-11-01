@@ -43,23 +43,10 @@ const AdminSidebar = ({ isOpen, onClose }) => {
       path: '/admin/job-application-reports'
     },
     {
-      id: 'pending-jobs',
-      label: 'Pending Jobs',
-      icon: Clock,
-      path: '/admin/pending-jobs'
-    },
-    {
       id: 'government-jobs',
       label: 'Government Jobs',
       icon: Building2,
       path: '/admin/government-jobs'
-    },
-    {
-      id: 'job-applications',
-      label: 'Job Applications',
-      icon: ClipboardList,
-      path: '/admin/job-applications',
-      badge: 12
     },
     {
       id: 'membership',
@@ -86,19 +73,6 @@ const AdminSidebar = ({ isOpen, onClose }) => {
       label: 'Reports',
       icon: BarChart3,
       path: '/admin/reports'
-    },
-    {
-      id: 'settings',
-      label: 'Settings',
-      icon: Settings,
-      path: '/admin/settings'
-    },
-    {
-      id: 'notifications',
-      label: 'Notifications',
-      icon: Bell,
-      path: '/admin/notifications',
-      badge: 9
     }
   ];
 
