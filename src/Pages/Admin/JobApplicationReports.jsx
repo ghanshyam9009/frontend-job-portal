@@ -15,6 +15,9 @@ const JobApplicationReports = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
+  const [showCandidateModal, setShowCandidateModal] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [loadingMessage, setLoadingMessage] = useState('');
   const jobsPerPage = 10;
 
   // Fetch jobs with application counts
@@ -73,33 +76,20 @@ const JobApplicationReports = () => {
       return;
     }
 
-    // Show applications in a modal or detailed view
+    // Show applications in a modal
     const applications = job.applications || [];
     if (applications.length === 0) {
       alert('No applications found for this job.');
       return;
     }
 
-    // Create a popup/modal with application details
-    const modalContent = `
-      Applications for: ${job.job_title} - ${job.company_name}
+    setSelectedJob(job);
+    setShowModal(true);
+  };
 
-      ${applications.map((app, index) => `
-        Application ${index + 1}:
-        - Name: ${app.name || app.candidate_name || 'Not provided'}
-        - Email: ${app.email || app.candidate_email || 'Not provided'}
-        - Phone: ${app.phone || app.candidate_phone || 'Not provided'}
-        - Experience: ${app.experience || 'Not provided'}
-        - Skills: ${app.skills || 'Not provided'}
-        - Applied Date: ${formatDate(app.applied_date || app.application_date)}
-        - Status: ${app.status || 'pending'}
-        ------------------
-      `).join('\n')}
-
-      Total Applications: ${job.application_count}
-    `;
-
-    alert(modalContent); // Simple alert for now, could be enhanced to a proper modal
+  const handleViewCandidateDetails = (candidate) => {
+    setSelectedCandidate(candidate);
+    setShowCandidateModal(true);
   };
 
   const handleExportToExcel = async (job) => {
@@ -117,14 +107,18 @@ const JobApplicationReports = () => {
 
     try {
       const exportData = job.applications.map(app => ({
-        'Candidate Name': app.name || app.candidate_name || 'Not provided',
-        'Email': app.email || app.candidate_email || 'Not provided',
-        'Phone': app.phone || app.candidate_phone || 'Not provided',
-        'Experience': app.experience || 'Not provided',
-        'Skills': app.skills ? (Array.isArray(app.skills) ? app.skills.join(', ') : app.skills) : 'Not provided',
-        'Application Date': formatDate(app.applied_date || app.application_date),
-        'Resume': app.resume_link || app.resume_url || 'Not available',
-        'Application Status': app.status || 'pending'
+        'Application ID': app.application_id || 'Not provided',
+        'Student ID': app.student_id || 'Not provided',
+        'Job ID': app.job_id || 'Not provided',
+        'Employer ID': app.employer_id || 'Not provided',
+        'Application Status': app.status || 'pending',
+        'Status Verified': app.status_verified || 'Not verified',
+        'Application Date': formatDate(app.created_at || app.applied_date),
+        'Last Updated': formatDate(app.updated_at),
+        'Resume URL': app.resume_url || app.resume_link || 'Not available',
+        'Cover Letter': app.cover_letter || 'Not provided',
+        'Show to Recruiter': app.to_show_recruiter ? 'Yes' : 'No',
+        'Show to User': app.to_show_user ? 'Yes' : 'No'
       }));
 
       console.log('Export data:', exportData);
@@ -139,8 +133,21 @@ const JobApplicationReports = () => {
 
       console.log('Attempting to download file:', filename);
 
-      // Try to trigger download manually if needed
-      XLSX.writeFile(wb, filename);
+      // Use a more reliable download method
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbout], { type: 'application/octet-stream' });
+
+      // Create download link and trigger download
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      console.log('Excel file download triggered successfully');
 
     } catch (error) {
       console.error('Error exporting Excel:', error);
@@ -365,6 +372,327 @@ const JobApplicationReports = () => {
           <Building className={styles.emptyIcon} />
           <h3>No jobs found</h3>
           <p>No jobs match your current filters.</p>
+        </div>
+      )}
+
+      {/* Applications Modal */}
+      {showModal && selectedJob && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000,
+          overflowY: 'auto'
+        }}>
+          <div style={{
+            backgroundColor: theme === 'dark' ? '#333' : '#fff',
+            padding: '20px',
+            borderRadius: '8px',
+            width: '90%',
+            maxWidth: '1000px',
+            maxHeight: '90%',
+            overflowY: 'auto',
+            color: theme === 'dark' ? '#fff' : '#000'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3>All Candidates Applied for: {selectedJob.job_title}</h3>
+              <button
+                onClick={() => setShowModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  color: theme === 'dark' ? '#fff' : '#000'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <p><strong>Company:</strong> {selectedJob.company_name}</p>
+              <p><strong>Total Candidates Applied:</strong> {selectedJob.application_count}</p>
+              <p style={{ fontSize: '14px', color: '#666' }}>Showing all candidates who applied for this job (all statuses included)</p>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <button
+                onClick={() => handleExportToExcel(selectedJob)}
+                style={{
+                  backgroundColor: '#28a745',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                <Download size={16} style={{ marginRight: '8px' }} />
+                Download All Applications
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gap: '15px' }}>
+              {selectedJob.applications.map((application, index) => (
+                <div key={application.application_id || index} style={{
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  padding: '15px',
+                  backgroundColor: theme === 'dark' ? '#444' : '#f9f9f9'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <h4 style={{ margin: 0 }}>Application #{index + 1}</h4>
+                    <span style={{
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      backgroundColor: application.status === 'Shortlisted' ? '#28a745' :
+                                     application.status === 'Rejected' ? '#dc3545' : '#ffc107',
+                      color: '#fff',
+                      fontSize: '12px'
+                    }}>
+                      {application.status || 'pending'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                    <div>
+                      <strong>Application ID:</strong> {application.application_id}
+                    </div>
+                    <div>
+                      <strong>Student ID:</strong> {application.student_id}
+                    </div>
+                    <div>
+                      <strong>Applied Date:</strong> {formatDate(application.created_at || application.applied_date)}
+                    </div>
+                    <div>
+                      <strong>Last Updated:</strong> {formatDate(application.updated_at)}
+                    </div>
+                  </div>
+
+                  {application.cover_letter && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <strong>Cover Letter:</strong>
+                      <p style={{ margin: '5px 0', fontStyle: 'italic' }}>{application.cover_letter}</p>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      onClick={() => handleViewCandidateDetails(application)}
+                      style={{
+                        backgroundColor: '#007bff',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '8px 16px',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Eye size={14} style={{ marginRight: '5px' }} />
+                      View Details
+                    </button>
+
+                    {application.resume_url && (
+                      <a
+                        href={application.resume_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          backgroundColor: '#6c757d',
+                          color: '#fff',
+                          textDecoration: 'none',
+                          padding: '8px 16px',
+                          borderRadius: '4px',
+                          display: 'inline-flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <Download size={14} style={{ marginRight: '5px' }} />
+                        Resume
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+              <button
+                onClick={() => setShowModal(false)}
+                style={{
+                  backgroundColor: '#6c757d',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Candidate Details Modal */}
+      {showCandidateModal && selectedCandidate && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1001,
+          overflowY: 'auto'
+        }}>
+          <div style={{
+            backgroundColor: theme === 'dark' ? '#333' : '#fff',
+            padding: '20px',
+            borderRadius: '8px',
+            width: '90%',
+            maxWidth: '800px',
+            maxHeight: '90%',
+            overflowY: 'auto',
+            color: theme === 'dark' ? '#fff' : '#000'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3>Candidate Application Details</h3>
+              <button
+                onClick={() => setShowCandidateModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  color: theme === 'dark' ? '#fff' : '#000'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
+              <div>
+                <label style={{ fontWeight: 'bold' }}>Application ID:</label>
+                <p>{selectedCandidate.application_id}</p>
+              </div>
+              <div>
+                <label style={{ fontWeight: 'bold' }}>Student ID:</label>
+                <p>{selectedCandidate.student_id}</p>
+              </div>
+              <div>
+                <label style={{ fontWeight: 'bold' }}>Job ID:</label>
+                <p>{selectedCandidate.job_id}</p>
+              </div>
+              <div>
+                <label style={{ fontWeight: 'bold' }}>Employer ID:</label>
+                <p>{selectedCandidate.employer_id}</p>
+              </div>
+              <div>
+                <label style={{ fontWeight: 'bold' }}>Application Status:</label>
+                <p style={{
+                  display: 'inline-block',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  backgroundColor: selectedCandidate.status === 'Shortlisted' ? '#28a745' :
+                                 selectedCandidate.status === 'Rejected' ? '#dc3545' : '#ffc107',
+                  color: '#fff'
+                }}>
+                  {selectedCandidate.status || 'pending'}
+                </p>
+              </div>
+              <div>
+                <label style={{ fontWeight: 'bold' }}>Status Verified:</label>
+                <p>{selectedCandidate.status_verified || 'Not verified'}</p>
+              </div>
+              <div>
+                <label style={{ fontWeight: 'bold' }}>Applied Date:</label>
+                <p>{formatDate(selectedCandidate.created_at || selectedCandidate.applied_date)}</p>
+              </div>
+              <div>
+                <label style={{ fontWeight: 'bold' }}>Last Updated:</label>
+                <p>{formatDate(selectedCandidate.updated_at)}</p>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ fontWeight: 'bold' }}>Show to Recruiter:</label>
+              <p>{selectedCandidate.to_show_recruiter ? 'Yes' : 'No'}</p>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ fontWeight: 'bold' }}>Show to User:</label>
+              <p>{selectedCandidate.to_show_user ? 'Yes' : 'No'}</p>
+            </div>
+
+            {selectedCandidate.cover_letter && (
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ fontWeight: 'bold' }}>Cover Letter:</label>
+                <div style={{
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  backgroundColor: theme === 'dark' ? '#444' : '#f9f9f9',
+                  marginTop: '5px'
+                }}>
+                  {selectedCandidate.cover_letter}
+                </div>
+              </div>
+            )}
+
+            {selectedCandidate.resume_url && (
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ fontWeight: 'bold' }}>Resume:</label>
+                <div style={{ marginTop: '5px' }}>
+                  <a
+                    href={selectedCandidate.resume_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      backgroundColor: '#007bff',
+                      color: '#fff',
+                      textDecoration: 'none',
+                      padding: '8px 16px',
+                      borderRadius: '4px',
+                      display: 'inline-flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Download size={14} style={{ marginRight: '5px' }} />
+                    Download Resume
+                  </a>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                onClick={() => setShowCandidateModal(false)}
+                style={{
+                  backgroundColor: '#6c757d',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

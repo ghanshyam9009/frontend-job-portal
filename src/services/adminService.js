@@ -83,9 +83,44 @@ export const adminService = {
       // Fetch all recruiter data in one optimized call
       const recruiterData = await this.getAllRecruiterData();
 
+      // Fetch all jobs from external API to get premium status
+      let jobsData = [];
+      try {
+        const apiUrl = 'https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs';
+        const searchParams = {
+          page: 1,
+          limit: 1000, // Get all jobs to ensure we have premium status for all
+          status: 'approved'
+        };
+
+        const queryString = new URLSearchParams(searchParams).toString();
+        const jobsResponse = await fetch(`${apiUrl}?${queryString}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (jobsResponse.ok) {
+          const jobsResult = await jobsResponse.json();
+          jobsData = jobsResult?.jobs || jobsResult.data || jobsResult || [];
+        }
+      } catch (error) {
+        console.error('Error fetching jobs data for premium status:', error);
+        // Continue without premium status if API fails
+      }
+
+      // Create a map of job_id to premium status for quick lookup
+      const premiumStatusMap = {};
+      jobsData.forEach(job => {
+        if (job.job_id) {
+          premiumStatusMap[job.job_id] = job.is_premium || false;
+        }
+      });
+
       // Ensure we return an array of jobs
       if (response && Array.isArray(response.tasks)) {
-        // Process tasks with pre-fetched recruiter data
+        // Process tasks with pre-fetched recruiter data and premium status
         const processedTasks = response.tasks.map((task) => {
           let company_name = task.company_name || 'Unknown Company';
 
@@ -93,6 +128,9 @@ export const adminService = {
           if (task.recruiter_id && recruiterData[task.recruiter_id]) {
             company_name = recruiterData[task.recruiter_id].company_name;
           }
+
+          // Get premium status from the jobs data
+          const is_premium = task.job_id ? premiumStatusMap[task.job_id] || false : false;
 
           return {
             id: task.task_id,
@@ -110,7 +148,8 @@ export const adminService = {
             job_id: task.job_id,
             recruiter_id: task.recruiter_id,
             application_id: task.application_id,
-            student_id: task.student_id
+            student_id: task.student_id,
+            is_premium: is_premium
           };
         });
 
@@ -395,41 +434,97 @@ export const adminService = {
       const jobsData = await response.json();
       const jobs = jobsData?.jobs || jobsData.data || jobsData || [];
 
-      // Debug: Log jobs to check structure
-      console.log('Fetched jobs from external API:', jobs);
+      console.log(`Fetched ${jobs.length} jobs from external API`);
 
-      // Fetch applicants for each job individually
+      // Optimized batch processing to avoid overwhelming the API
       const { recruiterExternalService } = await import('./recruiterExternalService');
 
-      const jobsWithCounts = await Promise.all(
-        jobs.slice(0, 10).map(async (job) => { // Limit to first 10 jobs for testing
-          try {
-            console.log(`Fetching applicants for job ${job.job_id || job.id}`);
-            // Get applicants for this specific job
-            const applicantsData = await recruiterExternalService.getAllApplicants(job.job_id || job.id);
-            console.log(`API response for job ${job.job_id || job.id}:`, applicantsData);
+      const BATCH_SIZE = 5; // Process 5 jobs at a time
+      const DELAY_MS = 200; // 200ms delay between batches
+      const RETRY_ATTEMPTS = 2; // Retry failed requests up to 2 times
 
-            // The API returns an array of applicants with student_id, count them
-            const applicationCount = applicantsData && Array.isArray(applicantsData) ? applicantsData.length : 0;
+      const jobsWithCounts = [];
+      const errors = [];
 
-            return {
-              ...job,
-              application_count: applicationCount,
-              applications: applicantsData || []
-            };
-          } catch (error) {
-            console.error(`Failed to fetch applicants for job ${job.id}:`, error);
-            // Return job with zero applications on error
-            return {
-              ...job,
-              application_count: 0,
-              applications: []
-            };
+      // Process jobs in batches
+      for (let i = 0; i < jobs.length; i += BATCH_SIZE) {
+        const batch = jobs.slice(i, i + BATCH_SIZE);
+        console.log(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(jobs.length / BATCH_SIZE)} (${batch.length} jobs)`);
+
+        // Process batch in parallel
+        const batchPromises = batch.map(async (job) => {
+          const jobId = job.job_id || job.id;
+
+          // Retry logic for failed API calls
+          for (let attempt = 0; attempt <= RETRY_ATTEMPTS; attempt++) {
+            try {
+              console.log(`Fetching applicants for job ${jobId} (attempt ${attempt + 1})`);
+              const applicantsData = await recruiterExternalService.getAllApplicants(jobId);
+
+              // Handle different response formats from the API
+              let applications = [];
+              let applicationCount = 0;
+
+              if (applicantsData) {
+                if (Array.isArray(applicantsData)) {
+                  // Direct array of applications
+                  applications = applicantsData;
+                  applicationCount = applicantsData.length;
+                } else if (applicantsData.applications && Array.isArray(applicantsData.applications)) {
+                  // Object with applications array and count
+                  applications = applicantsData.applications;
+                  applicationCount = applicantsData.count || applicantsData.applications.length;
+                } else if (typeof applicantsData === 'object' && applicantsData.count !== undefined) {
+                  // Object with count but no applications array
+                  applicationCount = applicantsData.count;
+                  applications = [];
+                }
+              }
+
+              console.log(`Job ${jobId}: ${applicationCount} applications`);
+              return {
+                ...job,
+                application_count: applicationCount,
+                applications: applications
+              };
+            } catch (error) {
+              console.error(`Attempt ${attempt + 1} failed for job ${jobId}:`, error.message);
+
+              if (attempt === RETRY_ATTEMPTS) {
+                // All retry attempts failed
+                errors.push({ jobId, error: error.message });
+                return {
+                  ...job,
+                  application_count: 0,
+                  applications: []
+                };
+              }
+
+              // Wait before retrying (exponential backoff)
+              await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+            }
           }
-        })
-      );
+        });
 
-      console.log('Jobs with counts:', jobsWithCounts);
+        // Wait for current batch to complete
+        const batchResults = await Promise.all(batchPromises);
+        jobsWithCounts.push(...batchResults);
+
+        // Add delay between batches (except for the last batch)
+        if (i + BATCH_SIZE < jobs.length) {
+          console.log(`Waiting ${DELAY_MS}ms before next batch...`);
+          await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+        }
+      }
+
+      console.log(`Processing complete. ${jobsWithCounts.length} jobs processed.`);
+      if (errors.length > 0) {
+        console.warn(`${errors.length} jobs had API errors:`, errors);
+      }
+
+      const totalApplications = jobsWithCounts.reduce((sum, job) => sum + (job.application_count || 0), 0);
+      console.log(`Total applications across all jobs: ${totalApplications}`);
+
       return jobsWithCounts;
     } catch (error) {
       console.error('Failed to fetch jobs with application counts:', error);

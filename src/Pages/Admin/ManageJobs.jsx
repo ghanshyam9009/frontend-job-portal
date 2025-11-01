@@ -90,6 +90,7 @@ const ManageJobs = () => {
           title: task.title || task.category,
           posted_date: task.posted_date,
           updated_date: task.updated_date,
+          is_premium: task.is_premium || false, // Include premium status from task
           tasks: []
         };
       }
