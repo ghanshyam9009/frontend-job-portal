@@ -70,6 +70,17 @@
   border-left-color: #3b82f6;
 }
 
+.navLink.restricted {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: #9ca3af;
+}
+
+.navLink.restricted:hover {
+  background: none;
+  color: #9ca3af;
+}
+
 .navIcon {
   margin-right: 16px;
   font-size: 18px;

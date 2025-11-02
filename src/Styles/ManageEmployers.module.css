@@ -62,6 +62,33 @@
   background: #2563eb;
 }
 
+.downloadBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 12px;
+  width: fit-content;
+}
+
+.downloadBtn:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.downloadBtn:active {
+  transform: translateY(0);
+}
+
 .searchAndFilter {
   display: flex;
   justify-content: space-between;
@@ -566,4 +593,3 @@
     font-size: 12px;
   }
 }
-

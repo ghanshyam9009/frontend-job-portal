@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext"; // Import useTheme
 import { Home, Users, Building, FileText, Clock, Building2, ClipboardList, CreditCard, Phone, BarChart3, Settings, Bell } from "lucide-react";
+import { adminService } from "../../services/adminService";
 import styles from "../../Styles/AdminSidebar.module.css";
 
 const AdminSidebar = ({ isOpen, onClose }) => {
@@ -10,6 +11,22 @@ const AdminSidebar = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { theme } = useTheme(); // Use theme context
+  const [pendingRecruiters, setPendingRecruiters] = useState(0);
+
+  // Fetch pending recruiters count
+  useEffect(() => {
+    const fetchPendingRecruiters = async () => {
+      try {
+        const response = await adminService.getAllRecruiters();
+        const pendingCount = response.recruiters?.filter(r => r.hasadminapproved === false).length || 0;
+        setPendingRecruiters(pendingCount);
+      } catch (error) {
+        console.error('Failed to fetch pending recruiters count:', error);
+      }
+    };
+
+    fetchPendingRecruiters();
+  }, []);
 
   const menuItems = [
     {
@@ -26,7 +43,7 @@ const AdminSidebar = ({ isOpen, onClose }) => {
     },
     {
       id: 'pending-applications',
-      label: 'Pending Job Applications',
+      label: 'Pending Job',
       icon: Clock,
       path: '/admin/pending-applications'
     },
@@ -34,7 +51,8 @@ const AdminSidebar = ({ isOpen, onClose }) => {
       id: 'employers',
       label: 'Manage Employers',
       icon: Building,
-      path: '/admin/employers'
+      path: '/admin/employers',
+      badge: pendingRecruiters > 0 ? pendingRecruiters : null
     },
     {
       id: 'jobs',

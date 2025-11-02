@@ -25,7 +25,9 @@ const RecruiterLogin = () => {
     companyName: "",
     contactPerson: "",
     phone: "",
-    companySize: ""
+    companySize: "",
+    location: "",
+    industry: ""
   });
 
   const handleInputChange = (e) => {
@@ -45,7 +47,7 @@ const RecruiterLogin = () => {
         if (result.success) {
           setSuccess("Login successful!");
           setError("");
-          const from = location.state?.from?.pathname || '/recruiter/dashboard';
+          const from = location.state?.from?.pathname || '/company-profile';
           navigate(from, { replace: true });
         } else {
           const errorMessage = result.error?.error || result.error?.response?.data?.error || result.error?.message || '';
@@ -79,9 +81,9 @@ const RecruiterLogin = () => {
           phone_number: formData.phone,
           company_name: formData.companyName,
           company_website: "", // Not in form, but required by API
-          industry: "", // Not in form, but required by API
+          industry: formData.industry,
           company_size: formData.companySize,
-          location: "", // Not in form, but required by API
+          location: formData.location,
           description: "", // Not in form, but required by API
           role: 'recruiter'
         });
@@ -144,7 +146,7 @@ const RecruiterLogin = () => {
 
                 <div className={styles.inputGroup}>
                   <label className={styles.label}>
-                    <span className={styles.labelText}>Contact Person</span>
+                    <span className={styles.labelText}></span>
                     <input
                       type="text"
                       name="contactPerson"
@@ -174,6 +176,43 @@ const RecruiterLogin = () => {
                       <option value="201-500">201-500 employees</option>
                       <option value="500+">500+ employees</option>
                     </select>
+                  </label>
+                </div>
+
+                <div className={styles.inputGroup}>
+                  <label className={styles.label}>
+                    <span className={styles.labelText}>Industry</span>
+                    <select
+                      name="industry"
+                      value={formData.industry}
+                      onChange={handleInputChange}
+                      className={styles.input}
+                      required={!isLogin}
+                    >
+                      <option value="">Select industry</option>
+                      <option value="Technology">Technology</option>
+                      <option value="Healthcare">Healthcare</option>
+                      <option value="Finance">Finance</option>
+                      <option value="Education">Education</option>
+                      <option value="Manufacturing">Manufacturing</option>
+                      <option value="Retail">Retail</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div className={styles.inputGroup}>
+                  <label className={styles.label}>
+                    <span className={styles.labelText}>Location</span>
+                    <input
+                      type="text"
+                      name="location"
+                      value={formData.location}
+                      onChange={handleInputChange}
+                      placeholder="City, State, Country"
+                      className={styles.input}
+                      required={!isLogin}
+                    />
                   </label>
                 </div>
               </>
@@ -312,7 +351,9 @@ const RecruiterLogin = () => {
                     companyName: "",
                     contactPerson: "",
                     phone: "",
-                    companySize: ""
+                    companySize: "",
+                    location: "",
+                    industry: ""
                   });
                 }}
               >

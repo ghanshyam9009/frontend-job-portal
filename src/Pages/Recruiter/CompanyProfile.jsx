@@ -43,20 +43,80 @@ const CompanyProfile = () => {
     gst_number: "",
     registration_certificate: "",
     bank_account: "",
-    address_proof: ""
+    address_proof: "",
+    pan_card_file: null,
+    gst_certificate_file: null,
+    registration_certificate_file: null,
+    bank_statement_file: null,
+    address_proof_file: null
   });
 
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 2;
+  const [profileCompletion, setProfileCompletion] = useState(0);
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
+
+  // Calculate profile completion percentage
+  const calculateProfileCompletion = (data) => {
+    const requiredFields = [
+      'company_name',
+      'email',
+      'industry',
+      'company_size',
+      'description'
+    ];
+
+    const optionalFields = [
+      'phone',
+      'website',
+      'address',
+      'city',
+      'state',
+      'country',
+      'postal_code',
+      'founded_year'
+    ];
+
+    let completedRequired = 0;
+    let completedOptional = 0;
+
+    // Check required fields
+    requiredFields.forEach(field => {
+      if (data[field] && data[field].toString().trim() !== '') {
+        completedRequired++;
+      }
+    });
+
+    // Check optional fields
+    optionalFields.forEach(field => {
+      if (data[field] && data[field].toString().trim() !== '') {
+        completedOptional++;
+      }
+    });
+
+    // Required fields weight 70%, optional fields weight 30%
+    const requiredWeight = 70;
+    const optionalWeight = 30;
+
+    const requiredScore = (completedRequired / requiredFields.length) * requiredWeight;
+    const optionalScore = (completedOptional / optionalFields.length) * optionalWeight;
+
+    return Math.round(requiredScore + optionalScore);
+  };
+
+  // Update profile completion when profile data changes
+  useEffect(() => {
+    const completion = calculateProfileCompletion(profileData);
+    setProfileCompletion(completion);
+  }, [profileData]);
 
   // Fetch profile data on component mount
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`https://api.bigsources.in/api/Recruiter/profile/${user?.email}`);
+        const response = await fetch(`https://4x10ubol84.execute-api.ap-southeast-1.amazonaws.com/default/getepmloyerdetailed?email=${encodeURIComponent(user?.email)}`);
         if (response.ok) {
           const data = await response.json();
           setProfileData(prev => ({
@@ -89,6 +149,13 @@ const CompanyProfile = () => {
     setKycData(prev => ({
       ...prev,
       [field]: value
+    }));
+  };
+
+  const handleFileChange = (field, file) => {
+    setKycData(prev => ({
+      ...prev,
+      [field]: file
     }));
   };
 
@@ -139,7 +206,7 @@ const CompanyProfile = () => {
         setShowSuccessModal(true);
         setProfileData(prev => ({
           ...prev,
-          kyc_status: "pending",
+          kyc_status: "verified",
           kyc_documents: kycData
         }));
       } else {
@@ -203,8 +270,23 @@ const CompanyProfile = () => {
       <main className={styles.main}>
         <section className={styles.companyProfileSection}>
           <div className={styles.sectionHeader}>
-            <h1>Company Profile</h1>
-            <p>Manage your company information and KYC documents</p>
+            <div className={styles.headerContent}>
+              <div>
+                <h1>Company Profile</h1>
+                <p>Manage your company information and KYC documents</p>
+              </div>
+              <div className={styles.profileCompletion}>
+                <div className={styles.completionCircle}>
+                  <div className={styles.completionProgress} style={{'--progress': `${profileCompletion}%`}}>
+                    <span className={styles.completionText}>{profileCompletion}%</span>
+                  </div>
+                </div>
+                <div className={styles.completionLabel}>
+                  <span>Profile Completion</span>
+                  <small>{profileCompletion === 100 ? 'Complete' : 'In Progress'}</small>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Step Indicator */}
@@ -374,16 +456,7 @@ const CompanyProfile = () => {
               {/* KYC Section */}
               {currentStep === 2 && (
                 <div className={styles.formSection}>
-                  <div className={styles.kycHeader}>
-                    <h2>KYC Verification</h2>
-                    <div className={styles.kycStatus}>
-                      <span className={`${styles.statusBadge} ${getKycStatusColor(profileData.kyc_status)}`}>
-                        {profileData.kyc_status === 'verified' ? <><CheckCircle size={16} /> Verified</> :
-                         profileData.kyc_status === 'pending' ? <><Clock size={16} /> Pending Review</> :
-                         <><XCircle size={16} /> Not Verified</>}
-                      </span>
-                    </div>
-                  </div>
+                  <h2>KYC Verification</h2>
                   
                   <form onSubmit={handleKycUpdate} className={styles.profileForm}>
                     <div className={styles.formGrid}>
@@ -399,6 +472,18 @@ const CompanyProfile = () => {
                         />
                       </div>
                       <div className={styles.formGroup}>
+                        <label>PAN Card Document *</label>
+                        <input
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={(e) => handleFileChange("pan_card_file", e.target.files[0])}
+                          required
+                        />
+                        {kycData.pan_card_file && (
+                          <small className={styles.fileName}>{kycData.pan_card_file.name}</small>
+                        )}
+                      </div>
+                      <div className={styles.formGroup}>
                         <label>GST Number</label>
                         <input
                           type="text"
@@ -406,6 +491,17 @@ const CompanyProfile = () => {
                           onChange={(e) => handleKycInputChange("gst_number", e.target.value.toUpperCase())}
                           placeholder="22ABCDE1234F1Z5"
                         />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label>GST Certificate</label>
+                        <input
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={(e) => handleFileChange("gst_certificate_file", e.target.files[0])}
+                        />
+                        {kycData.gst_certificate_file && (
+                          <small className={styles.fileName}>{kycData.gst_certificate_file.name}</small>
+                        )}
                       </div>
                       <div className={styles.formGroup}>
                         <label>Registration Certificate Number</label>
@@ -417,6 +513,17 @@ const CompanyProfile = () => {
                         />
                       </div>
                       <div className={styles.formGroup}>
+                        <label>Registration Certificate Document</label>
+                        <input
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={(e) => handleFileChange("registration_certificate_file", e.target.files[0])}
+                        />
+                        {kycData.registration_certificate_file && (
+                          <small className={styles.fileName}>{kycData.registration_certificate_file.name}</small>
+                        )}
+                      </div>
+                      <div className={styles.formGroup}>
                         <label>Bank Account Number</label>
                         <input
                           type="text"
@@ -424,6 +531,17 @@ const CompanyProfile = () => {
                           onChange={(e) => handleKycInputChange("bank_account", e.target.value)}
                           placeholder="Bank account number"
                         />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label>Bank Statement</label>
+                        <input
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={(e) => handleFileChange("bank_statement_file", e.target.files[0])}
+                        />
+                        {kycData.bank_statement_file && (
+                          <small className={styles.fileName}>{kycData.bank_statement_file.name}</small>
+                        )}
                       </div>
                       <div className={styles.formGroup}>
                         <label>Address Proof</label>
@@ -434,12 +552,24 @@ const CompanyProfile = () => {
                           placeholder="Address proof document reference"
                         />
                       </div>
+                      <div className={styles.formGroup}>
+                        <label>Address Proof Document</label>
+                        <input
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={(e) => handleFileChange("address_proof_file", e.target.files[0])}
+                        />
+                        {kycData.address_proof_file && (
+                          <small className={styles.fileName}>{kycData.address_proof_file.name}</small>
+                        )}
+                      </div>
                     </div>
-                    
+
                     <div className={styles.kycNotice}>
-                      <p><strong>Note:</strong> KYC verification is required for posting jobs. Please ensure all information is accurate as it will be verified by our admin team.</p>
+                      <p><strong>Note:</strong> KYC verification is required for posting jobs. Please ensure all information is accurate.</p>
+                      <p><strong>Important:</strong> Please match the request form exactly as specified. All documents must be clear and legible.</p>
                     </div>
-                    
+
                     <div className={styles.formActions}>
                       <button type="button" className={styles.backBtn} onClick={() => setCurrentStep(1)}>
                         Go Back
@@ -475,7 +605,7 @@ const CompanyProfile = () => {
               <div className={styles.successIcon}><Check size={24} /></div>
               <p className={styles.successMessage}>
                 {profileData.kyc_status === 'pending' ?
-                  'KYC information submitted successfully! It will be reviewed by our admin team.' :
+                  'KYC information submitted successfully!' :
                   'Company profile updated successfully!'
                 }
               </p>

@@ -31,8 +31,12 @@ export const recruiterService = {
 
   async getProfile(email) {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.recruiters.getProfile(email));
-      return response;
+      const response = await fetch(`https://4x10ubol84.execute-api.ap-southeast-1.amazonaws.com/default/getepmloyerdetailed?email=${encodeURIComponent(email)}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return { success: true, data: data };
     } catch (error) {
       throw error;
     }

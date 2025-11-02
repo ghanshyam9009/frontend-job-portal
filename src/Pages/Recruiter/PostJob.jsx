@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { jobService } from "../../services/jobService";
-import { Check } from "lucide-react";
+import { Check, AlertTriangle, Building } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 
 const PostJob = () => {
@@ -39,6 +39,51 @@ const PostJob = () => {
   });
 
   const [newSkill, setNewSkill] = useState("");
+  const [profileData, setProfileData] = useState(null);
+  const [canPostJob, setCanPostJob] = useState(false);
+  const [restrictionReason, setRestrictionReason] = useState("");
+
+  // Check profile and KYC status
+  useEffect(() => {
+    const checkPostingEligibility = async () => {
+      if (!user?.email) return;
+
+      try {
+        const response = await fetch(`https://api.bigsources.in/api/Recruiter/profile/${user.email}`);
+        if (response.ok) {
+          const data = await response.json();
+          setProfileData(data);
+
+          // Calculate profile completion
+          const requiredFields = ['company_name', 'email', 'industry', 'company_size', 'description'];
+          const completedRequired = requiredFields.filter(field =>
+            data[field] && data[field].toString().trim() !== ''
+          ).length;
+          const profileComplete = completedRequired === requiredFields.length;
+
+          // Check KYC status
+          const kycVerified = data.kyc_status === 'verified';
+
+          if (!profileComplete) {
+            setCanPostJob(false);
+            setRestrictionReason("Complete your company profile (100%) before posting jobs");
+          } else if (!kycVerified) {
+            setCanPostJob(false);
+            setRestrictionReason("KYC verification required before posting jobs");
+          } else {
+            setCanPostJob(true);
+            setRestrictionReason("");
+          }
+        }
+      } catch (err) {
+        console.error('Failed to check posting eligibility:', err);
+        setCanPostJob(false);
+        setRestrictionReason("Unable to verify account status");
+      }
+    };
+
+    checkPostingEligibility();
+  }, [user?.email]);
 
   const handleInputChange = (field, value) => {
     const keys = field.split(".");
@@ -161,8 +206,28 @@ const PostJob = () => {
           <div className={styles.sectionHeader}>
             <h1>Post New Job</h1>
           </div>
-          
-          <form onSubmit={handleSubmit} className={styles.jobForm}>
+
+          {/* Restriction Notice */}
+          {!canPostJob && restrictionReason && (
+            <div className={styles.restrictionNotice}>
+              <div className={styles.restrictionContent}>
+                <AlertTriangle size={24} className={styles.restrictionIcon} />
+                <div className={styles.restrictionText}>
+                  <h3>Job Posting Restricted</h3>
+                  <p>{restrictionReason}</p>
+                  <button
+                    className={styles.completeProfileBtn}
+                    onClick={() => navigate('/company-profile')}
+                  >
+                    <Building size={16} />
+                    Complete Profile & KYC
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className={styles.jobForm} style={{ opacity: canPostJob ? 1 : 0.5, pointerEvents: canPostJob ? 'auto' : 'none' }}>
             <div className={styles.formSection}>
               <h2>Basic Information</h2>
               <div className={styles.formGrid}>

@@ -13,6 +13,7 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
   const { theme } = useTheme();
   const [recruiterProfile, setRecruiterProfile] = useState(null);
   const [applicationCount, setApplicationCount] = useState(0);
+  const [canAccessJobFeatures, setCanAccessJobFeatures] = useState(false);
 
   useEffect(() => {
     const fetchRecruiterProfile = async () => {
@@ -20,8 +21,19 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
         try {
           const profile = await recruiterExternalService.getRecruiterProfile(user.employer_id || user.id);
           setRecruiterProfile(profile);
+
+          // Check profile completion and KYC status
+          const requiredFields = ['company_name', 'email', 'industry', 'company_size', 'description'];
+          const completedRequired = requiredFields.filter(field =>
+            profile[field] && profile[field].toString().trim() !== ''
+          ).length;
+          const profileComplete = completedRequired === requiredFields.length;
+          const kycVerified = profile.kyc_status === 'verified';
+
+          setCanAccessJobFeatures(profileComplete && kycVerified);
         } catch (err) {
           console.error('Failed to fetch recruiter profile:', err);
+          setCanAccessJobFeatures(false);
         }
       }
     };
@@ -68,50 +80,61 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
       id: 'dashboard',
       label: 'Dashboard',
       icon: <Home size={20} />,
-      path: '/recruiter/dashboard'
+      path: '/recruiter/dashboard',
+      restricted: false
     },
     {
       id: 'post-job',
       label: 'Post Job',
       icon: <Plus size={20} />,
-      path: '/post-job'
+      path: '/post-job',
+      restricted: !canAccessJobFeatures,
+      restrictionMessage: 'Complete profile and KYC verification to post jobs'
     },
     {
       id: 'manage-jobs',
       label: 'Manage Posted Jobs',
       icon: <FileText size={20} />,
-      path: '/manage-jobs'
+      path: '/manage-jobs',
+      restricted: !canAccessJobFeatures,
+      restrictionMessage: 'Complete profile and KYC verification to manage jobs'
     },
     {
       id: 'applications',
       label: 'Candidate Applications',
       icon: <Users size={20} />,
       path: '/candidate-applications',
-      // badge: applicationCount
+      restricted: !canAccessJobFeatures,
+      restrictionMessage: 'Complete profile and KYC verification to view applications'
     },
     {
       id: 'shortlist',
       label: 'Shortlist Candidates',
       icon: <Star size={20} />,
-      path: '/shortlist-candidates'
+      path: '/shortlist-candidates',
+      restricted: !canAccessJobFeatures,
+      restrictionMessage: 'Complete profile and KYC verification to shortlist candidates'
     },
     {
       id: 'profile',
       label: 'Company Profile',
       icon: <Building size={20} />,
-      path: '/company-profile'
+      path: '/company-profile',
+      restricted: false
     },
     {
       id: 'membership',
       label: 'Membership',
       icon: <CreditCard size={20} />,
-      path: '/membership-tokens'
+      path: '/membership-tokens',
+      restricted: false
     },
     {
       id: 'settings',
       label: 'Settings',
       icon: <Settings size={20} />,
-      path: '/recruiter-settings'
+      path: '/recruiter-settings',
+      restricted: false
     }
   ];
 
@@ -136,8 +159,10 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
           {menuItems.map((item) => (
             <li key={item.id} className={styles.navItem}>
               <button
-                className={`${styles.navLink} ${isActive(item.path) ? styles.active : ''}`}
-                onClick={() => handleNavigation(item.path)}
+                className={`${styles.navLink} ${isActive(item.path) ? styles.active : ''} ${item.restricted ? styles.restricted : ''}`}
+                onClick={() => !item.restricted && handleNavigation(item.path)}
+                disabled={item.restricted}
+                title={item.restricted ? item.restrictionMessage : ''}
               >
                 <span className={styles.navIcon}>{item.icon}</span>
                 <span className={styles.navLabel}>{item.label}</span>

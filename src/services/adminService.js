@@ -274,6 +274,7 @@ export const adminService = {
 
   async approveRecruiter(recruiter) {
     try {
+      // Send email as JSON object in request body
       const response = await adminApiClient.put(API_ENDPOINTS.admin.approveRecruiter, {
         email: recruiter.email
       });
