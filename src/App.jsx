@@ -36,6 +36,7 @@ import AdminLogin from './Pages/Admin/AdminLogin'
 import AdminLayout from './Components/Admin/AdminLayout'
 import AdminDashboard from './Pages/Admin/AdminDashboard'
 import ManageCandidates from './Pages/Admin/ManageCandidates'
+import PendingJobApplications from './Pages/Admin/PendingJobApplications'
 import ManageEmployers from './Pages/Admin/ManageEmployers'
 import AdminManageJobs from './Pages/Admin/ManageJobs'
 import ReportsAnalytics from './Pages/Admin/ReportsAnalytics'
@@ -112,6 +113,7 @@ function App() {
           <Route element={<ProtectedRoute role="admin"><AdminLayout /></ProtectedRoute>}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/candidates" element={<ManageCandidates />} />
+            <Route path="/admin/pending-applications" element={<PendingJobApplications />} />
             <Route path="/admin/employers" element={<ManageEmployers />} />
             <Route path="/admin/jobs" element={<AdminManageJobs />} />
             <Route path="/admin/reports" element={<ReportsAnalytics />} />

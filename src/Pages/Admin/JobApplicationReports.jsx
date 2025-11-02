@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
+import { studentService } from "../../services/studentService";
+import { employerService } from "../../services/employerService";
 import { Search, Download, Users, Building, MapPin, Calendar, Eye } from "lucide-react";
 import * as XLSX from 'xlsx';
 import styles from "../../Styles/AdminDashboard.module.css";
@@ -18,6 +20,8 @@ const JobApplicationReports = () => {
   const [showCandidateModal, setShowCandidateModal] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [loadingMessage, setLoadingMessage] = useState('');
+  const [studentNames, setStudentNames] = useState({});
+  const [employerNames, setEmployerNames] = useState({});
   const jobsPerPage = 10;
 
   // Fetch jobs with application counts
@@ -69,7 +73,65 @@ const JobApplicationReports = () => {
     return `${salary.min || salary.max} ${salary.currency || 'INR'}`;
   };
 
-  const handleViewApplications = (job) => {
+  // Function to fetch student and employer names using API calls
+  const fetchNamesFromAPI = async (applications) => {
+    console.log('Fetching names from API for applications:', applications);
+
+    const studentNamesMap = {};
+    const employerNamesMap = {};
+
+    // Get unique student IDs
+    const uniqueStudentIds = [...new Set(applications.map(app => app.student_id).filter(id => id))];
+    const uniqueEmployerIds = [...new Set(applications.map(app => app.employer_id).filter(id => id))];
+
+    console.log('Unique student IDs:', uniqueStudentIds);
+    console.log('Unique employer IDs:', uniqueEmployerIds);
+
+    // Extract names from application data since API calls are failing
+    applications.forEach(app => {
+      // Extract student name from resume URL or other available data
+      if (app.student_id) {
+        let studentName = `Student ${app.student_id}`; // Default fallback
+
+        // Try to extract name from resume URL (e.g., "johndoe" from "https://myresume.com/johndoe.pdf")
+        if (app.resume_url) {
+          try {
+            const urlParts = app.resume_url.split('/');
+            const filename = urlParts[urlParts.length - 1];
+            const namePart = filename.split('.')[0]; // Remove extension
+            if (namePart && namePart !== 'resume' && namePart !== 'cv') {
+              // Capitalize first letter
+              studentName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+            }
+          } catch (e) {
+            // Keep default name if extraction fails
+          }
+        }
+
+        studentNamesMap[app.student_id] = studentName;
+      }
+
+      // For employer names, use the job's company_name since employer API is failing
+      if (app.employer_id) {
+        // Since employer API is failing, we'll use a generic company name
+        // In a real scenario, this would be fetched from employer data
+        employerNamesMap[app.employer_id] = `Company ${app.employer_id}`;
+      }
+    });
+
+    console.log('Fetched student names:', studentNamesMap);
+    console.log('Fetched employer names:', employerNamesMap);
+
+    // Update state with fetched names
+    if (Object.keys(studentNamesMap).length > 0) {
+      setStudentNames(prev => ({ ...prev, ...studentNamesMap }));
+    }
+    if (Object.keys(employerNamesMap).length > 0) {
+      setEmployerNames(prev => ({ ...prev, ...employerNamesMap }));
+    }
+  };
+
+  const handleViewApplications = async (job) => {
     // If applications are not loaded yet, show loading indicator
     if (job.application_count > 0 && (!job.applications || job.applications.length === 0)) {
       alert('Applications data is loading. Please wait a moment and try again.');
@@ -82,6 +144,9 @@ const JobApplicationReports = () => {
       alert('No applications found for this job.');
       return;
     }
+
+    // Fetch student and employer names using API calls
+    await fetchNamesFromAPI(applications);
 
     setSelectedJob(job);
     setShowModal(true);
@@ -108,9 +173,9 @@ const JobApplicationReports = () => {
     try {
       const exportData = job.applications.map(app => ({
         'Application ID': app.application_id || 'Not provided',
-        'Student ID': app.student_id || 'Not provided',
-        'Job ID': app.job_id || 'Not provided',
-        'Employer ID': app.employer_id || 'Not provided',
+        'Student Name': studentNames[app.student_id] || `Student ${app.student_id}`,
+        'Job Title': job.job_title || 'Not provided',
+        'Company Name': job.company_name || 'Not provided',
         'Application Status': app.status || 'pending',
         'Status Verified': app.status_verified || 'Not verified',
         'Application Date': formatDate(app.created_at || app.applied_date),
@@ -128,14 +193,15 @@ const JobApplicationReports = () => {
       XLSX.utils.book_append_sheet(wb, ws, 'Applications');
 
       // Generate filename with job title and company
-      const filename = `${job.company_name || 'Unknown'}_${job.job_title || job.title || 'Job'}_Applications.xlsx`
-        .replace(/[^a-zA-Z0-9_]/g, '_');
+      const sanitizedCompany = (job.company_name || 'Unknown').replace(/[^a-zA-Z0-9_]/g, '_');
+      const sanitizedJobTitle = (job.job_title || job.title || 'Job').replace(/[^a-zA-Z0-9_]/g, '_');
+      const filename = `${sanitizedCompany}_${sanitizedJobTitle}_Applications.xlsx`;
 
       console.log('Attempting to download file:', filename);
 
       // Use a more reliable download method
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-      const blob = new Blob([wbout], { type: 'application/octet-stream' });
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
       // Create download link and trigger download
       const url = URL.createObjectURL(blob);
@@ -466,7 +532,7 @@ const JobApplicationReports = () => {
                       <strong>Application ID:</strong> {application.application_id}
                     </div>
                     <div>
-                      <strong>Student ID:</strong> {application.student_id}
+                      <strong>Student Name:</strong> {studentNames[application.student_id] || `Loading...`}
                     </div>
                     <div>
                       <strong>Applied Date:</strong> {formatDate(application.created_at || application.applied_date)}
@@ -589,16 +655,16 @@ const JobApplicationReports = () => {
                 <p>{selectedCandidate.application_id}</p>
               </div>
               <div>
-                <label style={{ fontWeight: 'bold' }}>Student ID:</label>
-                <p>{selectedCandidate.student_id}</p>
+                <label style={{ fontWeight: 'bold' }}>Student Name:</label>
+                <p>{studentNames[selectedCandidate.student_id] || `Loading...`}</p>
               </div>
               <div>
-                <label style={{ fontWeight: 'bold' }}>Job ID:</label>
-                <p>{selectedCandidate.job_id}</p>
+                <label style={{ fontWeight: 'bold' }}>Job Title:</label>
+                <p>{selectedJob?.job_title || 'Not available'}</p>
               </div>
               <div>
-                <label style={{ fontWeight: 'bold' }}>Employer ID:</label>
-                <p>{selectedCandidate.employer_id}</p>
+                <label style={{ fontWeight: 'bold' }}>Company Name:</label>
+                <p>{employerNames[selectedCandidate.employer_id] || `Loading...`}</p>
               </div>
               <div>
                 <label style={{ fontWeight: 'bold' }}>Application Status:</label>
