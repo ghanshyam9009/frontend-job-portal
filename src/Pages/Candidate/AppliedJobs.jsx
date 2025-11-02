@@ -31,10 +31,25 @@ const AppliedJobs = () => {
           location: a.location || '',
           type: a.employment_type || '',
           appliedDate: a.created_at ? a.created_at.split('T')[0] : '',
+          appliedDateTime: a.created_at || '', // Keep full datetime for sorting
           status: a.status || 'Under Review',
-          applicationId: a.application_id || ''
+          applicationId: a.application_id || '',
+          is_premium: a.is_premium || false // Include premium status
         }));
-        setAppliedJobs(mapped);
+
+        // Sort by applied date (latest first)
+        const sorted = mapped.sort((a, b) => {
+          const dateA = new Date(a.appliedDateTime || 0);
+          const dateB = new Date(b.appliedDateTime || 0);
+
+          // Handle invalid dates
+          const timeA = isNaN(dateA.getTime()) ? 0 : dateA.getTime();
+          const timeB = isNaN(dateB.getTime()) ? 0 : dateB.getTime();
+
+          return timeB - timeA; // Latest first
+        });
+
+        setAppliedJobs(sorted);
       } catch (e) {
         setError(typeof e === 'string' ? e : e?.message || 'Failed to load applied jobs');
       } finally {
@@ -122,6 +137,26 @@ const AppliedJobs = () => {
             <div className={styles.jobsGrid}>
               {appliedJobs.map(job => (
                 <div key={job.id} className={styles.jobCard}>
+                  {job.is_premium && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: '10px',
+                      background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                      color: '#000',
+                      padding: '4px 8px',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      zIndex: 1
+                    }}>
+                      <span>👑</span>
+                      Premium
+                    </div>
+                  )}
                   <div className={styles.jobCardHeader}>
                     <div className={styles.jobIcon}><Briefcase size={20} /></div>
                     <div className={`${styles.jobStatus} ${getStatusColor(job.status)}`}>

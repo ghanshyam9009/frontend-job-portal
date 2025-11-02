@@ -564,7 +564,7 @@ const JobListings = () => {
 
               {!loading && !error && jobs.map(job => (
                 <div key={job.job_id || job.id} className={styles.jobCard}>
-                  {job.is_premium && (
+                  {(job.premium_job || job.is_premium) && (
                     <div className={styles.premiumBadge}>
                       <span className={styles.premiumCrown}>👑</span>
                       Premium

@@ -32,6 +32,8 @@ import sbilifeLogo from "../assets/sbilife.jfif";
 import ltimindtreeLogo from "../assets/lit.jfif";
 import requestDemoImage from "../assets/Request free demo.png";
 import jobImage from "../assets/job.jfif";
+import axisBanner from "../assets/axis-banner.jpg";
+import smallBanner from "../assets/banner-small.png";
 
 
 const companies = [
@@ -193,18 +195,28 @@ const popularSearches = [
           salary: j.salary_range ? `₹${j.salary_range.min} - ₹${j.salary_range.max}` : "",
           job_type: j.employment_type || "Full-time",
           company_logo: null,
-          is_premium: j.is_premium || false,
+          is_premium: j.premium_job || j.is_premium || false,
           created_at: j.created_at || j.posted_date
         }));
 
         // Sort: Premium jobs first, then by latest date
         const sortedJobs = mapped.sort((a, b) => {
-          if (a.is_premium && !b.is_premium) return -1;
-          if (!a.is_premium && b.is_premium) return 1;
-          // If both premium or both not, sort by date (latest first)
-          const dateA = new Date(a.created_at || 0);
-          const dateB = new Date(b.created_at || 0);
-          return dateB - dateA;
+          // Premium jobs always come first (check both premium_job and is_premium fields)
+          const aPremium = a.premium_job || a.is_premium || false;
+          const bPremium = b.premium_job || b.is_premium || false;
+
+          if (aPremium && !bPremium) return -1;
+          if (!aPremium && bPremium) return 1;
+
+          // If both are premium or both are not premium, sort by date (latest first)
+          const dateA = new Date(a.created_at || a.posted_date || a.createdAt || 0);
+          const dateB = new Date(b.created_at || b.posted_date || b.createdAt || 0);
+
+          // Handle invalid dates
+          const timeA = isNaN(dateA.getTime()) ? 0 : dateA.getTime();
+          const timeB = isNaN(dateB.getTime()) ? 0 : dateB.getTime();
+
+          return timeB - timeA; // Latest first
         });
 
         setFeaturedJobs(sortedJobs);
@@ -417,7 +429,14 @@ const popularSearches = [
       </section>
 
       {/* Top Hiring Companies */}
-     
+
+
+      {/* Axis Banner */}
+      <section className={styles.bannerSection}>
+        <div className={styles.bannerContainer}>
+          <img src={axisBanner} alt="Axis Bank Banner" className={styles.axisBanner} />
+        </div>
+      </section>
 
       {/* Featured Jobs */}
       <section className={styles.jobsSection}>
@@ -550,13 +569,19 @@ const popularSearches = [
                 {demoSuccess && <p className={styles.successText}>Request sent successfully!</p>}
                 {demoError && <p className={styles.errorText}>{demoError}</p>}
               </div>
-
+               <section className={styles.smallBannerSection}>
+        <div className={styles.smallBannerContainer}>
+          <img src={smallBanner} alt="Small Banner" className={styles.smallBanner} />
+        </div>
+      </section>
             </form>
+            
+      
           </div>
         </div>
       </section>
 
-
+  
 
       {/* Employer Section */}
       <section className={styles.employerSection}>

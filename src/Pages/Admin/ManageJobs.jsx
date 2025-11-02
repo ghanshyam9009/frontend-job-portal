@@ -452,12 +452,27 @@ const ManageJobs = () => {
       setLoading(true);
       const result = await adminService.markJobPremium(task.job_id, isPremium, 'job');
       alert(`Job successfully marked as ${isPremium ? 'premium' : 'non-premium'}: ${result.message || 'Success'}`);
-      
-      // Refresh the jobs list
-      const jobsData = await adminService.getPendingJobs();
-      const jobsArray = Array.isArray(jobsData) ? jobsData : [];
-      setJobs(jobsArray);
-      setFilteredJobs(jobsArray);
+
+      // Update the local state immediately to reflect the change
+      setJobs(prevJobs => {
+        return prevJobs.map(job => {
+          if (job.job_id === task.job_id) {
+            return { ...job, is_premium: isPremium };
+          }
+          return job;
+        });
+      });
+
+      // Also update filtered jobs
+      setFilteredJobs(prevFiltered => {
+        return prevFiltered.map(job => {
+          if (job.job_id === task.job_id) {
+            return { ...job, is_premium: isPremium };
+          }
+          return job;
+        });
+      });
+
     } catch (error) {
       console.error('Failed to mark job as premium:', error);
       alert('Failed to mark job as premium. Please try again.');
