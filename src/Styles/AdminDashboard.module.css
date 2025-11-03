@@ -1903,12 +1903,281 @@
   margin-bottom: 8px;
 }
 
+/* Form Container and Job Form Styles */
+.formContainer {
+  background: var(--card-background);
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: var(--card-border);
+  margin-bottom: 32px;
+}
+
+.jobForm {
+  max-width: 100%;
+}
+
+.formSection {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: var(--card-border);
+}
+
+.formSection:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0 0 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.formLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color);
+  margin-bottom: 8px;
+}
+
+.formInput,
+.formTextarea,
+.formSelect {
+  padding: 12px 16px;
+  border: var(--input-border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--input-background);
+  color: var(--text-color);
+  transition: all 0.2s;
+}
+
+.formInput:focus,
+.formTextarea:focus,
+.formSelect:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.formTextarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-color);
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: #3b82f6;
+}
+
+.salaryGrid {
+  display: grid;
+  grid-template-columns: 120px 1fr 1fr;
+  gap: 12px;
+  align-items: end;
+}
+
+.experienceGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.skillsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.skillInputGroup {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.skillInput {
+  flex: 1;
+  padding: 10px 12px;
+  border: var(--input-border);
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--input-background);
+  color: var(--text-color);
+}
+
+.skillInput:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.addSkillBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.addSkillBtn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.skillsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.skillTag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #e0e7ff;
+  color: #3730a3;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.removeSkillBtn {
+  background: none;
+  border: none;
+  color: #dc2626;
+  cursor: pointer;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.removeSkillBtn:hover {
+  color: #b91c1c;
+}
+
+.formActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: var(--card-border);
+}
+
+.submitBtn {
+  padding: 14px 28px;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.submitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.resetBtn {
+  padding: 14px 28px;
+  background: var(--input-background);
+  color: var(--text-color);
+  border: var(--input-border);
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.resetBtn:hover {
+  background: var(--background-color);
+  border-color: #9ca3af;
+}
+
+.successMessage {
+  padding: 16px 20px;
+  background: #d1fae5;
+  color: #065f46;
+  border-radius: 8px;
+  border: 1px solid #a7f3d0;
+  margin-bottom: 24px;
+  font-weight: 500;
+}
+
+.errorMessage {
+  padding: 16px 20px;
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+  margin-bottom: 24px;
+  font-weight: 500;
+}
+
+.loadingSpinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f3f4f6;
+  border-top: 2px solid #10b981;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
 /* Responsive Design */
 @media (max-width: 1200px) {
   .activityGrid {
     grid-template-columns: 1fr 1fr;
   }
-  
+
   .activityCard:last-child {
     grid-column: 1 / -1;
   }

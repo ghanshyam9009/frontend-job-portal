@@ -61,6 +61,12 @@ const AdminSidebar = ({ isOpen, onClose }) => {
       path: '/admin/jobs'
     },
     {
+      id: 'job-posting',
+      label: 'Job Posting ',
+      icon: FileText,
+      path: '/admin/job-posting'
+    },
+    {
       id: 'job-application-reports',
       label: 'Job Application Reports',
       icon: BarChart3,

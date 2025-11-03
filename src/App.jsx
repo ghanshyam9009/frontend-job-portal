@@ -45,6 +45,8 @@ import HomepageForms from './Pages/Admin/HomepageForms'
 import ContactForms from './Pages/Admin/ContactForms'
 import GovernmentJobsManagement from './Pages/Admin/GovernmentJobsManagement'
 import JobApplicationReports from './Pages/Admin/JobApplicationReports'
+import AdminPostJob from './Pages/Admin/AdminPostJob'
+import JobPostingManagement from './Pages/Admin/JobPostingManagement'
 import ResetPassword from './Pages/Auth/ResetPassword'
 import CareerServices from './Pages/CareerServices'
 import FastTrack from './Pages/FastTrack'
@@ -95,8 +97,6 @@ function App() {
             <Route path="/settings" element={<Settings />} />
             <Route path="/membership-plans" element={<MembershipPlans />} />
           </Route>
-
-
           <Route path="/recruiter/login" element={<RecruiterLogin />} />
           <Route element={<ProtectedRoute role="recruiter"><RecruiterLayout /></ProtectedRoute>}>
             <Route path="/recruiter/dashboard" element={<RecruiterDashboard />} />
@@ -116,6 +116,8 @@ function App() {
             <Route path="/admin/pending-applications" element={<PendingJobApplications />} />
             <Route path="/admin/employers" element={<ManageEmployers />} />
             <Route path="/admin/jobs" element={<AdminManageJobs />} />
+            <Route path="/admin/post-job" element={<AdminPostJob />} />
+            <Route path="/admin/job-posting" element={<JobPostingManagement />} />
             <Route path="/admin/reports" element={<ReportsAnalytics />} />
             <Route path="/admin/membership" element={<ManageMembershipPlans />} />
             <Route path="/admin/homepage-forms" element={<HomepageForms />} />
