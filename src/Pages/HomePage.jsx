@@ -417,7 +417,14 @@ const popularSearches = [
       </section>
 
       {/* Top Hiring Companies */}
-     
+
+
+      {/* Axis Banner */}
+      <section className={styles.axisBannerSection}>
+        <div className={styles.axisBannerContainer}>
+          <img src="src/assets/axis-banner.jpg" alt="Axis Bank Banner" className={styles.axisBanner}/>
+        </div>
+      </section>
 
       {/* Featured Jobs */}
       <section className={styles.jobsSection}>
@@ -551,6 +558,9 @@ const popularSearches = [
                 {demoError && <p className={styles.errorText}>{demoError}</p>}
               </div>
 
+              <div className={styles.smallBannerContainer}>
+                <img src="src/assets/banner-small.png" alt="Small Banner" className={styles.smallBanner}/>
+              </div>
             </form>
           </div>
         </div>

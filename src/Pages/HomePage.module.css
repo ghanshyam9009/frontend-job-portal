@@ -157,6 +157,119 @@
   }
 }
 
+/* Axis Banner Section */
+.axisBannerSection {
+  padding: 2rem 0;
+  background: var(--background-color);
+
+}
+
+.axisBannerContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.axisBanner {
+  width: 100%;
+  max-width: 1000px;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 2px solid #ffffff;
+}
+
+.axisBanner:hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive styles for axis banner */
+@media (max-width: 768px) {
+  .axisBannerSection {
+    padding: 1.5rem 0;
+    margin: 1.5rem 0;
+  }
+
+  .axisBannerContainer {
+    padding: 0 1rem;
+  }
+
+  .axisBanner {
+    max-width: 100%;
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .axisBannerSection {
+    padding: 1rem 0;
+    margin: 1rem 0;
+  }
+
+  .axisBannerContainer {
+    padding: 0 0.5rem;
+  }
+
+  .axisBanner {
+    max-width: 100%;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Small Banner Section */
+.bannerSection {
+  padding: 3rem 0;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.bannerContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.smallBanner {
+  width: 100%;
+     max-width: 287px;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+      margin-top: 90px;
+}
+
+.smallBanner:hover {
+  transform: scale(1.02);
+}
+
+/* Responsive styles for small banner */
+@media (max-width: 768px) {
+  .smallBanner {
+    max-width: 100%;
+    border-radius: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .smallBanner {
+    max-width: 100%;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-top: 65px;
+  }
+}
+
 .heroOverlay {
   position: absolute;
   inset: 0;
@@ -1237,7 +1350,7 @@ img {
 
 /* Employer CTA Section */
 .employerSection {
-    background: var(--background-color); 
+    background: var(--background-color);
     padding: 3rem 0;
     border-top: var(--card-border);
 }
@@ -1297,6 +1410,10 @@ img {
 
   .employerButton {
     width: 100%;
+  }
+
+  .employerSection {
+    margin-top: 30rem;
   }
 }
 
