@@ -9,7 +9,7 @@ const candidatePlans = [
   {
     name: "Platinum",
     description: "Perfect for beginners starting their coding journey with government jobs access.",
-    price: "₹200",
+    price: "₹3000",
     validity: "1 Month",
     features: [
       { name: "Access to all job listings", included: true },
@@ -160,7 +160,7 @@ const Membership = () => {
                     ))}
                   </ul>
                 </div>
-                <button className={styles.planButton}>Choose Plan</button>
+                <button className={styles.planButton}>Membership Plan</button>
               </div>
             ))}
           </div>
