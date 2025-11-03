@@ -32,6 +32,8 @@ import sbilifeLogo from "../assets/sbilife.jfif";
 import ltimindtreeLogo from "../assets/lit.jfif";
 import requestDemoImage from "../assets/Request free demo.png";
 import jobImage from "../assets/job.jfif";
+import axisBanner from "../assets/axis-banner.jpg";
+import bannerSmall from "../assets/banner-small.png";
 
 
 const companies = [
@@ -422,7 +424,7 @@ const popularSearches = [
       {/* Axis Banner */}
       <section className={styles.axisBannerSection}>
         <div className={styles.axisBannerContainer}>
-          <img src="src/assets/axis-banner.jpg" alt="Axis Bank Banner" className={styles.axisBanner}/>
+          <img src={axisBanner} alt="Axis Bank Banner" className={styles.axisBanner}/>
         </div>
       </section>
 
@@ -559,7 +561,7 @@ const popularSearches = [
               </div>
 
               <div className={styles.smallBannerContainer}>
-                <img src="src/assets/banner-small.png" alt="Small Banner" className={styles.smallBanner}/>
+                <img src={bannerSmall} alt="Small Banner" className={styles.smallBanner}/>
               </div>
             </form>
           </div>
