@@ -10,6 +10,7 @@ import Jobdescription from './Pages/Jobdescription'
 import AboutUs from './Pages/AboutUs'
 import ContactUs from './Pages/ContactUs'
 import CandidateLogin from './Pages/Candidate/CandidateLogin'
+import CandidateHome from './Pages/Candidate/CandidateHome'
 import UserDashboard from './Pages/Candidate/UserDashboard'
 import UserJobListings from './Pages/Candidate/UserJobListings'
 import SavedJobs from './Pages/Candidate/SavedJobs'
@@ -89,6 +90,7 @@ function App() {
 
           
           <Route element={<ProtectedRoute role="candidate"><CandidateLayout /></ProtectedRoute>}>
+            <Route path="/candidate-home" element={<CandidateHome />} />
             <Route path="/userdashboard" element={<UserDashboard />} />
             <Route path="/userjoblistings" element={<UserJobListings />} />
             <Route path="/saved-jobs" element={<SavedJobs />} />

@@ -6,21 +6,17 @@ import { applicationService } from "../services/applicationService";
 import { candidateExternalService } from "../services/candidateExternalService";
 import { studentService } from "../services/studentService";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
-import CandidateSidebar from "../Components/Candidate/CandidateSidebar";
 import styles from "./Jobdescription.module.css";
 
 const Jobdescription = () => {
   const [isApplying, setIsApplying] = useState(false);
   const [applicationError, setApplicationError] = useState("");
   const [applicationSuccess, setApplicationSuccess] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hasApplied, setHasApplied] = useState(false);
-
-  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
   // Handle window resize
   useEffect(() => {
@@ -220,17 +216,14 @@ const Jobdescription = () => {
       minHeight: '100vh',
       backgroundColor: theme === 'dark' ? '#1a1a1a' : '#f9fafb'
     }}>
-      <CandidateNavbar toggleSidebar={toggleSidebar} />
-      <CandidateSidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
+      <CandidateNavbar />
       <main style={{
         flex: 1,
-        marginLeft: windowWidth >= 1024 ? (sidebarOpen ? '0px' : '225px') : '0px', // Only apply margin on desktop+
         marginTop: windowWidth >= 768 ? '70px' : '56px', // Reduced margin on mobile
         padding: windowWidth >= 768 ? '20px' : '10px', // Reduced padding on mobile
         overflowY: 'auto',
         backgroundColor: theme === 'dark' ? '#1a1a1a' : '#f9fafb',
         color: theme === 'dark' ? '#ffffff' : '#000000',
-        transition: 'margin-left 0.3s ease',
       }}>
         {loading && (
           <div style={{

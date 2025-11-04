@@ -19,7 +19,7 @@ const CandidateLogin = () => {
   const [errors, setErrors] = useState({});
   
   // Get the return URL from navigation state
-  const from = location.state?.from?.pathname || '/userdashboard';
+  const from = location.state?.from?.pathname || '/candidate-home';
   const [formData, setFormData] = useState({
     email: "",
     password: "",
