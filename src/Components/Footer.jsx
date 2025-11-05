@@ -14,8 +14,8 @@ const Footer = () => {
             </div>
             <div className={styles.logo}>
                               <img src={logo} alt="JobPortal Logo" />
-                          
-                            Big<span style={{ color: '#4f72ab' }}>sources</span>.in
+
+                            <span className={styles.brandText}>Big<span className={styles.brandHighlight}>sources</span>.in</span>
                           </div>
             <div className={styles.socialLinks}>
               <a href="https://www.facebook.com/pages/Bigsources-Placement-Services/1530903963853104" 

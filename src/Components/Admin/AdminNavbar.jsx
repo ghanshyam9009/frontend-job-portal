@@ -41,7 +41,7 @@ const AdminNavbar = ({ onLogout, onMobileMenuToggle }) => {
                                    <img src={logo} alt="JobPortal Logo" />
                                  <Link to="/">
                                  </Link>
-                                 Big<span style={{ color: '#4f72ab' }}>sources</span>.in
+                                 <span className={styles.brandText}>Big<span className={styles.brandHighlight}>sources</span>.in</span>
                                </div>
                              
    
