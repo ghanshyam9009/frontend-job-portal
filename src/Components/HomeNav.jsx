@@ -261,14 +261,14 @@ const HomeNav = () => {
                 <a href="/candidate/login" className={styles.mobileCandidateBtn} onClick={closeMobileMenu}>
                   Candidate Login
                 </a>
-                
+
                 <div className={styles.mobileEmployerSection}>
                   <h4>For Employers</h4>
                   <a href="/recruiter/login" className={styles.mobileEmployerLink} onClick={closeMobileMenu}>
                     Recruiter Login
                   </a>
                   <a href="/admin/login" className={styles.mobileEmployerLink} onClick={closeMobileMenu}>
-                    Admin Login 
+                    Admin Login
                   </a>
                 </div>
               </div>
