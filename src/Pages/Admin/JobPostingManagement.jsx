@@ -3,6 +3,7 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import { useAuth } from "../../Contexts/AuthContext";
 import { adminService } from "../../services/adminService";
 import { candidateExternalService } from "../../services/candidateExternalService";
+import { recruiterExternalService } from "../../services/recruiterExternalService";
 import { Building2, Edit, Trash2, Search, RefreshCw, Eye, Users } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
@@ -18,6 +19,11 @@ const JobPostingManagement = () => {
   const [error, setError] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
+  const [showApplicationsModal, setShowApplicationsModal] = useState(false);
+  const [selectedJobForApplications, setSelectedJobForApplications] = useState(null);
+  const [showCandidateModal, setShowCandidateModal] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [studentNames, setStudentNames] = useState({});
   const jobsPerPage = 10;
 
   // Form state for adding/editing jobs
@@ -44,15 +50,70 @@ const JobPostingManagement = () => {
       setLoading(true);
       setError("");
 
-      // Get all jobs from the API
+      // Get all jobs from the API and filter for admin-posted jobs
       const jobsData = await candidateExternalService.getAllJobs();
-      // Filter for admin-posted jobs (jobs with employer_id: "admin")
+      const currentAdminId = user?.admin_id || user?.id || user?.user_id;
       const adminJobs = (jobsData?.jobs || []).filter(job =>
-        job.employer_id === "admin" || job.admin_posted === true
+        job.admin_id === currentAdminId || job.admin_id === "admin" || job.posted_by === "admin"
       );
 
-      setJobs(adminJobs);
-      setFilteredJobs(adminJobs);
+      // Fetch application counts for admin jobs
+      const jobsWithApplications = await Promise.all(
+        adminJobs.map(async (job) => {
+          try {
+            // Get applications for this job using the same method as JobApplicationReports.jsx
+            console.log(`Fetching applications for job ${job.job_id}`);
+            const applicantsData = await recruiterExternalService.getAllApplicants(job.job_id);
+            console.log(`Applicants data for job ${job.job_id}:`, applicantsData);
+
+            // Handle different response formats from the API (same logic as JobApplicationReports.jsx)
+            let applications = [];
+            let applicationCount = 0;
+
+            if (applicantsData) {
+              if (Array.isArray(applicantsData)) {
+                // Direct array of applications
+                applications = applicantsData;
+                applicationCount = applicantsData.length;
+              } else if (applicantsData.applications && Array.isArray(applicantsData.applications)) {
+                // Object with applications array and count
+                applications = applicantsData.applications;
+                applicationCount = applicantsData.count || applicantsData.applications.length;
+              } else if (typeof applicantsData === 'object' && applicantsData.count !== undefined) {
+                // Object with count but no applications array
+                applicationCount = applicantsData.count;
+                applications = [];
+              }
+            }
+
+            console.log(`Processed applications for job ${job.job_id}:`, applications);
+            console.log(`Application count:`, applicationCount);
+
+            return {
+              ...job,
+              application_count: applicationCount,
+              applications: applications
+            };
+          } catch (error) {
+            console.error(`Failed to fetch applications for job ${job.job_id}:`, error);
+            return {
+              ...job,
+              application_count: 0,
+              applications: []
+            };
+          }
+        })
+      );
+
+      // Sort jobs by posted date (latest first)
+      const sortedJobs = jobsWithApplications.sort((a, b) => {
+        const dateA = new Date(a.created_at || a.posted_date || 0);
+        const dateB = new Date(b.created_at || b.posted_date || 0);
+        return dateB - dateA; // Descending order (newest first)
+      });
+
+      setJobs(sortedJobs);
+      setFilteredJobs(sortedJobs);
     } catch (error) {
       console.error('Failed to fetch jobs:', error);
       setError('Failed to fetch jobs');
@@ -148,7 +209,7 @@ const JobPostingManagement = () => {
         status: "Open", // Admin jobs are visible and open
         is_premium: formData.is_premium,
         posted_by: "admin",
-        admin_id: "admin" // Add admin_id as required by API
+        admin_id: user?.admin_id || user?.id || user?.user_id // Use actual admin ID from logged-in user
       };
 
       if (editingJob) {
@@ -224,10 +285,75 @@ const JobPostingManagement = () => {
     }
   };
 
-  const handleViewApplications = (job) => {
-    // Navigate to applications page for this job
-    // This would need to be implemented based on your application tracking system
-    alert(`View applications for: ${job.job_title}`);
+  // Function to fetch student names using API calls
+  const fetchNamesFromAPI = async (applications) => {
+    console.log('Fetching names from API for applications:', applications);
+
+    const studentNamesMap = {};
+
+    // Get unique student IDs
+    const uniqueStudentIds = [...new Set(applications.map(app => app.student_id).filter(id => id))];
+
+    console.log('Unique student IDs:', uniqueStudentIds);
+
+    // Extract names from application data since API calls are failing
+    applications.forEach(app => {
+      // Extract student name from resume URL or other available data
+      if (app.student_id) {
+        let studentName = `Student ${app.student_id}`; // Default fallback
+
+        // Try to extract name from resume URL (e.g., "johndoe" from "https://myresume.com/johndoe.pdf")
+        if (app.resume_url) {
+          try {
+            const urlParts = app.resume_url.split('/');
+            const filename = urlParts[urlParts.length - 1];
+            const namePart = filename.split('.')[0]; // Remove extension
+            if (namePart && namePart !== 'resume' && namePart !== 'cv') {
+              // Capitalize first letter
+              studentName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+            }
+          } catch (e) {
+            // Keep default name if extraction fails
+          }
+        }
+
+        studentNamesMap[app.student_id] = studentName;
+      }
+    });
+
+    console.log('Fetched student names:', studentNamesMap);
+
+    // Update state with fetched names
+    if (Object.keys(studentNamesMap).length > 0) {
+      setStudentNames(prev => ({ ...prev, ...studentNamesMap }));
+    }
+  };
+
+  const handleViewApplications = async (job) => {
+    console.log('Viewing applications for job:', job);
+    console.log('Applications data:', job.applications);
+    console.log('Application count:', job.application_count);
+
+    if (job.application_count > 0 && (!job.applications || job.applications.length === 0)) {
+      alert('Applications data is loading. Please wait a moment and try again.');
+      return;
+    }
+
+    if (!job.applications || job.applications.length === 0) {
+      alert('No applications found for this job.');
+      return;
+    }
+
+    // Fetch student names using API calls
+    await fetchNamesFromAPI(job.applications);
+
+    setSelectedJobForApplications(job);
+    setShowApplicationsModal(true);
+  };
+
+  const handleViewCandidateDetails = (candidate) => {
+    setSelectedCandidate(candidate);
+    setShowCandidateModal(true);
   };
 
   // Pagination
@@ -323,6 +449,7 @@ const JobPostingManagement = () => {
               <th>Type</th>
               <th>Status</th>
               <th>Posted Date</th>
+              <th>Applications</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -346,13 +473,21 @@ const JobPostingManagement = () => {
                   {formatDate(job.created_at || job.posted_date)}
                 </td>
                 <td>
+                  <div className={styles.applicationCount}>
+                    <Users size={16} />
+                    <span className={styles.countBadge}>
+                      {job.application_count || 0}
+                    </span>
+                  </div>
+                </td>
+                <td>
                   <div className={styles.actionButtons}>
                     <button
                       onClick={() => handleViewApplications(job)}
                       className={`${styles.actionBtn} ${styles.infoBtn}`}
                       title="View Applications"
                     >
-                      <Users size={16} />
+                      <Eye size={16} />
                     </button>
                     <button
                       onClick={() => handleEdit(job)}
@@ -620,6 +755,306 @@ const JobPostingManagement = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Applications Modal */}
+      {showApplicationsModal && selectedJobForApplications && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000,
+          overflowY: 'auto'
+        }}>
+          <div style={{
+            backgroundColor: theme === 'dark' ? '#333' : '#fff',
+            padding: '20px',
+            borderRadius: '8px',
+            width: '90%',
+            maxWidth: '1000px',
+            maxHeight: '90%',
+            overflowY: 'auto',
+            color: theme === 'dark' ? '#fff' : '#000'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3>All Candidates Applied for: {selectedJobForApplications.job_title}</h3>
+              <button
+                onClick={() => setShowApplicationsModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  color: theme === 'dark' ? '#fff' : '#000'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <p><strong>Company:</strong> {selectedJobForApplications.company_name}</p>
+              <p><strong>Total Candidates Applied:</strong> {selectedJobForApplications.application_count}</p>
+              <p style={{ fontSize: '14px', color: '#666' }}>Showing all candidates who applied for this job</p>
+            </div>
+
+            <div style={{ display: 'grid', gap: '15px' }}>
+              {selectedJobForApplications.applications.map((application, index) => (
+                <div key={application.application_id || index} style={{
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  padding: '15px',
+                  backgroundColor: theme === 'dark' ? '#444' : '#f9f9f9'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <h4 style={{ margin: 0 }}>Application #{index + 1}</h4>
+                    <span style={{
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      backgroundColor: application.status === 'Shortlisted' ? '#28a745' :
+                                     application.status === 'Rejected' ? '#dc3545' : '#ffc107',
+                      color: '#fff',
+                      fontSize: '12px'
+                    }}>
+                      {application.status || 'pending'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                    <div>
+                      <strong>Student Name:</strong> {studentNames[application.student_id] || `Loading...`}
+                    </div>
+                    <div>
+                      <strong>Applied Date:</strong> {formatDate(application.created_at || application.applied_date)}
+                    </div>
+                    <div>
+                      <strong>Last Updated:</strong> {formatDate(application.updated_at)}
+                    </div>
+                    <div>
+                      <strong>Status Verified:</strong> {application.status_verified || 'Not verified'}
+                    </div>
+                  </div>
+
+                  {application.cover_letter && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <strong>Cover Letter:</strong>
+                      <p style={{ margin: '5px 0', fontStyle: 'italic' }}>{application.cover_letter}</p>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      onClick={() => handleViewCandidateDetails(application)}
+                      style={{
+                        backgroundColor: '#007bff',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '8px 16px',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Eye size={14} style={{ marginRight: '5px' }} />
+                      View Details
+                    </button>
+
+                    {application.resume_url && (
+                      <a
+                        href={application.resume_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          backgroundColor: '#6c757d',
+                          color: '#fff',
+                          textDecoration: 'none',
+                          padding: '8px 16px',
+                          borderRadius: '4px',
+                          display: 'inline-flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <Eye size={14} style={{ marginRight: '5px' }} />
+                        Resume
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+              <button
+                onClick={() => setShowApplicationsModal(false)}
+                style={{
+                  backgroundColor: '#6c757d',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Candidate Details Modal */}
+      {showCandidateModal && selectedCandidate && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1001,
+          overflowY: 'auto'
+        }}>
+          <div style={{
+            backgroundColor: theme === 'dark' ? '#333' : '#fff',
+            padding: '20px',
+            borderRadius: '8px',
+            width: '90%',
+            maxWidth: '800px',
+            maxHeight: '90%',
+            overflowY: 'auto',
+            color: theme === 'dark' ? '#fff' : '#000'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3>Candidate Application Details</h3>
+              <button
+                onClick={() => setShowCandidateModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  color: theme === 'dark' ? '#fff' : '#000'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
+              <div>
+                <label style={{ fontWeight: 'bold' }}>Student Name:</label>
+                <p>{studentNames[selectedCandidate.student_id] || `Loading...`}</p>
+              </div>
+              <div>
+                <label style={{ fontWeight: 'bold' }}>Job Title:</label>
+                <p>{selectedJobForApplications?.job_title || 'Not available'}</p>
+              </div>
+              <div>
+                <label style={{ fontWeight: 'bold' }}>Company Name:</label>
+                <p>{selectedJobForApplications?.company_name || 'Not available'}</p>
+              </div>
+              <div>
+                <label style={{ fontWeight: 'bold' }}>Application Status:</label>
+                <p style={{
+                  display: 'inline-block',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  backgroundColor: selectedCandidate.status === 'Shortlisted' ? '#28a745' :
+                                 selectedCandidate.status === 'Rejected' ? '#dc3545' : '#ffc107',
+                  color: '#fff'
+                }}>
+                  {selectedCandidate.status || 'pending'}
+                </p>
+              </div>
+              <div>
+                <label style={{ fontWeight: 'bold' }}>Status Verified:</label>
+                <p>{selectedCandidate.status_verified || 'Not verified'}</p>
+              </div>
+              <div>
+                <label style={{ fontWeight: 'bold' }}>Applied Date:</label>
+                <p>{formatDate(selectedCandidate.created_at || selectedCandidate.applied_date)}</p>
+              </div>
+              <div>
+                <label style={{ fontWeight: 'bold' }}>Last Updated:</label>
+                <p>{formatDate(selectedCandidate.updated_at)}</p>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ fontWeight: 'bold' }}>Show to Recruiter:</label>
+              <p>{selectedCandidate.to_show_recruiter ? 'Yes' : 'No'}</p>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ fontWeight: 'bold' }}>Show to User:</label>
+              <p>{selectedCandidate.to_show_user ? 'Yes' : 'No'}</p>
+            </div>
+
+            {selectedCandidate.cover_letter && (
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ fontWeight: 'bold' }}>Cover Letter:</label>
+                <div style={{
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  backgroundColor: theme === 'dark' ? '#444' : '#f9f9f9',
+                  marginTop: '5px'
+                }}>
+                  {selectedCandidate.cover_letter}
+                </div>
+              </div>
+            )}
+
+            {selectedCandidate.resume_url && (
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ fontWeight: 'bold' }}>Resume:</label>
+                <div style={{ marginTop: '5px' }}>
+                  <a
+                    href={selectedCandidate.resume_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      backgroundColor: '#007bff',
+                      color: '#fff',
+                      textDecoration: 'none',
+                      padding: '8px 16px',
+                      borderRadius: '4px',
+                      display: 'inline-flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Eye size={14} style={{ marginRight: '5px' }} />
+                    Download Resume
+                  </a>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                onClick={() => setShowCandidateModal(false)}
+                style={{
+                  backgroundColor: '#6c757d',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
