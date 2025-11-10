@@ -134,21 +134,30 @@ const JobPostingManagement = () => {
     e.preventDefault();
     try {
       const jobData = {
-        ...formData,
-        employer_id: "admin",
-        admin_posted: true,
-        status: "approved", // Admin jobs are auto-approved
-        posted_date: new Date().toISOString(),
-        skills_required: formData.skills_required.join(", ")
+        job_title: formData.job_title,
+        company_name: formData.company_name || null,
+        description: formData.description,
+        location: formData.location,
+        employment_type: formData.employment_type,
+        salary_range: formData.salary_range,
+        experience_required: formData.experience_required,
+        skills_required: formData.skills_required,
+        category: formData.category || null,
+        application_deadline: formData.application_deadline || null,
+        contact_email: formData.contact_email || null,
+        status: "Open", // Admin jobs are visible and open
+        is_premium: formData.is_premium,
+        posted_by: "admin",
+        admin_id: "admin" // Add admin_id as required by API
       };
 
       if (editingJob) {
         // Update existing job
-        await adminService.updateJob(editingJob.job_id || editingJob.id, jobData);
+        await adminService.updateAdminJob(editingJob.job_id || editingJob.id, jobData);
         alert('Job updated successfully!');
       } else {
         // Create new job
-        await adminService.createJob(jobData);
+        await adminService.postJobByAdmin(jobData);
         alert('Job posted successfully!');
       }
 
@@ -205,7 +214,7 @@ const JobPostingManagement = () => {
   const handleDelete = async (jobId) => {
     if (window.confirm('Are you sure you want to delete this job? This action cannot be undone.')) {
       try {
-        await adminService.deleteJob(jobId);
+        await adminService.deleteAdminJob(jobId);
         await fetchJobs();
         alert('Job deleted successfully!');
       } catch (error) {
