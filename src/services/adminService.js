@@ -242,12 +242,84 @@ export const adminService = {
     }
   },
 
+  // Admin Job Management Functions
+  async postJobByAdmin(jobData) {
+    try {
+      const response = await adminApiClient.post('/job/jobsadmin', jobData);
+      return response.data;
+    } catch (error) {
+      console.error('Error posting job by admin:', error);
+      throw error;
+    }
+  },
+
+  async updateAdminJob(jobId, jobData) {
+    try {
+      const response = await adminApiClient.put(`/job/updateadmintjobs/${jobId}`, jobData);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating admin job:', error);
+      throw error;
+    }
+  },
+
+  async getAdminPostedJobs() {
+    try {
+      const response = await adminApiClient.get('/job/adminjobs');
+      return response.data || [];
+    } catch (error) {
+      console.error('Error fetching admin posted jobs:', error);
+      return [];
+    }
+  },
+
+  async deleteAdminJob(jobId) {
+    try {
+      const response = await adminApiClient.delete(`/job/adminjobs/${jobId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting admin job:', error);
+      throw error;
+    }
+  },
+
   // Candidate Management Functions
   async getCandidates() {
     try {
-      const response = await adminApiClient.get(API_ENDPOINTS.candidates.getAll);
-      return response.data;
+      const response = await fetch('https://gfiwltw271.execute-api.ap-southeast-1.amazonaws.com/default/getstudentdetails', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Transform the API response to match the expected format
+      const candidates = (data.students || data || []).map(student => ({
+        id: student.student_id || student.id,
+        name: student.full_name || student.name || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Unknown',
+        email: student.email || '',
+        phone: student.phone_number || student.phone || '',
+        location: student.address ? `${student.address.city || ''}, ${student.address.state || ''}`.trim() : student.location || '',
+        experience: student.experience || 'Not specified',
+        skills: Array.isArray(student.skills) ? student.skills : (student.skills ? student.skills.split(',').map(s => s.trim()) : []),
+        status: student.status || 'active',
+        created_at: student.created_at || student.registration_date || new Date().toISOString(),
+        profile_image: student.profile_image || null,
+        bio: student.bio || '',
+        education: student.education || [],
+        dob: student.dob || null,
+        gender: student.gender || null
+      }));
+
+      return candidates;
     } catch (error) {
+      console.error('Error fetching candidates from API:', error);
       throw error;
     }
   },

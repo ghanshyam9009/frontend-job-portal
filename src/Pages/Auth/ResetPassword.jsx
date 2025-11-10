@@ -119,10 +119,9 @@ const ResetPassword = () => {
             <button type="button" className={styles.submitBtn} onClick={handleVerifyOtp}>Verify OTP</button>
             <button
               type="button"
-              className={styles.submitBtn}
+              className={`${styles.submitBtn} ${styles.resendBtn}`}
               onClick={handleSendOtp}
               disabled={timer > 0}
-              style={{ marginTop: '1rem', backgroundColor: timer > 0 ? '#ccc' : '#4a5568' }}
             >
               {timer > 0 ? `Resend OTP in ${timer}s` : 'Resend OTP'}
             </button>

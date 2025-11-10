@@ -165,6 +165,15 @@
   /* background: var(--background-color); */
 }
 
+.logo .brandText {
+  font-weight: 600;
+  font-size: large;
+}
+
+.logo .brandHighlight {
+  color: #4f72ab;
+}
+
 .mobileLogo img {
   height: 32px;
   background: var(--background-color);

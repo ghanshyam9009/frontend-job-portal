@@ -225,6 +225,15 @@ console.log(currentPath)
           {/* Desktop Right Menu */}
           <div className="hidden lg:flex items-center space-x-3">
             
+    <nav className={`${styles.navbar} ${isScrolled ? styles.scrolled : ""}`}>
+      <div className={styles.navContainer}>
+               <div className={styles.logo}>
+                   <img src={logo} alt="JobPortal Logo" />
+                 <Link to="/">
+                 </Link>
+                 <span className={styles.brandText}>Big<span className={styles.brandHighlight}>sources</span>.in</span>
+               </div>
+             
 
             <a
               href="/candidate/login"
@@ -435,6 +444,12 @@ console.log(currentPath)
                     className={`block px-4 py-2 text-sm ${textSecondary} ${dropdownHover} rounded-md transition-colors`}
                     onClick={closeMobileMenu}
                   >
+                <div className={styles.mobileEmployerSection}>
+                  <h4>For Employers</h4>
+                  <a href="/recruiter/login" className={styles.mobileEmployerLink} onClick={closeMobileMenu}>
+                    Recruiter Login
+                  </a>
+                  <a href="/admin/login" className={styles.mobileEmployerLink} onClick={closeMobileMenu}>
                     Admin Login
                   </a>
                 </div>

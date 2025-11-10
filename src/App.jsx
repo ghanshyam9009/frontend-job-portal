@@ -10,6 +10,7 @@ import Jobdescription from './Pages/Jobdescription'
 import AboutUs from './Pages/AboutUs'
 import ContactUs from './Pages/ContactUs'
 import CandidateLogin from './Pages/Candidate/CandidateLogin'
+import CandidateHome from './Pages/Candidate/CandidateHome'
 import UserDashboard from './Pages/Candidate/UserDashboard'
 import UserJobListings from './Pages/Candidate/UserJobListings'
 import SavedJobs from './Pages/Candidate/SavedJobs'
@@ -71,6 +72,7 @@ function App() {
           <Route path="/job/:slug" element={<Jobdescription />} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/contact" element={<ContactUs />} />
+          <Route path="/membership" element={<Membership />} />
           <Route path="/fast-track" element={<FastTrack />} />
           <Route path="/premium-seeker" element={<PremiumSeeker />} />
           <Route path="/company-reviews" element={<CompanyReviews />} />
@@ -79,7 +81,6 @@ function App() {
           <Route path="/recruiting-solutions" element={<RecruitingSolutions />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
-          <Route path="/membership" element={<Membership />} />
           <Route path="/career-services" element={<CareerServices />} />
           <Route path="/candidate-membership" element={<CandidateMembership />} />
           <Route path="/recruiter-membership" element={<RecruiterMembership />} />
@@ -89,6 +90,12 @@ function App() {
 
           
           <Route element={<ProtectedRoute role="candidate"><CandidateLayout /></ProtectedRoute>}>
+            <Route path="/candidate-home" element={<HomePage />} />
+            <Route path="/jobs" element={<JobListings />} />
+            <Route path="/government-jobs" element={<GovernmentJobs />} />
+            <Route path="/about" element={<AboutUs />} />
+            <Route path="/contact" element={<ContactUs />} />
+            <Route path="/membership" element={<Membership />} />
             <Route path="/userdashboard" element={<UserDashboard />} />
             <Route path="/userjoblistings" element={<UserJobListings />} />
             <Route path="/saved-jobs" element={<SavedJobs />} />

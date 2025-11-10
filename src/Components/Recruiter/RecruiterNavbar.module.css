@@ -58,6 +58,15 @@ span{
     font-weight: 600;
     font-size: large;
 }
+
+.logo .brandText {
+  font-weight: 600;
+  font-size: large;
+}
+
+.logo .brandHighlight {
+  color: #4f72ab;
+}
 span{
   margin-top: 0px;
       margin-left: 0px;

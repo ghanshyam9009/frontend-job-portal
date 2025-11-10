@@ -92,6 +92,20 @@
   background-color: #2563eb;
 }
 
+.resendBtn {
+  margin-top: 1rem;
+  background-color: #4a5568;
+}
+
+.resendBtn:hover {
+  background-color: #374151;
+}
+
+.resendBtn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
 .success {
   color: #10b981;
   background-color: rgba(16, 185, 129, 0.1);

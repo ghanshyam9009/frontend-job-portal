@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
-import CandidateSidebar from "../../Components/Candidate/CandidateSidebar";
 import styles from "./UserJobListings.module.css";
 import { candidateExternalService } from "../../services";
 import { candidateService } from "../../services/candidateService";
@@ -12,7 +11,6 @@ const UserJobListings = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [darkMode, setDarkMode] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -22,7 +20,7 @@ const UserJobListings = () => {
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
   };
-  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
+
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -145,8 +143,7 @@ const UserJobListings = () => {
 
   return (
     <div className={styles.dashboardContainer}>
-      <CandidateNavbar toggleSidebar={toggleSidebar} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <CandidateSidebar darkMode={darkMode} isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
+      <CandidateNavbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
       <main className={styles.main}>
 
         <section className={styles.jobsSection}>
