@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../Contexts/AuthContext";
-import { Search, MapPin, Upload, Building2, Users, CheckCircle, Star, ArrowRight, UserPlus } from "lucide-react";
+import { Search, MapPin, Upload, Building2, Users, CheckCircle, Star, ArrowRight, UserPlus, User, BookOpen, Briefcase, Moon, Sun, ChevronDown, Bookmark, Clock, DollarSign, Send } from "lucide-react";
 import { FaFacebook, FaTwitter, FaLinkedin } from "react-icons/fa";
 import styles from "./HomePage.module.css";
 import Footer from "../Components/Footer";
@@ -11,11 +11,14 @@ import { candidateExternalService } from "../services";
 import { demoService } from "../services/demoService";
 import logo2 from "../assets/logo2.png";
 import video from "../assets/Untitled design.mp4";
+import video1 from "../assets/hero-video.mp4";
+
 import image1 from "../assets/Screenshot 2025-10-06 190253.png";
 import image2 from "../assets/Screenshot 2025-10-06 190818.png";
 import image3 from "../assets/Screenshot 2025-10-06 194637.png";
 import idbiLogo from "../assets/IDBI.jpg";
 import idfcLogo from "../assets/IDFC.jpg";
+import upload1 from "../assets/upload-r.jpg";
 import kotakLogo from "../assets/Kotak.jpg";
 import axisLogo from "../assets/Axis.jpg";
 import iciciLogo from "../assets/icici.jpg";
@@ -35,6 +38,38 @@ import jobImage from "../assets/job.jfif";
 import axisBanner from "../assets/axis-banner.jpg";
 import bannerSmall from "../assets/banner-small.png";
 
+// job role card
+function JobRoleCard({ title, image, link, isDark }) {
+  const cardBg = isDark ? 'bg-gray-800' : 'bg-white';
+  const cardBorder = isDark ? 'border-gray-700' : 'border-gray-200';
+  const cardHoverBorder = isDark ? 'hover:border-blue-600' : 'hover:border-blue-300';
+  const cardHoverShadow = isDark ? 'hover:shadow-blue-500/20' : 'hover:shadow-xl';
+  const iconBg = isDark ? 'bg-blue-900/40' : 'bg-blue-50';
+  const iconHoverBg = isDark ? 'group-hover:bg-blue-800/60' : 'group-hover:bg-blue-100';
+  const textColor = isDark ? 'text-gray-100' : 'text-gray-900';
+  const textHoverColor = isDark ? 'group-hover:text-blue-400' : 'group-hover:text-blue-600';
+  const imageBrightness = isDark ? 'brightness-110' : '';
+
+  return (
+    <a 
+      href={link}
+      className={`group ${cardBg} rounded-lg p-6 flex flex-col items-center justify-center gap-4 ${cardHoverShadow} transition-all duration-300 cursor-pointer border ${cardBorder} ${cardHoverBorder} min-h-[180px]`}
+    >
+      <div className={`${iconBg} p-4 rounded-lg ${iconHoverBg} transition-colors duration-300 w-16 h-16 flex items-center justify-center`}>
+        <img 
+          src={image} 
+          alt={title}
+          className={`w-10 h-10 object-contain ${imageBrightness}`}
+        />
+      </div>
+      <div className="text-center">
+        <h3 className={`font-medium text-base ${textColor} leading-snug ${textHoverColor} transition-colors duration-300`}>
+          {title}
+        </h3>
+      </div>
+    </a>
+  );
+}
 
 const companies = [
   { name: "IDBI", logo: idbiLogo },
@@ -75,6 +110,51 @@ const Homepage = () => {
   const [demoLoading, setDemoLoading] = useState(false);
   const [demoError, setDemoError] = useState(null);
   const [demoSuccess, setDemoSuccess] = useState(false);
+const features = [
+    {
+      icon: User,
+      title: "Register and Set Up Profile",
+      description: "Recruiters or companies create an account by providing essential details such as company name, recruiter information, and contact details."
+    },
+    {
+      icon: Upload,
+      title: "Post and Manage Job",
+      description: "Once registered, recruiters can create job postings by entering job titles, descriptions, required skills, experience levels, and salary ranges."
+    },
+    {
+      icon: Briefcase,
+      title: "Connect and Collaborate ",
+      description: "Recruiters can invite other HR members or interviewers to join their team."
+    }
+  ];
+  const actions = [
+    {
+      icon: Upload,
+      iconBg: "bg-blue-100",
+      iconColor: "text-blue-600",
+      title: "Upload Your Resume",
+      subtitle: "Get matched with perfect jobs instantly",
+      description: "Upload your resume and get discovered by top employers.",
+      buttonText: "Upload Resume",
+      buttonBg: "bg-blue-600 hover:bg-blue-700",
+      buttonShadow: "hover:shadow-blue-200",
+      path: "/profile",
+      gradient: "from-blue-50 to-white"
+    },
+    {
+      icon: Building2,
+      iconBg: "bg-green-100",
+      iconColor: "text-green-600",
+      title: "Post a Job",
+      subtitle: "Find the perfect candidate for your team",
+      description: "Post your job in minutes and start receiving applications from top talent.",
+      buttonText: "Post Job",
+      buttonBg: "bg-green-600 hover:bg-green-700",
+      buttonShadow: "hover:shadow-green-200",
+      path: "/post-job",
+      gradient: "from-green-50 to-white"
+    }
+  ];
 
 const popularSearches = [
     { title: "Jobs for Freshers", trend: "#1", image: image1, link: "/jobs?search=fresher" },
@@ -86,6 +166,7 @@ const popularSearches = [
 
   const [topJobRoles, setTopJobRoles] = useState([]);
 
+  
   // Static job role definitions with search terms
   const jobRoleDefinitions = [
     {
@@ -303,327 +384,774 @@ const popularSearches = [
       state: { job }
     });
   };
+ 
+   const [jobTitle, setJobTitle] = useState('');
 
+  const [category, setCategory] = useState('');
+  
+  const handleNavigate = (link) => {
+    console.log('Navigating to:', link);
+    // In a real app: navigate(link)
+  };
+  // manage dark mode and light mode
+    let theme = localStorage.getItem("theme");
+  let darkMode = localStorage.getItem("darkmode");
+ useEffect(() => {
+
+
+  // convert darkMode string to boolean
+  darkMode = darkMode === "true";
+
+  if (darkMode) {
+    theme = "dark";
+    localStorage.setItem("theme", "dark");
+  } else {
+    theme = "light";
+    localStorage.setItem("theme", "light");
+  }
+
+  // Optional: Apply theme to HTML (for Tailwind dark mode)
+  document.documentElement.classList.toggle("dark", darkMode);
+}, []);
+
+
+
+  const isDark = theme === 'dark';
+
+  
+  const bgColor = isDark ? 'bg-gray-900' : 'bg-gray-50';
+  const textPrimary = isDark ? 'text-white' : 'text-gray-900';
+  const textSecondary = isDark ? 'text-gray-400' : 'text-gray-600';
+  const badgeBg = isDark ? 'bg-blue-500' : 'bg-blue-600';
+  const badgeShadow = isDark ? 'shadow-blue-500/30' : 'shadow-md';
+  const toggleBg = isDark ? 'bg-gray-800' : 'bg-white';
+  const toggleBorder = isDark ? 'border-gray-600' : 'border-gray-200';
+  const toggleShadow = isDark ? 'shadow-gray-900/50' : 'shadow-xl';
+  const cardBg = isDark ? 'bg-gray-800' : 'bg-white';
+ const inputBg = isDark ? 'bg-gray-700' : 'bg-gray-50';
+  const inputBorder = isDark ? 'border-gray-600' : 'border-gray-300';
+    const inputText = isDark ? 'text-white' : 'text-gray-900';
+  // animate scroll
+  const badgeBg1 = isDark ? 'bg-blue-900' : 'bg-blue-50';
+   const [isVisible, setIsVisible] = useState(false);
+const borderColor = isDark ? 'border-gray-700' : 'border-gray-200';
+  const hoverBorder = isDark ? 'hover:border-blue-400' : 'hover:border-blue-500';
+    const badgeText = isDark ? 'text-blue-300' : 'text-blue-600';
+  const detailBg = isDark ? 'bg-gray-700' : 'bg-gray-50';
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      const windowHeight = window.innerHeight;
+      
+      // Show animation when scrolled down a bit
+      if (scrollPosition > windowHeight * 0.1) {
+        setIsVisible(true);
+      } else {
+        setIsVisible(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    // Trigger on mount
+    handleScroll();
+
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+
+
+ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
+  
+const toggleBookmark = (jobId) => {
+    setBookmarkedJobs(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(jobId)) {
+        newSet.delete(jobId);
+      } else {
+        newSet.add(jobId);
+      }
+      return newSet;
+    });
+  };
+  // Calculate time ago from created_at
+  const getTimeAgo = (dateString) => {
+    const now = new Date();
+    const created = new Date(dateString);
+    const diffInMs = now - created;
+    const diffInMins = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+    if (diffInMins < 60) return `${diffInMins} min ago`;
+    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+  };
+
+  // Generate company initials for fallback logo
+  const getInitials = (name) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const steps = [
+    {
+      icon: UserPlus,
+      title: "Create account",
+      description: "Aliquam facilisis egestas sapien, nec tempor leo tristique at.",
+      color: "bg-blue-600"
+    },
+    {
+      icon: Upload,
+      title: "Upload CV/Resume",
+      description: "Curabitur sit amet maximus liguis. Nam a nulla ante. Nam sodales",
+      color: "bg-blue-600"
+    },
+    {
+      icon: Search,
+      title: "Find suitable job",
+      description: "Phasellus quis eleifend ex. Morbi nec fringilla nibh.",
+      color: "bg-blue-500"
+    },
+    {
+      icon: CheckCircle,
+      title: "Apply job",
+      description: "Curabitur sit amet maximus ligula. Nam a nulla ante. Nam sodales purus.",
+      color: "bg-blue-500"
+    }
+  ];
   return (
     <div className={styles.container}>
       {/* Navigation */}
-     
+
 <HomeNav/>
-      {/* Hero Section */}
-      <section className={styles.hero}>
-        <video autoPlay loop muted className={styles.heroVideo}>
-          <source src={video} type="video/mp4" />
-        </video>
-        <div className={styles.heroOverlay}></div>
-        <div className={styles.heroContainer}>
-          <div className={styles.heroContent}>
-            <h1 className={styles.heroTitle}>
-              Find Your Dream Job Today
-            </h1>
-            <p className={styles.heroSubtitle}>
-              Discover thousands of opportunities from top companies worldwide
-            </p>
-            
-            {/* Search Box */}
-            <div className={styles.searchBox}>
-              <div className={styles.searchInputs}>
-                <div className={styles.inputGroup}>
-                  <Search className={styles.inputIcon} />
-                  <input 
-                    type="text" 
-                    placeholder="Job title, keywords, or company"
-                    className={styles.searchInput}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+{/* Hero section */}
+ <div className="relative min-h-screen bg-gray-900 overflow-hidden">
+  {/* Background Video */}
+  <div className="absolute inset-0 w-full h-full">
+    <video
+      autoPlay
+      loop
+      muted
+      playsInline
+      className="w-full h-full object-cover opacity-30"
+    >
+      <source src={video1} type="video/mp4" />
+    </video>
+    <div className="absolute inset-0 bg-gradient-to-br from-gray-900/80 via-gray-800/80 to-blue-900/80"></div>
+  </div>
+
+  {/* Hero Section */}
+  {/* Increased vertical padding on larger screens (pt, pb) */}
+  <div className="  relative z-10 max-w-8xl mx-auto px-6 sm:px-6 lg:px-16 pt-28 pb-24 md:pt-32 md:pb-28">
+    {/* Main Heading */}
+    <div className="text-center mb-12 md:mb-16">
+      {/* Increased text size for xl screens */}
+      <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 text-white">
+        Find Your Dream Job Today!
+      </h1>
+      {/* Increased paragraph text size on larger screens */}
+      <p className="text-lg md:text-xl lg:text-2xl text-gray-300 max-w-4xl mx-auto">
+        Discover thousands of opportunities from top companies worldwide
+      </p>
+    </div>
+
+    {/* Search Bar */}
+    {/* Increased max-width for the search bar container */}
+    <div className="max-w-4xl mx-auto mb-16 md:mb-20">
+      <div className="rounded-xl shadow-xl flex flex-col md:flex-row overflow-hidden bg-gray-800/90 backdrop-blur-sm">
+        
+        {/* Job Title Input */}
+        {/* Increased padding and text size */}
+        <div className="flex-1 p-4 md:p-5 border-b md:border-b-0 md:border-r border-gray-700">
+          <input
+            type="text"
+            placeholder="Job Title or Company"
+            value={jobTitle}
+            onChange={(e) => setJobTitle(e.target.value)}
+            className="w-full focus:outline-none text-base md:text-lg bg-transparent text-white placeholder-gray-400"
+          />
+        </div>
+
+        {/* Location Select */}
+        {/* Increased padding and text size */}
+        <div className="flex-1 p-4 md:p-5 border-b md:border-b-0 md:border-r border-gray-700 relative">
+          <input
+            type="text"
+            placeholder="Select Location"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            className="w-full focus:outline-none text-base md:text-lg bg-transparent text-white placeholder-gray-400"
+          />
+        </div>
+        
+        {/* Category Select */}
+        {/* Increased padding and text size + BUG FIX */}
+        <div className="flex-1 p-4 md:p-5 border-b md:border-b-0 md:border-r border-gray-700 relative">
+          <input
+            type="text"
+            placeholder="Select Job Category"
+            value={category} // <-- Corrected from location
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full focus:outline-none text-base md:text-lg bg-transparent text-white placeholder-gray-400"
+          />
+        </div>
+
+        {/* Search Button */}
+        {/* Increased padding, text size, and icon size */}
+        <button
+          onClick={handleSearch}
+          className="bg-[#2042E3] hover:bg-blue-700 text-white px-7 py-4 md:px-8 font-semibold text-base md:text-lg transition-colors flex items-center justify-center gap-2"
+        >
+          <Search size={20} />
+          Search Job
+        </button>
+      </div>
+    </div>
+
+    {/* Stats Section */}
+    {/* Increased max-width for the stats container */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+      
+      {/* Jobs */}
+      {/* Increased icon container size, icon size, and text sizes */}
+      <div className="flex items-center gap-4 justify-center">
+        <div className="w-16 h-16 md:w-18 md:h-18 bg-[#2042E3] rounded-full flex items-center justify-center shadow-lg flex-shrink-0">
+          <Briefcase size={32} className="text-white" />
+        </div>
+        <div className="text-white">
+          <div className="text-3xl md:text-2xl font-bold">25,850</div>
+          <div className="text-base md:text-lg text-gray-300">Jobs</div>
+        </div>
+      </div>
+
+      {/* Candidates */}
+      {/* Increased icon container size, icon size, and text sizes */}
+      <div className="flex items-center gap-4 justify-center">
+        <div className="w-16 h-16 md:w-18 md:h-18 bg-[#2042E3] rounded-full flex items-center justify-center shadow-lg flex-shrink-0">
+          <Users size={32} className="text-white" />
+        </div>
+        <div className="text-white">
+          <div className="text-3xl md:text-2xl font-bold">10,250</div>
+          <div className="text-base md:text-lg text-gray-300">Candidates</div>
+        </div>
+      </div>
+
+      {/* Companies */}
+      {/* Increased icon container size, icon size, and text sizes */}
+      <div className="flex items-center gap-4 justify-center">
+        <div className="w-16 h-16 md:w-18 md:h-18 bg-[#2042E3] rounded-full flex items-center justify-center shadow-lg flex-shrink-0">
+          <Building2 size={32} className="text-white" />
+        </div>
+        <div className="text-white">
+          <div className="text-3xl md:text-2xl font-bold">18,400</div>
+          <div className="text-base md:text-lg text-gray-300">Companies</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+        
+
+ 
+      
+
+    
+    <div className="w-full">
+     
+      {/* Blue Info Section */}
+      <div className=" bg-[#2042E3] py-16 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
+            {features.map((feature, index) => {
+              const Icon = feature.icon;
+              return (
+                <div key={index} className="flex flex-col items-center text-center md:flex-row md:text-left md:items-start">
+                  {/* Icon Circle */}
+                  <div className="mb-4 md:mb-0 md:mr-6 flex-shrink-0">
+                    <div className="w-20 h-20 rounded-full border-2 border-white border-dashed flex items-center justify-center">
+                      <Icon className="w-10 h-10 text-white" strokeWidth={1.5} />
+                    </div>
+                  </div>
+                  
+                  {/* Content */}
+                  <div>
+                    <h3 className="text-white text-xl font-semibold mb-3">
+                      {feature.title}
+                    </h3>
+                    <div className="w-12 h-0.5 bg-white mb-4 mx-auto md:mx-0"></div>
+                    <p className="text-white text-base leading-relaxed opacity-90">
+                      {feature.description}
+                    </p>
+                  </div>
                 </div>
-                <div className={styles.inputGroup}>
-                  <MapPin className={styles.inputIcon} />
-                  <input 
-                    type="text" 
-                    placeholder="Location"
-                    className={styles.searchInput}
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                  />
-                </div>
-                <button className={styles.searchButton} onClick={handleSearch}>
-                  <Search className={styles.buttonIcon} />
-                  <span>Search Jobs</span>
-                </button>
-              </div>
-            </div>
+              );
+            })}
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* Stats Section */}
-      <section className={styles.statsSection}>
-        <div className={styles.statsContainer}>
-          <div className={styles.statsGrid}>
-            {stats.map((stat, index) => (
-              <div key={index} className={styles.statItem}>
-                <div className={styles.statNumber}>{stat.number}</div>
-                <div className={styles.statLabel}>{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+    </div>
 
-      {/* Quick Actions */}
-      <section className={styles.actionsSection}>
-        <div className={styles.actionsContainer}>
-          <div className={styles.actionsGrid}>
-            <div className={styles.actionCard}>
-              <div className={styles.actionHeader}>
-                <div className={styles.actionIcon}>
-                  <Upload className={styles.iconSvg} />
-                </div>
-                <div className={styles.actionText}>
-                  <h3 className={styles.actionTitle}>Upload Your Resume</h3>
-                  <p className={styles.actionSubtitle}>Get matched with perfect jobs instantly</p>
-                </div>
-              </div>
-              <p className={styles.actionDescription}>
-               Upload your resume and get discovered by top employers.
-              </p>
-              <button className={styles.actionButton} onClick={() => navigate('/profile')}>
-                <Upload className={styles.buttonIcon} />
-                <span>Upload Resume</span>
-                <ArrowRight className={styles.buttonIcon} />
-              </button>
-            </div>
-            
-            <div className={styles.actionCard}>
-              <div className={styles.actionHeader}>
-                <div className={`${styles.actionIcon} ${styles.actionIconGreen}`}>
-                  <Building2 className={styles.iconSvg} />
-                </div>
-                <div className={styles.actionText}>
-                  <h3 className={styles.actionTitle}>Post a Job</h3>
-                  <p className={styles.actionSubtitle}>Find the perfect candidate for your team</p>
-                </div>
-              </div>
-              <p className={styles.actionDescription}>
-               Post your job in minutes and start receiving applications from top talent.
-              </p>
-              <button className={`${styles.actionButton} ${styles.actionButtonGreen}`} onClick={() => navigate('/post-job')}>
-                <Building2 className={styles.buttonIcon} />
-                <span>Post Job</span>
-                <ArrowRight className={styles.buttonIcon} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
+     
       {/* Top Hiring Companies */}
+  <section className={`${bgColor}  py-8 sm:py-8 lg:py-10`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-6">
+        {/* Hero Card */}
+        <div className="relative bg-black rounded-3xl overflow-hidden min-h-[200px] sm:min-h-[200px] flex items-center">
+          {/* Background Image - Blurred */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center"
+            style={{
+              backgroundImage: "url('https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&h=600&fit=crop')",
+              filter: 'blur(4px)',
+              opacity: 0.6
+            }}
+          />
+          
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-blue/90 to-transparent" />
+
+          {/* Content */}
+          <div className="relative z-10 max-w-3xl px-8 sm:px-12 lg:px-20 py-16">
+            <h1 className="text-4xl sm:text-5xl lg:text-4xl font-bold text-white mb-6 leading-tight">
+              Find the perfect 
+              <br />
+             candidate for your team
+            </h1>
+            
+            <p className="text-base sm:text-lg text-gray-300 mb-8 max-w-xl leading-relaxed">
+ Post your job in minutes and start receiving applications from top talent.            </p>
+
+            {/* Search Button */}
+            <button className="bg-white text-blue-600 hover:bg-blue-50 px-8 py-4 font-semibold px-8 py-4 rounded-lg inline-flex items-center gap-3 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+              <Building2 className="w-5 h-5" />
+             Post a Job
+            </button>
+          </div>
+
+          {/* Right side faded image area */}
+          <div className="hidden lg:block absolute right-0 top-0 bottom-0 w-1/2 pointer-events-none" />
+        </div>
+      </div>
+    </section>
 
 
       {/* Axis Banner */}
-      <section className={styles.axisBannerSection}>
+      <section className={`${bgColor}`}>
         <div className={styles.axisBannerContainer}>
           <img src={axisBanner} alt="Axis Bank Banner" className={styles.axisBanner}/>
         </div>
       </section>
-
       {/* Featured Jobs */}
-      <section className={styles.jobsSection}>
-        <div className={styles.jobsContainer}>
-          <div className={styles.jobsGrid}>
-            <div className={styles.jobsColumn}>
-              <div className={styles.jobsHeader}>
-                <h2 className={styles.sectionTitle}>Featured Jobs</h2>
+      <div className={`min-h-screen ${bgColor} transition-colors duration-300`}>
+      
+      {/* Main Content - Jobs and Contact Side by Side */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          {/* Jobs Section - Left Side */}
+          <div className={`${cardBg} border ${borderColor} rounded-2xl p-6 transition-colors duration-300`}>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div>
+                <h1 className={`text-2xl sm:text-3xl font-bold ${textPrimary} mb-2`}>
+                  Recent Jobs Available
+                </h1>
+                <p className={`text-sm ${textSecondary}`}>
+                  Explore the latest opportunities
+                </p>
               </div>
+              <a href="#" className="text-blue-600 hover:text-blue-700 font-semibold text-sm whitespace-nowrap transition-colors">
+                View all →
+              </a>
+            </div>
 
-              <div className={styles.jobsList}>
-                {featuredJobs.map((job) => (
-                  <div key={job.id} className={styles.jobCard}>
-                    {job.is_premium && (
-                      <div className={styles.premiumBadge}>
-                        <span className={styles.premiumCrown}>👑</span>
-                        Premium
+            {/* Jobs List with Scroll */}
+            <div 
+              className="space-y-4 max-h-[600px] overflow-y-auto pr-2"
+              style={{ 
+                scrollbarWidth: 'thin', 
+                scrollbarColor: isDark ? '#4B5563 #1F2937' : '#D1D5DB #F3F4F6' 
+              }}
+            >
+              {featuredJobs.map((job) => (
+                <div 
+                  key={job.id}
+                  className={`${cardBg} rounded-xl shadow-sm border ${borderColor} ${hoverBorder} p-5 hover:shadow-lg transition-all duration-300 relative overflow-hidden`}
+                >
+                  {!job.is_premium && (
+                    <div className="absolute top-0 right-0 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg shadow-md">
+                      PREMIUM
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between mb-3">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${badgeBg1} ${badgeText}`}>
+                      {getTimeAgo(job.created_at)}
+                    </span>
+                    <button 
+                      onClick={() => toggleBookmark(job.id)}
+                      className={`${textSecondary} hover:text-yellow-500 transition-colors p-1.5 rounded-lg`}
+                      aria-label="Bookmark job"
+                    >
+                      <Bookmark className="w-5 h-5" fill={bookmarkedJobs.has(job.id) ? "currentColor" : "none"} />
+                    </button>
+                  </div>
+
+                  <div className="flex items-start gap-3 mb-4">
+                    {job.company_logo ? (
+                      <img src={job.company_logo} alt={job.company_name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0 shadow-md" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-md">
+                        <span className="text-white text-base font-bold">{getInitials(job.company_name)}</span>
                       </div>
                     )}
-                    <div className={styles.jobContent}>
-                      <div className={styles.jobLeft}>
-                        {/* <div className={styles.jobLogo}>
-                          {job.company_logo || '🏢'}
-                        </div> */}
-                        <div className={styles.jobInfo}>
-                          <h3 className={styles.jobTitle}>{job.title}</h3>
-                          <div className={styles.jobMeta}>
-                            <p className={styles.jobCompany}>{job.company_name}</p>
-                            <span className={styles.jobLocation}>
-                              <MapPin className={styles.metaIcon} />
-                              <span>{job.location}</span>
-                            </span>
-                            <span className={styles.jobSalary}>{job.salary}</span>
-                            <span className={styles.jobType}>
-                              {job.job_type}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <button className={styles.applyButton} onClick={() => {
-                        if (!isAuthenticated) {
-                          navigate('/candidate/login');
-                        } else {
-                          handleJobClick(job);
-                        }
-                      }}>
-                        Apply Now
-                      </button>
+                    <div className="flex-1">
+                      <h3 className={`text-lg font-bold ${textPrimary} mb-1 hover:text-blue-600 transition-colors cursor-pointer`}>
+                        {job.title}
+                      </h3>
+                      <p className={`text-xs ${textSecondary} font-medium flex items-center gap-1`}>
+                        <Building2 className="w-3 h-3" />
+                        {job.company_name}
+                      </p>
                     </div>
                   </div>
-                ))}
-                <div className={styles.viewAllContainer}>
-                  <button className={styles.viewAllBtn} onClick={() => navigate('/jobs')}>
-                    <span>View All</span>
-                    <ArrowRight className={styles.buttonIcon} />
+
+                  <div className="flex flex-wrap items-center gap-2 text-xs mb-4">
+                    <div className={`flex items-center gap-1 ${detailBg} px-2.5 py-1.5 rounded-md`}>
+                      <Clock className="w-3 h-3 text-blue-600 flex-shrink-0" />
+                      <span className={`${textSecondary} font-medium`}>{job.job_type}</span>
+                    </div>
+                    <div className={`flex items-center gap-1 ${detailBg} px-2.5 py-1.5 rounded-md`}>
+                      <MapPin className="w-3 h-3 text-blue-600 flex-shrink-0" />
+                      <span className={`${textSecondary} font-medium`}>{job.location}</span>
+                    </div>
+                    <div className={`flex items-center gap-1 ${detailBg} px-2.5 py-1.5 rounded-md`}>
+                      <DollarSign className="w-3 h-3 text-blue-600 flex-shrink-0" />
+                      <span className={`${textSecondary} font-medium`}>{job.salary}</span>
+                    </div>
+                  </div>
+
+                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95 text-sm">
+                    Apply Now
                   </button>
                 </div>
-              </div>
+              ))}
             </div>
-            
-            {/* Contact Form */}
-            <form className={styles.contactForm} onSubmit={handleDemoSubmit}>
+          </div>
 
-              <div className={styles.formImageContainer}>
-                <h3 className={styles.formTitle}>Request</h3>
-                <img src={requestDemoImage} alt="Request Free Demo" className={styles.formImage} />
+          {/* Contact Form Section - Right Side */}
+          <div className="lg:sticky lg:top-8 h-fit">
+            <div className={`${cardBg} rounded-2xl shadow-2xl overflow-hidden transition-colors duration-300`}>
+              <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-center">
+                <h3 className="text-2xl font-bold text-white mb-3">Request Free Demo</h3>
+                <div className="w-20 h-20 mx-auto bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                  <Send className="w-10 h-10 text-white" />
+                </div>
               </div>
-              <div className={styles.formFields}>
 
-
-                <div className={styles.fieldGroup}>
+              <div className="p-6 space-y-4">
+                <div>
                   <input 
                     type="text" 
                     placeholder="Full Name"
-                    className={styles.formInput}
+                    className={`w-full px-4 py-2.5 rounded-lg border ${inputBorder} ${inputBg} ${inputText} placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300`}
                     value={demoData.fullName}
                     onChange={(e) => handleDemoInputChange('fullName', e.target.value)}
                     required
                   />
                 </div>
-              
-               
-                <div className={styles.fieldGroup}>
+
+                <div>
                   <input 
                     type="email" 
                     placeholder="Email Address"
-                    className={styles.formInput}
+                    className={`w-full px-4 py-2.5 rounded-lg border ${inputBorder} ${inputBg} ${inputText} placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300`}
                     value={demoData.email}
                     onChange={(e) => handleDemoInputChange('email', e.target.value)}
                     required
                   />
                 </div>
-                <div className={styles.fieldGroup}>
-                  <div className={styles.userTypeSelector}>
+
+                <div>
+                  <label className={`block text-sm font-medium ${textSecondary} mb-2`}>I am a:</label>
+                  <div className="flex gap-2">
                     <button
                       type="button"
-                      className={`${styles.userTypeButton} ${demoData.userType === 'candidate' ? styles.active : ''}`}
                       onClick={() => handleDemoInputChange('userType', 'candidate')}
+                      className={`flex-1 py-2.5 px-4 rounded-lg font-semibold transition-all duration-300 text-sm ${
+                        demoData.userType === 'candidate'
+                          ? 'bg-blue-600 text-white shadow-lg scale-105'
+                          : isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
                     >
                       Candidate
                     </button>
                     <button
                       type="button"
-                      className={`${styles.userTypeButton} ${demoData.userType === 'recruiter' ? styles.active : ''}`}
                       onClick={() => handleDemoInputChange('userType', 'recruiter')}
+                      className={`flex-1 py-2.5 px-4 rounded-lg font-semibold transition-all duration-300 text-sm ${
+                        demoData.userType === 'recruiter'
+                          ? 'bg-blue-600 text-white shadow-lg scale-105'
+                          : isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
                     >
                       Recruiter
                     </button>
                   </div>
                 </div>
-             
-                <div className={styles.fieldGroup}>
+
+                <div>
                   <textarea 
                     placeholder="Message"
                     rows={4}
-                    className={styles.formTextarea}
+                    className={`w-full px-4 py-2.5 rounded-lg border ${inputBorder} ${inputBg} ${inputText} placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 resize-none`}
                     value={demoData.message}
                     onChange={(e) => handleDemoInputChange('message', e.target.value)}
                     required
-                  ></textarea>
+                  />
                 </div>
-            
-                <div className={styles.formButtons}>
-                  <button type="submit" className={styles.submitBtn} disabled={demoLoading}>
-                    {demoLoading ? "Sending..." : "Submit"}
+
+                <div>
+                  <button 
+                    onClick={handleDemoSubmit}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={demoLoading}
+                  >
+                    {demoLoading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Sending...
+                      </span>
+                    ) : "Submit Request"}
                   </button>
-                   {/* <img src={jobImage} alt="Job Image" className={styles.formImage} /> */}
-
                 </div>
-                {demoSuccess && <p className={styles.successText}>Request sent successfully!</p>}
-                {demoError && <p className={styles.errorText}>{demoError}</p>}
+
+                {demoSuccess && (
+                  <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    Request sent successfully!
+                  </div>
+                )}
+                
+                {demoError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                    {demoError}
+                  </div>
+                )}
               </div>
 
-              <div className={styles.smallBannerContainer}>
-                <img src={bannerSmall} alt="Small Banner" className={styles.smallBanner}/>
+              <div className={`${isDark ? 'bg-gray-700' : 'bg-blue-50'} p-4 text-center transition-colors duration-300`}>
+                <p className={`text-sm ${textSecondary}`}>
+                  Get started with your free demo today and explore all features!
+                </p>
               </div>
-            </form>
+            </div>
           </div>
+
         </div>
-      </section>
+      </div>
+    </div>
 
 
 
       {/* Employer Section */}
-      <section className={styles.employerSection}>
-        <div className={styles.employerContainer}>
-          <h2 className={styles.employerTitle}>Are You an Employer?</h2>
-          <div className={styles.employerButtons}>
-            <button className={styles.employerButton} onClick={() => navigate('/recruiter/login')}>
-              Search Your Hire
-            </button>
-            <button className={styles.employerButton} onClick={() => navigate('/post-job')}>
-              Post a job
-            </button>
+       <section className={`${bgColor} border-t ${borderColor} transition-colors duration-300`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <div className="text-center max-w-3xl mx-auto">
+            <h2 className={`text-3xl sm:text-4xl font-bold ${textPrimary} mb-8`}>
+              Are You an Employer?
+            </h2>
+            <p className={`text-lg ${textSecondary} mb-10`}>
+              Find the perfect candidates for your company and post job openings with ease
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <button 
+                onClick={() => alert('Navigate to /recruiter/login')}
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-4 rounded-lg transition-all duration-300 hover:shadow-xl hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                Search Your Hire
+              </button>
+              <button 
+                onClick={() => alert('Navigate to /post-job')}
+                className={`w-full sm:w-auto ${isDark ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-white hover:bg-gray-50 text-gray-900'} font-bold px-8 py-4 rounded-lg transition-all duration-300 hover:shadow-xl hover:scale-105 active:scale-95 border-2 ${isDark ? 'border-gray-600' : 'border-blue-600'} flex items-center justify-center gap-2`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Post a Job
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Working Process Section */}
-      <section className={styles.stepsSection}>
-        <div className={styles.stepsContainer}>
-          <h2 className={styles.stepsTitle}>Unlock Your Dream Job Working Process</h2>
-          <div className={styles.stepsGrid}>
-            <div className={styles.stepCard}>
-              <div className={styles.stepIconContainer}>
-                <UserPlus className={styles.stepIcon} />
-              </div>
-              <h3 className={styles.stepTitle}>Unlock Your Dream Job</h3>
-              <p className={styles.stepDescription}>Browse through a diverse range of job listings tailored to your interests and expertise.</p>
-            </div>
-            <div className={styles.stepCard}>
-              <div className={styles.stepIconContainer}>
-                <Upload className={styles.stepIcon} />
-              </div>
-              <h3 className={styles.stepTitle}>Create Your Profile</h3>
-              <p className={styles.stepDescription}>Build a standout profile highlighting your skills, experience, and qualifications.</p>
-            </div>
-            <div className={styles.stepCard}>
-              <div className={styles.stepIconContainer}>
-                <Search className={styles.stepIcon} />
-              </div>
-              <h3 className={styles.stepTitle}>Apply with Ease</h3>
-              <p className={styles.stepDescription}>Apply To Matching Jobs With Just A Few Simple Clicks.</p>
-            </div>
-            <div className={styles.stepCard}>
-              <div className={styles.stepIconContainer}>
-                <CheckCircle className={styles.stepIcon} />
-              </div>
-              <h3 className={styles.stepTitle}>Track Your Progress</h3>
-              <p className={styles.stepDescription}>Apply To Your Dream Job In One Click & Track Progress Live On Your Dashboard!</p>
+     
+        <section className={`${bgColor} py-16 sm:py-20 lg:py-24 transition-colors duration-300 relative`}>
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section Title */}
+        <div className="text-center mb-16">
+          <div className="inline-block">
+            <h2 className={`text-3xl sm:text-4xl font-bold ${textPrimary} mb-2`}>
+             Unlock Your Dream Job Working Process
+            </h2>
+            <div className="flex justify-center gap-2 mt-3">
+              <div className="w-12 h-1 bg-blue-600 rounded-full"></div>
+              <div className="w-12 h-1 bg-red-500 rounded-full"></div>
             </div>
           </div>
         </div>
+
+        {/* Steps Container */}
+        <div className="relative">
+          
+          {/* Steps Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6">
+            {steps.map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <div key={index} className="relative">
+                  {/* Mobile Dotted Line - Only between items */}
+                  {index < steps.length - 1 && (
+                    <div className="lg:hidden absolute left-1/2 top-32 -translate-x-1/2 h-16 w-0.5">
+                      <svg className="w-full h-full">
+                        <line
+                          x1="50%"
+                          y1="0"
+                          x2="50%"
+                          y2="100%"
+                          stroke={isDark ? '#6B7280' : '#D1D5DB'}
+                          strokeWidth="2"
+                          strokeDasharray="8,8"
+                        />
+                      </svg>
+                    </div>
+                  )}
+
+                  {/* Step Card */}
+                  <div className="flex flex-col items-center text-center">
+                    {/* Icon Circle */}
+                    <div className={`${step.color} w-16 h-16 rounded-full flex items-center justify-center mb-6 relative z-10 ${badgeShadow} shadow-lg`}>
+                      <Icon className="w-8 h-8 text-white" strokeWidth={2} />
+                    </div>
+
+                    {/* Content */}
+                    <h3 className={`text-lg font-semibold ${textPrimary} mb-3`}>
+                      {step.title}
+                    </h3>
+                    {/* <p className={`text-sm ${textSecondary} leading-relaxed max-w-xs`}>
+                      {step.description}
+                    </p> */}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Bottom Decorative Line */}
+        <div className="flex justify-center gap-2 mt-16">
+          <div className="w-12 h-1 bg-blue-600 rounded-full"></div>
+          <div className={`w-12 h-1 ${isDark ? 'bg-gray-700' : 'bg-gray-300'} rounded-full`}></div>
+        </div>
+      </div>
+    </section>
+      {/* upload resume section */}
+      <div>
+      {/* Hero Section */}
+      <section className="bg-[#3F58D6] relative min-h-24 flex items-center justify-center overflow-hidden">
+        {/* Background Image Overlay */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center opacity-30"
+          style={{
+            backgroundImage: `url(${upload1})`
+          }}
+        
+        />
+        {/* <img src={upload1} alt=""  className=" w-full h-full object-cover absolute inset-0 bg-cover bg-center  opacity-20" /> */}
+
+        {/* Content Container */}
+        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+          {/* Badge with scroll animation */}
+          <div 
+            className={`inline-block mb-6 transition-all duration-700 ${
+              isVisible 
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 -translate-y-4'
+            }`}
+          >
+            <span className="bg-white/20 text-white text-xs font-semibold px-6 py-2.5 rounded-full uppercase tracking-wider inline-block backdrop-blur-sm">
+              Getting Started To Work
+            </span>
+          </div>
+
+          {/* Main Heading with scroll animation */}
+          <h1 
+            className={`text-white font-bold text-4xl sm:text-5xl lg:text-6xl xl:text-5xl leading-tight mb-6 transition-all duration-700 delay-100 ${
+              isVisible 
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 -translate-y-4'
+            }`}
+          >
+            Don't just find. Be found. 
+            <br />
+            Put your CV in front of 
+            <br />
+            <span className="relative inline-block">
+              <span className="relative z-10">great employers</span>
+              
+            </span>
+          </h1>
+
+          {/* Description with scroll animation */}
+          <p 
+            className={`text-blue-100 text-base sm:text-lg lg:text-xl max-w-3xl mx-auto mb-10 leading-relaxed transition-all duration-700 delay-200 ${
+              isVisible 
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 -translate-y-4'
+            }`}
+          >
+            It helps you to increase your chances of finding a suitable job and let recruiters contact you about jobs that are not needed to pay for advertising.
+          </p>
+
+          {/* Upload Button with scroll animation */}
+          <div 
+            className={`transition-all duration-700 delay-300 ${
+              isVisible 
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 -translate-y-4'
+            }`}
+          >
+            <button 
+              className="bg-white text-blue-600 hover:bg-blue-50 px-8 py-4 rounded-lg font-semibold text-base sm:text-lg inline-flex items-center gap-3 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+            >
+              <Upload className="w-5 h-5" />
+              Upload Your Resume
+            </button>
+          </div>
+        </div>
+
+        {/* Decorative Elements */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white/10 to-transparent" />
       </section>
+
+      
+    </div>
 
       {/* Top Job Roles Section */}
-      <section className={styles.topJobRolesSection}>
+      {/* <section className={styles.topJobRolesSection}>
         <div className={styles.topJobRolesContainer}>
           <h2 className={styles.topJobRolesTitle}>Top Job Roles</h2>
           <div className={styles.jobRolesGrid}>
@@ -636,63 +1164,171 @@ const popularSearches = [
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
+
+      <div>
+      <div className={`${bgColor} min-h-screen w-full transition-colors duration-300`}>
+        
+
+        {/* Main Content */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24">
+          <div className="flex flex-col items-center gap-8 sm:gap-10 lg:gap-12">
+            {/* Header */}
+            <div className="flex flex-col items-center gap-4 text-center max-w-3xl">
+              <span className={`${badgeBg} text-white text-xs font-semibold px-4 py-2 rounded uppercase tracking-wider ${badgeShadow}`}>
+                Job Category
+              </span>
+              <h1 className={`font-bold text-3xl sm:text-4xl lg:text-5xl ${textPrimary}`}>
+                Choose Your Desire Category
+              </h1>
+              
+            </div>
+
+            {/* Job Role Grid */}
+            <div className="w-full max-w-6xl">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                {jobRoleDefinitions.map((role, index) => (
+                  <JobRoleCard key={index} {...role} isDark={isDark} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
       {/* Popular Searches Section */}
-      <section className={styles.popularSearchesSection}>
-        <div className={styles.popularSearchesContainer}>
-          <h2 className={styles.popularSearchesTitle}>Popular Searches</h2>
-          <div className={styles.popularSearchesGrid}>
+     <div className={`min-h-screen transition-colors duration-300 ${bgColor}`}>
+      
+      {/* Popular Searches Section */}
+      <section className="py-16 px-4">
+        <div className="max-w-6xl mx-auto">
+          <h2 className={`text-4xl font-extrabold mb-12 transition-colors ${textPrimary}`}>
+            Popular Searches
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {popularSearches.map((search, index) => (
-              <div key={index} className={styles.searchCard} onClick={() => navigate(search.link)}>
-                <div className={styles.searchCardContent}>
-                  <span className={styles.searchCardTrend}>TRENDING AT {search.trend}</span>
-                  <h3 className={styles.searchCardTitle}>{search.title}</h3>
-                  <span className={styles.searchCardLink}>View all <ArrowRight size={16} /></span>
+              <div
+                key={index}
+                onClick={() => handleNavigate(search.link)}
+                className={`rounded-xl p-6 flex justify-between items-center cursor-pointer transition-all duration-300 hover:shadow-xl border ${cardBg} ${inputBorder} ${
+                  isDark ? 'hover:bg-gray-750' : 'hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex-grow pr-4">
+                  <span className={`text-xs font-semibold tracking-wider mb-2 block uppercase ${textSecondary}`}>
+                    TRENDING AT {search.trend}
+                  </span>
+                  
+                  <h3 className={`text-xl font-bold mb-4 ${textPrimary}`}>
+                    {search.title}
+                  </h3>
+                   <Link to={search.link}>
+                  <span className={`inline-flex items-center gap-2 text-sm font-semibold ${badgeBg} bg-opacity-20 px-3 py-1 rounded-full ${textPrimary}`}>
+                   View all <ArrowRight size={16} />
+                  </span>
+                  </Link>
                 </div>
-                <img src={search.image} alt={search.title} className={styles.searchCardImage} />
+                
+                <img 
+                  src={search.image} 
+                  alt={search.title} 
+                  style={{ width: '100px', height: '100px' }}
+                  className="object-cover rounded-lg flex-shrink-0"
+                />
               </div>
             ))}
           </div>
         </div>
       </section>
+    </div>
 
 
- <section className={topHiringStyles.hiringCompaniesSection}>
-        <div className={topHiringStyles.hiringCompaniesContainer}>
-          <h2 className={topHiringStyles.hiringCompaniesTitle}>Top Hiring Companies</h2>
-          <div className={topHiringStyles.logoGrid}>
+<div className={`min-h-screen transition-colors duration-300 ${bgColor}`}>
+      
+
+      {/* Top Hiring Companies Section */}
+      <section className="py-16 px-4">
+        <div className="max-w-6xl mx-auto">
+          <h2 className={`text-3xl font-bold text-center mb-12 transition-colors ${textPrimary}`}>
+            Top Hiring Companies
+          </h2>
+          
+          <div className={`grid  grid-cols-2 sm:grid-cols-3 md:grid-cols-8 lg:grid-cols-8 gap-6`}>
             {topHiringCompanies.map((company, index) => (
-              <div key={index} className={topHiringStyles.logoCard}>
-                <img src={company.logo} alt={`${company.name} logo`} className={topHiringStyles.logoImage} />
+              <div
+                key={index}
+                className={`${hoverBorder} rounded-xl p-6 flex items-center justify-center transition-all duration-300 hover:shadow-xl border cursor-pointer ${cardBg} ${inputBorder} ${
+                  isDark ? 'hover:bg-gray-750' : 'hover:bg-gray-50'
+                }`}
+              >
+                <img 
+                  src={company.logo} 
+                  alt={`${company.name} logo`} 
+                  className="w-16 h-16 object-contain"
+                  onError={(e) => {
+                    e.target.src = `https://ui-avatars.com/api/?name=${company.name}&background=2563eb&color=fff&size=64`;
+                  }}
+                />
               </div>
             ))}
           </div>
-         
         </div>
       </section>
 
-      {/* Trusted Companies */}
-      <section className={styles.companiesSection}>
-        <div className={styles.companiesContainer}>
-          <h2 className={styles.companiesTitle}>
+      {/* Trusted Companies Section with Infinite Scroll */}
+      <section className={`py-16 px-4 transition-colors ${bgColor}`}>
+        <div className="max-w-6xl mx-auto">
+          <h2 className={`text-3xl font-bold text-center mb-12 transition-colors ${textPrimary}`}>
             Trusted by Leading Companies
           </h2>
           
-          <div className={styles.logoSlider}>
-            <div className={styles.logoTrack}>
+          <div className="overflow-hidden relative">
+            <div className="flex animate-scroll gap-16 items-center">
               {[...companies, ...companies, ...companies].map((company, index) => (
-                <div key={index} className={styles.logoItem}>
-                  <div className={styles.logoImage}>
-                    <img src={company.logo} alt={company.name} />
+                <div key={index} className="flex flex-col items-center gap-2 min-w-[120px] flex-shrink-0">
+                  <div className={`w-16 h-16 rounded-lg flex items-center justify-center shadow-md border transition-colors ${
+                    isDark ? 'bg-white border-gray-600' : 'bg-white border-gray-200'
+                  }`}>
+                    <img 
+                      src={company.logo} 
+                      alt={company.name}
+                      className="w-12 h-12 object-contain"
+                      onError={(e) => {
+                        e.target.src = `https://ui-avatars.com/api/?name=${company.name}&background=2563eb&color=fff&size=48`;
+                      }}
+                    />
                   </div>
-                  <span className={styles.logoName}>{company.name}</span>
+                  <span className={`text-xs font-semibold text-center transition-colors ${textPrimary}`}>
+                    {company.name}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
         </div>
       </section>
+
+      <style jsx>{`
+        @keyframes scroll {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-33.333%);
+          }
+        }
+
+        .animate-scroll {
+          animation: scroll 30s linear infinite;
+        }
+
+        .animate-scroll:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
+    </div>
 
       <Footer />
     </div>
