@@ -7,7 +7,7 @@ import { validateForm } from "../../utils/errorHandler";
 import styles from "../../Styles/Auth.module.css";
 import HomeNav from "../../Components/HomeNav";
 import logo from "../../assets/logo.png";
-import { Briefcase, Building2, Users } from "lucide-react";
+import { Briefcase, Building2, Users, Mail, Lock } from "lucide-react";
 
 const CandidateLogin = () => {
   const navigate = useNavigate();
@@ -17,6 +17,7 @@ const CandidateLogin = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [error, setError] = useState("");
   
   // Get the return URL from navigation state
   const from = location.state?.from?.pathname || '/candidate-home';
@@ -76,6 +77,7 @@ const CandidateLogin = () => {
     e.preventDefault();
     setLoading(true);
     setErrors({});
+    setError("");
 
     try {
       if (isLogin) {
@@ -89,6 +91,8 @@ const CandidateLogin = () => {
         const result = await login(formData.email, formData.password, 'candidate');
         if (result.success) {
           navigate(from, { replace: true });
+        } else {
+          setError("Invalid email or password. Please check your credentials and try again.");
         }
       } else {
         const validationErrors = validateRegisterForm();
@@ -119,7 +123,10 @@ const CandidateLogin = () => {
       }
     } catch (error) {
       console.error(`${isLogin ? 'Login' : 'Registration'} failed:`, error);
-      // Error handling is done in the service layer with toastify
+      if (isLogin) {
+        setError("Invalid email or password. Please check your credentials and try again.");
+      }
+      // Error handling is done in the service layer with toastify for registration
     } finally {
       setLoading(false);
     }
@@ -138,19 +145,21 @@ const CandidateLogin = () => {
           <h1 className={styles.title}>{isLogin ? "Candidate Login" : "Candidate Registration"}</h1>
           
           <div className={styles.toggleButtons}>
-            <button 
+            <button
               className={`${styles.toggleBtn} ${isLogin ? styles.active : ''}`}
               onClick={() => setIsLogin(true)}
             >
               Login
             </button>
-            <button 
+            <button
               className={`${styles.toggleBtn} ${!isLogin ? styles.active : ''}`}
               onClick={() => setIsLogin(false)}
             >
               Register
             </button>
           </div>
+
+          {error && <p className={styles.error}>{error}</p>}
 
           <form onSubmit={handleSubmit}>
             {!isLogin && (
@@ -175,6 +184,7 @@ const CandidateLogin = () => {
               <label className={styles.label}>
                 <span className={styles.labelText}>Email Address</span>
                 <div className={styles.inputWrapper}>
+                  <Mail className={styles.inputIcon} size={20} />
                   <input
                     type="email"
                     name="email"
@@ -211,6 +221,7 @@ const CandidateLogin = () => {
               <label className={styles.label}>
                 <span className={styles.labelText}>Password</span>
                 <div className={styles.inputWrapper}>
+                  <Lock className={styles.inputIcon} size={20} />
                   <input
                     type="password"
                     name="password"
@@ -230,6 +241,7 @@ const CandidateLogin = () => {
                 <label className={styles.label}>
                   <span className={styles.labelText}>Confirm Password</span>
                   <div className={styles.inputWrapper}>
+                    <Lock className={styles.inputIcon} size={20} />
                     <input
                       type="password"
                       name="confirmPassword"

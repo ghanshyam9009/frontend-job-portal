@@ -230,23 +230,7 @@ const GovernmentJobsManagement = () => {
         <p className={styles.pageSubtitle}>Create and manage government job postings</p>
       </div>
 
-      {/* Admin Approval Panel */}
-      <div className={styles.filtersContainer}>
-        <div className={styles.searchBox}>
-          <input
-            type="text"
-            placeholder="Enter approval task_id"
-            value={approvalTaskId}
-            onChange={(e) => setApprovalTaskId(e.target.value)}
-            className={styles.searchInput}
-          />
-        </div>
-        <div className={styles.filterButtons}>
-          <button className={styles.saveBtn} disabled={approving} onClick={() => approveAction('post')}>Approve Posting</button>
-          <button className={styles.saveBtn} disabled={approving} onClick={() => approveAction('edit')}>Approve Edit</button>
-          <button className={styles.rejectBtn} disabled={approving} onClick={() => approveAction('close')}>Approve Closing</button>
-        </div>
-      </div>
+
 
       {/* Error Display */}
       {error && <p className={styles.errorText}>{error}</p>}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../Contexts/ThemeContext';
 import styles from '../../Styles/Auth.module.css';
 import { studentService } from '../../services/studentService';
@@ -6,6 +7,7 @@ import HomeNav from '../../Components/HomeNav';
 import logo from '/favicon-icon.png';
 
 const ResetPassword = () => {
+  const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const [formData, setFormData] = useState({
     email: '',
@@ -83,13 +85,10 @@ const ResetPassword = () => {
       });
       if (response.success) {
         setSuccess('Password has been reset successfully. You can now log in with your new password.');
-        setStep('send-otp');
-        setFormData({
-          email: '',
-          password: '',
-          confirmPassword: '',
-          otp: ''
-        });
+        // Redirect to login page after 3 seconds
+        setTimeout(() => {
+          navigate('/candidate/login');
+        }, 3000);
       } else {
         setError(response.message || 'Failed to reset password');
       }

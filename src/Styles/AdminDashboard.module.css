@@ -2253,26 +2253,163 @@
   .header {
     height: 56px;
   }
-  
+
   .container {
     margin-top: 56px;
   }
-  
+
   .sidebar {
     height: calc(100vh - 56px);
   }
-  
+
   .mainContent {
     padding: 12px;
   }
-  
+
   .kpiCard {
     flex-direction: column;
     text-align: center;
     gap: 12px;
   }
-  
+
   .kpiIcon {
     align-self: center;
+  }
+}
+
+/* Approval Panel Styles */
+.approvalPanel {
+  background: var(--card-background);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: var(--card-border);
+  margin-bottom: 24px;
+}
+
+.panelHeader {
+  margin-bottom: 20px;
+}
+
+.panelTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0 0 4px 0;
+}
+
+.panelSubtitle {
+  font-size: 14px;
+  color: var(--text-color);
+  margin: 0;
+  opacity: 0.8;
+}
+
+.approvalContent {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.approvalInput {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inputLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.approvalInputField {
+  padding: 12px 16px;
+  border: var(--input-border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--input-background);
+  color: var(--text-color);
+  transition: all 0.2s;
+}
+
+.approvalInputField:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.approvalActions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.approvalBtn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 140px;
+}
+
+.approvalBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.approveBtn {
+  background: #10b981;
+  color: white;
+}
+
+.approveBtn:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.rejectBtn {
+  background: #ef4444;
+  color: white;
+}
+
+.rejectBtn:hover:not(:disabled) {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.errorText {
+  padding: 12px 16px;
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 20px;
+}
+
+/* Responsive approval panel */
+@media (max-width: 768px) {
+  .approvalPanel {
+    padding: 16px;
+  }
+
+  .approvalActions {
+    flex-direction: column;
+  }
+
+  .approvalBtn {
+    width: 100%;
   }
 }

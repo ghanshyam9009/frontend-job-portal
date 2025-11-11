@@ -2,10 +2,11 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
+import { validateForm } from "../../utils/errorHandler";
 import styles from "../../Styles/Auth.module.css";
 import HomeNav from "../../Components/HomeNav";
 import logo from "../../assets/logo.png";
-import { Briefcase, Building, Users } from "lucide-react";
+import { Briefcase, Building, Users, Mail, Lock } from "lucide-react";
 
 const AdminLogin = () => {
   const { theme, toggleTheme } = useTheme();
@@ -17,29 +18,56 @@ const AdminLogin = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
 
   const handleInputChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors({
+        ...errors,
+        [name]: ''
+      });
+    }
+  };
+
+  const validateLoginForm = () => {
+    const rules = {
+      email: { required: true, type: 'email', label: 'Email' },
+      password: { required: true, label: 'Password' }
+    };
+
+    return validateForm(formData, rules);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
-    
+    setErrors({});
+
+    const validationErrors = validateLoginForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const success = await login(formData.email, formData.password, 'admin');
-      if (success) {
+      const result = await login(formData.email, formData.password, 'admin');
+      if (result.success) {
         navigate('/admin/dashboard');
       } else {
-        setError("Login failed. Please try again.");
+        setError("Invalid email or password. Please check your credentials and try again.");
       }
     } catch (err) {
-      setError("Login failed. Please try again.");
       console.error("Login error:", err);
+      setError("Invalid email or password. Please check your credentials and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -56,22 +84,26 @@ const AdminLogin = () => {
         </div>
         <div className={styles.formContainer}>
           <h1 className={styles.title}>Admin Login</h1>
-          
+
+          {error && <p className={styles.error}>{error}</p>}
+
           <form onSubmit={handleSubmit}>
             <div className={styles.inputGroup}>
               <label className={styles.label}>
                 <span className={styles.labelText}>Email Address</span>
                 <div className={styles.inputWrapper}>
+                  <Mail className={styles.inputIcon} size={20} />
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="admin@company.com"
-                    className={styles.input}
+                    className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
                     required
                   />
                 </div>
+                {errors.email && <span className={styles.errorText}>{errors.email}</span>}
               </label>
             </div>
 
@@ -79,16 +111,18 @@ const AdminLogin = () => {
               <label className={styles.label}>
                 <span className={styles.labelText}>Password</span>
                 <div className={styles.inputWrapper}>
+                  <Lock className={styles.inputIcon} size={20} />
                   <input
                     type="password"
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
                     placeholder="••••••••"
-                    className={styles.input}
+                    className={`${styles.input} ${errors.password ? styles.inputError : ''}`}
                     required
                   />
                 </div>
+                {errors.password && <span className={styles.errorText}>{errors.password}</span>}
               </label>
             </div>
 
