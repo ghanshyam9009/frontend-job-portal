@@ -456,6 +456,14 @@
 .actionButtons {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.actionButtons button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .actionBtn {
@@ -658,7 +666,7 @@
 .actionBtn.approveBtn,
 .actionBtn.rejectBtn {
   width: 32px;
-  height: 32px;
+  height: 50px;
   border: var(--input-border);
   border-radius: 4px;
   cursor: pointer;

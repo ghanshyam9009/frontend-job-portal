@@ -55,7 +55,6 @@ const GovernmentJobsManagement = () => {
   useEffect(() => {
     fetchJobs();
   }, []);
-
   // Filter jobs based on search and status
   useEffect(() => {
     let filtered = jobs;

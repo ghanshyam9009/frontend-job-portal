@@ -60,7 +60,7 @@ const SavedJobs = () => {
     // Check membership first
     if (!user?.membership || user?.membership === 'free') {
       alert("You need a premium membership to apply for jobs. Redirecting to membership plans...");
-      navigate('/membership');
+      navigate('/membership-plans');
       return;
     }
     

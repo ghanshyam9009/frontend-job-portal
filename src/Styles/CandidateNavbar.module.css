@@ -390,8 +390,7 @@ span{
   }
 
   .navLinks {
-    gap: 4px;
-    margin-left: 16px;
+    display: none;
   }
 
   .logo {
@@ -514,14 +513,21 @@ span{
 .profileSidebar {
   position: fixed;
   top: 0;
-  left: 0;
+  right: 0;
   width: 320px;
   height: 100vh;
   background: #ffffff;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
   z-index: 3001;
   display: flex;
   flex-direction: column;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.profileSidebar.leftSidebar {
+  left: 0;
+  right: auto;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
   animation: slideInLeft 0.3s ease-out;
 }
 
@@ -747,9 +753,53 @@ span{
 }
 
 /* Mobile Responsive for Sidebar */
+@media (max-width: 768px) {
+  .profileSidebar {
+    width: 300px;
+  }
+
+  .profileSidebar.leftSidebar {
+    width: 280px;
+  }
+
+  .sidebarHeader {
+    padding: 16px 20px;
+  }
+
+  .sidebarProfileInfo {
+    padding: 20px;
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .sidebarAvatar {
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+  }
+
+  .sidebarUserDetails {
+    text-align: center;
+  }
+
+  .sidebarMenuItem {
+    padding: 14px 20px;
+    font-size: 15px;
+  }
+
+  .profileCompletion {
+    padding: 16px 20px;
+  }
+}
+
 @media (max-width: 480px) {
   .profileSidebar {
-    width: 280px;
+    width: 100vw;
+  }
+
+  .profileSidebar.leftSidebar {
+    width: 100vw;
   }
 
   .sidebarHeader {
@@ -761,7 +811,13 @@ span{
   }
 
   .sidebarMenuItem {
-    padding: 12px 20px;
+    padding: 16px 20px;
+    font-size: 16px;
+  }
+
+  .sidebarMenuItem svg {
+    width: 20px;
+    height: 20px;
   }
 }
 

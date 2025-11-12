@@ -160,10 +160,10 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                   </div>
                   <div className={styles.sidebarUserDetails}>
                     <div className={styles.sidebarUserName}>
-                      Lilesh mohane
+                      {user?.full_name || user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User'}
                     </div>
                     <div className={styles.sidebarUserEmail}>
-                      lileshmohane2002@gmail.com
+                      {user?.email || 'user@example.com'}
                     </div>
                   </div>
                 </div>
@@ -212,6 +212,20 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                   >
                     <CreditCard size={18} />
                     <span>Membership Plans</span>
+                  </button>
+                  <button
+                    className={styles.sidebarMenuItem}
+                    onClick={() => { navigate('/settings'); setShowProfileSidebar(false); }}
+                  >
+                    <Settings size={18} />
+                    <span>Settings</span>
+                  </button>
+                  <button
+                    className={styles.sidebarMenuItem}
+                    onClick={() => { handleLogout(); setShowProfileSidebar(false); }}
+                  >
+                    <LogOut size={18} />
+                    <span>Logout</span>
                   </button>
                 </div>
               </div>

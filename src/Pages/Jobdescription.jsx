@@ -154,7 +154,7 @@ const Jobdescription = () => {
 
       if (daysSinceRegistration > 45) {
         alert("Your 45-day free trial has expired. You need a premium membership to apply for jobs. Redirecting to membership plans...");
-        navigate('/membership');
+        navigate('/membership-plans');
         return;
       }
       // Within 45 days, allow apply
