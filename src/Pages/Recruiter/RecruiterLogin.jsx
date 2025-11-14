@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext"; // Import useTheme
 import { validateForm } from "../../utils/errorHandler";
-import { CheckCircle, Clock, XCircle, Mail, Lock } from "lucide-react";
+import { CheckCircle, Clock, XCircle, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import styles from "../../Styles/Auth.module.css";
 import HomeNav from "../../Components/HomeNav";
 import logo from "../../assets/logo.png";
@@ -20,6 +20,8 @@ const RecruiterLogin = () => {
   const [showModal, setShowModal] = useState(false);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState(""); // "pending" or "rejected"
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -125,25 +127,31 @@ const RecruiterLogin = () => {
         return;
       }
 
-      try {
-        await register({
-          full_name: formData.contactPerson,
-          email: formData.email,
-          password: formData.password,
-          phone_number: formData.phone,
-          company_name: formData.companyName,
-          company_website: "", // Not in form, but required by API
-          industry: formData.industry,
-          company_size: formData.companySize,
-          location: formData.location,
-          description: "", // Not in form, but required by API
-          role: 'recruiter'
-        });
+      const result = await register({
+        full_name: formData.contactPerson,
+        email: formData.email,
+        password: formData.password,
+        phone_number: formData.phone,
+        company_name: formData.companyName,
+        company_website: "", // Not in form, but required by API
+        industry: formData.industry,
+        company_size: formData.companySize,
+        location: formData.location,
+        description: "", // Not in form, but required by API
+        role: 'recruiter'
+      });
+
+      if (result.success) {
         setShowModal(true);
         setError("");
-      } catch (error) {
-        console.error("Registration failed:", error);
-        setError("Registration failed. Please try again.");
+      } else {
+        // Handle specific error messages
+        const errorMessage = result.error?.message || result.error?.error || '';
+        if (errorMessage.includes('Employer already registered')) {
+          setError("Employer already registered");
+        } else {
+          setError("Registration failed. Please try again.");
+        }
         setSuccess("");
       }
     }
@@ -315,10 +323,10 @@ const RecruiterLogin = () => {
             <div className={styles.inputGroup}>
               <label className={styles.label}>
                 <span className={styles.labelText}>Password</span>
-                <div className={styles.inputWrapper}>
+                <div className={styles.passwordInputWrapper}>
                   <Lock className={styles.inputIcon} size={20} />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
@@ -326,6 +334,13 @@ const RecruiterLogin = () => {
                     className={`${styles.input} ${errors.password ? styles.inputError : ''}`}
                     required
                   />
+                  <button
+                    type="button"
+                    className={styles.eyeButton}
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
                 </div>
                 {errors.password && <span className={styles.errorText}>{errors.password}</span>}
               </label>
@@ -335,10 +350,10 @@ const RecruiterLogin = () => {
               <div className={styles.inputGroup}>
                 <label className={styles.label}>
                   <span className={styles.labelText}>Confirm Password</span>
-                  <div className={styles.inputWrapper}>
+                  <div className={styles.passwordInputWrapper}>
                     <Lock className={styles.inputIcon} size={20} />
                     <input
-                      type="password"
+                      type={showConfirmPassword ? "text" : "password"}
                       name="confirmPassword"
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
@@ -346,6 +361,13 @@ const RecruiterLogin = () => {
                       className={`${styles.input} ${errors.confirmPassword ? styles.inputError : ''}`}
                       required={!isLogin}
                     />
+                    <button
+                      type="button"
+                      className={styles.eyeButton}
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
                   </div>
                   {errors.confirmPassword && <span className={styles.errorText}>{errors.confirmPassword}</span>}
                 </label>

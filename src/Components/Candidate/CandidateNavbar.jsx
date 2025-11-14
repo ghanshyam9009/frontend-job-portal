@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import styles from "../../Styles/CandidateNavbar.module.css";
-import { Sun, Moon, Search, FileText, Heart, List, Home, CreditCard, CheckCircle, User, Settings, LogOut, X } from "lucide-react";
+import { Sun, Moon, Search, FileText, Heart, List, Home, CreditCard, CheckCircle, User, LogOut, X } from "lucide-react";
 import logo from "../../assets/favicon-icon.png";
 
 const CandidateNavbar = ({ toggleSidebar }) => {
@@ -212,13 +212,6 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                   >
                     <CreditCard size={18} />
                     <span>Membership Plans</span>
-                  </button>
-                  <button
-                    className={styles.sidebarMenuItem}
-                    onClick={() => { navigate('/settings'); setShowProfileSidebar(false); }}
-                  >
-                    <Settings size={18} />
-                    <span>Settings</span>
                   </button>
                   <button
                     className={styles.sidebarMenuItem}

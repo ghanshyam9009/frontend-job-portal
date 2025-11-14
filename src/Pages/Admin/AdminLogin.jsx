@@ -6,7 +6,7 @@ import { validateForm } from "../../utils/errorHandler";
 import styles from "../../Styles/Auth.module.css";
 import HomeNav from "../../Components/HomeNav";
 import logo from "../../assets/logo.png";
-import { Briefcase, Building, Users, Mail, Lock } from "lucide-react";
+import { Briefcase, Building, Users, Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 const AdminLogin = () => {
   const { theme, toggleTheme } = useTheme();
@@ -19,6 +19,7 @@ const AdminLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -110,10 +111,10 @@ const AdminLogin = () => {
             <div className={styles.inputGroup}>
               <label className={styles.label}>
                 <span className={styles.labelText}>Password</span>
-                <div className={styles.inputWrapper}>
+                <div className={styles.passwordInputWrapper}>
                   <Lock className={styles.inputIcon} size={20} />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
@@ -121,6 +122,13 @@ const AdminLogin = () => {
                     className={`${styles.input} ${errors.password ? styles.inputError : ''}`}
                     required
                   />
+                  <button
+                    type="button"
+                    className={styles.eyeButton}
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
                 </div>
                 {errors.password && <span className={styles.errorText}>{errors.password}</span>}
               </label>

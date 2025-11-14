@@ -5,6 +5,7 @@ import styles from '../../Styles/Auth.module.css';
 import { studentService } from '../../services/studentService';
 import HomeNav from '../../Components/HomeNav';
 import logo from '/favicon-icon.png';
+import { Eye, EyeOff } from 'lucide-react';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -19,6 +20,8 @@ const ResetPassword = () => {
   const [success, setSuccess] = useState('');
   const [step, setStep] = useState('send-otp'); // 'send-otp', 'verify-otp', 'reset-password'
   const [timer, setTimer] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     let interval;
@@ -130,10 +133,44 @@ const ResetPassword = () => {
         return (
           <form onSubmit={handleResetPassword}>
             <div className={styles.inputGroup}>
-              <input type="password" name="password" value={formData.password} onChange={handleInputChange} placeholder="New Password" className={styles.input} required />
+              <div className={styles.passwordInputWrapper}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  placeholder="New Password"
+                  className={styles.input}
+                  required
+                />
+                <button
+                  type="button"
+                  className={styles.eyeButton}
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
             </div>
             <div className={styles.inputGroup}>
-              <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange} placeholder="Confirm New Password" className={styles.input} required />
+              <div className={styles.passwordInputWrapper}>
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  placeholder="Confirm New Password"
+                  className={styles.input}
+                  required
+                />
+                <button
+                  type="button"
+                  className={styles.eyeButton}
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
             </div>
             <button type="submit" className={styles.submitBtn}>Reset Password</button>
           </form>

@@ -7,7 +7,7 @@ import { validateForm } from "../../utils/errorHandler";
 import styles from "../../Styles/Auth.module.css";
 import HomeNav from "../../Components/HomeNav";
 import logo from "../../assets/logo.png";
-import { Briefcase, Building2, Users, Mail, Lock } from "lucide-react";
+import { Briefcase, Building2, Users, Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 const CandidateLogin = () => {
   const navigate = useNavigate();
@@ -18,6 +18,8 @@ const CandidateLogin = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   // Get the return URL from navigation state
   const from = location.state?.from?.pathname || '/candidate-home';
@@ -119,6 +121,14 @@ const CandidateLogin = () => {
             fullName: "",
             phone: ""
           });
+        } else {
+          // Handle specific error messages
+          const errorMessage = result.error?.message || result.error?.details || '';
+          if (errorMessage.toLowerCase().includes('email') && errorMessage.toLowerCase().includes('already')) {
+            setError("This email address is already registered. Please use a different email or try logging in.");
+          } else {
+            setError("Registration failed. Please try again.");
+          }
         }
       }
     } catch (error) {
@@ -220,10 +230,10 @@ const CandidateLogin = () => {
             <div className={styles.inputGroup}>
               <label className={styles.label}>
                 <span className={styles.labelText}>Password</span>
-                <div className={styles.inputWrapper}>
+                <div className={styles.passwordInputWrapper}>
                   <Lock className={styles.inputIcon} size={20} />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
@@ -231,6 +241,13 @@ const CandidateLogin = () => {
                     className={`${styles.input} ${errors.password ? styles.inputError : ''}`}
                     required
                   />
+                  <button
+                    type="button"
+                    className={styles.eyeButton}
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
                 </div>
                 {errors.password && <span className={styles.errorText}>{errors.password}</span>}
               </label>
@@ -240,10 +257,10 @@ const CandidateLogin = () => {
               <div className={styles.inputGroup}>
                 <label className={styles.label}>
                   <span className={styles.labelText}>Confirm Password</span>
-                  <div className={styles.inputWrapper}>
+                  <div className={styles.passwordInputWrapper}>
                     <Lock className={styles.inputIcon} size={20} />
                     <input
-                      type="password"
+                      type={showConfirmPassword ? "text" : "password"}
                       name="confirmPassword"
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
@@ -251,6 +268,13 @@ const CandidateLogin = () => {
                       className={`${styles.input} ${errors.confirmPassword ? styles.inputError : ''}`}
                       required={!isLogin}
                     />
+                    <button
+                      type="button"
+                      className={styles.eyeButton}
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
                   </div>
                   {errors.confirmPassword && <span className={styles.errorText}>{errors.confirmPassword}</span>}
                 </label>

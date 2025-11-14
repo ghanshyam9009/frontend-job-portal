@@ -88,11 +88,11 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authService.register(userData);
       showSuccess(SUCCESS_MESSAGES.REGISTRATION_SUCCESS);
-      return response;
+      return { success: true, data: response };
     } catch (error) {
       console.error('Registration error:', error);
-      showError(error, ERROR_MESSAGES.REGISTRATION_FAILED);
-      throw error;
+      // Don't show error toast here, let the component handle it
+      return { success: false, error };
     }
   };
 
