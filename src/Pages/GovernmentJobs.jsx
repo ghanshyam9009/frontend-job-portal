@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../Contexts/ThemeContext";
+import { useAuth } from "../Contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Search, MapPin, Calendar, Building2, Users, Clock } from "lucide-react";
 import styles from "../Styles/GovernmentJobs.module.css";
 import HomeNav from "../Components/HomeNav";
+import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import Footer from "../Components/Footer";
 import { candidateExternalService } from "../services";
 
 const GovernmentJobs = () => {
   const { theme } = useTheme();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [filteredJobs, setFilteredJobs] = useState([]);
@@ -29,9 +32,26 @@ const GovernmentJobs = () => {
           (job.department_name?.toLowerCase().includes('government') ||
            job.department_name?.toLowerCase().includes('commission') ||
            job.department_name?.toLowerCase().includes('board') ||
+           job.department_name?.toLowerCase().includes('railway') ||
+           job.department_name?.toLowerCase().includes('police') ||
+           job.department_name?.toLowerCase().includes('public sector') ||
+           job.department_name?.toLowerCase().includes('psu') ||
+           job.department_name?.toLowerCase().includes('central govt') ||
+           job.department_name?.toLowerCase().includes('state govt') ||
+           job.department_name?.toLowerCase().includes('ministry') ||
+           job.department_name?.toLowerCase().includes('department') ||
            job.category?.toLowerCase().includes('government') ||
            job.job_title?.toLowerCase().includes('govt') ||
-           job.job_title?.toLowerCase().includes('government'))
+           job.job_title?.toLowerCase().includes('government') ||
+           job.job_title?.toLowerCase().includes('railway') ||
+           job.job_title?.toLowerCase().includes('police') ||
+           job.job_title?.toLowerCase().includes('upsc') ||
+           job.job_title?.toLowerCase().includes('ssc') ||
+           job.job_title?.toLowerCase().includes('bank') ||
+           job.job_title?.toLowerCase().includes('defense') ||
+           job.job_title?.toLowerCase().includes('army') ||
+           job.job_title?.toLowerCase().includes('navy') ||
+           job.job_title?.toLowerCase().includes('air force'))
         );
         setJobs(govtJobs);
         setFilteredJobs(govtJobs);
@@ -81,6 +101,27 @@ const GovernmentJobs = () => {
     });
   };
 
+  const handleApply = (e, job) => {
+    e.stopPropagation(); // Prevent the job card click
+
+    if (!isAuthenticated) {
+      // Redirect to candidate login with return path
+      navigate('/candidate/login', {
+        state: {
+          from: `/government-jobs`,
+          job: job // Optional: pass job data for post-login flow
+        }
+      });
+      return;
+    }
+
+    // If authenticated, proceed with application or redirect to job details
+    const jobSlug = job.job_title?.toLowerCase().replace(/\s+/g, '-') || job.id;
+    navigate(`/job/${jobSlug}`, {
+      state: { job, apply: true }
+    });
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -100,7 +141,7 @@ const GovernmentJobs = () => {
   if (loading) {
     return (
       <div className={`${styles.pageContainer} ${theme === 'dark' ? styles.dark : ''}`}>
-        <HomeNav />
+        {isAuthenticated ? <CandidateNavbar /> : <HomeNav />}
         <div>Loading...</div>
       </div>
     );
@@ -108,7 +149,7 @@ const GovernmentJobs = () => {
 
   return (
     <div className={`${styles.pageContainer} ${theme === 'dark' ? styles.dark : ''}`}>
-      <HomeNav />
+      {isAuthenticated ? <CandidateNavbar /> : <HomeNav />}
       <h1 className={styles.title}>Government Jobs</h1>
       <div className={styles.jobList}>
         {filteredJobs.length === 0 ? (
@@ -124,7 +165,7 @@ const GovernmentJobs = () => {
               <p className={styles.department}>{job.department_name || 'N/A'}</p>
               <div className={styles.details}>
                 <p className={styles.location}>{job.location || 'N/A'}</p>
-                <button className={styles.applyButton}>Apply Now</button>
+                <button className={styles.applyButton} onClick={(e) => handleApply(e, job)}>Apply Now</button>
               </div>
             </div>
           ))

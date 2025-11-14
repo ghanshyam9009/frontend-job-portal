@@ -1,7 +1,9 @@
 import React from "react";
 import { useTheme } from "../Contexts/ThemeContext";
+import { useAuth } from "../Contexts/AuthContext";
 import styles from "../Styles/Membership.module.css";
 import HomeNav from "../Components/HomeNav";
+import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import { CheckCircle, XCircle } from 'lucide-react';
 import Footer from "../Components/Footer";
 
@@ -128,10 +130,11 @@ const faqs = [
 
 const Membership = () => {
   const { theme } = useTheme();
+  const { isAuthenticated } = useAuth();
 
   return (
     <div className={`${styles.pageContainer} ${theme === 'dark' ? styles.dark : ''}`}>
-      <HomeNav />
+      {isAuthenticated ? <CandidateNavbar /> : <HomeNav />}
       <div className={styles.header}>
         <h1 className={styles.title}>Membership Plans</h1>
         <p className={styles.subtitle}>Choose the plan that's right for you</p>
