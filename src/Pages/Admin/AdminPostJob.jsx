@@ -79,12 +79,34 @@ const AdminPostJob = () => {
     setSuccess(false);
 
     try {
+      // Format salary range as string
+      const salaryMin = jobData.salary_range.min;
+      const salaryMax = jobData.salary_range.max;
+      const currency = jobData.salary_range.currency;
+      const salaryRange = salaryMin && salaryMax ? `${currency === 'INR' ? '₹' : currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '£'}${salaryMin} - ${currency === 'INR' ? '₹' : currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '£'}${salaryMax}` : null;
+
+      // Format experience as string if provided
+      const expMin = jobData.experience_required.min_years;
+      const expMax = jobData.experience_required.max_years;
+      const experienceRequired = expMin || expMax ? `${expMin || 0}-${expMax || ''} years` : null;
+
       const jobPayload = {
-        ...jobData,
-        employer_id: "admin", // Special identifier for admin-posted jobs
+        job_title: jobData.job_title,
+        company_name: jobData.company_name || null,
+        description: jobData.description,
+        location: jobData.location,
+        employment_type: jobData.employment_type,
+        work_mode: jobData.work_mode || null,
+        salary_range: salaryRange,
+        experience_required: experienceRequired,
+        skills_required: jobData.skills_required,
         responsibilities: jobData.responsibilities.split("\n").filter(r => r.trim()),
         qualifications: jobData.qualifications.split("\n").filter(q => q.trim()),
-        status: "approved", // Admin jobs are auto-approved
+        application_deadline: jobData.application_deadline || null,
+        contact_email: jobData.contact_email || null,
+        status: "Open", // Admin jobs are visible and open
+        is_premium: jobData.is_premium,
+        posted_by: "admin"
       };
 
       const result = await adminService.postJobByAdmin(jobPayload);

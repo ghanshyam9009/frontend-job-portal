@@ -7,6 +7,7 @@ import { candidateExternalService } from "../services/candidateExternalService";
 import { studentService } from "../services/studentService";
 import HomeNav from "../Components/HomeNav";
 import { Bookmark, Briefcase, MapPin, Sparkles, TrendingUp } from "lucide-react";
+import Footer from "../Components/Footer";
 
 const JobDescription = () => {
   // theme
@@ -335,7 +336,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
         <div className="grid  lg:grid-cols-12 gap-6">
           {/* left */}
           <main className=" space-y-6 lg:col-span-8">
-            <div className={`sticky lg:top-24 bg-white ${isDarkMode ? "dark:bg-slate-800" : ""} rounded-xl p-6 shadow`}>
+            <div className={`lg:sticky lg:top-24 bg-white ${isDarkMode ? "dark:bg-slate-800" : ""} rounded-xl p-6 shadow`}>
               <div className="flex justify-between items-start gap-4">
                 <div className="flex-1 min-w-0">
                   <h1 className="text-2xl font-bold mb-2">{job.job_title || job.title || "Job Title"}</h1>
@@ -591,6 +592,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
         </div>
       </div>
     </div>
+    <Footer/>
     </>
   );
 };

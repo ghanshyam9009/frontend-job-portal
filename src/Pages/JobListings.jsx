@@ -1094,6 +1094,7 @@ const fetchJobs = async () => {
           </div>
         </div>
       </div>
+      <Footer/>
     </div>
   );
 };

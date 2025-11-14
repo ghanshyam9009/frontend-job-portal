@@ -33,10 +33,20 @@ export const AuthProvider = ({ children }) => {
   // Set up periodic session expiry check (every 5 minutes)
   useEffect(() => {
     const sessionCheckInterval = setInterval(() => {
-      if (isAuthenticated && authService.isSessionExpired()) {
-        console.log('Session expired - auto logging out');
-        showError('Your session has expired. Please log in again.');
-        logout();
+      if (isAuthenticated) {
+        const remainingTime = authService.getRemainingSessionTime();
+
+        // Warn user when less than 1 hour (60 minutes) remaining
+        if (remainingTime <= 60 * 60 * 1000 && remainingTime > 55 * 60 * 1000) {
+          showError('Your session will expire in less than 1 hour. Please save your work.');
+        }
+
+        // Auto logout when session expires
+        if (authService.isSessionExpired()) {
+          console.log('Session expired - auto logging out');
+          showError('Your session has expired due to 24-hour inactivity. Please log in again.');
+          logout();
+        }
       }
     }, 5 * 60 * 1000); // Check every 5 minutes
 
