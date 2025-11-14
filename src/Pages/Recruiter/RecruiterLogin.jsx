@@ -31,7 +31,8 @@ const RecruiterLogin = () => {
     phone: "",
     companySize: "",
     location: "",
-    industry: ""
+    industry: "",
+    otherIndustry: ""
   });
 
   const handleInputChange = (e) => {
@@ -69,7 +70,10 @@ const RecruiterLogin = () => {
       email: { required: true, type: 'email', label: 'Email' },
       phone: { required: true, type: 'phone', label: 'Phone Number' },
       password: { required: true, type: 'password', label: 'Password' },
-      confirmPassword: { required: true, label: 'Confirm Password' }
+      confirmPassword: { required: true, label: 'Confirm Password' },
+      ...(formData.industry === "Other" && {
+        otherIndustry: { required: true, minLength: 2, label: 'Other Industry' }
+      })
     };
 
     const validationErrors = validateForm(formData, rules);
@@ -134,7 +138,7 @@ const RecruiterLogin = () => {
         phone_number: formData.phone,
         company_name: formData.companyName,
         company_website: "", // Not in form, but required by API
-        industry: formData.industry,
+        industry: formData.industry === "Other" ? formData.otherIndustry : formData.industry,
         company_size: formData.companySize,
         location: formData.location,
         description: "", // Not in form, but required by API
@@ -269,6 +273,24 @@ const RecruiterLogin = () => {
                     {errors.industry && <span className={styles.errorText}>{errors.industry}</span>}
                   </label>
                 </div>
+
+                {formData.industry === "Other" && (
+                  <div className={styles.inputGroup}>
+                    <label className={styles.label}>
+                      <span className={styles.labelText}>Other Industry</span>
+                      <input
+                        type="text"
+                        name="otherIndustry"
+                        value={formData.otherIndustry}
+                        onChange={handleInputChange}
+                        placeholder="Enter your industry"
+                        className={`${styles.input} ${errors.otherIndustry ? styles.inputError : ''}`}
+                        required={formData.industry === "Other"}
+                      />
+                      {errors.otherIndustry && <span className={styles.errorText}>{errors.otherIndustry}</span>}
+                    </label>
+                  </div>
+                )}
 
                 <div className={styles.inputGroup}>
                   <label className={styles.label}>
@@ -444,7 +466,8 @@ const RecruiterLogin = () => {
                     phone: "",
                     companySize: "",
                     location: "",
-                    industry: ""
+                    industry: "",
+                    otherIndustry: ""
                   });
                 }}
               >
