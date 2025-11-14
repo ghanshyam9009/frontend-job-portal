@@ -66,7 +66,9 @@ export const authService = {
       const response = await apiClient.post(endpoint, userData);
       return response;
     } catch (error) {
-      throw handleApiError(error, ERROR_MESSAGES.REGISTRATION_FAILED);
+      // For registration, don't show toast - let the component handle the error
+      // Just return the original error so the component can extract the proper message
+      throw error;
     }
   },
 
@@ -179,11 +181,20 @@ export const authService = {
   // Check if session has expired (24 hours)
   isSessionExpired() {
     const loginTimestamp = this.getLoginTimestamp();
-    if (!loginTimestamp) return true; // No timestamp means expired
+    console.log('Checking session expiry, timestamp:', loginTimestamp);
+
+    if (!loginTimestamp) {
+      console.log('No timestamp found - session expired');
+      return true; // No timestamp means expired
+    }
 
     const currentTime = Date.now();
     const sessionDuration = currentTime - parseInt(loginTimestamp);
     const twentyFourHours = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+    console.log('Session duration (ms):', sessionDuration);
+    console.log('24 hours in ms:', twentyFourHours);
+    console.log('Session expired:', sessionDuration >= twentyFourHours);
 
     return sessionDuration >= twentyFourHours;
   },

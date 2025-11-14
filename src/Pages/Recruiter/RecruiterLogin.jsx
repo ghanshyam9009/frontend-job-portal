@@ -145,8 +145,13 @@ const RecruiterLogin = () => {
         setShowModal(true);
         setError("");
       } else {
-        // Handle specific error messages
-        const errorMessage = result.error?.message || result.error?.error || '';
+        // Handle specific error messages from API response
+        const errorMessage = result.error?.response?.data?.message ||
+                           result.error?.response?.data?.error ||
+                           result.error?.message ||
+                           result.error?.error ||
+                           '';
+
         if (errorMessage.includes('Employer already registered')) {
           setError("Employer already registered");
         } else {

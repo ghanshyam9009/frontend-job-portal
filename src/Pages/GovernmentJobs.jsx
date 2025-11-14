@@ -23,14 +23,15 @@ const GovernmentJobs = () => {
       try {
         setLoading(true);
         const jobsData = await candidateExternalService.getAllJobs();
-        // Filter for government jobs based on department_name or category
+        // Filter for government jobs posted by admin
         const govtJobs = (jobsData?.jobs || []).filter(job =>
-          job.department_name?.toLowerCase().includes('government') ||
-          job.department_name?.toLowerCase().includes('commission') ||
-          job.department_name?.toLowerCase().includes('board') ||
-          job.category?.toLowerCase().includes('government') ||
-          job.job_title?.toLowerCase().includes('govt') ||
-          job.job_title?.toLowerCase().includes('government')
+          job.posted_by === 'admin' &&
+          (job.department_name?.toLowerCase().includes('government') ||
+           job.department_name?.toLowerCase().includes('commission') ||
+           job.department_name?.toLowerCase().includes('board') ||
+           job.category?.toLowerCase().includes('government') ||
+           job.job_title?.toLowerCase().includes('govt') ||
+           job.job_title?.toLowerCase().includes('government'))
         );
         setJobs(govtJobs);
         setFilteredJobs(govtJobs);

@@ -401,10 +401,44 @@ export const adminService = {
 
   async getGovernmentJobs() {
     try {
-      const response = await adminApiClient.get(API_ENDPOINTS.jobs.getGovernmentJobs);
-      return response.data || [];
+      // Fetch all jobs from the general jobs API and filter for government jobs posted by admin
+      const apiUrl = 'https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs';
+      const searchParams = {
+        page: 1,
+        limit: 1000, // Get all jobs
+        status: 'approved'
+      };
+
+      const queryString = new URLSearchParams(searchParams).toString();
+      const response = await fetch(`${apiUrl}?${queryString}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const jobsData = await response.json();
+      const allJobs = jobsData?.jobs || jobsData.data || jobsData || [];
+
+      // Filter for government jobs posted by admin
+      const govtJobs = allJobs.filter(job =>
+        job.posted_by === 'admin' &&
+        (job.department_name?.toLowerCase().includes('government') ||
+         job.department_name?.toLowerCase().includes('commission') ||
+         job.department_name?.toLowerCase().includes('board') ||
+         job.category?.toLowerCase().includes('government') ||
+         job.job_title?.toLowerCase().includes('govt') ||
+         job.job_title?.toLowerCase().includes('government'))
+      );
+
+      return govtJobs;
     } catch (error) {
-      throw error;
+      console.error('Error fetching government jobs:', error);
+      return [];
     }
   },
 

@@ -105,14 +105,16 @@ const GovernmentJobsManagement = () => {
     e.preventDefault();
     try {
       if (editingJob) {
-        await adminService.updateGovernmentJob(editingJob.id, {
+        await adminService.updateGovernmentJob(editingJob.job_id || editingJob.id, {
+          job_id: editingJob.job_id || editingJob.id,
+          admin_id: String(user?.user_id || user?.id || user?.admin_id),
           salary_range: formData.salary_range,
           status: "Closed" // Update to closed or keep as is
         });
         setEditingJob(null);
       } else {
         await adminService.createGovernmentJob({
-          admin_id: String(user?.admin_id || user?.id),
+          admin_id: String(user?.user_id || user?.id || user?.admin_id),
           job_title: formData.job_title,
           description: formData.description,
           location: formData.location,
