@@ -193,20 +193,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
           return;
         }
       } catch {
-        // if created_at invalid, continue (or ask user to login again)
-    // Check if user has premium membership or is within 45-day trial
-    if (user?.membership === 'premium') {
-      // Allow apply
-    } else {
-      // Check 45-day trial
-      const registrationDate = new Date(user.created_at);
-      const now = new Date();
-      const daysSinceRegistration = Math.floor((now - registrationDate) / (1000 * 60 * 60 * 24));
-
-      if (daysSinceRegistration > 45) {
-        alert("Your 45-day free trial has expired. You need a premium membership to apply for jobs. Redirecting to membership plans...");
-        navigate('/membership-plans');
-        return;
+        // if created_at invalid, continue with profile fetching below
       }
     }
 
