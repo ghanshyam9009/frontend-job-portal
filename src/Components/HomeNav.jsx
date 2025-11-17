@@ -18,13 +18,6 @@ const HomeNav = () => {
   const isActive = (path) => {
     return currentPath === path;
   };
-  
-  console.log(currentPath)
-  
-
-  const isActive = (path) => {
-    return currentPath === path;
-  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -222,10 +215,6 @@ const HomeNav = () => {
               to="/candidate/login"
               className={`px-4 py-2 text-sm font-bold text-[#2271B5] hover:text-[#1a5a8f] rounded-md transition-colors ${
                 isDark ? 'hover:bg-[#2271B5]/20' : 'hover:bg-[#2271B5]/10'
-            <a
-              href="/candidate/login"
-              className={`px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 rounded-md transition-colors ${
-                isDark ? 'hover:bg-blue-900/20' : 'hover:bg-blue-50'
               }`}
             >
               Candidate Login
@@ -233,19 +222,11 @@ const HomeNav = () => {
 
             <div className="relative employer-dropdown">
               <Link
-                    to="/recruiter/login"
-                    className={`block px-4  text-sm ${textSecondary}`}
-                  >
-              <button
-                // onClick={toggleDropdown}
+                to="/recruiter/login"
                 className="flex items-center space-x-1 px-4 py-2 text-sm font-bold text-white bg-[#2271B5] hover:bg-[#1a5a8f] rounded-md transition-colors"
               >
-                <span>
-                    Recruiter Login
-                 </span>
-                
-              </button>
-               </Link>
+                <span>Recruiter Login</span>
+              </Link>
               {showDropdown && (
                 <div className={`absolute top-full right-0 mt-2 w-48 ${dropdownBg} rounded-md shadow-lg py-1 border ${borderColor}`}>
                   
@@ -419,14 +400,13 @@ const HomeNav = () => {
                   >
                     Recruiter Login
                   </Link>
-                  </a>
-                  <a
-                    href="/admin/login"
+                  <Link
+                    to="/admin/login"
                     className={`block px-4 py-2 text-sm ${textSecondary} ${dropdownHover} rounded-md transition-colors`}
                     onClick={closeMobileMenu}
                   >
                     Admin Login
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>
