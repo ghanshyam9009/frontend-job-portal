@@ -119,8 +119,12 @@ export const AuthProvider = ({ children }) => {
 
   const updateUser = (updatedUserData) => {
     const updatedUser = { ...user, ...updatedUserData };
+    console.log('AuthContext - Updating user from:', user);
+    console.log('AuthContext - To:', updatedUser);
+    console.log('AuthContext - Setting user to:', JSON.stringify(updatedUser));
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
+    console.log('AuthContext - Updated localStorage with:', localStorage.getItem('user'));
   };
 
   const refreshToken = async () => {

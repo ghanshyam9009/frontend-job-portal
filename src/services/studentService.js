@@ -52,6 +52,20 @@ export const studentService = {
     }, 'Profile update failed');
   },
 
+  async fetchProfileDetails(email) {
+    return withErrorHandling(async () => {
+      const response = await apiClient.get(`https://gfiwltw271.execute-api.ap-southeast-1.amazonaws.com/default/getstudentdetails?email=${email}`);
+      return response;
+    }, 'Failed to fetch profile details');
+  },
+
+  async updateProfileDetails(email, profileData) {
+    return withErrorHandling(async () => {
+      const response = await apiClient.put(`https://api.bigsources.in/api/students/profile/${email}`, profileData);
+      return response;
+    }, 'Failed to update profile details');
+  },
+
   async getAllStudents(params = {}) {
     return withErrorHandling(async () => {
       const response = await apiClient.get(API_ENDPOINTS.students.getAll, { params });

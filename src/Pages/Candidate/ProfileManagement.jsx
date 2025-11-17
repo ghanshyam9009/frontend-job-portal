@@ -161,24 +161,30 @@ const ProfileManagement = () => {
         value = formData.address[addressField];
         fieldName = `address.${addressField}`;
       } else if (field === 'education') {
-        // Validate education array
+        // Validate education array - only if has content
         formData.education.forEach((edu, index) => {
-          if (!edu.degree.trim()) {
-            errors[`education_${index}_degree`] = 'Degree is required';
-          }
-          if (!edu.institution.trim()) {
-            errors[`education_${index}_institution`] = 'Institution is required';
+          const hasContent = edu.degree.trim() || edu.institution.trim() || edu.year.trim();
+          if (hasContent) {
+            if (!edu.degree.trim()) {
+              errors[`education_${index}_degree`] = 'Degree is required';
+            }
+            if (!edu.institution.trim()) {
+              errors[`education_${index}_institution`] = 'Institution is required';
+            }
           }
         });
         return;
       } else if (field === 'experience') {
-        // Validate experience array
+        // Validate experience array - only if has content
         formData.experience.forEach((exp, index) => {
-          if (!exp.title.trim()) {
-            errors[`experience_${index}_title`] = 'Job title is required';
-          }
-          if (!exp.company.trim()) {
-            errors[`experience_${index}_company`] = 'Company name is required';
+          const hasContent = exp.title.trim() || exp.company.trim() || exp.duration.trim();
+          if (hasContent) {
+            if (!exp.title.trim()) {
+              errors[`experience_${index}_title`] = 'Job title is required';
+            }
+            if (!exp.company.trim()) {
+              errors[`experience_${index}_company`] = 'Company name is required';
+            }
           }
         });
         return;
@@ -220,27 +226,84 @@ const ProfileManagement = () => {
   };
 
   useEffect(() => {
-    if (user) {
-      setFormData({
-        full_name: user.full_name || '',
-        phone_number: user.phone_number || '',
-        username: user.username || '',
-        dob: user.dob ? new Date(user.dob).toISOString().split('T')[0] : '',
-        gender: user.gender || '',
-        address: {
-          street: user.address?.street || '',
-          city: user.address?.city || '',
-          state: user.address?.state || '',
-          zip: user.address?.zip || '',
-          country: user.address?.country || ''
-        },
-        bio: user.bio || '',
-        resume: user.resumeUrl || user.resume || null,
-        education: Array.isArray(user.education) && user.education.length > 0 ? user.education : [{ degree: '', institution: '', year: '' }],
-        experience: Array.isArray(user.experience) && user.experience.length > 0 ? user.experience : [{ title: '', company: '', duration: '' }],
-        skills: user.skills || ''
-      });
-    }
+    const loadProfileData = async () => {
+      if (user?.email) {
+        try {
+          setLoading(true);
+          // Fetch latest profile data using the new API endpoint
+          const profileResponse = await studentService.fetchProfileDetails(user.email);
+          if (profileResponse.success && profileResponse.data) {
+            const profileData = profileResponse.data;
+            setFormData({
+              full_name: profileData.full_name || user.full_name || '',
+              phone_number: profileData.phone_number || user.phone_number || '',
+              username: profileData.username || user.username || '',
+              dob: profileData.dob ? new Date(profileData.dob).toISOString().split('T')[0] : '',
+              gender: profileData.gender || user.gender || '',
+              address: {
+                street: profileData.address?.street || user.address?.street || '',
+                city: profileData.address?.city || user.address?.city || '',
+                state: profileData.address?.state || user.address?.state || '',
+                zip: profileData.address?.zip || user.address?.zip || '',
+                country: profileData.address?.country || user.address?.country || ''
+              },
+              bio: profileData.bio || user.bio || '',
+              resume: profileData.resumeUrl || profileData.resume || user.resumeUrl || user.resume || null,
+              education: Array.isArray(profileData.education) && profileData.education.length > 0 ? profileData.education : [{ degree: '', institution: '', year: '' }],
+              experience: Array.isArray(profileData.experience) && profileData.experience.length > 0 ? profileData.experience : [{ title: '', company: '', duration: '' }],
+              skills: profileData.skills || user.skills || ''
+            });
+            } else {
+              // Fallback to user context data if API fetch fails
+              setFormData({
+                full_name: user.full_name || '',
+                phone_number: user.phone_number || '',
+                username: user.username || '',
+                dob: user.dob ? new Date(user.dob).toISOString().split('T')[0] : '',
+                gender: user.gender || '',
+                address: {
+                  street: user.address?.street || '',
+                  city: user.address?.city || '',
+                  state: user.address?.state || '',
+                  zip: user.address?.zip || '',
+                  country: user.address?.country || ''
+                },
+                bio: user.bio || '',
+                resume: user.resumeUrl || user.resume || null,
+                education: Array.isArray(user.education) && user.education.length > 0 ? user.education : [{ degree: '', institution: '', year: '' }],
+                experience: Array.isArray(user.experience) && user.experience.length > 0 ? user.experience : [{ title: '', company: '', duration: '' }],
+                skills: user.skills || ''
+              });
+            }
+        } catch (error) {
+          console.error('Error loading profile data:', error);
+          // Fallback to user context data
+          setFormData({
+            full_name: user.full_name || '',
+            phone_number: user.phone_number || '',
+            username: user.username || '',
+            dob: user.dob ? new Date(user.dob).toISOString().split('T')[0] : '',
+            gender: user.gender || '',
+            address: {
+              street: user.address?.street || '',
+              city: user.address?.city || '',
+              state: user.address?.state || '',
+              zip: user.address?.zip || '',
+              country: user.address?.country || ''
+            },
+            bio: user.bio || '',
+            resume: user.resumeUrl || user.resume || null,
+            education: Array.isArray(user.education) && user.education.length > 0 ? user.education : [{ degree: '', institution: '', year: '' }],
+            experience: Array.isArray(user.experience) && user.experience.length > 0 ? user.experience : [{ title: '', company: '', duration: '' }],
+            skills: user.skills || ''
+          });
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadProfileData();
   }, [user]);
 
   const handleInputChange = (e) => {
@@ -281,6 +344,8 @@ const ProfileManagement = () => {
     // Mark field as touched
     setTouchedFields({ ...touchedFields, resume: true });
   };
+
+
 
   const handleDynamicChange = (e, index, type) => {
     const { name, value } = e.target;
@@ -348,29 +413,29 @@ const ProfileManagement = () => {
     setSuccess('');
     setLoading(true);
 
-    // Create a new FormData object to handle file uploads
-    const dataToSubmit = new FormData();
-    for (const key in formData) {
-      if (key === 'resume' && formData.resume instanceof File) {
-        dataToSubmit.append(key, formData.resume);
-      } else if (typeof formData[key] === 'object' && formData[key] !== null) {
-        dataToSubmit.append(key, JSON.stringify(formData[key]));
-      } else {
-        dataToSubmit.append(key, formData[key]);
-      }
-    }
-
     try {
-      const response = await studentService.updateProfile(user.email, dataToSubmit);
+      console.log('Submitting profile data:', formData);
+
+      const response = await studentService.updateProfileDetails(user.email, formData);
+      console.log('Update response:', response);
+
       if (response.success) {
+        console.log('Response data:', response.data);
         updateUser(response.data);
+
         setSuccess('Profile updated successfully');
         // Mark all steps as completed
         setCompletedSteps([0, 1, 2, 3, 4]);
+
+        // Force page reload to update profile completion in dashboard
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
         setError(response.message || 'Failed to update profile');
       }
     } catch (err) {
+      console.error('Profile update error:', err);
       setError('An error occurred while updating the profile');
     } finally {
       setLoading(false);
@@ -697,6 +762,8 @@ const ProfileManagement = () => {
             </div>
           </div>
         );
+
+
 
       default:
         return null;

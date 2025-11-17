@@ -24,59 +24,98 @@ const UserDashboard = () => {
   const calculateProfileCompletion = (userData) => {
     const steps = [
       {
-        fields: ['full_name', 'phone_number', 'username', 'dob', 'gender'],
-        weight: 20
+        title: 'Personal Info',
+        fields: [
+          { name: 'full_name', required: true, weight: 10 },
+          { name: 'phone_number', required: true, weight: 5 },
+          { name: 'username', required: true, weight: 3 },
+          { name: 'gender', required: true, weight: 2 }
+        ],
+        totalWeight: 20
       },
       {
-        fields: ['address.street', 'address.city', 'address.state', 'address.zip', 'address.country'],
-        weight: 20
+        title: 'Address',
+        fields: [
+          { name: 'address.city', required: true, weight: 8 },
+          { name: 'address.state', required: true, weight: 6 },
+          { name: 'address.country', required: true, weight: 6 }
+        ],
+        totalWeight: 20
       },
       {
-        fields: ['bio', 'skills'],
-        weight: 20
+        title: 'Professional',
+        fields: [
+          { name: 'bio', required: true, weight: 15 },
+          { name: 'skills', required: true, weight: 5 }
+        ],
+        totalWeight: 20
       },
       {
-        fields: ['education'],
-        weight: 20
+        title: 'Education',
+        fields: [],
+        totalWeight: 20,
+        isArray: true,
+        arrayField: 'education'
       },
       {
-        fields: ['experience'],
-        weight: 20
+        title: 'Experience',
+        fields: [],
+        totalWeight: 20,
+        isArray: true,
+        arrayField: 'experience'
       }
     ];
 
-    let completedWeight = 0;
-    let totalWeight = 0;
+    let totalCompleted = 0;
 
     steps.forEach(step => {
-      totalWeight += step.weight;
+      let stepCompleted = 0;
 
-      if (step.fields.includes('education') || step.fields.includes('experience')) {
-        const field = step.fields[0];
-        if (userData[field] && Array.isArray(userData[field]) && userData[field].length > 0) {
-          const hasValidData = userData[field].some(item =>
-            Object.values(item).some(value => value && value.trim() !== '')
-          );
-          if (hasValidData) {
-            completedWeight += step.weight;
+      if (step.isArray) {
+        // Handle array fields (education, experience)
+        const arrayData = userData[step.arrayField] || [];
+        if (Array.isArray(arrayData) && arrayData.length > 0) {
+          const hasValidEntry = arrayData.some(item => {
+            return Object.values(item).some(value =>
+              value && typeof value === 'string' && value.trim() !== ''
+            );
+          });
+          if (hasValidEntry) {
+            stepCompleted = step.totalWeight;
           }
         }
       } else {
-        const hasAllFields = step.fields.every(field => {
-          const keys = field.split('.');
+        // Handle regular fields
+        const totalFieldWeight = step.fields.reduce((sum, field) => sum + field.weight, 0);
+        let completedFieldWeight = 0;
+
+        step.fields.forEach(field => {
+          const keys = field.name.split('.');
           let value = userData;
+          let hasValue = false;
+
           for (const key of keys) {
             value = value && value[key];
           }
-          return value && value.trim() !== '';
+
+          if (value && value.toString().trim() !== '') {
+            hasValue = true;
+          }
+
+          if (hasValue) {
+            completedFieldWeight += field.weight;
+          }
         });
-        if (hasAllFields) {
-          completedWeight += step.weight;
+
+        if (totalFieldWeight > 0) {
+          stepCompleted = Math.round((completedFieldWeight / totalFieldWeight) * step.totalWeight);
         }
       }
+
+      totalCompleted += stepCompleted;
     });
 
-    return Math.round((completedWeight / totalWeight) * 100);
+    return Math.min(100, Math.round(totalCompleted));
   };
 
   // Fetch dashboard data
