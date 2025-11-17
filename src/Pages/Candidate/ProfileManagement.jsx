@@ -22,7 +22,6 @@ const ProfileManagement = () => {
       zip: '',
       country: ''
     },
-    profile_image: '',
     bio: '',
     resume: null,
     education: [{ degree: '', institution: '', year: '' }],
@@ -57,7 +56,7 @@ const ProfileManagement = () => {
       title: 'Professional',
       description: 'Bio and professional info',
       icon: Briefcase,
-      fields: ['profile_image', 'bio', 'skills']
+      fields: ['bio', 'skills']
     },
     {
       id: 'education',
@@ -126,12 +125,6 @@ const ProfileManagement = () => {
       case 'address.zip':
         if (formData.address.zip && !/^[a-zA-Z0-9\s\-]+$/.test(formData.address.zip)) {
           error = 'Please enter a valid ZIP/postal code';
-        }
-        break;
-
-      case 'profile_image':
-        if (value && !/^https?:\/\/.+/.test(value)) {
-          error = 'Please enter a valid URL';
         }
         break;
 
@@ -241,9 +234,8 @@ const ProfileManagement = () => {
           zip: user.address?.zip || '',
           country: user.address?.country || ''
         },
-        profile_image: user.profile_image || '',
         bio: user.bio || '',
-        resume: user.resume || null,
+        resume: user.resumeUrl || user.resume || null,
         education: Array.isArray(user.education) && user.education.length > 0 ? user.education : [{ degree: '', institution: '', year: '' }],
         experience: Array.isArray(user.experience) && user.experience.length > 0 ? user.experience : [{ title: '', company: '', duration: '' }],
         skills: user.skills || ''
@@ -538,17 +530,6 @@ const ProfileManagement = () => {
 
             <div className={styles.formGrid}>
               <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-                <label>Profile Image URL</label>
-                <input
-                  type="url"
-                  name="profile_image"
-                  value={formData.profile_image}
-                  onChange={handleInputChange}
-                  placeholder="https://example.com/profile.jpg"
-                />
-              </div>
-
-              <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                 <label>Professional Bio</label>
                 <textarea
                   name="bio"
@@ -572,6 +553,11 @@ const ProfileManagement = () => {
 
               <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                 <label>Resume/CV</label>
+                {user?.resumeUrl && (
+                  <div className={styles.currentResume}>
+                    <p>Current Resume: <a href={user.resumeUrl} target="_blank" rel="noopener noreferrer">View Resume</a></p>
+                  </div>
+                )}
                 <input
                   type="file"
                   name="resume"

@@ -128,14 +128,14 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
       icon: <CreditCard size={20} />,
       path: '/membership-tokens',
       restricted: false
-    },
-    {
-      id: 'settings',
-      label: 'Settings',
-      icon: <Settings size={20} />,
-      path: '/recruiter-settings',
-      restricted: false
     }
+    // {
+    //   id: 'settings',
+    //   label: 'Settings',
+    //   icon: <Settings size={20} />,
+    //   path: '/recruiter-settings',
+    //   restricted: false
+    // }
   ];
 
   const handleNavigation = (path) => {

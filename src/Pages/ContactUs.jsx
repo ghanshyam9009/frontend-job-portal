@@ -1,13 +1,16 @@
 import React, { useState } from "react";
 import { useTheme } from "../Contexts/ThemeContext";
+import { useAuth } from "../Contexts/AuthContext";
 import { FaFacebook, FaTwitter, FaLinkedin, FaEnvelope, FaMapMarkerAlt, FaPhone } from "react-icons/fa";
 import styles from "../Styles/ContactUs.module.css";
 import HomeNav from "../Components/HomeNav";
+import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import Footer from "../Components/Footer";
 import logo from "../assets/logo2.png";
 
 const ContactUs = () => {
   const { theme } = useTheme();
+  const { isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -31,7 +34,7 @@ const ContactUs = () => {
 
   return (
     <div className={`${styles.pageContainer} ${theme === 'dark' ? styles.dark : ''}`}>
-      <HomeNav />
+      {isAuthenticated ? <CandidateNavbar /> : <HomeNav />}
       
       <div className={styles.mainContent}>
         <div className={styles.contentGrid}>

@@ -21,6 +21,11 @@ const HomeNav = () => {
   
   console.log(currentPath)
   
+
+  const isActive = (path) => {
+    return currentPath === path;
+  };
+
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 50) {
@@ -217,6 +222,10 @@ const HomeNav = () => {
               to="/candidate/login"
               className={`px-4 py-2 text-sm font-bold text-[#2271B5] hover:text-[#1a5a8f] rounded-md transition-colors ${
                 isDark ? 'hover:bg-[#2271B5]/20' : 'hover:bg-[#2271B5]/10'
+            <a
+              href="/candidate/login"
+              className={`px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 rounded-md transition-colors ${
+                isDark ? 'hover:bg-blue-900/20' : 'hover:bg-blue-50'
               }`}
             >
               Candidate Login
@@ -410,6 +419,14 @@ const HomeNav = () => {
                   >
                     Recruiter Login
                   </Link>
+                  </a>
+                  <a
+                    href="/admin/login"
+                    className={`block px-4 py-2 text-sm ${textSecondary} ${dropdownHover} rounded-md transition-colors`}
+                    onClick={closeMobileMenu}
+                  >
+                    Admin Login
+                  </a>
                 </div>
               </div>
             </div>

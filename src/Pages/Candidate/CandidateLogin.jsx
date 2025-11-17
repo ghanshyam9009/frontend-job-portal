@@ -7,7 +7,7 @@ import { validateForm } from "../../utils/errorHandler";
 import styles from "../../Styles/Auth.module.css";
 import HomeNav from "../../Components/HomeNav";
 import logo from "../../assets/logo.png";
-import { Briefcase, Building2, Users } from "lucide-react";
+import { Briefcase, Building2, Users, Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 const CandidateLogin = () => {
   const navigate = useNavigate();
@@ -17,6 +17,9 @@ const CandidateLogin = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   // Get the return URL from navigation state
   const from = location.state?.from?.pathname || '/candidate-home';
@@ -76,6 +79,7 @@ const CandidateLogin = () => {
     e.preventDefault();
     setLoading(true);
     setErrors({});
+    setError("");
 
     try {
       if (isLogin) {
@@ -89,6 +93,8 @@ const CandidateLogin = () => {
         const result = await login(formData.email, formData.password, 'candidate');
         if (result.success) {
           navigate(from, { replace: true });
+        } else {
+          setError("Invalid email or password. Please check your credentials and try again.");
         }
       } else {
         const validationErrors = validateRegisterForm();
@@ -115,11 +121,22 @@ const CandidateLogin = () => {
             fullName: "",
             phone: ""
           });
+        } else {
+          // Handle specific error messages
+          const errorMessage = result.error?.message || result.error?.details || '';
+          if (errorMessage.toLowerCase().includes('email') && errorMessage.toLowerCase().includes('already')) {
+            setError("This email address is already registered. Please use a different email or try logging in.");
+          } else {
+            setError("Registration failed. Please try again.");
+          }
         }
       }
     } catch (error) {
       console.error(`${isLogin ? 'Login' : 'Registration'} failed:`, error);
-      // Error handling is done in the service layer with toastify
+      if (isLogin) {
+        setError("Invalid email or password. Please check your credentials and try again.");
+      }
+      // Error handling is done in the service layer with toastify for registration
     } finally {
       setLoading(false);
     }
@@ -138,19 +155,21 @@ const CandidateLogin = () => {
           <h1 className={styles.title}>{isLogin ? "Candidate Login" : "Candidate Registration"}</h1>
           
           <div className={styles.toggleButtons}>
-            <button 
+            <button
               className={`${styles.toggleBtn} ${isLogin ? styles.active : ''}`}
               onClick={() => setIsLogin(true)}
             >
               Login
             </button>
-            <button 
+            <button
               className={`${styles.toggleBtn} ${!isLogin ? styles.active : ''}`}
               onClick={() => setIsLogin(false)}
             >
               Register
             </button>
           </div>
+
+          {error && <p className={styles.error}>{error}</p>}
 
           <form onSubmit={handleSubmit}>
             {!isLogin && (
@@ -175,6 +194,7 @@ const CandidateLogin = () => {
               <label className={styles.label}>
                 <span className={styles.labelText}>Email Address</span>
                 <div className={styles.inputWrapper}>
+                  <Mail className={styles.inputIcon} size={20} />
                   <input
                     type="email"
                     name="email"
@@ -210,9 +230,10 @@ const CandidateLogin = () => {
             <div className={styles.inputGroup}>
               <label className={styles.label}>
                 <span className={styles.labelText}>Password</span>
-                <div className={styles.inputWrapper}>
+                <div className={styles.passwordInputWrapper}>
+                  <Lock className={styles.inputIcon} size={20} />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
@@ -220,6 +241,13 @@ const CandidateLogin = () => {
                     className={`${styles.input} ${errors.password ? styles.inputError : ''}`}
                     required
                   />
+                  <button
+                    type="button"
+                    className={styles.eyeButton}
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
                 </div>
                 {errors.password && <span className={styles.errorText}>{errors.password}</span>}
               </label>
@@ -229,9 +257,10 @@ const CandidateLogin = () => {
               <div className={styles.inputGroup}>
                 <label className={styles.label}>
                   <span className={styles.labelText}>Confirm Password</span>
-                  <div className={styles.inputWrapper}>
+                  <div className={styles.passwordInputWrapper}>
+                    <Lock className={styles.inputIcon} size={20} />
                     <input
-                      type="password"
+                      type={showConfirmPassword ? "text" : "password"}
                       name="confirmPassword"
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
@@ -239,6 +268,13 @@ const CandidateLogin = () => {
                       className={`${styles.input} ${errors.confirmPassword ? styles.inputError : ''}`}
                       required={!isLogin}
                     />
+                    <button
+                      type="button"
+                      className={styles.eyeButton}
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
                   </div>
                   {errors.confirmPassword && <span className={styles.errorText}>{errors.confirmPassword}</span>}
                 </label>

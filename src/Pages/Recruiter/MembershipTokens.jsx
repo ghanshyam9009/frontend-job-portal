@@ -4,7 +4,7 @@ import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
 import RecruiterSidebar from "../../Components/Recruiter/RecruiterSidebar";
-import { Briefcase, Lightbulb, DollarSign, Rocket, Lock, Check } from "lucide-react";
+import { Briefcase, Lightbulb, DollarSign, Rocket, Lock, Check, Loader2 } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 
 const MembershipTokens = () => {
@@ -20,34 +20,88 @@ const MembershipTokens = () => {
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
   const handlePayForJobPost = async () => {
+    if (!user) {
+      alert('Please login to make a payment.');
+      navigate('/recruiter/login');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
     try {
-      setLoading(true);
-      setError(null);
-      
-      // Simulate payment processing
-      const response = await fetch('https://api.bigsources.in/api/payments/create-job-post-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const amount = 300; // ₹300 for job post
+
+      // Initialize Razorpay checkout directly
+      const options = {
+        key: 'rzp_test_RNj6wvo7aRv2Zf', // Test Key ID - replace with your actual key
+        amount: amount * 100, // Amount in paisa
+        currency: 'INR',
+        name: 'Job Portal',
+        description: 'Job Post Payment - ₹300',
+        prefill: {
+          name: `${user.firstName || user.name || 'Employer'} ${user.lastName || ''}`,
+          email: user.email,
+          contact: user.phone || ''
         },
-        body: JSON.stringify({
-          employer_id: user?.employer_id,
-          amount: 300,
-          currency: 'INR',
+        notes: {
+          employer_id: user.employer_id || user.id,
+          user_type: 'employer',
+          payment_type: 'job_post',
           description: 'Job Post Payment'
-        }),
+        },
+        theme: {
+          color: '#3399cc'
+        },
+        handler: async function (response) {
+          try {
+            // Record the payment success
+            const paymentResponse = await fetch('https://api.bigsources.in/api/payments/record-job-post-payment', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                employer_id: user.employer_id || user.id,
+                payment_id: response.razorpay_payment_id,
+                amount: amount,
+                currency: 'INR',
+                description: 'Job Post Payment'
+              })
+            });
+
+            if (!paymentResponse.ok) {
+              throw new Error('Failed to record payment');
+            }
+
+            setSuccess(true);
+            setShowPaymentModal(true);
+
+          } catch (verifyError) {
+            console.error('Payment recording failed:', verifyError);
+            alert('Payment successful but recording failed. Please contact support.');
+          }
+        },
+        modal: {
+          ondismiss: function() {
+            setLoading(false);
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+
+      rzp.on('payment.failed', function (response) {
+        console.error('Payment failed:', response.error);
+        setError('Payment failed. Please try again.');
+        setLoading(false);
       });
 
-      if (response.ok) {
-        setSuccess(true);
-        setShowPaymentModal(true);
-      } else {
-        throw new Error('Payment failed');
-      }
-    } catch (err) {
-      setError('Payment failed. Please try again.');
-      console.error(err);
-    } finally {
+      rzp.open();
+
+    } catch (error) {
+      console.error('Error initiating payment:', error);
+      setError('Failed to initiate payment. Please try again.');
       setLoading(false);
     }
   };
@@ -107,12 +161,19 @@ const MembershipTokens = () => {
               </div>
 
               <div className={styles.paymentSection}>
-                <button 
+                <button
                   className={styles.payButton}
                   onClick={handlePayForJobPost}
                   disabled={loading}
                 >
-                  {loading ? "Processing..." : "Pay ₹300 for Job Post"}
+                  {loading ? (
+                    <>
+                      <Loader2 size={16} className={styles.spinner} />
+                      Processing...
+                    </>
+                  ) : (
+                    "Pay ₹300 for Job Post"
+                  )}
                 </button>
                 <p className={styles.paymentNote}>
                   Secure payment processing. Your payment information is encrypted and secure.

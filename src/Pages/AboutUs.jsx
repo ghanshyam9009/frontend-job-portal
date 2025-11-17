@@ -1,16 +1,19 @@
 import React from "react";
 import { useTheme } from "../Contexts/ThemeContext";
+import { useAuth } from "../Contexts/AuthContext";
 import { Building2, TrendingUp, Target, Star, Users, Briefcase, Calculator, FileText, Scale, Globe, Sun, Moon } from "lucide-react";
 import styles from "../Styles/AboutUs.module.css";
 import HomeNav from "../Components/HomeNav";
+import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import Footer from "../Components/Footer";
 
 const AboutUs = () => {
   const { theme, toggleTheme } = useTheme();
+  const { isAuthenticated } = useAuth();
 
   return (
     <div className={`${styles.pageContainer} ${theme === 'dark' ? styles.dark : ''}`}>
-      <HomeNav />
+      {isAuthenticated ? <CandidateNavbar /> : <HomeNav />}
       
       {/* Hero Section */}
       <section className={styles.heroSection}>

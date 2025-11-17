@@ -401,10 +401,61 @@ export const adminService = {
 
   async getGovernmentJobs() {
     try {
-      const response = await adminApiClient.get(API_ENDPOINTS.jobs.getGovernmentJobs);
-      return response.data || [];
+      // Fetch all jobs from the general jobs API and filter for government jobs posted by admin
+      const apiUrl = 'https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs';
+      const searchParams = {
+        page: 1,
+        limit: 1000, // Get all jobs
+        status: 'approved'
+      };
+
+      const queryString = new URLSearchParams(searchParams).toString();
+      const response = await fetch(`${apiUrl}?${queryString}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const jobsData = await response.json();
+      const allJobs = jobsData?.jobs || jobsData.data || jobsData || [];
+
+      // Filter for government jobs posted by admin
+      const govtJobs = allJobs.filter(job =>
+        job.posted_by === 'admin' &&
+        (job.department_name?.toLowerCase().includes('government') ||
+         job.department_name?.toLowerCase().includes('commission') ||
+         job.department_name?.toLowerCase().includes('board') ||
+         job.department_name?.toLowerCase().includes('railway') ||
+         job.department_name?.toLowerCase().includes('police') ||
+         job.department_name?.toLowerCase().includes('public sector') ||
+         job.department_name?.toLowerCase().includes('psu') ||
+         job.department_name?.toLowerCase().includes('central govt') ||
+         job.department_name?.toLowerCase().includes('state govt') ||
+         job.department_name?.toLowerCase().includes('ministry') ||
+         job.department_name?.toLowerCase().includes('department') ||
+         job.category?.toLowerCase().includes('government') ||
+         job.job_title?.toLowerCase().includes('govt') ||
+         job.job_title?.toLowerCase().includes('government') ||
+         job.job_title?.toLowerCase().includes('railway') ||
+         job.job_title?.toLowerCase().includes('police') ||
+         job.job_title?.toLowerCase().includes('upsc') ||
+         job.job_title?.toLowerCase().includes('ssc') ||
+         job.job_title?.toLowerCase().includes('bank') ||
+         job.job_title?.toLowerCase().includes('defense') ||
+         job.job_title?.toLowerCase().includes('army') ||
+         job.job_title?.toLowerCase().includes('navy') ||
+         job.job_title?.toLowerCase().includes('air force'))
+      );
+
+      return govtJobs;
     } catch (error) {
-      throw error;
+      console.error('Error fetching government jobs:', error);
+      return [];
     }
   },
 

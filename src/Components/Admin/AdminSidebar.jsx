@@ -41,31 +41,29 @@ const AdminSidebar = ({ isOpen, onClose }) => {
       icon: Users,
       path: '/admin/candidates'
     },
-    {
-      id: 'pending-applications',
-      label: 'Pending Job',
-      icon: Clock,
-      path: '/admin/pending-applications'
-    },
-    {
+        {
       id: 'employers',
       label: 'Manage Employers',
       icon: Building,
       path: '/admin/employers',
       badge: pendingRecruiters > 0 ? pendingRecruiters : null
     },
-    {
-      id: 'jobs',
-      label: 'Manage Jobs',
-      icon: FileText,
-      path: '/admin/jobs'
-    },
-    {
+      {
       id: 'job-posting',
       label: 'Job Posting ',
       icon: FileText,
       path: '/admin/job-posting'
     },
+     {
+      id: 'jobs',
+      label: 'Manage Jobs',
+      icon: FileText,
+      path: '/admin/jobs'
+    },
+  
+ 
+
+   
     {
       id: 'job-application-reports',
       label: 'Job Application Reports',
@@ -77,6 +75,12 @@ const AdminSidebar = ({ isOpen, onClose }) => {
       label: 'Government Jobs',
       icon: Building2,
       path: '/admin/government-jobs'
+    },
+       {
+      id: 'pending-applications',
+      label: 'Pending Job',
+      icon: Clock,
+      path: '/admin/pending-applications'
     },
     {
       id: 'membership',

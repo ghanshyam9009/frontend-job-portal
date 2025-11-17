@@ -8,7 +8,7 @@ import { adminExternalService } from "../../services/adminExternalService";
 import { candidateExternalService } from "../../services/candidateExternalService";
 import { recruiterExternalService } from "../../services/recruiterExternalService";
 import { showError } from "../../utils/errorHandler";
-import { Users, Building, FileText, Mail, Ticket, DollarSign, TrendingUp, TrendingDown } from "lucide-react";
+import { Users, Building, FileText, Mail, TrendingUp, TrendingDown } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const AdminDashboard = () => {
@@ -21,9 +21,7 @@ const AdminDashboard = () => {
       totalCandidates: 0,
       totalEmployers: 0,
       totalJobs: 0,
-      totalApplications: 0,
-      totalTokens: 0,
-      revenue: 0
+      totalApplications: 0
     },
     recentJobs: [],
     topEmployers: [],
@@ -79,9 +77,7 @@ const AdminDashboard = () => {
         totalCandidates: 0, // Will be updated when candidates API is available
         totalEmployers: employers.length,
         totalJobs: jobs.length,
-        totalApplications: 0, // Will be updated when applications API is available
-        totalTokens: 25000, // Mock data - replace with actual API
-        revenue: 123456 // Mock data - replace with actual API
+        totalApplications: 0 // Will be updated when applications API is available
       };
 
       // Get recent jobs (last 5)
@@ -236,23 +232,9 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            <div className={styles.kpiCard}>
-              <Ticket className={styles.kpiIcon} />
-              <div className={styles.kpiContent}>
-                <h3 className={styles.kpiValue}>{dashboardData.stats.totalTokens.toLocaleString()}</h3>
-                <p className={styles.kpiLabel}>Tokens Sold</p>
-                <span className={`${styles.kpiChange} ${styles.positive}`}><TrendingUp size={16} /> +15% from last month</span>
-              </div>
-            </div>
 
-            <div className={styles.kpiCard}>
-              <DollarSign className={styles.kpiIcon} />
-              <div className={styles.kpiContent}>
-                <h3 className={styles.kpiValue}>₹{dashboardData.stats.revenue.toLocaleString()}</h3>
-                <p className={styles.kpiLabel}>Revenue</p>
-                <span className={`${styles.kpiChange} ${styles.positive}`}><TrendingUp size={16} /> +8% from last month</span>
-              </div>
-            </div>
+
+
           </div>
 
           {/* Charts Section */}

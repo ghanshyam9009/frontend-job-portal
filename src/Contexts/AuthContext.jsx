@@ -15,11 +15,18 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Check if user is already authenticated on app load
     const checkAuth = () => {
+      console.log('Checking auth on app load...');
+      console.log('Token exists:', !!localStorage.getItem('authToken'));
+      console.log('User exists:', !!localStorage.getItem('user'));
+      console.log('Timestamp exists:', !!localStorage.getItem('loginTimestamp'));
+
       if (authService.checkAuthWithExpiry()) {
         const currentUser = authService.getCurrentUser();
+        console.log('Auth check passed, user:', currentUser);
         setUser(currentUser);
         setIsAuthenticated(true);
       } else {
+        console.log('Auth check failed - logging out');
         // Session expired or invalid
         setUser(null);
         setIsAuthenticated(false);
@@ -88,11 +95,11 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authService.register(userData);
       showSuccess(SUCCESS_MESSAGES.REGISTRATION_SUCCESS);
-      return response;
+      return { success: true, data: response };
     } catch (error) {
       console.error('Registration error:', error);
-      showError(error, ERROR_MESSAGES.REGISTRATION_FAILED);
-      throw error;
+      // Don't show error toast here, let the component handle it
+      return { success: false, error };
     }
   };
 
