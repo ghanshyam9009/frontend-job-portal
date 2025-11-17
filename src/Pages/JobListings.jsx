@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useTheme } from "../Contexts/ThemeContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useMemo } from "react";
@@ -18,21 +18,34 @@ const JobListings = () => {
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const navigate = useNavigate();
   const locationHook = useLocation();
-  const querySearch = useMemo(() => {
+  const [querySearch, setQuerySearch] = useState("");
+  const [queryLocation, setQueryLocation] = useState("");
+  
+  useEffect(() => {
     const params = new URLSearchParams(locationHook.search);
-    return params.get("search") || "";
-  }, [locationHook.search]);
-  const queryLocation = useMemo(() => {
-    const params = new URLSearchParams(locationHook.search);
-    return params.get("location") || "";
+    setQuerySearch(params.get("search") || "");
+    setQueryLocation(params.get("location") || "");
   }, [locationHook.search]);
   const [jobs, setJobs] = useState([]);
+  const [allJobs, setAllJobs] = useState([]); // Store all jobs for autocomplete
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalPages, setTotalPages] = useState(1);
   const [totalJobs, setTotalJobs] = useState(0);
   const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+
+  // Autocomplete states
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const [availableLocations, setAvailableLocations] = useState([]);
+  const [availableJobTypes, setAvailableJobTypes] = useState([]);
+  const [filteredLocations, setFilteredLocations] = useState([]);
+  const [filteredJobTypes, setFilteredJobTypes] = useState([]);
+  
+  // Refs for click outside detection
+  const searchRef = useRef(null);
+  const locationRef = useRef(null);
 
   const [filters, setFilters] = useState({
     location: "",
@@ -52,7 +65,8 @@ const JobListings = () => {
   const bgPrimary = isDark ? 'bg-gray-900' : 'bg-gray-50';
   const bgSecondary = isDark ? 'bg-gray-800' : 'bg-white';
   const textPrimary = isDark ? 'text-white' : 'text-gray-900';
-  const textSecondary = isDark ? 'text-gray-300' : 'text-gray-600';
+  const textSecondary = isDark ? 'text-gray-300' : 'text-gray-900';
+  const textSecondary1 = isDark ? 'text-gray-300' : 'text-gray-600';
   const borderColor = isDark ? 'border-gray-700' : 'border-gray-200';
   const hoverBorder = isDark ? 'hover:border-blue-500' : 'hover:border-blue-400';
   const inputBg = isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-700';
@@ -64,10 +78,80 @@ const JobListings = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentPage, filters, querySearch, queryLocation]);
 
-  // Replace the fetchJobs function with this corrected version:
+  // Filter locations based on queryLocation input
+  useEffect(() => {
+    if (queryLocation.trim()) {
+      const filtered = availableLocations.filter(loc =>
+        loc.toLowerCase().includes(queryLocation.toLowerCase())
+      );
+      setFilteredLocations(filtered.slice(0, 10)); // Limit to 10 suggestions
+      setShowLocationDropdown(filtered.length > 0);
+    } else {
+      setFilteredLocations([]);
+      setShowLocationDropdown(false);
+    }
+  }, [queryLocation, availableLocations]);
 
-// Replace the fetchJobs function with this corrected version:
+  // Filter job types based on querySearch input
+  useEffect(() => {
+    if (querySearch.trim()) {
+      const filtered = availableJobTypes.filter(type =>
+        type.toLowerCase().includes(querySearch.toLowerCase())
+      );
+      setFilteredJobTypes(filtered.slice(0, 10)); // Limit to 10 suggestions
+      setShowSearchDropdown(filtered.length > 0);
+    } else {
+      setFilteredJobTypes([]);
+      setShowSearchDropdown(false);
+    }
+  }, [querySearch, availableJobTypes]);
 
+  // Click outside to close dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSearchDropdown(false);
+      }
+      if (locationRef.current && !locationRef.current.contains(event.target)) {
+        setShowLocationDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+    const handleSearchSelect = (jobType) => {
+    // Set the search value
+    setQuerySearch(jobType);
+    
+    // Update URL parameters
+    const params = new URLSearchParams(locationHook.search);
+    params.set('search', jobType);
+    navigate({ search: params.toString() }, { replace: true });
+    
+    // Close dropdown
+    setShowSearchDropdown(false);
+    
+    // Reset to first page and fetch jobs
+    setCurrentPage(1);
+  };
+
+  const handleLocationSelect = (location) => {
+    // Set the location value
+    setQueryLocation(location);
+    
+    // Update URL parameters
+    const params = new URLSearchParams(locationHook.search);
+    params.set('location', location);
+    // navigate({ search: params.toString() }, { replace: true });
+    
+    // Close dropdown
+    setShowLocationDropdown(false);
+    
+    // Reset to first page and fetch jobs
+    setCurrentPage(1);
+  };
 const fetchJobs = async () => {
   setLoading(true);
   setError(null);
@@ -102,24 +186,25 @@ const fetchJobs = async () => {
 
     if (jobsData.jobs || Array.isArray(jobsData)) {
       let jobsArray = jobsData.jobs || jobsData.data || jobsData;
-      let allJobs = Array.isArray(jobsArray) ? jobsArray : [];
+      let allJobsData = Array.isArray(jobsArray) ? jobsArray : [];
 
-      // DEBUG: Log sample job data to understand API response format
-      if (allJobs.length > 0) {
-        console.log('Sample Job Data:', {
-          employment_type: allJobs[0].employment_type,
-          category: allJobs[0].category,
-          experience_level: allJobs[0].experience_level,
-          skills_required: allJobs[0].skills_required,
-          salary_range: allJobs[0].salary_range,
-          all_employment_types: [...new Set(allJobs.map(j => j.employment_type).filter(Boolean))],
-          all_categories: [...new Set(allJobs.map(j => j.category).filter(Boolean))],
-          all_experience_levels: [...new Set(allJobs.map(j => j.experience_level).filter(Boolean))]
-        });
-      }
+      // Extract unique locations and job types for autocomplete
+      const locations = [...new Set(allJobsData
+        .map(job => job.location)
+        .filter(Boolean)
+      )].sort();
+
+      const jobTypes = [...new Set(allJobsData
+        .map(job => job.job_title)
+        .filter(Boolean)
+      )].sort();
+
+      setAvailableLocations(locations);
+      setAvailableJobTypes(jobTypes);
+      setAllJobs(allJobsData);
 
       // CLIENT-SIDE FILTERING
-      let filteredJobs = allJobs;
+      let filteredJobs = allJobsData;
 
       // Filter by search keyword
       if (querySearch) {
@@ -143,12 +228,11 @@ const fetchJobs = async () => {
       // Filter by job type - FLEXIBLE MATCHING
       if (filters.jobType) {
         filteredJobs = filteredJobs.filter(job => {
-          if (!job.employment_type) return true; // Don't filter out if no employment_type
+          if (!job.employment_type) return true;
           
           const jobType = job.employment_type.toLowerCase().trim();
           const filterType = filters.jobType.toLowerCase().trim();
           
-          // Handle variations like "Full Time" vs "Full-Time" vs "Fulltime"
           const normalizeType = (type) => type.replace(/[-\s]/g, '');
           
           return normalizeType(jobType) === normalizeType(filterType) ||
@@ -160,7 +244,7 @@ const fetchJobs = async () => {
       // Filter by category - FLEXIBLE MATCHING
       if (filters.category) {
         filteredJobs = filteredJobs.filter(job => {
-          if (!job.category) return true; // Don't filter out if no category
+          if (!job.category) return true;
           
           const jobCategory = job.category.toLowerCase().trim();
           const filterCategory = filters.category.toLowerCase().trim();
@@ -173,16 +257,14 @@ const fetchJobs = async () => {
       // Filter by skills - VERY LENIENT MATCHING
       if (filters.skills.length > 0) {
         filteredJobs = filteredJobs.filter(job => {
-          if (!job.skills_required || job.skills_required.length === 0) return true; // Don't filter out if no skills
+          if (!job.skills_required || job.skills_required.length === 0) return true;
           
-          // Check if ANY of the selected filter skills match ANY of the job skills
           return filters.skills.some(filterSkill => {
             const filterSkillLower = filterSkill.toLowerCase().trim();
             
             return job.skills_required.some(jobSkill => {
               const jobSkillLower = jobSkill.toLowerCase().trim();
               
-              // Very flexible matching - partial matches in both directions
               return jobSkillLower.includes(filterSkillLower) ||
                      filterSkillLower.includes(jobSkillLower) ||
                      jobSkillLower.replace(/[.\-\s]/g, '') === filterSkillLower.replace(/[.\-\s]/g, '');
@@ -197,24 +279,21 @@ const fetchJobs = async () => {
           if (!job.salary_range) return false;
           
           const [minStr, maxStr] = filters.salaryRange.split('-');
-          const filterMin = parseFloat(minStr) * 100000; // Convert lakhs to actual number
+          const filterMin = parseFloat(minStr) * 100000;
           const filterMax = maxStr ? (maxStr.includes('+') ? Infinity : parseFloat(maxStr) * 100000) : Infinity;
 
           let jobSalaryMin = 0;
           let jobSalaryMax = 0;
 
-          // Handle different salary_range formats
           if (typeof job.salary_range === 'object') {
             jobSalaryMin = parseFloat(job.salary_range.min) || 0;
             jobSalaryMax = parseFloat(job.salary_range.max) || jobSalaryMin;
           } else if (typeof job.salary_range === 'string') {
-            // Parse string format like "3-5L" or "500000-700000"
             const matches = job.salary_range.match(/(\d+\.?\d*)/g);
             if (matches && matches.length >= 2) {
               jobSalaryMin = parseFloat(matches[0]);
               jobSalaryMax = parseFloat(matches[1]);
               
-              // If values are small, assume they're in lakhs
               if (jobSalaryMax < 1000) {
                 jobSalaryMin *= 100000;
                 jobSalaryMax *= 100000;
@@ -231,7 +310,6 @@ const fetchJobs = async () => {
             jobSalaryMin = jobSalaryMax;
           }
 
-          // Check if job salary overlaps with filter range
           return (jobSalaryMax >= filterMin && jobSalaryMin <= filterMax) ||
                  (jobSalaryMin >= filterMin && jobSalaryMin <= filterMax);
         });
@@ -240,12 +318,11 @@ const fetchJobs = async () => {
       // Filter by experience level - FLEXIBLE MATCHING
       if (filters.experienceLevel) {
         filteredJobs = filteredJobs.filter(job => {
-          if (!job.experience_level) return true; // Don't filter out if no experience_level
+          if (!job.experience_level) return true;
           
           const jobExpLevel = job.experience_level.toLowerCase().trim();
           const filterExpLevel = filters.experienceLevel.toLowerCase().trim();
           
-          // Handle variations
           return jobExpLevel.includes(filterExpLevel) || 
                  filterExpLevel.includes(jobExpLevel) ||
                  jobExpLevel.replace(/[-\s]/g, '') === filterExpLevel.replace(/[-\s]/g, '');
@@ -265,36 +342,9 @@ const fetchJobs = async () => {
       const totalCount = filteredJobs.length;
       const calculatedTotalPages = Math.max(1, Math.ceil(totalCount / jobsPerPage));
       
-      // Get only the jobs for current page
       const startIndex = (currentPage - 1) * jobsPerPage;
       const endIndex = startIndex + jobsPerPage;
       const paginatedJobs = filteredJobs.slice(startIndex, endIndex);
-
-      console.log('Pagination Info:', {
-        totalJobs: allJobs.length,
-        filteredJobs: totalCount,
-        currentPage: currentPage,
-        jobsPerPage: jobsPerPage,
-        totalPages: calculatedTotalPages,
-        startIndex: startIndex,
-        endIndex: endIndex,
-        jobsInCurrentPage: paginatedJobs.length,
-        activeFilters: {
-          search: querySearch,
-          location: queryLocation,
-          ...filters
-        },
-        filteringBreakdown: {
-          afterSearch: querySearch ? filteredJobs.length : 'N/A',
-          afterLocation: queryLocation ? filteredJobs.length : 'N/A',
-          afterJobType: filters.jobType ? filteredJobs.length : 'N/A',
-          afterCategory: filters.category ? filteredJobs.length : 'N/A',
-          afterSkills: filters.skills.length > 0 ? filteredJobs.length : 'N/A',
-          afterSalary: filters.salaryRange ? filteredJobs.length : 'N/A',
-          afterExperience: filters.experienceLevel ? filteredJobs.length : 'N/A',
-          final: totalCount
-        }
-      });
 
       setJobs(paginatedJobs);
       setTotalJobs(totalCount);
@@ -313,6 +363,7 @@ const fetchJobs = async () => {
     setLoading(false);
   }
 };
+
   const handleSkillToggle = (skill) => {
     setFilters(prev => ({
       ...prev,
@@ -320,12 +371,12 @@ const fetchJobs = async () => {
         ? prev.skills.filter(s => s !== skill)
         : [...prev.skills, skill]
     }));
-    setCurrentPage(1); // Reset to page 1 when filter changes
+    setCurrentPage(1);
   };
 
   const handleFilterChange = (filterName, value) => {
     setFilters(prev => ({ ...prev, [filterName]: value }));
-    setCurrentPage(1); // Reset to page 1 when filter changes
+    setCurrentPage(1);
   };
 
   const clearFilters = () => {
@@ -338,7 +389,7 @@ const fetchJobs = async () => {
       category: "",
       remoteOnly: false
     });
-    setCurrentPage(1); // Reset to page 1 when clearing filters
+    setCurrentPage(1);
   };
 
   const handleJobClick = (job) => {
@@ -545,7 +596,6 @@ const fetchJobs = async () => {
                   <option value="Welding and Fabrication">Welding and Fabrication</option>
                   <option value="Workshop">Workshop</option>
                   <option value="kpo">kpo</option>
-            {/* Add other categories as needed */}
           </select>
           <ChevronDown className={`absolute right-3 top-2.5 w-4 h-4 ${textSecondary} pointer-events-none`} />
         </div>
@@ -653,52 +703,99 @@ const fetchJobs = async () => {
           <div className={`${bgSecondary} rounded-lg shadow-md p-4`}>
             {/* Desktop Layout */}
             <div className="hidden md:flex gap-3 items-center">
-              <div className={`flex-1 flex items-center gap-2 px-4 py-3 border ${inputBorder} rounded-lg ${inputBg}`}>
-                <Search className="w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Job Title, Keyword"
-                  className={`flex-1 outline-none bg-transparent ${textPrimary}`}
-                  value={querySearch}
-                  onChange={(e) => {
-                    const newSearch = e.target.value;
-                    const params = new URLSearchParams(locationHook.search);
-                    if (newSearch) {
-                      params.set('search', newSearch);
-                    } else {
-                      params.delete('search');
-                    }
-                    navigate({ search: params.toString() });
-                    setCurrentPage(1); // Reset to page 1 on search
-                  }}
-                />
+              {/* Job Title Search with Autocomplete */}
+              <div className="flex-1 relative" ref={searchRef}>
+                <div className={`flex items-center gap-2 px-4 py-3 border ${inputBorder} rounded-lg ${inputBg}`}>
+                  <Search className="w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Job Title, Keyword"
+                    className={`flex-1 outline-none bg-transparent ${textPrimary}`}
+                    value={querySearch}
+                    onChange={(e) => {
+                      const newSearch = e.target.value;
+                      setQuerySearch(newSearch);
+                      const params = new URLSearchParams(locationHook.search);
+                      if (newSearch) {
+                        params.set('search', newSearch);
+                      } else {
+                        params.delete('search');
+                      }
+                      navigate({ search: params.toString() });
+                      setCurrentPage(1);
+                    }}
+                    onFocus={() => querySearch.trim() && setShowSearchDropdown(true)}
+                  />
+                </div>
+                
+                {/* Job Type Autocomplete Dropdown */}
+                {showSearchDropdown && filteredJobTypes.length > 0 && (
+                  <div className={`absolute top-full left-0 right-0 mt-2 ${bgSecondary} border ${borderColor} rounded-lg shadow-xl max-h-60 overflow-y-auto z-50`}>
+                    {filteredJobTypes.map((jobType, index) => (
+                      <button
+                        key={index}
+                        className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors ${textPrimary} text-sm border-b ${borderColor} last:border-b-0`}
+                       onMouseDown={() => handleSearchSelect(jobType)}
+                        
+                      >
+                        <div className="flex items-center gap-2">
+                          <Briefcase className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                          <span className="truncate">{jobType}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              <div className={`flex-1 flex items-center gap-2 px-4 py-3 border ${inputBorder} rounded-lg ${inputBg}`}>
-                <MapPin className="w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Enter Location"
-                  className={`flex-1 outline-none bg-transparent ${textPrimary}`}
-                  value={queryLocation}
-                  onChange={(e) => {
-                    const newLocation = e.target.value;
-                    const params = new URLSearchParams(locationHook.search);
-                    if (newLocation) {
-                      params.set('location', newLocation);
-                    } else {
-                      params.delete('location');
-                    }
-                    navigate({ search: params.toString() });
-                    setCurrentPage(1); // Reset to page 1 on location change
-                  }}
-                />
+              {/* Location Search with Autocomplete */}
+              <div className="flex-1 relative" ref={locationRef}>
+                <div className={`flex items-center gap-2 px-4 py-3 border ${inputBorder} rounded-lg ${inputBg}`}>
+                  <MapPin className="w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Enter Location"
+                    className={`flex-1 outline-none bg-transparent ${textPrimary}`}
+                    value={queryLocation}
+                    onChange={(e) => {
+                      const newLocation = e.target.value;
+                      setQueryLocation(newLocation);
+                      const params = new URLSearchParams(locationHook.search);
+                      if (newLocation) {
+                        params.set('location', newLocation);
+                      } else {
+                        params.delete('location');
+                      }
+                      navigate({ search: params.toString() });
+                      setCurrentPage(1);
+                    }}
+                    onFocus={() => queryLocation.trim() && setShowLocationDropdown(true)}
+                    
+                  />
+                </div>
+                
+                {/* Location Autocomplete Dropdown */}
+                {showLocationDropdown && filteredLocations.length > 0 && (
+                  <div className={`absolute top-full left-0 right-0 mt-2 ${bgSecondary} border ${borderColor} rounded-lg shadow-xl max-h-60 overflow-y-auto z-50`}>
+                    {filteredLocations.map((location, index) => (
+                      <button
+                        key={index}
+                        className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors ${textPrimary} text-sm border-b ${borderColor} last:border-b-0`}
+                       onMouseDown={() => handleLocationSelect(location)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                          <span className="truncate">{location}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <button 
                 className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
                 onClick={() => {
-                  // Trigger search - this will cause useEffect to run
                   setCurrentPage(1);
                   fetchJobs();
                 }}
@@ -709,47 +806,93 @@ const fetchJobs = async () => {
 
             {/* Mobile Layout */}
             <div className="md:hidden space-y-3">
-              <div className={`flex items-center gap-2 px-4 py-3 border ${inputBorder} rounded-lg ${inputBg}`}>
-                <Search className="w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Job Title, Keyword"
-                  className={`flex-1 outline-none bg-transparent ${textPrimary}`}
-                  value={querySearch}
-                  onChange={(e) => {
-                    const newSearch = e.target.value;
-                    const params = new URLSearchParams(locationHook.search);
-                    if (newSearch) {
-                      params.set('search', newSearch);
-                    } else {
-                      params.delete('search');
-                    }
-                    navigate({ search: params.toString() });
-                    setCurrentPage(1);
-                  }}
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <div className={`flex-1 flex items-center gap-2 px-4 py-3 border ${inputBorder} rounded-lg ${inputBg}`}>
-                  <MapPin className="w-5 h-5 text-gray-400" />
+              {/* Mobile Job Search with Autocomplete */}
+              <div className="relative" ref={searchRef}>
+                <div className={`flex items-center gap-2 px-4 py-3 border ${inputBorder} rounded-lg ${inputBg}`}>
+                  <Search className="w-5 h-5 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Location"
+                    placeholder="Job Title, Keyword"
                     className={`flex-1 outline-none bg-transparent ${textPrimary}`}
-                    value={queryLocation}
+                    value={querySearch}
                     onChange={(e) => {
-                      const newLocation = e.target.value;
+                      const newSearch = e.target.value;
+                      setQuerySearch(newSearch);
                       const params = new URLSearchParams(locationHook.search);
-                      if (newLocation) {
-                        params.set('location', newLocation);
+                      if (newSearch) {
+                        params.set('search', newSearch);
                       } else {
-                        params.delete('location');
+                        params.delete('search');
                       }
                       navigate({ search: params.toString() });
                       setCurrentPage(1);
                     }}
+                    onFocus={() => querySearch.trim() && setShowSearchDropdown(true)}
                   />
+                </div>
+                
+                {/* Mobile Job Type Dropdown */}
+                {showSearchDropdown && filteredJobTypes.length > 0 && (
+                  <div className={`absolute top-full left-0 right-0 mt-2 ${bgSecondary} border ${borderColor} rounded-lg shadow-xl max-h-48 overflow-y-auto z-50`}>
+                    {filteredJobTypes.map((jobType, index) => (
+                      <button
+                        key={index}
+                        className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors ${textPrimary} text-sm border-b ${borderColor}`}
+                        onClick={() => handleSearchSelect(jobType)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Briefcase className="w-4 h-4 text-blue-600" />
+                          <span className="truncate">{jobType}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                {/* Mobile Location Search with Autocomplete */}
+                <div className="flex-1 relative" ref={locationRef}>
+                  <div className={`flex items-center gap-2 px-4 py-3 border ${inputBorder} rounded-lg ${inputBg}`}>
+                    <MapPin className="w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Location"
+                      className={`flex-1 outline-none bg-transparent ${textPrimary}`}
+                      value={queryLocation}
+                      onChange={(e) => {
+                        const newLocation = e.target.value;
+                        setQueryLocation(newLocation);
+                        const params = new URLSearchParams(locationHook.search);
+                        if (newLocation) {
+                          params.set('location', newLocation);
+                        } else {
+                          params.delete('location');
+                        }
+                        navigate({ search: params.toString() });
+                        setCurrentPage(1);
+                      }}
+                      onFocus={() => queryLocation.trim() && setShowLocationDropdown(true)}
+                    />
+                  </div>
+                  
+                  {/* Mobile Location Dropdown */}
+                  {showLocationDropdown && filteredLocations.length > 0 && (
+                    <div className={`absolute top-full left-0 right-0 mt-2 ${bgSecondary} border ${borderColor} rounded-lg shadow-xl max-h-48 overflow-y-auto z-50`}>
+                      {filteredLocations.map((location, index) => (
+                        <button
+                          key={index}
+                          className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors ${textPrimary} text-sm border-b ${borderColor}`}
+                          onClick={() => handleLocationSelect(location)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-blue-600" />
+                            <span className="truncate">{location}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -764,7 +907,6 @@ const fetchJobs = async () => {
               <button 
                 className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
                 onClick={() => {
-                  // Trigger search - this will cause useEffect to run
                   setCurrentPage(1);
                   fetchJobs();
                 }}
@@ -883,7 +1025,7 @@ const fetchJobs = async () => {
                         <h3 className={`text-lg font-bold ${textPrimary} mb-1 hover:text-blue-600 transition-colors`}>
                           {job.job_title}
                         </h3>
-                        <p className={`text-xs ${textSecondary} font-medium flex items-center gap-1`}>
+                        <p className={`text-xs ${textSecondary} font-bold flex items-center gap-1`}>
                           <Building2 className="w-3 h-3" />
                           {job.company_name}
                         </p>
@@ -894,20 +1036,20 @@ const fetchJobs = async () => {
                     <div className="flex flex-wrap items-center gap-2 text-xs mb-4">
                       <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2.5 py-1.5 rounded-md`}>
                         <Clock className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                        <span className={`${textSecondary} font-medium`}>{job.employment_type}</span>
+                        <span className={`${textSecondary} font-bold`}>{job.employment_type}</span>
                       </div>
                       <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2.5 py-1.5 rounded-md`}>
                         <MapPin className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                        <span className={`${textSecondary} font-medium`}>{job.location}</span>
+                        <span className={`${textSecondary} font-bold`}>{job.location}</span>
                       </div>
                       <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2.5 py-1.5 rounded-md`}>
                         <DollarSign className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                        <span className={`${textSecondary} font-medium`}>{formatSalary(job.salary_range)}</span>
+                        <span className={`${textSecondary} font-bold`}>{formatSalary(job.salary_range)}</span>
                       </div>
                       {job.experience_required && (
                         <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2.5 py-1.5 rounded-md`}>
                           <Briefcase className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                          <span className={`${textSecondary} font-medium`}>
+                          <span className={`${textSecondary} font-bold`}>
                             {job.experience_required.min_years}-{job.experience_required.max_years} yrs
                           </span>
                         </div>
@@ -915,7 +1057,7 @@ const fetchJobs = async () => {
                     </div>
 
                     {/* Job Description */}
-                    <p className={`${textSecondary} text-sm mb-4 leading-relaxed`}>
+                    <p className={`${textSecondary1} text-sm mb-4 leading-relaxed`}>
                       {job.description
                         ? job.description.length > 150
                           ? `${job.description.substring(0, 150)}...`
@@ -942,21 +1084,23 @@ const fetchJobs = async () => {
                   
 
                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleBookmark(job.job_id);
-                        }}
-                        className={`${textSecondary}  hover:text-yellow-500 transition-colors p-1.5 rounded-lg`}
-                      >
-                        <Bookmark className="w-5 h-5"  fill={bookmarkedJobs.has(job.job_id) ? "currentColor" : "none"} />
-                        
-                      </button>
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         toggleBookmark(job.job_id);
+                       }}
+                       className={`${textSecondary} absolute bottom-2 right-4 hover:text-yellow-500 transition-colors p-1.5 rounded-lg`}
+                     >
+                       <Bookmark 
+                         className="w-5 h-5"  
+                         fill={bookmarkedJobs.has(job.job_id) ? "currentColor" : "none"} 
+                       />
+                     </button>
                    
                      
                      
                       {/* Premium Badge */}
                     {!job.is_premium && (
-                      <div className="absolute bottom-0 left-0 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-xs font-bold px-3 py-1 rounded-tr-lg shadow-md">
+                      <div className="absolute top-0 left-0 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-xs font-bold px-3 py-0.5 rounded-br-lg shadow-md">
                         PREMIUM
                       </div>
                     )}
@@ -983,12 +1127,10 @@ const fetchJobs = async () => {
                     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
                     let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
 
-                    // Adjust start if we're near the end
                     if (endPage - startPage + 1 < maxVisiblePages) {
                       startPage = Math.max(1, endPage - maxVisiblePages + 1);
                     }
 
-                    // First page
                     if (startPage > 1) {
                       pages.push(
                         <button
@@ -1010,7 +1152,6 @@ const fetchJobs = async () => {
                       }
                     }
 
-                    // Middle pages
                     for (let i = startPage; i <= endPage; i++) {
                       pages.push(
                         <button
@@ -1027,7 +1168,6 @@ const fetchJobs = async () => {
                       );
                     }
 
-                    // Last page
                     if (endPage < totalPages) {
                       if (endPage < totalPages - 1) {
                         pages.push(

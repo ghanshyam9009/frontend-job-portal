@@ -1,4 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import "swiper/css";
+import "swiper/css/navigation";
+import { Navigation, Autoplay } from "swiper/modules";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../Contexts/AuthContext";
 import { Search, MapPin, Upload, Building2, Users, CheckCircle, Star, ArrowRight, UserPlus, User, BookOpen, Briefcase, Moon, Sun, ChevronDown, Bookmark, Clock, DollarSign, Send } from "lucide-react";
@@ -36,6 +40,7 @@ import ltimindtreeLogo from "../assets/lit.jfif";
 import requestDemoImage from "../assets/Request free demo.png";
 import jobImage from "../assets/job.jfif";
 import axisBanner from "../assets/axis-banner.jpg";
+import axisBanner1 from "../assets/a-1.png";
 import bannerSmall from "../assets/banner-small.png";
 
 // job role card
@@ -49,7 +54,7 @@ function JobRoleCard({ title, image, link, isDark }) {
   const textColor = isDark ? 'text-gray-100' : 'text-gray-900';
   const textHoverColor = isDark ? 'group-hover:text-[#2271B5]' : 'group-hover:text-[#2271B5]';
   const imageBrightness = isDark ? 'brightness-110' : '';
-
+ 
   return (
     <Link 
       to={link}
@@ -101,10 +106,163 @@ const stats = [
 ];
 
 const Homepage = () => {
+
+// for dropdown job
+
+  
+   const [jobTitle, setJobTitle] = useState('');
+
+  const [category, setCategory] = useState('');
+   const [location, setLocation] = useState("");
+  // Autocomplete states
+  const [showJobTitleDropdown, setShowJobTitleDropdown] = useState(false);
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  
+  const [availableJobTitles, setAvailableJobTitles] = useState([]);
+  const [availableLocations, setAvailableLocations] = useState([]);
+  const [availableCategories, setAvailableCategories] = useState([]);
+  
+  const [filteredJobTitles, setFilteredJobTitles] = useState([]);
+  const [filteredLocations, setFilteredLocations] = useState([]);
+  const [filteredCategories, setFilteredCategories] = useState([]);
+  
+  // Refs for click outside detection
+  const jobTitleRef = useRef(null);
+  const locationRef = useRef(null);
+  const categoryRef = useRef(null);
+
+  // Fetch jobs data on mount
+  useEffect(() => {
+    const fetchJobsData = async () => {
+      try {
+        const response = await fetch(
+          'https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs?status=approved&limit=500',
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const jobs = data.jobs || [];
+
+        // Extract unique job titles
+        const jobTitles = [...new Set(jobs
+          .map(job => job.job_title)
+          .filter(Boolean)
+        )].sort();
+
+        // Extract unique locations
+        const locations = [...new Set(jobs
+          .map(job => job.location)
+          .filter(Boolean)
+        )].sort();
+
+        // Extract unique categories/companies
+        const categories = [...new Set(jobs
+          .map(job => job.company_name)
+          .filter(Boolean)
+        )].sort();
+
+        setAvailableJobTitles(jobTitles);
+        setAvailableLocations(locations);
+        setAvailableCategories(categories);
+      } catch (error) {
+        console.error("Failed to fetch jobs data:", error);
+      }
+    };
+
+    fetchJobsData();
+  }, []);
+
+  // Filter job titles based on input
+  useEffect(() => {
+    if (jobTitle.trim()) {
+      const filtered = availableJobTitles.filter(title =>
+        title.toLowerCase().includes(jobTitle.toLowerCase())
+      );
+      setFilteredJobTitles(filtered.slice(0, 10));
+      setShowJobTitleDropdown(filtered.length > 0);
+    } else {
+      setFilteredJobTitles([]);
+      setShowJobTitleDropdown(false);
+    }
+  }, [jobTitle, availableJobTitles]);
+
+  // Filter locations based on input
+  useEffect(() => {
+    if (location.trim()) {
+      const filtered = availableLocations.filter(loc =>
+        loc.toLowerCase().includes(location.toLowerCase())
+      );
+      setFilteredLocations(filtered.slice(0, 10));
+      setShowLocationDropdown(filtered.length > 0);
+    } else {
+      setFilteredLocations([]);
+      setShowLocationDropdown(false);
+    }
+  }, [location, availableLocations]);
+
+  // Filter categories based on input
+  useEffect(() => {
+    if (category.trim()) {
+      const filtered = availableCategories.filter(cat =>
+        cat.toLowerCase().includes(category.toLowerCase())
+      );
+      setFilteredCategories(filtered.slice(0, 10));
+      setShowCategoryDropdown(filtered.length > 0);
+    } else {
+      setFilteredCategories([]);
+      setShowCategoryDropdown(false);
+    }
+  }, [category, availableCategories]);
+
+  // Click outside to close dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (jobTitleRef.current && !jobTitleRef.current.contains(event.target)) {
+        setShowJobTitleDropdown(false);
+      }
+      if (locationRef.current && !locationRef.current.contains(event.target)) {
+        setShowLocationDropdown(false);
+      }
+      if (categoryRef.current && !categoryRef.current.contains(event.target)) {
+        setShowCategoryDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleJobTitleSelect = (title) => {
+    setJobTitle(title);
+    setShowJobTitleDropdown(false);
+  };
+
+  const handleLocationSelect = (loc) => {
+    setLocation(loc);
+    setShowLocationDropdown(false);
+  };
+
+  const handleCategorySelect = (cat) => {
+    setCategory(cat);
+    setShowCategoryDropdown(false);
+  };
+
+  
+
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
-  const [location, setLocation] = useState("");
+ 
   const [featuredJobs, setFeaturedJobs] = useState([]);
   const [demoData, setDemoData] = useState({ fullName: "", email: "", message: "", userType: "candidate" });
   const [demoLoading, setDemoLoading] = useState(false);
@@ -273,11 +431,12 @@ const popularSearches = [
           title: j.job_title,
           company_name: j.company_name || "",
           location: j.location || "",
-          salary: j.salary_range ? `₹${j.salary_range.min} - ₹${j.salary_range.max}` : "",
+          salary:  formatSalary(j.salary_range),
           job_type: j.employment_type || "Full-time",
           company_logo: null,
           is_premium: j.is_premium || false,
-          created_at: j.created_at || j.posted_date
+          created_at: j.created_at || j.posted_date,
+          description:j.description
         }));
 
         // Sort: Premium jobs first, then by latest date
@@ -385,10 +544,6 @@ const popularSearches = [
     });
   };
  
-   const [jobTitle, setJobTitle] = useState('');
-
-  const [category, setCategory] = useState('');
-  
   const handleNavigate = (link) => {
     console.log('Navigating to:', link);
     navigate(link);
@@ -413,15 +568,24 @@ const popularSearches = [
   // Optional: Apply theme to HTML (for Tailwind dark mode)
   document.documentElement.classList.toggle("dark", darkMode);
 }, []);
-
+ 
+const formatSalary = (salaryRange) => {
+    if (!salaryRange) return "Salary not specified";
+    if (typeof salaryRange === 'string') return salaryRange;
+    if (salaryRange.min && salaryRange.max) {
+      return `₹${salaryRange.min} - ₹${salaryRange.max}`;
+    }
+    return "Salary not specified";
+  };
 
 
   const isDark = theme === 'dark';
-
+ const bgSecondary = isDark ? 'bg-gray-800' : 'bg-white';
     const bgCard = isDark ? 'bg-gray-800' : 'bg-white';
-  const bgColor = isDark ? 'bg-gray-900' : 'bg-gray-50';
+  const bgColor = isDark ? 'bg-gray-900' : 'bg-[#F8F9FA]';
   const textPrimary = isDark ? 'text-white' : 'text-gray-900';
-  const textSecondary = isDark ? 'text-gray-400' : 'text-gray-600';
+  const textSecondary = isDark ? 'text-gray-400' : 'text-gray-900';
+  const textSecondary1 = isDark ? 'text-gray-400' : 'text-gray-600';
   const badgeBg = isDark ? 'bg-[#2271B5]' : 'bg-[#2271B5]';
   const badgeShadow = isDark ? 'shadow-[#2271B5]/30' : 'shadow-md';
   const toggleBg = isDark ? 'bg-gray-800' : 'bg-white';
@@ -537,11 +701,11 @@ const toggleBookmark = (jobId) => {
       loop
       muted
       playsInline
-      className="w-full h-full object-cover opacity-30"
+      className="w-full h-full object-cover opacity-60"
     >
       <source src={video1} type="video/mp4" />
     </video>
-    <div className="absolute inset-0 bg-gradient-to-br from-gray-900/80 via-gray-800/80 to-[#2271B5]/30"></div>
+    <div className="absolute inset-0  "></div>
   </div>
 
   {/* Hero Section */}
@@ -550,7 +714,7 @@ const toggleBookmark = (jobId) => {
     {/* Main Heading */}
     <div className="text-center mb-12 md:mb-16">
       {/* Increased text size for xl screens */}
-      <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 text-white">
+      <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 text-white ">
         Find Your Dream Job Today!
       </h1>
       {/* Increased paragraph text size on larger screens */}
@@ -561,56 +725,124 @@ const toggleBookmark = (jobId) => {
 
     {/* Search Bar */}
     {/* Increased max-width for the search bar container */}
-    <div className="max-w-4xl mx-auto mb-16 md:mb-20">
-      <div className="rounded-xl shadow-xl flex flex-col md:flex-row overflow-hidden bg-gray-800/90 backdrop-blur-sm">
-        
-        {/* Job Title Input */}
-        {/* Increased padding and text size */}
-        <div className="flex-1 p-4 md:p-5 border-b md:border-b-0 md:border-r border-gray-700">
-          <input
-            type="text"
-            placeholder="Job Title or Company"
-            value={jobTitle}
-            onChange={(e) => setJobTitle(e.target.value)}
-            className="w-full focus:outline-none text-base md:text-lg bg-transparent text-white placeholder-gray-400"
-          />
-        </div>
+    <div className="max-w-5xl mx-auto mb-20">
+            <div className="rounded-xl shadow-2xl flex flex-col md:flex-row relative overflow-visible bg-gray-800/90 backdrop-blur-sm">
+              
+              {/* Job Title Input with Autocomplete */}
+              <div className="flex-1 relative" ref={jobTitleRef}>
+                <div className="p-5 border-b md:border-b-0 md:border-r border-gray-700">
+                  <div className="flex items-center gap-3">
+                    <Briefcase className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Job Title or Keyword"
+                      value={jobTitle}
+                      onChange={(e) => setJobTitle(e.target.value)}
+                      onFocus={() => jobTitle.trim() && setShowJobTitleDropdown(true)}
+                      className="w-full focus:outline-none text-lg bg-transparent text-white placeholder-gray-400"
+                    />
+                  </div>
+                </div>
+                
+                {/* Job Title Dropdown */}
+                {showJobTitleDropdown && filteredJobTitles.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl max-h-64 overflow-y-auto z-100">
+                    {filteredJobTitles.map((title, index) => (
+                      <button
+                        key={index}
+                        className="w-full text-left px-4 py-3 hover:bg-blue-600 transition-colors text-white text-sm border-b border-gray-700 last:border-b-0"
+                        onMouseDown={() => handleJobTitleSelect(title)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Briefcase className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                          <span className="truncate">{title}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-        {/* Location Select */}
-        {/* Increased padding and text size */}
-        <div className="flex-1 p-4 md:p-5 border-b md:border-b-0 md:border-r border-gray-700 relative">
-          <input
-            type="text"
-            placeholder="Select Location"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            className="w-full focus:outline-none text-base md:text-lg bg-transparent text-white placeholder-gray-400"
-          />
-        </div>
-        
-        {/* Category Select */}
-        {/* Increased padding and text size + BUG FIX */}
-        <div className="flex-1 p-4 md:p-5 border-b md:border-b-0 md:border-r border-gray-700 relative">
-          <input
-            type="text"
-            placeholder="Select Job Category"
-            value={category} // <-- Corrected from location
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full focus:outline-none text-base md:text-lg bg-transparent text-white placeholder-gray-400"
-          />
-        </div>
+              {/* Location Input with Autocomplete */}
+              <div className="flex-1 relative" ref={locationRef}>
+                <div className="p-5 border-b md:border-b-0 md:border-r border-gray-700">
+                  <div className="flex items-center gap-3">
+                    <MapPin className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Select Location"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      onFocus={() => location.trim() && setShowLocationDropdown(true)}
+                      className="w-full focus:outline-none text-lg bg-transparent text-white placeholder-gray-400"
+                    />
+                  </div>
+                </div>
+                
+                {/* Location Dropdown */}
+                {showLocationDropdown && filteredLocations.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl max-h-64 overflow-y-auto z-50">
+                    {filteredLocations.map((loc, index) => (
+                      <button
+                        key={index}
+                        className="w-full text-left px-4 py-3 hover:bg-blue-600 transition-colors text-white text-sm border-b border-gray-700 last:border-b-0"
+                        onMouseDown={() => handleLocationSelect(loc)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                          <span className="truncate">{loc}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* Category Input with Autocomplete */}
+              <div className="flex-1 relative" ref={categoryRef}>
+                <div className="p-5 border-b md:border-b-0 md:border-r border-gray-700">
+                  <div className="flex items-center gap-3">
+                    <Building2 className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Company Name"
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      onFocus={() => category.trim() && setShowCategoryDropdown(true)}
+                      className="w-full focus:outline-none text-lg bg-transparent text-white placeholder-gray-400"
+                    />
+                  </div>
+                </div>
+                
+                {/* Category Dropdown */}
+                {showCategoryDropdown && filteredCategories.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl max-h-64 overflow-y-auto z-50">
+                    {filteredCategories.map((cat, index) => (
+                      <button
+                        key={index}
+                        className="w-full text-left px-4 py-3 hover:bg-blue-600 transition-colors text-white text-sm border-b border-gray-700 last:border-b-0"
+                        onMouseDown={() => handleCategorySelect(cat)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                          <span className="truncate">{cat}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-        {/* Search Button */}
-        {/* Increased padding, text size, and icon size */}
-        <button
-          onClick={handleSearch}
-          className="bg-[#2042E3] hover:bg-[#2271B5] text-white px-7 py-4 md:px-8 font-semibold text-base md:text-lg transition-colors flex items-center justify-center gap-2"
-        >
-          <Search size={20} />
-          Search Job
-        </button>
-      </div>
-    </div>
+              {/* Search Button */}
+              <button
+                onClick={handleSearch}
+                className="bg-blue-600 rounded-bl-xl rounded-tl-xl rounded-tr-xl rounded-br-xl   hover:bg-blue-700 text-white px-8 py-5 font-semibold text-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <Search size={20} />
+                Search Job
+              </button>
+            </div>
+          </div>
 
     {/* Stats Section */}
     {/* Increased max-width for the stats container */}
@@ -776,18 +1008,49 @@ const toggleBookmark = (jobId) => {
     </section>
 
 
-      {/* Axis Banner */}
-            <section className={`${bgColor}   transition-colors duration-300`}>
-      <div className="max-w-3xl mx-auto">
-        <div className="rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300">
-          <img 
-            src={axisBanner} 
-            alt="Axis Bank Banner" 
-            className="w-full h-auto object-cover"
-          />
-        </div>
-      </div>
-    </section>
+    <div className={`transition-colors duration-300 ${bgColor}`}>
+  <section className="py-16 px-4">
+    <div className="max-w-6xl mx-auto">
+      <h2 className={`text-3xl font-bold text-center mb-12 transition-colors ${textPrimary}`}>
+        Top Hiring Companies
+      </h2>
+
+      {/* Slider */}
+      <Swiper
+        modules={[Autoplay]}
+        navigation
+        autoplay={{ delay: 2000, disableOnInteraction: false }}
+        spaceBetween={10}
+        loop={true}
+        breakpoints={{
+          320: { slidesPerView: 1 },   // Mobile
+          640: { slidesPerView: 2 },   // Tablet
+          1024: { slidesPerView: 4 },  // Large Screens
+        }}
+        className="pb-10"
+      >
+        {topHiringCompanies.map((company, index) => (
+          <SwiperSlide key={index}>
+            <div
+              className={`${hoverBorder} w-40 h-30 mx-auto rounded-xl p-6 flex items-center justify-center transition-all duration-300 hover:shadow-xl border cursor-pointer ${cardBg} ${inputBorder} ${
+                isDark ? "hover:bg-gray-750" : "hover:bg-gray-50"
+              }`}
+            >
+              <img
+                src={company.logo}
+                alt={`${company.name} logo`}
+                className="object-contain "
+                onError={(e) => {
+                  e.target.src = `https://ui-avatars.com/api/?name=${company.name}&background=2563eb&color=fff&`;
+                }}
+              />
+            </div>
+          </SwiperSlide>
+        ))}
+      </Swiper>
+    </div>
+  </section>
+</div>
 
       {/* Featured Jobs */}
   <div className={`min-h-screen ${bgColor} transition-colors duration-300`}>
@@ -816,75 +1079,132 @@ const toggleBookmark = (jobId) => {
 
               {/* Jobs List with Scroll */}
               <div 
-                className="space-y-4 max-h-[600px] overflow-y-auto pr-2"
+                className="space-y-4 max-h-[1000px] overflow-y-auto pr-2"
                 style={{ 
-                  scrollbarWidth: 'thin', 
-                  scrollbarColor: isDark ? '#4B5563 #1F2937' : '#D1D5DB #F3F4F6' 
+                  // scrollbarWidth: 'thin', 
+                  // scrollbarColor: isDark ? '#4B5563 #1F2937' : '#D1D5DB #F3F4F6' 
                 }}
               >
-                {featuredJobs.map((job) => (
-                  <div 
-                    key={job.id}
-                    className={`${cardBg} rounded-xl shadow-sm border ${borderColor} ${hoverBorder} p-5 hover:shadow-lg transition-all duration-300 relative overflow-hidden`}
-                  >
-                    {job.is_premium && (
-                      <div className="absolute top-0 right-0 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg shadow-md">
-                        PREMIUM
-                      </div>
-                    )}
+                {featuredJobs.map(job => (
+                                  <div 
+                                    key={job.job_id}
+                                    className={`${bgSecondary} rounded-xl shadow-sm border ${borderColor} ${hoverBorder} p-5 hover:shadow-lg transition-all duration-300 relative overflow-hidden cursor-pointer`}
+                                    onClick={() => handleJobClick(job)}
+                                  >
+                                    
+                                    {/* Header with time and bookmark */}
+                                    <div className="flex items-center justify-between mb-3">
+                                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${isDark ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-700'}`}>
+                                        {getTimeAgo(job.created_at)}
+                                      </span>
+                                       {/* Apply Button */}
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleJobClick(job);
+                                      }}
+                                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg transition-all duration-300 hover:shadow-lg text-sm"
+                                    >
+                                      Apply Now
+                                    </button>
+                                     
+                                    </div>
+                
+                                    {/* Company Logo and Title */}
+                                    <div className="flex items-start gap-3 mb-4">
+                                      <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-md">
+                                        <span className="text-white text-base font-bold">
+                                          {getInitials(job.company_name)}
+                                        </span>
+                                      </div>
+                                      <div className="flex-1">
+                                        <h3 className={`text-lg font-bold ${textPrimary} mb-1 hover:text-blue-600 transition-colors`}>
+                                          {job.title}
+                                         
+                                        </h3>
+                                        <p className={`text-xs ${textSecondary} font-bold flex items-center gap-1`}>
+                                          <Building2 className="w-3 h-3" />
+                                          {job.company_name}
+                                        </p>
+                                      </div>
+                                    </div>
+                
+                                    {/* Job Details */}
+                                    <div className="flex flex-wrap items-center gap-2 text-xs mb-4">
+                                      <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2.5 py-1.5 rounded-md`}>
+                                        <Clock className="w-3 h-3 text-blue-600 flex-shrink-0" />
+                                        <span className={`${textSecondary} font-bold`}>{job.job_type}</span>
+                                      </div>
+                                      <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2.5 py-1.5 rounded-md`}>
+                                        <MapPin className="w-3 h-3 text-blue-600 flex-shrink-0" />
+                                        <span className={`${textSecondary} font-bold`}>{job.location}</span>
+                                      </div>
+                                      <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2.5 py-1.5 rounded-md`}>
+                                        <DollarSign className="w-3 h-3 text-blue-600 flex-shrink-0" />
+                                        <span className={`${textSecondary} font-bold`}>{job.salary}</span>
+                                      </div>
+                                      {job.experience_required && (
+                                        <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2.5 py-1.5 rounded-md`}>
+                                          <Briefcase className="w-3 h-3 text-blue-600 flex-shrink-0" />
+                                          <span className={`${textSecondary} font-bold`}>
+                                            {job.experience_required.min_years}-{job.experience_required.max_years} yrs
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                
+                                    {/* Job Description */}
+                                    <p className={`${textSecondary1} text-sm mb-4 leading-relaxed`}>
+                                      {job.description
+                                        ? job.description.length > 150
+                                          ? `${job.description.substring(0, 150)}...`
+                                          : job.description
+                                        : "No description available."}
+                                    </p>
+                
+                                    {/* Skills */}
+                                    {job.skills_required && job.skills_required.length > 0 && (
+                                      <div className="flex flex-wrap gap-2 mb-4">
+                                        {job.skills_required.slice(0, 3).map((skill, index) => (
+                                          <span key={index} className="bg-blue-100 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+                                            {skill}
+                                          </span>
+                                        ))}
+                                        {job.skills_required.length > 3 && (
+                                          <span className={`${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'} text-xs font-semibold px-2.5 py-1 rounded-full`}>
+                                            +{job.skills_required.length - 3}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                
+                                  
+                
+                                  <button 
+  onClick={(e) => {
+    e.stopPropagation();
+    toggleBookmark(job.job_id);
+  }}
+  className={`${textSecondary} absolute bottom-2 right-4 hover:text-yellow-500 transition-colors p-1.5 rounded-lg`}
+>
+  <Bookmark 
+    className="w-5 h-5"  
+    fill={bookmarkedJobs.has(job.job_id) ? "currentColor" : "none"} 
+  />
+</button>
 
-                    <div className="flex items-center justify-between mb-3">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${badgeBg1} ${badgeText}`}>
-                        {getTimeAgo(job.created_at)}
-                      </span>
-                      <button 
-                        onClick={() => toggleBookmark(job.id)}
-                        className={`${textSecondary} hover:text-yellow-500 transition-colors p-1.5 rounded-lg`}
-                        aria-label="Bookmark job"
-                      >
-                        <Bookmark className="w-5 h-5" fill={bookmarkedJobs.has(job.id) ? "currentColor" : "none"} />
-                      </button>
-                    </div>
-
-                    <div className="flex items-start gap-3 mb-4">
-                      {job.company_logo ? (
-                        <img src={job.company_logo} alt={job.company_name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0 shadow-md" />
-                      ) : (
-                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-md">
-                          <span className="text-white text-base font-bold">{getInitials(job.company_name)}</span>
-                        </div>
-                      )}
-                      <div className="flex-1">
-                        <h3 className={`text-lg font-bold ${textPrimary} mb-1 hover:text-blue-600 transition-colors cursor-pointer`}>
-                          {job.title}
-                        </h3>
-                        <p className={`text-xs ${textSecondary} font-medium flex items-center gap-1`}>
-                          <Building2 className="w-3 h-3" />
-                          {job.company_name}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2 text-xs mb-4">
-                      <div className={`flex items-center gap-1 ${detailBg} px-2.5 py-1.5 rounded-md`}>
-                        <Clock className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                        <span className={`${textSecondary} font-medium`}>{job.job_type}</span>
-                      </div>
-                      <div className={`flex items-center gap-1 ${detailBg} px-2.5 py-1.5 rounded-md`}>
-                        <MapPin className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                        <span className={`${textSecondary} font-medium`}>{job.location}</span>
-                      </div>
-                      <div className={`flex items-center gap-1 ${detailBg} px-2.5 py-1.5 rounded-md`}>
-                        <DollarSign className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                        <span className={`${textSecondary} font-medium`}>{job.salary}</span>
-                      </div>
-                    </div>
-
-                    <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95 text-sm">
-                      Apply Now
-                    </button>
-                  </div>
-                ))}
+                                   
+                                     
+                                     
+                                      {/* Premium Badge */}
+                                    {!job.is_premium && (
+                                      <div className="absolute top-0 left-0 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-xs font-bold px-3 p-0.5  rounded-br-lg shadow-md">
+                                        PREMIUM
+                                      </div>
+                                    )}
+                
+                                  </div>
+                                ))}
               </div>
             </div>
           </div>
@@ -892,9 +1212,10 @@ const toggleBookmark = (jobId) => {
 
           {/* Contact Form Section - Right Side (Takes 5 columns on lg screens) */}
           <div className="lg:col-span-4">
-            <div className="lg:sticky lg:top-8">
+
+            <div className=" lg:top-8">
               <div className={`${cardBg} rounded-2xl shadow-2xl overflow-hidden transition-colors duration-300`}>
-                <div className="bg-gradient-to-r from-gray-600 to-gray-700 p-6 text-center">
+                <div className="bg-gradient-to-r from-[#2271B5] to-[#2271B5] p-6 text-center">
                   <h3 className="text-2xl font-bold text-white mb-3">Request Free Demo</h3>
                   <div className="w-20 h-20 mx-auto bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                     <Send className="w-10 h-10 text-white" />
@@ -932,7 +1253,7 @@ const toggleBookmark = (jobId) => {
                         onClick={() => handleDemoInputChange('userType', 'candidate')}
                         className={`flex-1 py-2.5 px-4 rounded-lg font-semibold transition-all duration-300 text-sm ${
                           demoData.userType === 'candidate'
-                            ? 'bg-gray-600 text-white shadow-lg scale-105'
+                            ? 'bg-[#2271B5] text-white shadow-lg scale-105'
                             : isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
                       >
@@ -966,7 +1287,7 @@ const toggleBookmark = (jobId) => {
                   <div>
                     <button 
                       onClick={handleDemoSubmit}
-                      className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-[#2271B5] hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                       disabled={demoLoading}
                     >
                       {demoLoading ? (
@@ -1004,6 +1325,24 @@ const toggleBookmark = (jobId) => {
                 </div>
               </div>
             </div>
+           
+
+ 
+
+      {/* Axis Banner */}
+            <section className={`hidden lg:block my-10  transition-colors duration-300`}>
+      <div className="max-w-3xl mx-auto">
+        <div className="">
+          <img 
+            src={axisBanner1} 
+            alt="Axis Bank Banner" 
+            className="w-full h-auto object-cover"
+          />
+        </div>
+      </div>
+    </section>
+           
+
           </div>
 
         </div>
@@ -1012,7 +1351,9 @@ const toggleBookmark = (jobId) => {
 
 
       {/* Employer Section */}
-       <section className={`${bgColor} border-t ${borderColor} transition-colors duration-300`}>
+       <section className={`${bgColor} p-10 transition-colors duration-300`}>
+              <div className={`${cardBg} shadow-2xl border ${borderColor} max-w-7xl mx-auto rounded-2xl  transition-colors duration-300 h-full`}>
+        
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center max-w-3xl mx-auto">
             <h2 className={`text-3xl sm:text-4xl font-bold ${textPrimary} mb-8`}>
@@ -1043,10 +1384,11 @@ const toggleBookmark = (jobId) => {
             </div>
           </div>
         </div>
+        </div>
       </section>
 
      
-        <section className={`${bgColor} py-16 sm:py-20 lg:py-24 transition-colors duration-300 relative`}>
+        <section className={`${bgColor} py-10 sm:py-10 lg:py-15 transition-colors duration-300 relative`}>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Title */}
@@ -1116,10 +1458,10 @@ const toggleBookmark = (jobId) => {
       {/* upload resume section */}
       <div>
       {/* Hero Section */}
-      <section className="bg-[#3F58D6] relative min-h-24 flex items-center justify-center overflow-hidden">
+      <section className="bg-black relative min-h-24 flex items-center justify-center overflow-hidden">
         {/* Background Image Overlay */}
         <div 
-          className="absolute inset-0 bg-cover bg-center opacity-30"
+          className="absolute inset-0 bg-cover bg-center opacity-50"
           style={{
             backgroundImage: `url(${upload1})`
           }}
@@ -1289,38 +1631,21 @@ const toggleBookmark = (jobId) => {
     </div>
 
 
-<div className={`min-h-screen transition-colors duration-300 ${bgColor}`}>
+<div className={` transition-colors duration-300 ${bgColor}`}>
       
-
-      {/* Top Hiring Companies Section */}
-      <section className="py-16 px-4">
-        <div className="max-w-6xl mx-auto">
-          <h2 className={`text-3xl font-bold text-center mb-12 transition-colors ${textPrimary}`}>
-            Top Hiring Companies
-          </h2>
-          
-          <div className={`grid  grid-cols-2 sm:grid-cols-3 md:grid-cols-8 lg:grid-cols-8 gap-6`}>
-            {topHiringCompanies.map((company, index) => (
-              <div
-                key={index}
-                className={`${hoverBorder} rounded-xl p-6 flex items-center justify-center transition-all duration-300 hover:shadow-xl border cursor-pointer ${cardBg} ${inputBorder} ${
-                  isDark ? 'hover:bg-gray-750' : 'hover:bg-gray-50'
-                }`}
-              >
-                <img 
-                  src={company.logo} 
-                  alt={`${company.name} logo`} 
-                  className="w-16 h-16 object-contain"
-                  onError={(e) => {
-                    e.target.src = `https://ui-avatars.com/api/?name=${company.name}&background=2563eb&color=fff&size=64`;
-                  }}
-                />
-              </div>
-            ))}
-          </div>
+{/* Axis Banner */}
+            <section className={`${bgColor} mx-4  transition-colors duration-300`}>
+      <div className="max-w-3xl mx-auto">
+        <div className="rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300">
+          <img 
+            src={axisBanner} 
+            alt="Axis Bank Banner" 
+            className="w-full h-auto object-cover"
+          />
         </div>
-      </section>
-
+      </div>
+    </section>
+     
       {/* Trusted Companies Section with Infinite Scroll */}
       <section className={`py-16 px-4 transition-colors ${bgColor}`}>
         <div className="max-w-6xl mx-auto">

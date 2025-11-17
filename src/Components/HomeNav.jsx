@@ -78,7 +78,7 @@ const HomeNav = () => {
   const textColor = (isDark ? 'text-white' : 'text-gray-900')
 
   // When not scrolled on home page, use white/light colors that show on any background
-  const textSecondary = isDark ? 'text-gray-300' : 'text-gray-700'
+  const textSecondary = isDark ? 'text-gray-300' : 'text-black'
   const hoverBg = isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-100';
   const borderColor = isDark ? 'border-gray-700' : 'border-gray-200';
   const dropdownBg = isDark ? 'bg-gray-800' : 'bg-white';
@@ -90,7 +90,7 @@ const HomeNav = () => {
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 text-xl lg:text-2xl font-bold">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white">
+            <div className="w-18 h-18 rounded-lg flex items-center justify-center text-white">
               <img src={logo} alt="" />
             </div>
             <span className={textColor}>
@@ -99,11 +99,11 @@ const HomeNav = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <ul className="hidden lg:flex items-center gap-6">
+          <ul className="hidden lg:flex font-bold items-center gap-6">
             <li>
               <Link
                 to="/"
-                className={`text-sm font-medium transition-colors ${
+                className={`text-sm font-bold  transition-colors ${
                   isActive("/")
                     ? "text-[#2271B5]"
                     : `${textSecondary} hover:text-[#2271B5]`
@@ -115,7 +115,7 @@ const HomeNav = () => {
             <li>
               <Link
                 to="/jobs"
-                className={`text-sm font-medium transition-colors ${
+                className={`text-sm font-bold transition-colors ${
                   isActive("/jobs")
                     ? "text-[#2271B5]"
                     : `${textSecondary} hover:text-[#2271B5]`
@@ -127,7 +127,7 @@ const HomeNav = () => {
             <li>
               <Link
                 to="/government-jobs"
-                className={`text-sm font-medium transition-colors ${
+                className={`text-sm font-bold transition-colors ${
                   isActive("/government-jobs")
                     ? "text-[#2271B5]"
                     : `${textSecondary} hover:text-[#2271B5]`
@@ -139,7 +139,7 @@ const HomeNav = () => {
             <li>
               <Link
                 to="/about"
-                className={`text-sm font-medium transition-colors ${
+                className={`text-sm font-bold transition-colors ${
                   isActive("/about")
                     ? "text-[#2271B5]"
                     : `${textSecondary} hover:text-[#2271B5]`
@@ -151,7 +151,7 @@ const HomeNav = () => {
             <li>
               <Link
                 to="/contact"
-                className={`text-sm font-medium transition-colors ${
+                className={`text-sm font-bold transition-colors ${
                   isActive("/contact")
                     ? "text-[#2271B5]"
                     : `${textSecondary} hover:text-[#2271B5]`
@@ -163,7 +163,7 @@ const HomeNav = () => {
             <li>
               <Link
                 to="/membership"
-                className={`text-sm font-medium transition-colors ${
+                className={`text-sm font-bold transition-colors ${
                   isActive("/membership")
                     ? "text-[#2271B5]"
                     : `${textSecondary} hover:text-[#2271B5]`
@@ -175,7 +175,7 @@ const HomeNav = () => {
             <li className="relative">
               <button
                 onClick={() => setShowCareerDropdown(!showCareerDropdown)}
-                className={`flex items-center gap-1 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-1 text-sm font-bold transition-colors ${
                   showCareerDropdown
                     ? "text-[#2271B5]"
                     : `${textSecondary} hover:text-[#2271B5]`
@@ -215,7 +215,7 @@ const HomeNav = () => {
           <div className="hidden lg:flex items-center space-x-3">
             <Link
               to="/candidate/login"
-              className={`px-4 py-2 text-sm font-medium text-[#2271B5] hover:text-[#1a5a8f] rounded-md transition-colors ${
+              className={`px-4 py-2 text-sm font-bold text-[#2271B5] hover:text-[#1a5a8f] rounded-md transition-colors ${
                 isDark ? 'hover:bg-[#2271B5]/20' : 'hover:bg-[#2271B5]/10'
               }`}
             >
@@ -229,7 +229,7 @@ const HomeNav = () => {
                   >
               <button
                 // onClick={toggleDropdown}
-                className="flex items-center space-x-1 px-4 py-2 text-sm font-medium text-white bg-[#2271B5] hover:bg-[#1a5a8f] rounded-md transition-colors"
+                className="flex items-center space-x-1 px-4 py-2 text-sm font-bold text-white bg-[#2271B5] hover:bg-[#1a5a8f] rounded-md transition-colors"
               >
                 <span>
                     Recruiter Login
