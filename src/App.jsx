@@ -59,6 +59,7 @@ import RecruitingSolutions from './Pages/RecruitingSolutions'
 import PrivacyPolicy from './Pages/PrivacyPolicy'
 import TermsOfService from './Pages/TermsOfService'
 import PaymentSuccess from './Pages/PaymentSuccess'
+// import JobListing from './Pages/default'
 
 function App() {
   return (
@@ -67,7 +68,7 @@ function App() {
         <BrowserRouter>
           <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/jobs" element={<JobListings />} />
+          <Route path="/jobs" element={<JobListings/>} />
           <Route path="/government-jobs" element={<GovernmentJobs />} />
           <Route path="/job/:slug" element={<Jobdescription />} />
           <Route path="/about" element={<AboutUs />} />
