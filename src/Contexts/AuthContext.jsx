@@ -118,13 +118,37 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateUser = (updatedUserData) => {
-    const updatedUser = { ...user, ...updatedUserData };
+    // Helper function to check if item is an object
+    const isObject = (item) => {
+      return item && typeof item === 'object' && !Array.isArray(item);
+    };
+
+    // Deep merge function for nested objects
+    const deepMerge = (target, source) => {
+      const output = { ...target };
+      if (isObject(target) && isObject(source)) {
+        Object.keys(source).forEach(key => {
+          if (isObject(source[key]) && !Array.isArray(source[key])) {
+            if (!(key in target)) {
+              Object.assign(output, { [key]: source[key] });
+            } else {
+              output[key] = deepMerge(target[key], source[key]);
+            }
+          } else {
+            Object.assign(output, { [key]: source[key] });
+          }
+        });
+      }
+      return output;
+    };
+
+    const updatedUser = deepMerge(user || {}, updatedUserData);
     console.log('AuthContext - Updating user from:', user);
-    console.log('AuthContext - To:', updatedUser);
-    console.log('AuthContext - Setting user to:', JSON.stringify(updatedUser));
+    console.log('AuthContext - Updated data:', updatedUserData);
+    console.log('AuthContext - Merged result:', updatedUser);
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
-    console.log('AuthContext - Updated localStorage with:', localStorage.getItem('user'));
+    console.log('AuthContext - Updated localStorage');
   };
 
   const refreshToken = async () => {

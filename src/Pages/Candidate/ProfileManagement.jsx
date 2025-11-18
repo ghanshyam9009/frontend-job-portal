@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../Contexts/AuthContext';
 import { useTheme } from '../../Contexts/ThemeContext';
 import { studentService } from '../../services/studentService';
-import { ChevronLeft, ChevronRight, Check, User, MapPin, Briefcase, GraduationCap, Award, AlertCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, User, MapPin, Briefcase, GraduationCap, Award, AlertCircle, Edit, Mail, Phone, Calendar, Globe } from 'lucide-react';
 import styles from './ProfileManagement.module.css';
 
 const ProfileManagement = () => {
@@ -35,6 +35,8 @@ const ProfileManagement = () => {
   const [completedSteps, setCompletedSteps] = useState([]);
   const [validationErrors, setValidationErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [profileComplete, setProfileComplete] = useState(false);
 
   const steps = [
     {
@@ -225,6 +227,25 @@ const ProfileManagement = () => {
     return '';
   };
 
+  // Check if profile is complete
+  const checkProfileComplete = (data) => {
+    const hasName = data.full_name && data.full_name.trim();
+    const hasPhone = data.phone_number && data.phone_number.trim();
+    const hasGender = data.gender && data.gender.trim();
+    const hasCity = data.address?.city && data.address.city.trim();
+    const hasState = data.address?.state && data.address.state.trim();
+    const hasCountry = data.address?.country && data.address.country.trim();
+    const hasBio = data.bio && data.bio.trim();
+    const hasSkills = data.skills && data.skills.trim();
+    const hasEducation = Array.isArray(data.education) && data.education.length > 0 && 
+      data.education.some(edu => edu.degree?.trim() && edu.institution?.trim());
+    const hasExperience = Array.isArray(data.experience) && data.experience.length > 0 && 
+      data.experience.some(exp => exp.title?.trim() && exp.company?.trim());
+    
+    return hasName && hasPhone && hasGender && hasCity && hasState && hasCountry && 
+           hasBio && hasSkills && hasEducation && hasExperience;
+  };
+
   useEffect(() => {
     const loadProfileData = async () => {
       if (user?.email) {
@@ -234,7 +255,7 @@ const ProfileManagement = () => {
           const profileResponse = await studentService.fetchProfileDetails(user.email);
           if (profileResponse.success && profileResponse.data) {
             const profileData = profileResponse.data;
-            setFormData({
+            const loadedData = {
               full_name: profileData.full_name || user.full_name || '',
               phone_number: profileData.phone_number || user.phone_number || '',
               username: profileData.username || user.username || '',
@@ -249,10 +270,46 @@ const ProfileManagement = () => {
               },
               bio: profileData.bio || user.bio || '',
               resume: profileData.resumeUrl || profileData.resume || user.resumeUrl || user.resume || null,
-              education: Array.isArray(profileData.education) && profileData.education.length > 0 ? profileData.education : [{ degree: '', institution: '', year: '' }],
-              experience: Array.isArray(profileData.experience) && profileData.experience.length > 0 ? profileData.experience : [{ title: '', company: '', duration: '' }],
+              education: (() => {
+                // Handle education - could be array, string, or missing
+                if (Array.isArray(profileData.education) && profileData.education.length > 0) {
+                  return profileData.education;
+                } else if (typeof profileData.education === 'string') {
+                  try {
+                    const parsed = JSON.parse(profileData.education);
+                    return Array.isArray(parsed) && parsed.length > 0 ? parsed : [{ degree: '', institution: '', year: '' }];
+                  } catch {
+                    return [{ degree: '', institution: '', year: '' }];
+                  }
+                } else if (Array.isArray(user.education) && user.education.length > 0) {
+                  return user.education;
+                }
+                return [{ degree: '', institution: '', year: '' }];
+              })(),
+              experience: (() => {
+                // Handle experience - could be array, string, or missing
+                if (Array.isArray(profileData.experience) && profileData.experience.length > 0) {
+                  return profileData.experience;
+                } else if (typeof profileData.experience === 'string') {
+                  try {
+                    const parsed = JSON.parse(profileData.experience);
+                    return Array.isArray(parsed) && parsed.length > 0 ? parsed : [{ title: '', company: '', duration: '' }];
+                  } catch {
+                    return [{ title: '', company: '', duration: '' }];
+                  }
+                } else if (Array.isArray(user.experience) && user.experience.length > 0) {
+                  return user.experience;
+                }
+                return [{ title: '', company: '', duration: '' }];
+              })(),
               skills: profileData.skills || user.skills || ''
-            });
+            };
+            setFormData(loadedData);
+            
+            // Check if profile is complete
+            const isComplete = checkProfileComplete(loadedData);
+            setProfileComplete(isComplete);
+            setIsEditMode(!isComplete); // Start in edit mode if incomplete, view mode if complete
             } else {
               // Fallback to user context data if API fetch fails
               setFormData({
@@ -270,8 +327,32 @@ const ProfileManagement = () => {
                 },
                 bio: user.bio || '',
                 resume: user.resumeUrl || user.resume || null,
-                education: Array.isArray(user.education) && user.education.length > 0 ? user.education : [{ degree: '', institution: '', year: '' }],
-                experience: Array.isArray(user.experience) && user.experience.length > 0 ? user.experience : [{ title: '', company: '', duration: '' }],
+                education: (() => {
+                  if (Array.isArray(user.education) && user.education.length > 0) {
+                    return user.education;
+                  } else if (typeof user.education === 'string') {
+                    try {
+                      const parsed = JSON.parse(user.education);
+                      return Array.isArray(parsed) && parsed.length > 0 ? parsed : [{ degree: '', institution: '', year: '' }];
+                    } catch {
+                      return [{ degree: '', institution: '', year: '' }];
+                    }
+                  }
+                  return [{ degree: '', institution: '', year: '' }];
+                })(),
+                experience: (() => {
+                  if (Array.isArray(user.experience) && user.experience.length > 0) {
+                    return user.experience;
+                  } else if (typeof user.experience === 'string') {
+                    try {
+                      const parsed = JSON.parse(user.experience);
+                      return Array.isArray(parsed) && parsed.length > 0 ? parsed : [{ title: '', company: '', duration: '' }];
+                    } catch {
+                      return [{ title: '', company: '', duration: '' }];
+                    }
+                  }
+                  return [{ title: '', company: '', duration: '' }];
+                })(),
                 skills: user.skills || ''
               });
             }
@@ -293,8 +374,32 @@ const ProfileManagement = () => {
             },
             bio: user.bio || '',
             resume: user.resumeUrl || user.resume || null,
-            education: Array.isArray(user.education) && user.education.length > 0 ? user.education : [{ degree: '', institution: '', year: '' }],
-            experience: Array.isArray(user.experience) && user.experience.length > 0 ? user.experience : [{ title: '', company: '', duration: '' }],
+            education: (() => {
+              if (Array.isArray(user.education) && user.education.length > 0) {
+                return user.education;
+              } else if (typeof user.education === 'string') {
+                try {
+                  const parsed = JSON.parse(user.education);
+                  return Array.isArray(parsed) && parsed.length > 0 ? parsed : [{ degree: '', institution: '', year: '' }];
+                } catch {
+                  return [{ degree: '', institution: '', year: '' }];
+                }
+              }
+              return [{ degree: '', institution: '', year: '' }];
+            })(),
+            experience: (() => {
+              if (Array.isArray(user.experience) && user.experience.length > 0) {
+                return user.experience;
+              } else if (typeof user.experience === 'string') {
+                try {
+                  const parsed = JSON.parse(user.experience);
+                  return Array.isArray(parsed) && parsed.length > 0 ? parsed : [{ title: '', company: '', duration: '' }];
+                } catch {
+                  return [{ title: '', company: '', duration: '' }];
+                }
+              }
+              return [{ title: '', company: '', duration: '' }];
+            })(),
             skills: user.skills || ''
           });
         } finally {
@@ -414,29 +519,112 @@ const ProfileManagement = () => {
     setLoading(true);
 
     try {
-      console.log('Submitting profile data:', formData);
+      // Prepare form data for submission - ensure arrays are properly formatted
+      const submitData = {
+        ...formData,
+        // Filter out empty education entries, but keep at least one if all are empty
+        education: formData.education.filter(edu => 
+          edu.degree?.trim() || edu.institution?.trim() || edu.year?.trim()
+        ).length > 0 
+          ? formData.education.filter(edu => edu.degree?.trim() || edu.institution?.trim() || edu.year?.trim())
+          : formData.education,
+        // Filter out empty experience entries
+        experience: formData.experience.filter(exp => 
+          exp.title?.trim() || exp.company?.trim() || exp.duration?.trim()
+        ).length > 0
+          ? formData.experience.filter(exp => exp.title?.trim() || exp.company?.trim() || exp.duration?.trim())
+          : formData.experience
+      };
 
-      const response = await studentService.updateProfileDetails(user.email, formData);
+      console.log('Submitting profile data:', submitData);
+
+      const response = await studentService.updateProfileDetails(user.email, submitData);
       console.log('Update response:', response);
 
       if (response.success) {
-        console.log('Response data:', response.data);
-        updateUser(response.data);
+        // Wait a bit for the backend to process
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Initialize normalizedData with form data as fallback
+        let normalizedData = {
+          ...user,
+          ...submitData
+        };
+        
+        // Fetch the latest profile data to ensure we have the complete, correctly formatted data
+        try {
+          const profileResponse = await studentService.fetchProfileDetails(user.email);
+          console.log('Fetched latest profile response:', profileResponse);
+          
+          if (profileResponse.success && profileResponse.data) {
+            // Handle different API response structures
+            // Some APIs return {student: {...}} while others return data directly
+            const profileData = profileResponse.data.student || profileResponse.data;
+            console.log('Profile data received:', profileData);
+            
+            if (profileData) {
+              // Normalize the data structure - handle different possible formats
+              normalizedData = {
+                ...user,
+                full_name: profileData.full_name || profileData.fullName || user.full_name || submitData.full_name || '',
+                phone_number: profileData.phone_number || profileData.phoneNumber || user.phone_number || submitData.phone_number || '',
+                username: profileData.username || user.username || submitData.username || '',
+                dob: profileData.dob || user.dob || submitData.dob || '',
+                gender: profileData.gender || user.gender || submitData.gender || '',
+                bio: profileData.bio || user.bio || submitData.bio || '',
+                skills: profileData.skills || user.skills || submitData.skills || '',
+                // Handle address - could be object or nested
+                address: profileData.address || (profileData.address_city ? {
+                  street: profileData.address_street || user.address?.street || submitData.address?.street || '',
+                  city: profileData.address_city || user.address?.city || submitData.address?.city || '',
+                  state: profileData.address_state || user.address?.state || submitData.address?.state || '',
+                  zip: profileData.address_zip || user.address?.zip || submitData.address?.zip || '',
+                  country: profileData.address_country || user.address?.country || submitData.address?.country || ''
+                } : (user.address || submitData.address || {})),
+                // Handle education - ensure it's an array
+                education: Array.isArray(profileData.education) 
+                  ? profileData.education.filter(edu => edu && (edu.degree || edu.institution || edu.year))
+                  : (Array.isArray(submitData.education) ? submitData.education : (user.education || [])),
+                // Handle experience - ensure it's an array
+                experience: Array.isArray(profileData.experience)
+                  ? profileData.experience.filter(exp => exp && (exp.title || exp.company || exp.duration))
+                  : (Array.isArray(submitData.experience) ? submitData.experience : (user.experience || [])),
+                resume: profileData.resume || profileData.resumeUrl || user.resume || user.resumeUrl || submitData.resume || null
+              };
+              
+              console.log('Normalized user data:', normalizedData);
+            }
+          } else {
+            console.warn('Profile fetch failed, using form data directly');
+          }
+        } catch (fetchError) {
+          console.error('Error fetching updated profile:', fetchError);
+          // normalizedData already has form data as fallback
+        }
+
+        // Update user context with normalized data
+        updateUser(normalizedData);
 
         setSuccess('Profile updated successfully');
         // Mark all steps as completed
         setCompletedSteps([0, 1, 2, 3, 4]);
+        
+        // Check if profile is now complete
+        const isComplete = checkProfileComplete(normalizedData);
+        setProfileComplete(isComplete);
+        setIsEditMode(!isComplete); // Switch to view mode if complete
 
-        // Force page reload to update profile completion in dashboard
+        // Update completion percentage in real-time by triggering a recalculation
+        // The CandidateHome component will pick up the updated user context
         setTimeout(() => {
-          window.location.reload();
-        }, 1500);
+          setSuccess(''); // Clear success message after 3 seconds
+        }, 3000);
       } else {
-        setError(response.message || 'Failed to update profile');
+        setError(response.error?.message || response.message || 'Failed to update profile');
       }
     } catch (err) {
       console.error('Profile update error:', err);
-      setError('An error occurred while updating the profile');
+      setError(err?.message || 'An error occurred while updating the profile');
     } finally {
       setLoading(false);
     }
@@ -770,12 +958,196 @@ const ProfileManagement = () => {
     }
   };
 
+  // Render profile view when complete and not in edit mode
+  const renderProfileView = () => {
+    if (!profileComplete || isEditMode) return null;
+
+    return (
+      <div className={styles.profileView}>
+        <div className={styles.profileHeader}>
+          <div className={styles.profileTitle}>
+            <h1>My Profile</h1>
+            <button 
+              className={styles.editButton}
+              onClick={() => setIsEditMode(true)}
+            >
+              <Edit size={16} />
+              Edit Profile
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.profileSections}>
+          {/* Personal Information */}
+          <div className={styles.profileSection}>
+            <h2 className={styles.sectionTitle}>
+              <User size={20} />
+              Personal Information
+            </h2>
+            <div className={styles.profileGrid}>
+              <div className={styles.profileField}>
+                <label>Full Name</label>
+                <p>{formData.full_name || 'Not provided'}</p>
+              </div>
+              <div className={styles.profileField}>
+                <label>Email</label>
+                <p>{user?.email || 'Not provided'}</p>
+              </div>
+              <div className={styles.profileField}>
+                <label>Phone Number</label>
+                <p>{formData.phone_number || 'Not provided'}</p>
+              </div>
+              <div className={styles.profileField}>
+                <label>Username</label>
+                <p>{formData.username || 'Not provided'}</p>
+              </div>
+              <div className={styles.profileField}>
+                <label>Date of Birth</label>
+                <p>{formData.dob ? new Date(formData.dob).toLocaleDateString() : 'Not provided'}</p>
+              </div>
+              <div className={styles.profileField}>
+                <label>Gender</label>
+                <p>{formData.gender || 'Not provided'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Address */}
+          <div className={styles.profileSection}>
+            <h2 className={styles.sectionTitle}>
+              <MapPin size={20} />
+              Address
+            </h2>
+            <div className={styles.profileGrid}>
+              <div className={`${styles.profileField} ${styles.fullWidth}`}>
+                <label>Street Address</label>
+                <p>{formData.address?.street || 'Not provided'}</p>
+              </div>
+              <div className={styles.profileField}>
+                <label>City</label>
+                <p>{formData.address?.city || 'Not provided'}</p>
+              </div>
+              <div className={styles.profileField}>
+                <label>State/Province</label>
+                <p>{formData.address?.state || 'Not provided'}</p>
+              </div>
+              <div className={styles.profileField}>
+                <label>ZIP/Postal Code</label>
+                <p>{formData.address?.zip || 'Not provided'}</p>
+              </div>
+              <div className={styles.profileField}>
+                <label>Country</label>
+                <p>{formData.address?.country || 'Not provided'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Professional Information */}
+          <div className={styles.profileSection}>
+            <h2 className={styles.sectionTitle}>
+              <Briefcase size={20} />
+              Professional Information
+            </h2>
+            <div className={styles.profileGrid}>
+              <div className={`${styles.profileField} ${styles.fullWidth}`}>
+                <label>Bio</label>
+                <p className={styles.bioText}>{formData.bio || 'Not provided'}</p>
+              </div>
+              <div className={`${styles.profileField} ${styles.fullWidth}`}>
+                <label>Skills</label>
+                <div className={styles.skillsList}>
+                  {formData.skills ? (
+                    formData.skills.split(',').map((skill, index) => (
+                      <span key={index} className={styles.skillTag}>
+                        {skill.trim()}
+                      </span>
+                    ))
+                  ) : (
+                    <p>Not provided</p>
+                  )}
+                </div>
+              </div>
+              {formData.resume && (
+                <div className={`${styles.profileField} ${styles.fullWidth}`}>
+                  <label>Resume</label>
+                  <p>
+                    <a href={formData.resume} target="_blank" rel="noopener noreferrer" className={styles.resumeLink}>
+                      View Resume
+                    </a>
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Education */}
+          {formData.education && formData.education.length > 0 && formData.education.some(edu => edu.degree || edu.institution) && (
+            <div className={styles.profileSection}>
+              <h2 className={styles.sectionTitle}>
+                <GraduationCap size={20} />
+                Education
+              </h2>
+              <div className={styles.listSection}>
+                {formData.education
+                  .filter(edu => edu.degree || edu.institution)
+                  .map((edu, index) => (
+                    <div key={index} className={styles.listItem}>
+                      <h3>{edu.degree || 'Degree not specified'}</h3>
+                      <p className={styles.institution}>{edu.institution || 'Institution not specified'}</p>
+                      {edu.year && <p className={styles.year}>{edu.year}</p>}
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Experience */}
+          {formData.experience && formData.experience.length > 0 && formData.experience.some(exp => exp.title || exp.company) && (
+            <div className={styles.profileSection}>
+              <h2 className={styles.sectionTitle}>
+                <Award size={20} />
+                Work Experience
+              </h2>
+              <div className={styles.listSection}>
+                {formData.experience
+                  .filter(exp => exp.title || exp.company)
+                  .map((exp, index) => (
+                    <div key={index} className={styles.listItem}>
+                      <h3>{exp.title || 'Title not specified'}</h3>
+                      <p className={styles.company}>{exp.company || 'Company not specified'}</p>
+                      {exp.duration && <p className={styles.duration}>{exp.duration}</p>}
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className={`${styles.container} ${theme === 'dark' ? styles.dark : ''}`}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>Complete Your Profile</h1>
-        <p className={styles.subtitle}>Fill in your details step by step</p>
-      </div>
+      {profileComplete && !isEditMode ? (
+        renderProfileView()
+      ) : (
+        <>
+          <div className={styles.header}>
+            <h1 className={styles.title}>
+              {profileComplete ? 'Edit Your Profile' : 'Complete Your Profile'}
+            </h1>
+            <p className={styles.subtitle}>
+              {profileComplete ? 'Update your profile information' : 'Fill in your details step by step'}
+            </p>
+            {profileComplete && (
+              <button 
+                className={styles.cancelEditButton}
+                onClick={() => setIsEditMode(false)}
+              >
+                Cancel Edit
+              </button>
+            )}
+          </div>
 
       {/* Progress Bar */}
       <div className={styles.progressContainer}>
@@ -856,6 +1228,8 @@ const ProfileManagement = () => {
           )}
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 };
