@@ -66,6 +66,8 @@ export const studentService = {
     }, 'Failed to update profile details');
   },
 
+
+
   async getAllStudents(params = {}) {
     return withErrorHandling(async () => {
       const response = await apiClient.get(API_ENDPOINTS.students.getAll, { params });
@@ -98,13 +100,62 @@ export const studentService = {
     return withErrorHandling(async () => {
       const formData = new FormData();
       formData.append('resume', resumeFile);
-      
-      const response = await apiClient.post(API_ENDPOINTS.students.uploadResume(id), formData, {
+
+      const response = await apiClient.put(API_ENDPOINTS.students.uploadResume(id), formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
       return response;
+    }, 'Resume upload failed');
+  },
+
+  async uploadResumeFile(email, resumeFile) {
+    return withErrorHandling(async () => {
+      const formData = new FormData();
+      formData.append('resume', resumeFile);
+
+      // Use direct fetch with PUT method as specified by the user
+      const response = await fetch(`https://api.bigsources.in/api/students/profile/${email}/upload`, {
+        method: 'PUT',
+        body: formData
+        // Don't set Content-Type header for FormData - let browser set it with boundary
+      });
+
+      // Handle different response formats - check content type first
+      let responseData;
+      const contentType = response.headers.get('content-type');
+
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          responseData = await response.json();
+        } catch (e) {
+          // If JSON parsing fails, try text
+          responseData = await response.text();
+        }
+      } else {
+        // Get as text if not JSON
+        responseData = await response.text();
+      }
+
+      if (!response.ok) {
+        // For 500 errors with HTML response, create a more user-friendly message
+        if (response.status === 500 && typeof responseData === 'string' && responseData.includes('<!DOCTYPE')) {
+          throw new Error('Resume upload service is currently unavailable. Please try again later or contact support.');
+        }
+        const errorMessage = typeof responseData === 'object' && responseData?.message
+          ? responseData.message
+          : `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(errorMessage);
+      }
+
+      // Handle successful responses - might be text or JSON
+      if (typeof responseData === 'string') {
+        // Assume upload was successful if no error, even if response body is HTML/empty
+        return { success: true, data: { resumeUrl: `https://api.bigsources.in/resume/${email}` } };
+      }
+
+      return { success: true, data: responseData };
     }, 'Resume upload failed');
   },
 

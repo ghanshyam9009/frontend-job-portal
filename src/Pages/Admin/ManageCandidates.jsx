@@ -132,13 +132,13 @@ const ManageCandidates = () => {
             className={`${styles.filterBtn} ${statusFilter === 'active' ? styles.active : ''}`}
             onClick={() => setStatusFilter('active')}
           >
-            Active ({candidates.filter(c => c.status === 'active').length})
+            Active ({candidates.filter(c => c.status?.toLowerCase() === 'active').length})
           </button>
           <button
             className={`${styles.filterBtn} ${statusFilter === 'inactive' ? styles.active : ''}`}
             onClick={() => setStatusFilter('inactive')}
           >
-            Inactive ({candidates.filter(c => c.status === 'inactive').length})
+            Inactive ({candidates.filter(c => c.status?.toLowerCase() === 'inactive').length})
           </button>
         </div>
       </div>
@@ -178,7 +178,12 @@ const ManageCandidates = () => {
                   </a>
                 </td>
                 <td>{candidate.phone}</td>
-                <td className={styles.locationCell}>{candidate.location}</td>
+                <td className={styles.locationCell}>
+                  {typeof candidate.location === 'object'
+                    ? `${candidate.location.city || ''}, ${candidate.location.state || ''}`.trim().replace(/^,/, '') || 'N/A'
+                    : candidate.location || 'N/A'
+                  }
+                </td>
                 <td>{candidate.experience}</td>
                 <td>
                   <div className={styles.skillsContainer}>
@@ -196,13 +201,13 @@ const ManageCandidates = () => {
                 <td className={styles.dateCell}>{formatDate(candidate.created_at)}</td>
                 <td>
                   <div className={styles.actionButtons}>
-                    <button className={styles.actionBtn} title="View Profile">
+                    <button className={styles.actionBtn} title="View Profile" onClick={() => console.log('View profile:', candidate.name)}>
                       <Eye size={16} />
                     </button>
-                    <button className={styles.actionBtn} title="Edit">
+                    <button className={styles.actionBtn} title="Edit" onClick={() => console.log('Edit candidate:', candidate.name)}>
                       <Edit size={16} />
                     </button>
-                    <button className={styles.actionBtn} title="Block/Unblock">
+                    <button className={styles.actionBtn} title="Block/Unblock" onClick={() => console.log('Block/Unblock candidate:', candidate.name)}>
                       <Ban size={16} />
                     </button>
                   </div>

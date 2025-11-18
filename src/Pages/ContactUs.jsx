@@ -7,6 +7,8 @@ import HomeNav from "../Components/HomeNav";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import Footer from "../Components/Footer";
 import logo from "../assets/logo2.png";
+import { contactService } from "../services/contactService";
+import { withErrorHandling } from "../utils/errorHandler";
 
 const ContactUs = () => {
   const { theme } = useTheme();
@@ -17,6 +19,9 @@ const ContactUs = () => {
     message: "",
     userType: "candidate"
   });
+  const [loading, setLoading] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState("");
+  const [submitError, setSubmitError] = useState("");
 
   const handleInputChange = (e) => {
     setFormData({
@@ -25,11 +30,34 @@ const ContactUs = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
-    // Reset form
-    setFormData({ name: "", email: "", message: "", userType: "candidate" });
+    setLoading(true);
+    setSubmitError("");
+    setSubmitMessage("");
+
+    try {
+      // Submit contact form to API
+      const response = await contactService.submitContact(formData);
+
+      if (response.success) {
+        setSubmitMessage("Your message has been sent successfully! We'll get back to you soon.");
+        // Reset form
+        setFormData({
+          name: "",
+          email: "",
+          message: "",
+          userType: "candidate"
+        });
+      } else {
+        setSubmitError("Failed to send message. Please try again.");
+      }
+    } catch (error) {
+      console.error("Contact form submission error:", error);
+      setSubmitError(error?.message || "Failed to send message. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -102,8 +130,24 @@ const ContactUs = () => {
                   ></textarea>
                 </div>
                 
-                <button type="submit" className={styles.submitBtn}>
-                  Send Message
+                {submitMessage && (
+                  <div className={styles.successMessage}>
+                    {submitMessage}
+                  </div>
+                )}
+
+                {submitError && (
+                  <div className={styles.errorMessage}>
+                    {submitError}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className={styles.submitBtn}
+                  disabled={loading}
+                >
+                  {loading ? "Sending..." : "Send Message"}
                 </button>
               </form>
             </div>

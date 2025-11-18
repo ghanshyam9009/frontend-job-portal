@@ -900,16 +900,44 @@
   color: #93c5fd;
 }
 
+.resumeContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.resumeIcon {
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
 .resumeLink {
   color: #3b82f6;
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s;
+  padding: 0.5rem 1rem;
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  background-color: #ffffff;
 }
 
 .resumeLink:hover {
-  color: #2563eb;
-  text-decoration: underline;
+  color: #ffffff;
+  background-color: #3b82f6;
+  text-decoration: none;
+}
+
+.dark .resumeLink {
+  background-color: #1f2937;
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.dark .resumeLink:hover {
+  color: #ffffff;
+  background-color: #60a5fa;
 }
 
 .listSection {

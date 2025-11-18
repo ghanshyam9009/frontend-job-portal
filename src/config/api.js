@@ -243,7 +243,20 @@ export const API_ENDPOINTS = {
     markStudentPremium: '/premium/mark-student-premium',
     getPremiumPrices: '/students/premium-prices',
     updatePremiumPrices: '/admin/updates/premium-pricess'
-  }
+  },
+
+  // Contact and Query Forms
+  contact: {
+    submit: '/contact',
+    getAll: '/contact'
+  },
+  query: {
+    submit: '/query',
+    getAll: '/query'
+  },
+
+  // Demo request (legacy, keeping for compatibility)
+  requestDemo: '/request-demo'
 };
 
 export default {

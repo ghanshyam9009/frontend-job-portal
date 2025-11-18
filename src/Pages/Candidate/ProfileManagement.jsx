@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../Contexts/AuthContext';
 import { useTheme } from '../../Contexts/ThemeContext';
 import { studentService } from '../../services/studentService';
-import { ChevronLeft, ChevronRight, Check, User, MapPin, Briefcase, GraduationCap, Award, AlertCircle, Edit, Mail, Phone, Calendar, Globe } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, User, MapPin, Briefcase, GraduationCap, Award, AlertCircle, Edit, Mail, Phone, Calendar, Globe, FileText } from 'lucide-react';
 import styles from './ProfileManagement.module.css';
 
 const ProfileManagement = () => {
@@ -109,11 +109,20 @@ const ProfileManagement = () => {
         if (value) {
           const birthDate = new Date(value);
           const today = new Date();
-          const age = today.getFullYear() - birthDate.getFullYear();
-          if (age < 16) {
-            error = 'You must be at least 16 years old';
-          } else if (age > 100) {
-            error = 'Please enter a valid date of birth';
+
+          // Check if birth date is in the future
+          if (birthDate > today) {
+            error = 'Date of birth cannot be in the future';
+          } else {
+            // Optional: Check minimum age (16 years) but allow younger for now
+            const age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+            const actualAge = age - (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? 1 : 0);
+
+            if (actualAge < 0) {
+              error = 'Please enter a valid date of birth';
+            }
+            // Removed strict age validation - allow flexible dates
           }
         }
         break;
@@ -195,17 +204,10 @@ const ProfileManagement = () => {
       }
 
       const error = validateField(field, value);
-      if (error && (!touchedFields[fieldName] || value)) {
+      if (error && touchedFields[fieldName]) {
         errors[fieldName] = error;
       }
     });
-
-    if (stepIndex === 0) {
-      // Personal info validation
-      if (!formData.full_name.trim()) {
-        errors.full_name = 'Full name is required';
-      }
-    }
 
     return errors;
   };
@@ -305,9 +307,28 @@ const ProfileManagement = () => {
               skills: profileData.skills || user.skills || ''
             };
             setFormData(loadedData);
-            
-            // Check if profile is complete
+
+            // Debug: Log profile data to help identify what's missing
+            console.log('Loaded profile data:', loadedData);
+
+            // Check if profile is complete and log the results
             const isComplete = checkProfileComplete(loadedData);
+            console.log('Profile complete check:', {
+              isComplete,
+              hasName: !!(loadedData.full_name && loadedData.full_name.trim()),
+              hasPhone: !!(loadedData.phone_number && loadedData.phone_number.trim()),
+              hasGender: !!(loadedData.gender && loadedData.gender.trim()),
+              hasCity: !!(loadedData.address?.city && loadedData.address.city.trim()),
+              hasState: !!(loadedData.address?.state && loadedData.address.state.trim()),
+              hasCountry: !!(loadedData.address?.country && loadedData.address.country.trim()),
+              hasBio: !!(loadedData.bio && loadedData.bio.trim()),
+              hasSkills: !!(loadedData.skills && loadedData.skills.trim()),
+              hasEducation: Array.isArray(loadedData.education) && loadedData.education.length > 0 &&
+                loadedData.education.some(edu => edu.degree?.trim() && edu.institution?.trim()),
+              hasExperience: Array.isArray(loadedData.experience) && loadedData.experience.length > 0 &&
+                loadedData.experience.some(exp => exp.title?.trim() && exp.company?.trim())
+            });
+
             setProfileComplete(isComplete);
             setIsEditMode(!isComplete); // Start in edit mode if incomplete, view mode if complete
             } else {
@@ -439,15 +460,39 @@ const ProfileManagement = () => {
     setValidationErrors({ ...validationErrors, [fieldName]: error });
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
+    if (!file) return;
+
     const error = validateFileUpload(file);
+    if (error) {
+      setValidationErrors({ ...validationErrors, resume: error });
+      setTouchedFields({ ...touchedFields, resume: true });
+      return;
+    }
 
-    setFormData({ ...formData, resume: file });
-    setValidationErrors({ ...validationErrors, resume: error });
+    setLoading(true);
+    try {
+      // Upload the resume file immediately using the dedicated API
+      const uploadResponse = await studentService.uploadResumeFile(user.email, file);
 
-    // Mark field as touched
-    setTouchedFields({ ...touchedFields, resume: true });
+      if (uploadResponse.success) {
+        // Store the resume URL in formData
+        setFormData({ ...formData, resume: uploadResponse.data.resumeUrl || uploadResponse.data.url || uploadResponse.data });
+        setValidationErrors({ ...validationErrors, resume: '' });
+        setSuccess('Resume uploaded successfully');
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setValidationErrors({ ...validationErrors, resume: uploadResponse.error?.message || 'Failed to upload resume' });
+      }
+    } catch (error) {
+      console.error('Resume upload error:', error);
+      setValidationErrors({ ...validationErrors, resume: 'Failed to upload resume. Please try again.' });
+    } finally {
+      setLoading(false);
+      // Mark field as touched
+      setTouchedFields({ ...touchedFields, resume: true });
+    }
   };
 
 
@@ -520,25 +565,34 @@ const ProfileManagement = () => {
 
     try {
       // Prepare form data for submission - ensure arrays are properly formatted
-      const submitData = {
+      const jsonData = {
         ...formData,
         // Filter out empty education entries, but keep at least one if all are empty
-        education: formData.education.filter(edu => 
+        education: formData.education.filter(edu =>
           edu.degree?.trim() || edu.institution?.trim() || edu.year?.trim()
-        ).length > 0 
+        ).length > 0
           ? formData.education.filter(edu => edu.degree?.trim() || edu.institution?.trim() || edu.year?.trim())
           : formData.education,
         // Filter out empty experience entries
-        experience: formData.experience.filter(exp => 
+        experience: formData.experience.filter(exp =>
           exp.title?.trim() || exp.company?.trim() || exp.duration?.trim()
         ).length > 0
           ? formData.experience.filter(exp => exp.title?.trim() || exp.company?.trim() || exp.duration?.trim())
           : formData.experience
       };
 
-      console.log('Submitting profile data:', submitData);
+      // Prepare data for JSON submission - remove the resume File object for now
+      const { resume, ...dataForSubmission } = jsonData;
 
-      const response = await studentService.updateProfileDetails(user.email, submitData);
+      // Include resume URL if it's a string (from existing data), but not if it's a File object
+      if (typeof resume === 'string' && resume) {
+        dataForSubmission.resume = resume;
+      }
+
+      console.log('Submitting profile data:', dataForSubmission);
+
+      // Submit as regular JSON (the working approach)
+      const response = await studentService.updateProfileDetails(user.email, dataForSubmission);
       console.log('Update response:', response);
 
       if (response.success) {
@@ -548,9 +602,9 @@ const ProfileManagement = () => {
         // Initialize normalizedData with form data as fallback
         let normalizedData = {
           ...user,
-          ...submitData
+          ...jsonData
         };
-        
+
         // Fetch the latest profile data to ensure we have the complete, correctly formatted data
         try {
           const profileResponse = await studentService.fetchProfileDetails(user.email);
@@ -566,30 +620,30 @@ const ProfileManagement = () => {
               // Normalize the data structure - handle different possible formats
               normalizedData = {
                 ...user,
-                full_name: profileData.full_name || profileData.fullName || user.full_name || submitData.full_name || '',
-                phone_number: profileData.phone_number || profileData.phoneNumber || user.phone_number || submitData.phone_number || '',
-                username: profileData.username || user.username || submitData.username || '',
-                dob: profileData.dob || user.dob || submitData.dob || '',
-                gender: profileData.gender || user.gender || submitData.gender || '',
-                bio: profileData.bio || user.bio || submitData.bio || '',
-                skills: profileData.skills || user.skills || submitData.skills || '',
+                full_name: profileData.full_name || profileData.fullName || user.full_name || jsonData.full_name || '',
+                phone_number: profileData.phone_number || profileData.phoneNumber || user.phone_number || jsonData.phone_number || '',
+                username: profileData.username || user.username || jsonData.username || '',
+                dob: profileData.dob || user.dob || jsonData.dob || '',
+                gender: profileData.gender || user.gender || jsonData.gender || '',
+                bio: profileData.bio || user.bio || jsonData.bio || '',
+                skills: profileData.skills || user.skills || jsonData.skills || '',
                 // Handle address - could be object or nested
                 address: profileData.address || (profileData.address_city ? {
-                  street: profileData.address_street || user.address?.street || submitData.address?.street || '',
-                  city: profileData.address_city || user.address?.city || submitData.address?.city || '',
-                  state: profileData.address_state || user.address?.state || submitData.address?.state || '',
-                  zip: profileData.address_zip || user.address?.zip || submitData.address?.zip || '',
-                  country: profileData.address_country || user.address?.country || submitData.address?.country || ''
-                } : (user.address || submitData.address || {})),
+                  street: profileData.address_street || user.address?.street || jsonData.address?.street || '',
+                  city: profileData.address_city || user.address?.city || jsonData.address?.city || '',
+                  state: profileData.address_state || user.address?.state || jsonData.address?.state || '',
+                  zip: profileData.address_zip || user.address?.zip || jsonData.address?.zip || '',
+                  country: profileData.address_country || user.address?.country || jsonData.address?.country || ''
+                } : (user.address || jsonData.address || {})),
                 // Handle education - ensure it's an array
-                education: Array.isArray(profileData.education) 
+                education: Array.isArray(profileData.education)
                   ? profileData.education.filter(edu => edu && (edu.degree || edu.institution || edu.year))
-                  : (Array.isArray(submitData.education) ? submitData.education : (user.education || [])),
+                  : (Array.isArray(jsonData.education) ? jsonData.education : (user.education || [])),
                 // Handle experience - ensure it's an array
                 experience: Array.isArray(profileData.experience)
                   ? profileData.experience.filter(exp => exp && (exp.title || exp.company || exp.duration))
-                  : (Array.isArray(submitData.experience) ? submitData.experience : (user.experience || [])),
-                resume: profileData.resume || profileData.resumeUrl || user.resume || user.resumeUrl || submitData.resume || null
+                  : (Array.isArray(jsonData.experience) ? jsonData.experience : (user.experience || [])),
+                resume: profileData.resume || profileData.resumeUrl || user.resume || user.resumeUrl || null
               };
               
               console.log('Normalized user data:', normalizedData);
@@ -605,10 +659,31 @@ const ProfileManagement = () => {
         // Update user context with normalized data
         updateUser(normalizedData);
 
+        // Update form data with the normalized data from API
+        setFormData({
+          full_name: normalizedData.full_name || '',
+          phone_number: normalizedData.phone_number || '',
+          username: normalizedData.username || '',
+          dob: normalizedData.dob ? new Date(normalizedData.dob).toISOString().split('T')[0] : '',
+          gender: normalizedData.gender || '',
+          address: {
+            street: normalizedData.address?.street || '',
+            city: normalizedData.address?.city || '',
+            state: normalizedData.address?.state || '',
+            zip: normalizedData.address?.zip || '',
+            country: normalizedData.address?.country || ''
+          },
+          bio: normalizedData.bio || '',
+          resume: normalizedData.resume || normalizedData.resumeUrl || null,
+          education: Array.isArray(normalizedData.education) ? normalizedData.education : [{ degree: '', institution: '', year: '' }],
+          experience: Array.isArray(normalizedData.experience) ? normalizedData.experience : [{ title: '', company: '', duration: '' }],
+          skills: normalizedData.skills || ''
+        });
+
         setSuccess('Profile updated successfully');
         // Mark all steps as completed
         setCompletedSteps([0, 1, 2, 3, 4]);
-        
+
         // Check if profile is now complete
         const isComplete = checkProfileComplete(normalizedData);
         setProfileComplete(isComplete);
@@ -1067,14 +1142,15 @@ const ProfileManagement = () => {
                   )}
                 </div>
               </div>
-              {formData.resume && (
+              {typeof formData.resume === 'string' && formData.resume && (
                 <div className={`${styles.profileField} ${styles.fullWidth}`}>
                   <label>Resume</label>
-                  <p>
+                  <div className={styles.resumeContainer}>
+                    <FileText size={16} className={styles.resumeIcon} />
                     <a href={formData.resume} target="_blank" rel="noopener noreferrer" className={styles.resumeLink}>
                       View Resume
                     </a>
-                  </p>
+                  </div>
                 </div>
               )}
             </div>

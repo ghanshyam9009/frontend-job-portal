@@ -286,10 +286,12 @@ export const adminService = {
   // Candidate Management Functions
   async getCandidates() {
     try {
-      const response = await fetch('https://gfiwltw271.execute-api.ap-southeast-1.amazonaws.com/default/getstudentdetails', {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('https://api.bigsources.in/api/admin/get-all-candidates', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
         },
       });
 
@@ -298,25 +300,54 @@ export const adminService = {
       }
 
       const data = await response.json();
+      console.log('API Response:', data);
 
       // Transform the API response to match the expected format
-      const candidates = (data.students || data || []).map(student => ({
-        id: student.student_id || student.id,
-        name: student.full_name || student.name || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Unknown',
-        email: student.email || '',
-        phone: student.phone_number || student.phone || '',
-        location: student.address ? `${student.address.city || ''}, ${student.address.state || ''}`.trim() : student.location || '',
-        experience: student.experience || 'Not specified',
-        skills: Array.isArray(student.skills) ? student.skills : (student.skills ? student.skills.split(',').map(s => s.trim()) : []),
-        status: student.status || 'active',
-        created_at: student.created_at || student.registration_date || new Date().toISOString(),
-        profile_image: student.profile_image || null,
-        bio: student.bio || '',
-        education: student.education || [],
-        dob: student.dob || null,
-        gender: student.gender || null
+      let candidateArray = [];
+
+      if (Array.isArray(data)) {
+        candidateArray = data;
+      } else if (data && typeof data === 'object') {
+        // Check for multiple possible array keys
+        if (Array.isArray(data.candidates)) {
+          candidateArray = data.candidates;
+        } else if (Array.isArray(data.recruiters)) {  // API uses "recruiters" for candidates
+          candidateArray = data.recruiters;
+        } else if (Array.isArray(data.data)) {
+          candidateArray = data.data;
+        } else if (Array.isArray(data.students)) {
+          candidateArray = data.students;
+        } else {
+          // If no arrays found, wrap object in array or treat as empty
+          candidateArray = [];
+        }
+      } else {
+        candidateArray = [];
+      }
+
+      console.log('Candidate Array:', candidateArray);
+
+      const candidates = candidateArray.map(candidate => ({
+        id: candidate.candidate_id || candidate.user_id || candidate.id,
+        name: candidate.full_name || candidate.name || `${candidate.first_name || ''} ${candidate.last_name || ''}`.trim() || 'Unknown',
+        email: candidate.email || '',
+        phone: candidate.phone_number || candidate.phone || '',
+        location: candidate.location || candidate.address || 'Not specified',
+        experience: candidate.experience_years || candidate.experience || 'Not specified',
+        skills: Array.isArray(candidate.skills) ? candidate.skills : (candidate.skills ? candidate.skills.split(',').map(s => s.trim()) : []),
+        status: candidate.status || 'active',
+        created_at: candidate.created_at || candidate.registration_date || new Date().toISOString(),
+        profile_image: candidate.profile_image || null,
+        bio: candidate.bio || '',
+        education: candidate.education || [],
+        dob: candidate.dob || null,
+        gender: candidate.gender || null,
+        role: candidate.role || 'Candidate',
+        premium_user: candidate.premium_user || false,
+        plan: candidate.plan || null
       }));
 
+      console.log('Transformed candidates:', candidates);
       return candidates;
     } catch (error) {
       console.error('Error fetching candidates from API:', error);
