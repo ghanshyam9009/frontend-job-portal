@@ -299,7 +299,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
           return;
         }
       } catch {
-        // if created_at invalid, continue with profile fetching below
+        // if created_at invalid, continue (or ask user to login again)
       }
     }
 
