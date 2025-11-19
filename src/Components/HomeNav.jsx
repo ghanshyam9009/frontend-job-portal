@@ -94,7 +94,7 @@ const HomeNav = () => {
               <img src={logo} alt="" />
             </div>
             <span className={textColor}>
-              Big<span className="text-[#2271B5]">sources</span>.in
+             Big<span className="text-[#2271B5]">sources</span>.in
             </span>
           </Link>
 
