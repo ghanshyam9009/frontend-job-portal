@@ -93,35 +93,21 @@ const MembershipPlans = () => {
     setLoading(true);
 
     try {
-      // Get plan details from configuration
-      const planDetails = paymentService.getPlanDetails('candidate', plan.id);
-      if (!planDetails) {
-        throw new Error('Plan configuration not found');
+      // Extract price from plan (remove ₹ symbol and convert to number)
+      const priceString = plan.price.replace('₹', '');
+      const amount = parseInt(priceString);
+
+      if (isNaN(amount)) {
+        throw new Error('Invalid plan price');
       }
 
-      // Create Razorpay order
-      const orderResponse = await paymentService.createRazorpayOrder(
-        planDetails.price,
-        'INR',
-        {
-          id: user.id,
-          firstName: user.firstName || user.name || 'User',
-          lastName: user.lastName || '',
-          email: user.email,
-          phone: user.phone || ''
-        },
-        plan.id,
-        'candidate'
-      );
-
-      // Initialize Razorpay checkout
+      // Initialize Razorpay checkout directly
       const options = {
-        key: 'rzp_test_RNj6wvo7aRv2Zf', // Test Key ID
-        amount: orderResponse.amount, // Amount in paisa
-        currency: orderResponse.currency,
+        key: 'rzp_test_RNj6wvo7aRv2Zf', // Test Key ID - replace with your actual key
+        amount: amount * 100, // Amount in paisa
+        currency: 'INR',
         name: 'Job Portal',
         description: `${plan.name} Plan - ${plan.validity}`,
-        order_id: orderResponse.id,
         prefill: {
           name: `${user.firstName || user.name || 'User'} ${user.lastName || ''}`,
           email: user.email,
@@ -138,49 +124,58 @@ const MembershipPlans = () => {
         },
         handler: async function (response) {
           try {
-            // Verify payment on backend
-            await paymentService.verifyRazorpayPayment(
-              response.razorpay_payment_id,
-              response.razorpay_order_id,
-              response.razorpay_signature,
-              {
-                user_id: user.id,
+            // Update user membership directly
+            const membershipResponse = await fetch('https://api.bigsources.in/api/premium/mark-student-premium', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
                 email: user.email,
-                plan_type: plan.id,
+                is_premium: true,
+                plan: plan.id,
+                payment_id: response.razorpay_payment_id,
                 user_type: 'candidate'
-              }
-            );
+              })
+            });
 
-            // Update user membership
-            await paymentService.updateUserMembership(
-              user.id,
-              plan.id,
-              'candidate',
-              {
-                paymentId: response.razorpay_payment_id,
-                email: user.email
-              }
-            );
+            if (!membershipResponse.ok) {
+              throw new Error('Failed to update membership');
+            }
 
             alert(`Successfully upgraded to ${plan.name} plan! Welcome to premium.`);
-            // Optionally refresh user data or redirect
+            // Optionally refresh user data or redirect to success page
+            navigate('/candidate/dashboard');
 
           } catch (verifyError) {
-            console.error('Payment verification failed:', verifyError);
-            alert('Payment verification failed. Please contact support.');
+            console.error('Membership update failed:', verifyError);
+            alert('Payment successful but membership update failed. Please contact support.');
+          }
+        },
+        modal: {
+          ondismiss: function() {
+            setProcessingPlan(null);
+            setLoading(false);
           }
         }
       };
 
-      const rzp = paymentService.initializeRazorpayCheckout(options);
+      const rzp = new window.Razorpay(options);
+
+      rzp.on('payment.failed', function (response) {
+        console.error('Payment failed:', response.error);
+        alert('Payment failed. Please try again.');
+        setProcessingPlan(null);
+        setLoading(false);
+      });
+
       rzp.open();
 
     } catch (error) {
       console.error('Error initiating payment:', error);
       alert('Failed to initiate payment. Please try again.');
-    } finally {
-      setLoading(false);
       setProcessingPlan(null);
+      setLoading(false);
     }
   };
 

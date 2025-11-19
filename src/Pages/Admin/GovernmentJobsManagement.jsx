@@ -26,7 +26,7 @@ const GovernmentJobsManagement = () => {
   const [formData, setFormData] = useState({
     job_title: "",
     description: "",
-    location: "",
+    document_link: "",
     salary_range: "",
     employment_type: "Full-time",
     department_name: "",
@@ -55,8 +55,8 @@ const GovernmentJobsManagement = () => {
   useEffect(() => {
     fetchJobs();
   }, []);
-
   // Filter jobs based on search and status
+  
   useEffect(() => {
     let filtered = jobs;
 
@@ -106,17 +106,20 @@ const GovernmentJobsManagement = () => {
     e.preventDefault();
     try {
       if (editingJob) {
-        await adminService.updateGovernmentJob(editingJob.id, {
+        await adminService.updateGovernmentJob(editingJob.job_id || editingJob.id, {
+          job_id: editingJob.job_id || editingJob.id,
+          admin_id: String(user?.user_id || user?.id || user?.admin_id),
           salary_range: formData.salary_range,
           status: "Closed" // Update to closed or keep as is
         });
         setEditingJob(null);
       } else {
-        await adminService.createGovernmentJob({
-          admin_id: String(user?.admin_id || user?.id),
+        const adminId = String(user?.user_id || user?.id || user?.admin_id);
+        console.log("Creating government job with:", {
+          admin_id: adminId,
           job_title: formData.job_title,
           description: formData.description,
-          location: formData.location,
+          document_link: formData.document_link,
           salary_range: formData.salary_range,
           employment_type: formData.employment_type,
           department_name: formData.department_name,
@@ -124,6 +127,32 @@ const GovernmentJobsManagement = () => {
           contact_email: formData.contact_email,
           total_posts: formData.total_posts,
           application_fee: formData.application_fee
+        });
+
+        if (!adminId || adminId === 'undefined' || adminId === 'null') {
+          alert('Admin ID is missing. Please log out and log back in.');
+          return;
+        }
+
+        if (!formData.job_title || !formData.description || !formData.salary_range || !formData.employment_type || !formData.department_name || !formData.application_deadline || !formData.contact_email) {
+          alert('Please fill in all required fields.');
+          return;
+        }
+
+        await adminService.createGovernmentJob({
+          admin_id: adminId,
+          job_title: formData.job_title,
+          description: formData.description,
+          document_link: formData.document_link,
+          salary_range: formData.salary_range,
+          employment_type: formData.employment_type,
+          department_name: formData.department_name,
+          application_deadline: formData.application_deadline,
+          contact_email: formData.contact_email,
+          total_posts: formData.total_posts,
+          application_fee: formData.application_fee,
+          status: "Open",
+          location: "N/A" // Add location field that might be required
         });
       }
       
@@ -133,7 +162,7 @@ const GovernmentJobsManagement = () => {
       setFormData({
         job_title: "",
         description: "",
-        location: "",
+        document_link: "",
         salary_range: "",
         employment_type: "Full-time",
         department_name: "",
@@ -154,7 +183,7 @@ const GovernmentJobsManagement = () => {
     setFormData({
       job_title: job.job_title,
       description: job.description,
-      location: job.location,
+      document_link: job.document_link,
       salary_range: job.salary_range,
       employment_type: job.employment_type,
       department_name: job.department_name,
@@ -230,23 +259,7 @@ const GovernmentJobsManagement = () => {
         <p className={styles.pageSubtitle}>Create and manage government job postings</p>
       </div>
 
-      {/* Admin Approval Panel */}
-      <div className={styles.filtersContainer}>
-        <div className={styles.searchBox}>
-          <input
-            type="text"
-            placeholder="Enter approval task_id"
-            value={approvalTaskId}
-            onChange={(e) => setApprovalTaskId(e.target.value)}
-            className={styles.searchInput}
-          />
-        </div>
-        <div className={styles.filterButtons}>
-          <button className={styles.saveBtn} disabled={approving} onClick={() => approveAction('post')}>Approve Posting</button>
-          <button className={styles.saveBtn} disabled={approving} onClick={() => approveAction('edit')}>Approve Edit</button>
-          <button className={styles.rejectBtn} disabled={approving} onClick={() => approveAction('close')}>Approve Closing</button>
-        </div>
-      </div>
+
 
       {/* Error Display */}
       {error && <p className={styles.errorText}>{error}</p>}
@@ -445,13 +458,13 @@ const GovernmentJobsManagement = () => {
 
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
-                  <label>Location *</label>
+                  <label>Link</label>
                   <input
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
+                    type="url"
+                    value={formData.document_link}
+                    onChange={(e) => handleInputChange('document_link', e.target.value)}
                     className={styles.formInput}
-                    required
+                    placeholder="https://example.com/document.pdf"
                   />
                 </div>
                 <div className={styles.formGroup}>

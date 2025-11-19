@@ -32,7 +32,7 @@ const UserDashboard = () => {
         weight: 20
       },
       {
-        fields: ['profile_image', 'bio', 'skills'],
+        fields: ['bio', 'skills'],
         weight: 20
       },
       {

@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import styles from "../../Styles/CandidateNavbar.module.css";
-import { Sun, Moon, Search, FileText, Heart, List, Home, CreditCard, CheckCircle, User, Settings, LogOut, X } from "lucide-react";
+import { Sun, Moon, Search, FileText, Heart, List, Home, CreditCard, CheckCircle, User, LogOut, X, Briefcase, Building, Info, Phone } from "lucide-react";
 import logo from "../../assets/favicon-icon.png";
 
 const CandidateNavbar = ({ toggleSidebar }) => {
@@ -88,7 +88,7 @@ const CandidateNavbar = ({ toggleSidebar }) => {
 
         {/* Navigation Links */}
         <nav className={styles.navLinks}>
-          <button className={styles.navLink} onClick={() => navigate('/candidate-home')}>
+             <button className={styles.navLink} onClick={() => navigate('/candidate-home')}>
             <Home size={18} />
             <span>Home</span>
           </button>
@@ -96,6 +96,23 @@ const CandidateNavbar = ({ toggleSidebar }) => {
             <CreditCard size={18} />
             <span>Membership</span>
           </button>
+          {/* <button className={styles.navLink} onClick={() => navigate('/jobs')}>
+            <Briefcase size={18} />
+            <span>Jobs</span>
+          </button> */}
+          <button className={styles.navLink} onClick={() => navigate('/government-jobs')}>
+            <Building size={18} />
+            <span>Government Jobs</span>
+          </button>
+          <button className={styles.navLink} onClick={() => navigate('/about')}>
+            <Info size={18} />
+            <span>About Us</span>
+          </button>
+          <button className={styles.navLink} onClick={() => navigate('/contact')}>
+            <Phone size={18} />
+            <span>Contact Us</span>
+          </button>
+       
         </nav>
       </div>
 
@@ -160,10 +177,10 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                   </div>
                   <div className={styles.sidebarUserDetails}>
                     <div className={styles.sidebarUserName}>
-                      Lilesh mohane
+                      {user?.full_name || user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User'}
                     </div>
                     <div className={styles.sidebarUserEmail}>
-                      lileshmohane2002@gmail.com
+                      {user?.email || 'user@example.com'}
                     </div>
                   </div>
                 </div>
@@ -212,6 +229,13 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                   >
                     <CreditCard size={18} />
                     <span>Membership Plans</span>
+                  </button>
+                  <button
+                    className={styles.sidebarMenuItem}
+                    onClick={() => { handleLogout(); setShowProfileSidebar(false); }}
+                  >
+                    <LogOut size={18} />
+                    <span>Logout</span>
                   </button>
                 </div>
               </div>

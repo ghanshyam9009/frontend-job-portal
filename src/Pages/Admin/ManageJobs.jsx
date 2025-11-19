@@ -90,7 +90,7 @@ const ManageJobs = () => {
           title: task.title || task.category,
           posted_date: task.posted_date,
           updated_date: task.updated_date,
-          is_premium: task.is_premium || false, // Include premium status from task
+          is_premium: task.premium_job || task.is_premium || false, // Include premium status from task
           tasks: []
         };
       }
@@ -127,8 +127,10 @@ const ManageJobs = () => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, jobs]);
 
-  // Cache for recruiter details to avoid multiple API calls
+  // Cache for recruiter details, job data, and applicants to avoid multiple API calls
   const [recruiterCache, setRecruiterCache] = useState({});
+  const [jobDataCache, setJobDataCache] = useState({});
+  const [applicantsCache, setApplicantsCache] = useState({});
   const [batchRecruiterFetch, setBatchRecruiterFetch] = useState(false);
 
   // Optimized fetch job/application data when editing
@@ -158,8 +160,15 @@ const ManageJobs = () => {
           }
 
           console.log('Fetching job data for task:', editingTask);
-          // Fetch job data from recruiter's posted jobs
-          const jobsData = await recruiterExternalService.getAllPostedJobs(editingTask.recruiter_id);
+
+          // Check cache first for job data
+          let jobsData = jobDataCache[editingTask.recruiter_id];
+          if (!jobsData) {
+            // Fetch job data from recruiter's posted jobs
+            jobsData = await recruiterExternalService.getAllPostedJobs(editingTask.recruiter_id);
+            setJobDataCache(prev => ({ ...prev, [editingTask.recruiter_id]: jobsData }));
+          }
+
           console.log('Retrieved jobs data:', jobsData);
           const job = jobsData?.jobs?.find(j => j.job_id === editingTask.job_id);
           console.log('Found job:', job);
@@ -211,41 +220,42 @@ const ManageJobs = () => {
             task_id: editingTask.task_id
           });
 
-          // Fetch application details using the get all applicants API
-          try {
-            const applicantsData = await recruiterExternalService.getApplicantsByJobId(editingTask.job_id);
-            console.log('Retrieved applicants data:', applicantsData);
+          // Check cache first for applicants data
+          let applicantsData = applicantsCache[editingTask.job_id];
+          if (!applicantsData) {
+            // Fetch application details using the get all applicants API
+            applicantsData = await recruiterExternalService.getApplicantsByJobId(editingTask.job_id);
+            setApplicantsCache(prev => ({ ...prev, [editingTask.job_id]: applicantsData }));
+          }
 
-            if (applicantsData && Array.isArray(applicantsData.applicants)) {
-              const application = applicantsData.applicants.find(app => app.application_id === editingTask.application_id);
+          console.log('Retrieved applicants data:', applicantsData);
 
-              if (application) {
-                setApplicantDetails(prevDetails => ({
-                  ...prevDetails,
-                  name: application.name || "",
-                  email: application.email || "",
-                  phone: application.phone || "",
-                  skills: application.skills || [],
-                  experience: application.experience || "",
-                  education: application.education || "",
-                  resume_link: application.resume_link || "",
-                  status: application.status || "pending",
-                  applied_date: application.applied_date || "",
-                  updated_date: application.updated_date || ""
-                }));
-              }
+          if (applicantsData && Array.isArray(applicantsData.applicants)) {
+            const application = applicantsData.applicants.find(app => app.application_id === editingTask.application_id);
 
-              // Store all applicants for this job to show in a list - sort by latest first
-              const sortedApplicants = applicantsData.applicants.sort((a, b) => {
-                const dateA = new Date(a.applied_date || 0);
-                const dateB = new Date(b.applied_date || 0);
-                return dateB - dateA; // Latest first
-              });
-              setApplicationData(sortedApplicants);
+            if (application) {
+              setApplicantDetails(prevDetails => ({
+                ...prevDetails,
+                name: application.name || "",
+                email: application.email || "",
+                phone: application.phone || "",
+                skills: application.skills || [],
+                experience: application.experience || "",
+                education: application.education || "",
+                resume_link: application.resume_link || "",
+                status: application.status || "pending",
+                applied_date: application.applied_date || "",
+                updated_date: application.updated_date || ""
+              }));
             }
-          } catch (error) {
-            console.error('Error fetching application details:', error);
-            // Continue with basic task data even if applications fetch fails
+
+            // Store all applicants for this job to show in a list - sort by latest first
+            const sortedApplicants = applicantsData.applicants.sort((a, b) => {
+              const dateA = new Date(a.applied_date || 0);
+              const dateB = new Date(b.applied_date || 0);
+              return dateB - dateA; // Latest first
+            });
+            setApplicationData(sortedApplicants);
           }
         } else {
           console.log('Unsupported edit category:', editingTask.category);
@@ -322,7 +332,7 @@ const ManageJobs = () => {
     try {
       setLoading(true);
       let result;
-      
+
       switch (task.category) {
         case 'postnewjob':
           result = await adminService.approveJob(task.task_id);
@@ -342,15 +352,38 @@ const ManageJobs = () => {
         default:
           throw new Error('Unknown task category');
       }
-      
+
       alert(`Job approved successfully: ${result.message || 'Job fulfilled'}`);
-      
-      // Refresh the jobs list
-      const jobsData = await adminService.getPendingJobs();
-      const jobsArray = Array.isArray(jobsData) ? jobsData : [];
-      setJobs(jobsArray);
-      setFilteredJobs(jobsArray);
-      
+
+      // Update local state to mark task as fulfilled
+      setJobs(prevJobs => {
+        return prevJobs.map(job => {
+          if (job.tasks && job.tasks.some(t => t.task_id === task.task_id)) {
+            return {
+              ...job,
+              tasks: job.tasks.map(t =>
+                t.task_id === task.task_id ? { ...t, status: 'fulfilled' } : t
+              )
+            };
+          }
+          return job;
+        });
+      });
+
+      setFilteredJobs(prevFiltered => {
+        return prevFiltered.map(job => {
+          if (job.tasks && job.tasks.some(t => t.task_id === task.task_id)) {
+            return {
+              ...job,
+              tasks: job.tasks.map(t =>
+                t.task_id === task.task_id ? { ...t, status: 'fulfilled' } : t
+              )
+            };
+          }
+          return job;
+        });
+      });
+
     } catch (error) {
       console.error('Failed to approve job:', error);
       alert('Failed to approve job. Please try again.');
@@ -374,11 +407,34 @@ const ManageJobs = () => {
 
       alert(`Job rejected successfully: ${result.message || 'Job rejected'}`);
 
-      // Refresh the jobs list
-      const jobsData = await adminService.getPendingJobs();
-      const jobsArray = Array.isArray(jobsData) ? jobsData : [];
-      setJobs(jobsArray);
-      setFilteredJobs(jobsArray);
+      // Update local state to mark task as fulfilled (or remove it)
+      setJobs(prevJobs => {
+        return prevJobs.map(job => {
+          if (job.tasks && job.tasks.some(t => t.task_id === task.task_id)) {
+            return {
+              ...job,
+              tasks: job.tasks.map(t =>
+                t.task_id === task.task_id ? { ...t, status: 'fulfilled' } : t
+              )
+            };
+          }
+          return job;
+        });
+      });
+
+      setFilteredJobs(prevFiltered => {
+        return prevFiltered.map(job => {
+          if (job.tasks && job.tasks.some(t => t.task_id === task.task_id)) {
+            return {
+              ...job,
+              tasks: job.tasks.map(t =>
+                t.task_id === task.task_id ? { ...t, status: 'fulfilled' } : t
+              )
+            };
+          }
+          return job;
+        });
+      });
 
     } catch (error) {
       console.error('Failed to reject job:', error);
@@ -457,7 +513,7 @@ const ManageJobs = () => {
       setJobs(prevJobs => {
         return prevJobs.map(job => {
           if (job.job_id === task.job_id) {
-            return { ...job, is_premium: isPremium };
+            return { ...job, premium_job: isPremium };
           }
           return job;
         });
@@ -467,7 +523,7 @@ const ManageJobs = () => {
       setFilteredJobs(prevFiltered => {
         return prevFiltered.map(job => {
           if (job.job_id === task.job_id) {
-            return { ...job, is_premium: isPremium };
+            return { ...job, premium_job: isPremium };
           }
           return job;
         });
@@ -603,65 +659,59 @@ const ManageJobs = () => {
                   <td className={styles.dateCell}>{formatDate(job.updated_date)}</td>
                   <td>
                     <div className={styles.actionButtons}>
-                      {/* Show all available actions for this job */}
-                      {job.tasks && job.tasks.some(task => task.status === 'pending' && (task.category === 'postnewjob' || task.category === 'editjob')) && (
-                        <button
-                          className={styles.approveBtn}
-                          onClick={() => {
-                            const pendingTask = job.tasks.find(t => t.status === 'pending' && (t.category === 'postnewjob' || t.category === 'editjob'));
-                            if (pendingTask) handleApproveTask(pendingTask);
-                          }}
-                        >
-                          Approve
-                        </button>
-                      )}
+                      {/* Approve button - for pending job tasks */}
+                      <button
+                        className={styles.approveBtn}
+                        disabled={!job.tasks || !job.tasks.some(task => task.status === 'pending' && (task.category === 'postnewjob' || task.category === 'editjob'))}
+                        onClick={() => {
+                          const pendingTask = job.tasks.find(t => t.status === 'pending' && (t.category === 'postnewjob' || t.category === 'editjob'));
+                          if (pendingTask) handleApproveTask(pendingTask);
+                        }}
+                      >
+                        Approve
+                      </button>
 
-                      {job.tasks && job.tasks.some(task => task.status === 'pending' && task.category === 'postnewjob') && (
-                        <button
-                          className={styles.rejectBtn}
-                          onClick={() => handleRejectTask(job.tasks.find(t => t.category === 'postnewjob' && t.status === 'pending'))}
-                        >
-                          Reject
-                        </button>
-                      )}
+                      {/* Reject button - only for new job postings */}
+                      <button
+                        className={styles.rejectBtn}
+                        disabled={!job.tasks || !job.tasks.some(task => task.status === 'pending' && task.category === 'postnewjob')}
+                        onClick={() => handleRejectTask(job.tasks.find(t => t.category === 'postnewjob' && t.status === 'pending'))}
+                      >
+                        Reject
+                      </button>
 
-                      {job.tasks && job.tasks.some(task => task.category === 'newapplication' || task.category === 'change status of application') && (
-                        <button
-                          className={styles.viewBtn}
-                          onClick={() => {
-                            const appTask = job.tasks.find(t => t.category === 'newapplication' || t.category === 'change status of application');
-                            if (appTask) setEditingTask(appTask);
-                          }}
-                        >
-                          View Applications
-                        </button>
-                      )}
+                      {/* View Applications button */}
+                      <button
+                        className={styles.viewBtn}
+                        disabled={!job.tasks || !job.tasks.some(task => task.category === 'newapplication' || task.category === 'change status of application')}
+                        onClick={() => {
+                          const appTask = job.tasks.find(t => t.category === 'newapplication' || t.category === 'change status of application');
+                          if (appTask) setEditingTask(appTask);
+                        }}
+                      >
+                        View Applications
+                      </button>
 
-                      {job.tasks && job.tasks.some(task => task.category === 'editjob' || task.category === 'postnewjob') && (
-                        <button
-                          className={styles.editBtn}
-                          onClick={() => {
-                            const jobTask = job.tasks.find(t => t.category === 'editjob' || t.category === 'postnewjob');
-                            if (jobTask) setEditingTask(jobTask);
-                          }}
-                        >
-                          Edit Job
-                        </button>
-                      )}
+                      {/* Edit Job button */}
+                      <button
+                        className={styles.editBtn}
+                        disabled={!job.tasks || !job.tasks.some(task => task.category === 'editjob' || task.category === 'postnewjob')}
+                        onClick={() => {
+                          const jobTask = job.tasks.find(t => t.category === 'editjob' || t.category === 'postnewjob');
+                          if (jobTask) setEditingTask(jobTask);
+                        }}
+                      >
+                        Edit Job
+                      </button>
 
+                      {/* Premium toggle */}
                       {job.job_id && job.tasks && job.tasks.length > 0 && (
-                        job.is_premium ? (
-                          <span className={styles.premiumMarked}>
-                            Premium Marked
-                          </span>
-                        ) : (
-                          <button
-                            className={styles.premiumBtn}
-                            onClick={() => handleMarkJobPremium(job.tasks[0], true)}
-                          >
-                            Mark Premium
-                          </button>
-                        )
+                        <button
+                          className={styles.premiumBtn}
+                          onClick={() => handleMarkJobPremium(job.tasks[0], !job.is_premium)}
+                        >
+                          {job.is_premium ? 'Remove Premium' : 'Mark Premium'}
+                        </button>
                       )}
                     </div>
                   </td>

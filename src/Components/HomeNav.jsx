@@ -21,6 +21,8 @@ const HomeNav = () => {
   
   console.log(currentPath)
   
+
+  
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 50) {
@@ -217,6 +219,7 @@ const HomeNav = () => {
               to="/candidate/login"
               className={`px-4 py-2 text-sm font-bold text-[#2271B5] hover:text-[#1a5a8f] rounded-md transition-colors ${
                 isDark ? 'hover:bg-[#2271B5]/20' : 'hover:bg-[#2271B5]/10'
+           
               }`}
             >
               Candidate Login
@@ -410,6 +413,8 @@ const HomeNav = () => {
                   >
                     Recruiter Login
                   </Link>
+                 
+                  
                 </div>
               </div>
             </div>

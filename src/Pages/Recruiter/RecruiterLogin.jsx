@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext"; // Import useTheme
-import { CheckCircle, Clock, XCircle } from "lucide-react";
+import { validateForm } from "../../utils/errorHandler";
+import { CheckCircle, Clock, XCircle, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import styles from "../../Styles/Auth.module.css";
 import HomeNav from "../../Components/HomeNav";
 import logo from "../../assets/logo.png";
@@ -15,9 +16,12 @@ const RecruiterLogin = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [errors, setErrors] = useState({});
   const [showModal, setShowModal] = useState(false);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState(""); // "pending" or "rejected"
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -27,21 +31,74 @@ const RecruiterLogin = () => {
     phone: "",
     companySize: "",
     location: "",
-    industry: ""
+    industry: "",
+    otherIndustry: ""
   });
 
   const handleInputChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors({
+        ...errors,
+        [name]: ''
+      });
+    }
+  };
+
+  const validateLoginForm = () => {
+    const rules = {
+      email: { required: true, type: 'email', label: 'Email' },
+      password: { required: true, label: 'Password' }
+    };
+
+    return validateForm(formData, rules);
+  };
+
+  const validateRegisterForm = () => {
+    const rules = {
+      companyName: { required: true, minLength: 2, label: 'Company Name' },
+      contactPerson: { required: true, minLength: 2, label: 'Contact Person' },
+      companySize: { required: true, label: 'Company Size' },
+      industry: { required: true, label: 'Industry' },
+      location: { required: true, minLength: 2, label: 'Location' },
+      email: { required: true, type: 'email', label: 'Email' },
+      phone: { required: true, type: 'phone', label: 'Phone Number' },
+      password: { required: true, type: 'password', label: 'Password' },
+      confirmPassword: { required: true, label: 'Confirm Password' },
+      ...(formData.industry === "Other" && {
+        otherIndustry: { required: true, minLength: 2, label: 'Other Industry' }
+      })
+    };
+
+    const validationErrors = validateForm(formData, rules);
+
+    // Check password confirmation
+    if (formData.password !== formData.confirmPassword) {
+      validationErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    return validationErrors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
+    setErrors({});
+
     if (isLogin) {
+      const validationErrors = validateLoginForm();
+      if (Object.keys(validationErrors).length > 0) {
+        setErrors(validationErrors);
+        return;
+      }
+
       try {
         const result = await login(formData.email, formData.password, 'recruiter');
         if (result.success) {
@@ -58,40 +115,52 @@ const RecruiterLogin = () => {
             setApprovalStatus('rejected');
             setShowApprovalModal(true);
           } else {
-            setError("Login failed. Please check your credentials.");
+            setError("Invalid email or password. Please check your credentials and try again.");
           }
           setSuccess("");
         }
       } catch (error) {
         console.error("Login failed:", error);
-        setError("Login failed. An unexpected error occurred.");
+        setError("Invalid email or password. Please check your credentials and try again.");
         setSuccess("");
       }
     } else {
-      if (formData.password !== formData.confirmPassword) {
-        setError("Passwords do not match.");
-        setSuccess("");
+      const validationErrors = validateRegisterForm();
+      if (Object.keys(validationErrors).length > 0) {
+        setErrors(validationErrors);
         return;
       }
-      try {
-        await register({
-          full_name: formData.contactPerson,
-          email: formData.email,
-          password: formData.password,
-          phone_number: formData.phone,
-          company_name: formData.companyName,
-          company_website: "", // Not in form, but required by API
-          industry: formData.industry,
-          company_size: formData.companySize,
-          location: formData.location,
-          description: "", // Not in form, but required by API
-          role: 'recruiter'
-        });
+
+      const result = await register({
+        full_name: formData.contactPerson,
+        email: formData.email,
+        password: formData.password,
+        phone_number: formData.phone,
+        company_name: formData.companyName,
+        company_website: "", // Not in form, but required by API
+        industry: formData.industry === "Other" ? formData.otherIndustry : formData.industry,
+        company_size: formData.companySize,
+        location: formData.location,
+        description: "", // Not in form, but required by API
+        role: 'recruiter'
+      });
+
+      if (result.success) {
         setShowModal(true);
         setError("");
-      } catch (error) {
-        console.error("Registration failed:", error);
-        setError("Registration failed. Please try again.");
+      } else {
+        // Handle specific error messages from API response
+        const errorMessage = result.error?.response?.data?.message ||
+                           result.error?.response?.data?.error ||
+                           result.error?.message ||
+                           result.error?.error ||
+                           '';
+
+        if (errorMessage.includes('Employer already registered')) {
+          setError("Employer already registered");
+        } else {
+          setError("Registration failed. Please try again.");
+        }
         setSuccess("");
       }
     }
@@ -138,24 +207,26 @@ const RecruiterLogin = () => {
                       value={formData.companyName}
                       onChange={handleInputChange}
                       placeholder="Enter your company name"
-                      className={styles.input}
+                      className={`${styles.input} ${errors.companyName ? styles.inputError : ''}`}
                       required={!isLogin}
                     />
+                    {errors.companyName && <span className={styles.errorText}>{errors.companyName}</span>}
                   </label>
                 </div>
 
                 <div className={styles.inputGroup}>
                   <label className={styles.label}>
-                    <span className={styles.labelText}></span>
+                    <span className={styles.labelText}>Contact Person</span>
                     <input
                       type="text"
                       name="contactPerson"
                       value={formData.contactPerson}
                       onChange={handleInputChange}
                       placeholder="Your full name"
-                      className={styles.input}
+                      className={`${styles.input} ${errors.contactPerson ? styles.inputError : ''}`}
                       required={!isLogin}
                     />
+                    {errors.contactPerson && <span className={styles.errorText}>{errors.contactPerson}</span>}
                   </label>
                 </div>
 
@@ -166,7 +237,7 @@ const RecruiterLogin = () => {
                       name="companySize"
                       value={formData.companySize}
                       onChange={handleInputChange}
-                      className={styles.input}
+                      className={`${styles.input} ${errors.companySize ? styles.inputError : ''}`}
                       required={!isLogin}
                     >
                       <option value="">Select company size</option>
@@ -176,6 +247,7 @@ const RecruiterLogin = () => {
                       <option value="201-500">201-500 employees</option>
                       <option value="500+">500+ employees</option>
                     </select>
+                    {errors.companySize && <span className={styles.errorText}>{errors.companySize}</span>}
                   </label>
                 </div>
 
@@ -186,7 +258,7 @@ const RecruiterLogin = () => {
                       name="industry"
                       value={formData.industry}
                       onChange={handleInputChange}
-                      className={styles.input}
+                      className={`${styles.input} ${errors.industry ? styles.inputError : ''}`}
                       required={!isLogin}
                     >
                       <option value="">Select industry</option>
@@ -198,8 +270,27 @@ const RecruiterLogin = () => {
                       <option value="Retail">Retail</option>
                       <option value="Other">Other</option>
                     </select>
+                    {errors.industry && <span className={styles.errorText}>{errors.industry}</span>}
                   </label>
                 </div>
+
+                {formData.industry === "Other" && (
+                  <div className={styles.inputGroup}>
+                    <label className={styles.label}>
+                      <span className={styles.labelText}>Other Industry</span>
+                      <input
+                        type="text"
+                        name="otherIndustry"
+                        value={formData.otherIndustry}
+                        onChange={handleInputChange}
+                        placeholder="Enter your industry"
+                        className={`${styles.input} ${errors.otherIndustry ? styles.inputError : ''}`}
+                        required={formData.industry === "Other"}
+                      />
+                      {errors.otherIndustry && <span className={styles.errorText}>{errors.otherIndustry}</span>}
+                    </label>
+                  </div>
+                )}
 
                 <div className={styles.inputGroup}>
                   <label className={styles.label}>
@@ -210,9 +301,10 @@ const RecruiterLogin = () => {
                       value={formData.location}
                       onChange={handleInputChange}
                       placeholder="City, State, Country"
-                      className={styles.input}
+                      className={`${styles.input} ${errors.location ? styles.inputError : ''}`}
                       required={!isLogin}
                     />
+                    {errors.location && <span className={styles.errorText}>{errors.location}</span>}
                   </label>
                 </div>
               </>
@@ -222,16 +314,18 @@ const RecruiterLogin = () => {
               <label className={styles.label}>
                 <span className={styles.labelText}>Email Address</span>
                 <div className={styles.inputWrapper}>
+                  <Mail className={styles.inputIcon} size={20} />
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="you@company.com"
-                    className={styles.input}
+                    className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
                     required
                   />
                 </div>
+                {errors.email && <span className={styles.errorText}>{errors.email}</span>}
               </label>
             </div>
 
@@ -245,9 +339,10 @@ const RecruiterLogin = () => {
                     value={formData.phone}
                     onChange={handleInputChange}
                     placeholder="Enter your phone number"
-                    className={styles.input}
+                    className={`${styles.input} ${errors.phone ? styles.inputError : ''}`}
                     required={!isLogin}
                   />
+                  {errors.phone && <span className={styles.errorText}>{errors.phone}</span>}
                 </label>
               </div>
             )}
@@ -255,17 +350,26 @@ const RecruiterLogin = () => {
             <div className={styles.inputGroup}>
               <label className={styles.label}>
                 <span className={styles.labelText}>Password</span>
-                <div className={styles.inputWrapper}>
+                <div className={styles.passwordInputWrapper}>
+                  <Lock className={styles.inputIcon} size={20} />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
                     placeholder="••••••••"
-                    className={styles.input}
+                    className={`${styles.input} ${errors.password ? styles.inputError : ''}`}
                     required
                   />
+                  <button
+                    type="button"
+                    className={styles.eyeButton}
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
                 </div>
+                {errors.password && <span className={styles.errorText}>{errors.password}</span>}
               </label>
             </div>
 
@@ -273,17 +377,26 @@ const RecruiterLogin = () => {
               <div className={styles.inputGroup}>
                 <label className={styles.label}>
                   <span className={styles.labelText}>Confirm Password</span>
-                  <div className={styles.inputWrapper}>
+                  <div className={styles.passwordInputWrapper}>
+                    <Lock className={styles.inputIcon} size={20} />
                     <input
-                      type="password"
+                      type={showConfirmPassword ? "text" : "password"}
                       name="confirmPassword"
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
                       placeholder="••••••••"
-                      className={styles.input}
+                      className={`${styles.input} ${errors.confirmPassword ? styles.inputError : ''}`}
                       required={!isLogin}
                     />
+                    <button
+                      type="button"
+                      className={styles.eyeButton}
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
                   </div>
+                  {errors.confirmPassword && <span className={styles.errorText}>{errors.confirmPassword}</span>}
                 </label>
               </div>
             )}
@@ -353,7 +466,8 @@ const RecruiterLogin = () => {
                     phone: "",
                     companySize: "",
                     location: "",
-                    industry: ""
+                    industry: "",
+                    otherIndustry: ""
                   });
                 }}
               >

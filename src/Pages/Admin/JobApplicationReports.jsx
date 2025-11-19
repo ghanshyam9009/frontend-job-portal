@@ -529,12 +529,6 @@ const JobApplicationReports = () => {
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                     <div>
-                      <strong>Application ID:</strong> {application.application_id}
-                    </div>
-                    <div>
-                      <strong>Student Name:</strong> {studentNames[application.student_id] || `Loading...`}
-                    </div>
-                    <div>
                       <strong>Applied Date:</strong> {formatDate(application.created_at || application.applied_date)}
                     </div>
                     <div>

@@ -60,6 +60,28 @@
   color: #6b7280;
 }
 
+.passwordInputWrapper {
+  position: relative;
+}
+
+.eyeButton {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+
+.eyeButton:hover {
+  color: #374151;
+}
+
 .input {
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 2.5rem; /* Add padding for icon */
