@@ -112,50 +112,72 @@ export const studentService = {
 
   async uploadResumeFile(email, resumeFile) {
     return withErrorHandling(async () => {
-      const formData = new FormData();
-      formData.append('resume', resumeFile);
+      // Use the working combination: endpoint `/students/profile/${email}/upload` with field name `resumeFile`
+      const endpoint = `/students/profile/${email}/upload`;
+      const fieldName = 'resumeFile';
+      
+      try {
+        const formData = new FormData();
+        // Ensure the file is properly attached
+        formData.append(fieldName, resumeFile, resumeFile.name);
+        
+        console.log(`Uploading resume:`, {
+          fileName: resumeFile.name,
+          fileSize: resumeFile.size,
+          fileType: resumeFile.type,
+          endpoint: endpoint,
+          fieldName: fieldName
+        });
 
-      // Use direct fetch with PUT method as specified by the user
-      const response = await fetch(`https://api.bigsources.in/api/students/profile/${email}/upload`, {
-        method: 'PUT',
-        body: formData
-        // Don't set Content-Type header for FormData - let browser set it with boundary
-      });
-
-      // Handle different response formats - check content type first
-      let responseData;
-      const contentType = response.headers.get('content-type');
-
-      if (contentType && contentType.includes('application/json')) {
-        try {
-          responseData = await response.json();
-        } catch (e) {
-          // If JSON parsing fails, try text
-          responseData = await response.text();
+        // Use apiClient (handles auth automatically)
+        // Note: Don't set Content-Type manually - axios will set it with boundary automatically
+        const response = await apiClient.put(endpoint, formData);
+        
+        console.log('Upload response:', response);
+        
+        // Handle different response formats
+        let resumeUrl = null;
+        if (response) {
+          // Response might be the URL directly, or an object with url/resumeUrl property
+          if (typeof response === 'string') {
+            resumeUrl = response;
+          } else if (response.resumeUrl) {
+            resumeUrl = response.resumeUrl;
+          } else if (response.url) {
+            resumeUrl = response.url;
+          } else if (response.data?.resumeUrl) {
+            resumeUrl = response.data.resumeUrl;
+          } else if (response.data?.url) {
+            resumeUrl = response.data.url;
+          } else if (response.resumeFile?.url) {
+            resumeUrl = response.resumeFile.url;
+          } else if (response.resumeFile?.resumeUrl) {
+            resumeUrl = response.resumeFile.resumeUrl;
+          } else if (response.resumeFile && typeof response.resumeFile === 'string') {
+            resumeUrl = response.resumeFile;
+          } else {
+            // Construct default URL if not provided
+            resumeUrl = `https://api.bigsources.in/resume/${email}`;
+          }
+        } else {
+          // Default fallback URL
+          resumeUrl = `https://api.bigsources.in/resume/${email}`;
         }
-      } else {
-        // Get as text if not JSON
-        responseData = await response.text();
+        
+        console.log('Extracted resume URL:', resumeUrl);
+        
+        return { 
+          success: true, 
+          data: { 
+            resumeUrl: resumeUrl,
+            ...(typeof response === 'object' && response !== null ? response : {})
+          } 
+        };
+      } catch (error) {
+        // If apiClient fails, log the error and throw
+        console.error('Resume upload error:', error);
+        throw error;
       }
-
-      if (!response.ok) {
-        // For 500 errors with HTML response, create a more user-friendly message
-        if (response.status === 500 && typeof responseData === 'string' && responseData.includes('<!DOCTYPE')) {
-          throw new Error('Resume upload service is currently unavailable. Please try again later or contact support.');
-        }
-        const errorMessage = typeof responseData === 'object' && responseData?.message
-          ? responseData.message
-          : `HTTP ${response.status}: ${response.statusText}`;
-        throw new Error(errorMessage);
-      }
-
-      // Handle successful responses - might be text or JSON
-      if (typeof responseData === 'string') {
-        // Assume upload was successful if no error, even if response body is HTML/empty
-        return { success: true, data: { resumeUrl: `https://api.bigsources.in/resume/${email}` } };
-      }
-
-      return { success: true, data: responseData };
     }, 'Resume upload failed');
   },
 
