@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
+import { studentService } from "../../services/studentService";
 import styles from "../../Styles/CandidateNavbar.module.css";
 import { Sun, Moon, Search, FileText, Heart, List, Home, CreditCard, CheckCircle, User, LogOut, X, Briefcase, Building, Info, Phone } from "lucide-react";
 import logo from "../../assets/favicon-icon.png";
@@ -15,6 +16,7 @@ const CandidateNavbar = ({ toggleSidebar }) => {
   const [showCareerDropdown, setShowCareerDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [profileCompletion, setProfileCompletion] = useState(0);
   const dropdownRef = useRef(null);
   const searchRef = useRef(null);
 
@@ -38,6 +40,101 @@ const CandidateNavbar = ({ toggleSidebar }) => {
   const handleProfileClick = () => {
     setShowProfileSidebar(!showProfileSidebar);
   };
+
+  const calculateProfileCompletion = (userData) => {
+    if (!userData) return 0;
+
+    let completedFields = 0;
+    const totalFields = 10;
+
+    const fullName = userData.full_name || userData.fullName;
+    if (fullName && String(fullName).trim()) completedFields++;
+
+    const phoneNumber = userData.phone_number || userData.phoneNumber;
+    if (phoneNumber && String(phoneNumber).trim()) completedFields++;
+
+    if (userData.gender && String(userData.gender).trim()) completedFields++;
+
+    const address = userData.address || {};
+    const city = address.city || userData.address_city;
+    const state = address.state || userData.address_state;
+    const country = address.country || userData.address_country;
+
+    if (city && String(city).trim()) completedFields++;
+    if (state && String(state).trim()) completedFields++;
+    if (country && String(country).trim()) completedFields++;
+
+    if (userData.bio && String(userData.bio).trim()) completedFields++;
+    if (userData.skills && String(userData.skills).trim()) completedFields++;
+
+    let education = userData.education;
+    if (typeof education === "string") {
+      try {
+        education = JSON.parse(education);
+      } catch {
+        education = [];
+      }
+    }
+    if (education && Array.isArray(education) && education.some(edu => (edu?.degree || edu?.Degree) && (edu?.institution || edu?.Institution))) {
+      completedFields++;
+    }
+
+    let experience = userData.experience;
+    if (typeof experience === "string") {
+      try {
+        experience = JSON.parse(experience);
+      } catch {
+        experience = [];
+      }
+    }
+    if (experience && Array.isArray(experience) && experience.some(exp => (exp?.title || exp?.Title) && (exp?.company || exp?.Company))) {
+      completedFields++;
+    }
+
+    return Math.round((completedFields / totalFields) * 100);
+  };
+
+  useEffect(() => {
+    const fetchCompletion = async () => {
+      if (!user?.email) {
+        setProfileCompletion(0);
+        return;
+      }
+
+      try {
+        const response = await studentService.fetchProfileDetails(user.email);
+        if (response.success && response.data) {
+          const profileData = response.data.student || response.data;
+          const normalizedData = {
+            ...user,
+            ...profileData,
+            full_name: profileData.full_name || profileData.fullName || user.full_name,
+            phone_number: profileData.phone_number || profileData.phoneNumber || user.phone_number,
+            gender: profileData.gender || user.gender,
+            bio: profileData.bio || user.bio,
+            skills: profileData.skills || user.skills,
+            address: profileData.address || (profileData.address_city ? {
+              street: profileData.address_street || user.address?.street,
+              city: profileData.address_city || user.address?.city,
+              state: profileData.address_state || user.address?.state,
+              zip: profileData.address_zip || user.address?.zip,
+              country: profileData.address_country || user.address?.country
+            } : user.address || {}),
+            education: Array.isArray(profileData.education) ? profileData.education : user.education,
+            experience: Array.isArray(profileData.experience) ? profileData.experience : user.experience,
+          };
+          setProfileCompletion(calculateProfileCompletion(normalizedData));
+          return;
+        }
+      } catch (error) {
+        console.error("Failed to fetch profile completion:", error);
+      }
+
+      setProfileCompletion(calculateProfileCompletion(user));
+    };
+
+    fetchCompletion();
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -188,16 +285,18 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                 <div className={styles.profileCompletion}>
                   <div className={styles.completionHeader}>
                     <span>Profile Completion</span>
-                    <span>0%</span>
+                    <span>{profileCompletion}%</span>
                   </div>
                   <div className={styles.progressBar}>
-                    <div className={styles.progress} style={{ width: '0%' }} />
+                    <div className={styles.progress} style={{ width: `${profileCompletion}%` }} />
                   </div>
                   <p className={styles.completionText}>
-                    Complete your profile to get better job matches
+                    {profileCompletion === 100
+                      ? "Great job! Your profile is complete."
+                      : "Complete your profile to get better job matches"}
                   </p>
                   <button className={styles.completeProfileBtn} onClick={() => { navigate('/profile'); setShowProfileSidebar(false); }}>
-                    Complete Profile
+                    {profileCompletion === 100 ? "View Profile" : "Complete Profile"}
                   </button>
                 </div>
 
@@ -248,3 +347,5 @@ const CandidateNavbar = ({ toggleSidebar }) => {
 };
 
 export default CandidateNavbar;
+
+

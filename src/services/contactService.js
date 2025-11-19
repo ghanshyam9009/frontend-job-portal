@@ -1,9 +1,9 @@
 import apiClient from './apiClient';
 import { API_ENDPOINTS } from '../config/api';
 
-export const demoService = {
-  // Request demo/form submission - using direct fetch to /query
-  async requestDemo(demoData) {
+export const contactService = {
+  // Submit contact form - using direct fetch to avoid apiClient baseURL issues
+  async submitContact(contactData) {
     try {
       const token = localStorage.getItem('authToken');
       const headers = {
@@ -11,10 +11,10 @@ export const demoService = {
         ...(token && { Authorization: `Bearer ${token}` })
       };
 
-      const response = await fetch('https://api.bigsources.in/query', {
+      const response = await fetch('https://api.bigsources.in/contact', {
         method: 'POST',
         headers,
-        body: JSON.stringify(demoData)
+        body: JSON.stringify(contactData)
       });
 
       if (!response.ok) {
@@ -28,8 +28,8 @@ export const demoService = {
     }
   },
 
-  // Get all demo requests (admin) - using /query endpoint
-  async getAllDemoRequests() {
+  // Get all contacts (admin) - using /contact endpoint
+  async getAllContacts() {
     try {
       const token = localStorage.getItem('authToken');
       const headers = {
@@ -37,7 +37,7 @@ export const demoService = {
         ...(token && { Authorization: `Bearer ${token}` })
       };
 
-      const response = await fetch('https://api.bigsources.in/query', {
+      const response = await fetch('https://api.bigsources.in/contact', {
         method: 'GET',
         headers
       });

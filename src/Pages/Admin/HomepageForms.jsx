@@ -1,69 +1,75 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../Contexts/ThemeContext';
-import { User, Building, Eye, Mail, Check, Search, FileText } from 'lucide-react';
+import { User, Building, Eye, Search, FileText, X } from 'lucide-react';
 import styles from '../../Styles/AdminDashboard.module.css';
+import { demoService } from '../../services/demoService';
 
 const HomepageForms = () => {
   const { theme } = useTheme();
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all'); // all, candidate, recruiter
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedForm, setSelectedForm] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
-  // Mock data - replace with actual API call
+  // Fetch homepage demo forms from API
   useEffect(() => {
-    const mockForms = [
-      {
-        id: 1,
-        fullName: 'John Doe',
-        email: 'john.doe@email.com',
-        userType: 'candidate',
-        message: 'I am interested in learning more about your job portal services.',
-        submittedAt: '2025-01-15T10:30:00Z',
-        status: 'new'
-      },
-      {
-        id: 2,
-        fullName: 'Jane Smith',
-        email: 'jane.smith@company.com',
-        userType: 'recruiter',
-        message: 'We are looking to post multiple job openings on your platform.',
-        submittedAt: '2025-01-15T09:15:00Z',
-        status: 'contacted'
-      },
-      {
-        id: 3,
-        fullName: 'Mike Johnson',
-        email: 'mike.j@email.com',
-        userType: 'candidate',
-        message: 'I would like to know about premium membership benefits.',
-        submittedAt: '2025-01-14T16:45:00Z',
-        status: 'new'
-      },
-      {
-        id: 4,
-        fullName: 'Sarah Wilson',
-        email: 'sarah.w@hrcompany.com',
-        userType: 'recruiter',
-        message: 'Interested in your enterprise recruitment solutions.',
-        submittedAt: '2025-01-14T14:20:00Z',
-        status: 'in_progress'
-      },
-      {
-        id: 5,
-        fullName: 'David Brown',
-        email: 'david.brown@email.com',
-        userType: 'candidate',
-        message: 'Looking for career guidance and job placement assistance.',
-        submittedAt: '2025-01-13T11:10:00Z',
-        status: 'completed'
+    const fetchDemoForms = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await demoService.getAllDemoRequests();
+
+        // Handle different API response structures
+        let dataArray = [];
+        if (Array.isArray(response.data)) {
+          dataArray = response.data;
+        } else if (response.data && typeof response.data === 'object') {
+          // Handle case where data is wrapped in an object
+          const possibleArrays = ['data', 'queries', 'forms', 'results', 'demos'];
+          for (const key of possibleArrays) {
+            if (Array.isArray(response.data[key])) {
+              dataArray = response.data[key];
+              break;
+            }
+          }
+          // If no array found in common properties, check if data itself is the array
+          if (dataArray.length === 0 && Array.isArray(response)) {
+            dataArray = response;
+          }
+        }
+
+        if (dataArray.length > 0) {
+          // Transform API data to match component expectations
+          const transformedData = dataArray.map((item, index) => ({
+            id: item.contact_id || item.query_id || index + 1,
+            fullName: item.name, // Map API 'name' field to 'fullName'
+            email: item.email,
+            userType: item.userType || item.user_type || 'candidate', // Fallback to candidate
+            message: item.message || item.question || '', // Handle both message and question fields
+            submittedAt: item.created_at || item.createdAt || new Date().toISOString(),
+            status: 'new' // Default status since API may not provide status
+          }));
+
+          setForms(transformedData);
+        } else {
+          // API returned empty data or unexpected structure
+          console.log('API returned unexpected structure:', response);
+          setForms([]);
+        }
+      } catch (err) {
+        console.error('Error fetching demo forms:', err);
+        setError('Failed to load demo forms. Please try again.');
+        // Fallback to empty array
+        setForms([]);
+      } finally {
+        setLoading(false);
       }
-    ];
-    
-    setTimeout(() => {
-      setForms(mockForms);
-      setLoading(false);
-    }, 1000);
+    };
+
+    fetchDemoForms();
   }, []);
 
   const filteredForms = forms.filter(form => {
@@ -93,6 +99,16 @@ const HomepageForms = () => {
     );
   };
 
+  const handleViewDetails = (form) => {
+    setSelectedForm(form);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setSelectedForm(null);
+    setShowModal(false);
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -109,6 +125,22 @@ const HomepageForms = () => {
         <div className={styles.loadingContainer}>
           <div className={styles.loadingSpinner}></div>
           <p>Loading homepage forms...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={`${styles.mainContent} ${theme === 'dark' ? styles.dark : ''}`}>
+        <div className={styles.errorContainer}>
+          <p className={styles.errorMessage}>{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className={styles.retryBtn}
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
@@ -196,14 +228,8 @@ const HomepageForms = () => {
                 <td className={styles.dateCell}>{formatDate(form.submittedAt)}</td>
                 <td>
                   <div className={styles.actionButtons}>
-                    <button className={styles.actionBtn} title="View Details">
+                    <button className={styles.actionBtn} title="View Details" onClick={() => handleViewDetails(form)}>
                       <Eye size={16} />
-                    </button>
-                    <button className={styles.actionBtn} title="Contact">
-                      <Mail size={16} />
-                    </button>
-                    <button className={styles.actionBtn} title="Mark as Contacted">
-                      <Check size={16} />
                     </button>
                   </div>
                 </td>
@@ -218,6 +244,52 @@ const HomepageForms = () => {
           <FileText className={styles.emptyIcon} />
           <h3>No forms found</h3>
           <p>No homepage demo forms match your current filters.</p>
+        </div>
+      )}
+
+      {/* Modal for viewing form details */}
+      {showModal && selectedForm && (
+        <div className={styles.modalOverlay} onClick={closeModal}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>Homepage Demo Form Details</h3>
+              <button onClick={closeModal} className={styles.modalClose}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Name:</span>
+                <span className={styles.detailValue}>{selectedForm.fullName}</span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Email:</span>
+                <span className={styles.detailValue}>
+                  <a href={`mailto:${selectedForm.email}`} className={styles.emailLink}>
+                    {selectedForm.email}
+                  </a>
+                </span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Type:</span>
+                <span className={styles.detailValue}>
+                  {selectedForm.userType === 'candidate' ? 'Candidate' : 'Recruiter'}
+                </span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Status:</span>
+                <span className={styles.detailValue}>{getStatusBadge(selectedForm.status)}</span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Submitted:</span>
+                <span className={styles.detailValue}>{formatDate(selectedForm.submittedAt)}</span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Message:</span>
+                <span className={styles.detailValue}>{selectedForm.message}</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

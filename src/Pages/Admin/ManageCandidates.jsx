@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
-import { Eye, Edit, Ban, Search, Users } from "lucide-react";
+import apiClient from "../../services/apiClient";
+import { Eye, Edit, Ban, Search, Users, X, Save } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const ManageCandidates = () => {
@@ -13,6 +14,20 @@ const ManageCandidates = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const candidatesPerPage = 10;
+
+  // Edit Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingCandidate, setEditingCandidate] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    full_name: '',
+    email: '',
+    phone_number: '',
+    address: '',
+    experience_years: '',
+    skills: [],
+    status: 'active'
+  });
+  const [saving, setSaving] = useState(false);
 
   // Fetch candidates data
   useEffect(() => {
@@ -41,8 +56,6 @@ const ManageCandidates = () => {
 
     fetchData();
   }, []);
-
-
 
   // Filter candidates based on search and status
   useEffect(() => {
@@ -82,7 +95,108 @@ const ManageCandidates = () => {
     });
   };
 
+  // Edit Modal Functions
+  const openEditModal = (candidate) => {
+    setEditingCandidate(candidate);
+    setEditFormData({
+      full_name: candidate.name || '',
+      email: candidate.email || '',
+      phone_number: candidate.phone || '',
+      address: typeof candidate.location === 'object'
+        ? `${candidate.location.city || ''}, ${candidate.location.state || ''}`.trim().replace(/^,/, '') || ''
+        : candidate.location || '',
+      experience_years: candidate.experience || '',
+      skills: Array.isArray(candidate.skills) ? candidate.skills : (candidate.skills ? candidate.skills.split(',').map(s => s.trim()) : []),
+      status: candidate.status || 'active'
+    });
+    setIsEditModalOpen(true);
+  };
 
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingCandidate(null);
+    setEditFormData({
+      full_name: '',
+      email: '',
+      phone_number: '',
+      address: '',
+      experience_years: '',
+      skills: [],
+      status: 'active'
+    });
+  };
+
+  const handleEditFormChange = (field, value) => {
+    if (field === 'skills') {
+      setEditFormData(prev => ({
+        ...prev,
+        skills: value.split(',').map(s => s.trim()).filter(s => s)
+      }));
+    } else {
+      setEditFormData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingCandidate) return;
+
+   setSaving(true);
+try {
+  // Prepare data to match API expectations
+  const dataForSubmission = {
+    full_name: editFormData.full_name,
+    phone_number: editFormData.phone_number,
+    // Parse address string and convert to object structure
+    address: (() => {
+      const addressString = editFormData.address || '';
+      const parts = addressString.split(',').map(p => p.trim());
+      return {
+        street: '',
+        city: parts[0] || '',
+        state: parts[1] || '',
+        zip: '',
+        country: parts[2] || ''
+      };
+    })(),
+    // Convert skills array to comma-separated string
+    skills: editFormData.skills.join(', '),
+    experience_years: editFormData.experience_years,
+    status: editFormData.status,
+    // Add required fields that may be missing
+    bio: editingCandidate.bio || '',
+    username: editingCandidate.username || '',
+    dob: editingCandidate.dob || '',
+    gender: editingCandidate.gender || '',
+    education: Array.isArray(editingCandidate.education)
+      ? editingCandidate.education
+      : [{ degree: '', institution: '', year: '' }],
+    experience: Array.isArray(editingCandidate.experience)
+      ? editingCandidate.experience
+      : [{ title: '', company: '', duration: editFormData.experience_years || '' }]
+  };
+
+  // Use the student service which has proper error handling
+  const result = await studentService.updateProfileDetails(editingCandidate.email, dataForSubmission,);
+
+  // Update the candidates list
+  const updatedCandidates = candidates.map(c =>
+    c.id === editingCandidate.id ? { ...c, name: dataForSubmission.full_name, phone: dataForSubmission.phone_number, skills: dataForSubmission.skills.split(',').map(s => s.trim()).filter(s => s) } : c
+  );
+  setCandidates(updatedCandidates);
+
+  closeEditModal();
+  alert('Candidate updated successfully!');
+} catch (error) {
+  console.error('Error updating candidate:', error);
+  alert('Failed to update candidate. Please try again.');
+} finally {
+  setSaving(false);
+}
+
+  };
 
   // Pagination
   const totalPages = Math.ceil(filteredCandidates.length / candidatesPerPage);
@@ -132,18 +246,16 @@ const ManageCandidates = () => {
             className={`${styles.filterBtn} ${statusFilter === 'active' ? styles.active : ''}`}
             onClick={() => setStatusFilter('active')}
           >
-            Active ({candidates.filter(c => c.status === 'active').length})
+            Active ({candidates.filter(c => c.status?.toLowerCase() === 'active').length})
           </button>
           <button
             className={`${styles.filterBtn} ${statusFilter === 'inactive' ? styles.active : ''}`}
             onClick={() => setStatusFilter('inactive')}
           >
-            Inactive ({candidates.filter(c => c.status === 'inactive').length})
+            Inactive ({candidates.filter(c => c.status?.toLowerCase() === 'inactive').length})
           </button>
         </div>
       </div>
-
-
 
       {/* Candidates Table */}
       <div className={styles.tableContainer}>
@@ -178,7 +290,12 @@ const ManageCandidates = () => {
                   </a>
                 </td>
                 <td>{candidate.phone}</td>
-                <td className={styles.locationCell}>{candidate.location}</td>
+                <td className={styles.locationCell}>
+                  {typeof candidate.location === 'object'
+                    ? `${candidate.location.city || ''}, ${candidate.location.state || ''}`.trim().replace(/^,/, '') || 'N/A'
+                    : candidate.location || 'N/A'
+                  }
+                </td>
                 <td>{candidate.experience}</td>
                 <td>
                   <div className={styles.skillsContainer}>
@@ -196,13 +313,13 @@ const ManageCandidates = () => {
                 <td className={styles.dateCell}>{formatDate(candidate.created_at)}</td>
                 <td>
                   <div className={styles.actionButtons}>
-                    <button className={styles.actionBtn} title="View Profile">
+                    <button className={styles.actionBtn} title="View Profile" onClick={() => console.log('View profile:', candidate.name)}>
                       <Eye size={16} />
                     </button>
-                    <button className={styles.actionBtn} title="Edit">
+                    <button className={styles.actionBtn} title="Edit" onClick={() => openEditModal(candidate)}>
                       <Edit size={16} />
                     </button>
-                    <button className={styles.actionBtn} title="Block/Unblock">
+                    <button className={styles.actionBtn} title="Block/Unblock" onClick={() => console.log('Block/Unblock candidate:', candidate.name)}>
                       <Ban size={16} />
                     </button>
                   </div>
@@ -243,8 +360,130 @@ const ManageCandidates = () => {
           <p>No candidates match your current filters.</p>
         </div>
       )}
+
+      {/* Edit Modal */}
+      {isEditModalOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h2>Edit Candidate</h2>
+              <button className={styles.modalCloseBtn} onClick={closeEditModal}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <form className={styles.editForm}>
+                <div className={styles.formGroup}>
+                  <label htmlFor="name">Name</label>
+                  <input
+                    type="text"
+                    id="name"
+                    value={editFormData.full_name}
+                    onChange={(e) => handleEditFormChange('full_name', e.target.value)}
+                    className={styles.formInput}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="email">Email</label>
+                  <input
+                    type="email"
+                    id="email"
+                    value={editFormData.email}
+                    onChange={(e) => handleEditFormChange('email', e.target.value)}
+                    className={styles.formInput}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="phone">Phone</label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    value={editFormData.phone_number}
+                    onChange={(e) => handleEditFormChange('phone_number', e.target.value)}
+                    className={styles.formInput}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="location">Location</label>
+                  <input
+                    type="text"
+                    id="location"
+                    value={editFormData.address}
+                    onChange={(e) => handleEditFormChange('address', e.target.value)}
+                    className={styles.formInput}
+                    placeholder="City, State"
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="experience">Experience</label>
+                  <input
+                    type="text"
+                    id="experience"
+                    value={editFormData.experience_years}
+                    onChange={(e) => handleEditFormChange('experience_years', e.target.value)}
+                    className={styles.formInput}
+                    placeholder="e.g. 3 years"
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="skills">Skills</label>
+                  <input
+                    type="text"
+                    id="skills"
+                    value={editFormData.skills.join(', ')}
+                    onChange={(e) => handleEditFormChange('skills', e.target.value)}
+                    className={styles.formInput}
+                    placeholder="JavaScript, React, Node.js (comma separated)"
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="status">Status</label>
+                  <select
+                    id="status"
+                    value={editFormData.status}
+                    onChange={(e) => handleEditFormChange('status', e.target.value)}
+                    className={styles.formSelect}
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="blocked">Blocked</option>
+                  </select>
+                </div>
+              </form>
+            </div>
+            <div className={styles.modalFooter}>
+              <button
+                className={styles.cancelBtn}
+                onClick={closeEditModal}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+              <button
+                className={styles.saveBtn}
+                onClick={handleSaveEdit}
+                disabled={saving}
+              >
+                {saving ? (
+                  <>
+                    <div className={styles.loadingSpinner}></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} />
+                    Save Changes
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default ManageCandidates;
+
+

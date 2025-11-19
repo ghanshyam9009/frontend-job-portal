@@ -227,19 +227,11 @@ const HomeNav = () => {
 
             <div className="relative employer-dropdown">
               <Link
-                    to="/recruiter/login"
-                    className={`block px-4  text-sm ${textSecondary}`}
-                  >
-              <button
-                // onClick={toggleDropdown}
+                to="/recruiter/login"
                 className="flex items-center space-x-1 px-4 py-2 text-sm font-bold text-white bg-[#2271B5] hover:bg-[#1a5a8f] rounded-md transition-colors"
               >
-                <span>
-                    Recruiter Login
-                 </span>
-                
-              </button>
-               </Link>
+                <span>Recruiter Login</span>
+              </Link>
               {showDropdown && (
                 <div className={`absolute top-full right-0 mt-2 w-48 ${dropdownBg} rounded-md shadow-lg py-1 border ${borderColor}`}>
                   

@@ -27,6 +27,104 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
 
+  // Calculate profile completion percentage
+  const calculateProfileCompletion = (userData) => {
+    const steps = [
+      {
+        title: 'Personal Info',
+        fields: [
+          { name: 'full_name', required: true, weight: 10 },
+          { name: 'phone_number', required: true, weight: 5 },
+          { name: 'username', required: true, weight: 3 },
+          { name: 'gender', required: true, weight: 2 }
+        ],
+        totalWeight: 20
+      },
+      {
+        title: 'Address',
+        fields: [
+          { name: 'address.city', required: true, weight: 8 },
+          { name: 'address.state', required: true, weight: 6 },
+          { name: 'address.country', required: true, weight: 6 }
+        ],
+        totalWeight: 20
+      },
+      {
+        title: 'Professional',
+        fields: [
+          { name: 'bio', required: true, weight: 15 },
+          { name: 'skills', required: true, weight: 5 }
+        ],
+        totalWeight: 20
+      },
+      {
+        title: 'Education',
+        fields: [],
+        totalWeight: 20,
+        isArray: true,
+        arrayField: 'education'
+      },
+      {
+        title: 'Experience',
+        fields: [],
+        totalWeight: 20,
+        isArray: true,
+        arrayField: 'experience'
+      }
+    ];
+
+    let totalCompleted = 0;
+
+    steps.forEach(step => {
+      let stepCompleted = 0;
+
+      if (step.isArray) {
+        // Handle array fields (education, experience)
+        const arrayData = userData[step.arrayField] || [];
+        if (Array.isArray(arrayData) && arrayData.length > 0) {
+          const hasValidEntry = arrayData.some(item => {
+            return Object.values(item).some(value =>
+              value && typeof value === 'string' && value.trim() !== ''
+            );
+          });
+          if (hasValidEntry) {
+            stepCompleted = step.totalWeight;
+          }
+        }
+      } else {
+        // Handle regular fields
+        const totalFieldWeight = step.fields.reduce((sum, field) => sum + field.weight, 0);
+        let completedFieldWeight = 0;
+
+        step.fields.forEach(field => {
+          const keys = field.name.split('.');
+          let value = userData;
+          let hasValue = false;
+
+          for (const key of keys) {
+            value = value && value[key];
+          }
+
+          if (value && value.toString().trim() !== '') {
+            hasValue = true;
+          }
+
+          if (hasValue) {
+            completedFieldWeight += field.weight;
+          }
+        });
+
+        if (totalFieldWeight > 0) {
+          stepCompleted = Math.round((completedFieldWeight / totalFieldWeight) * step.totalWeight);
+        }
+      }
+
+      totalCompleted += stepCompleted;
+    });
+
+    return Math.min(100, Math.round(totalCompleted));
+  };
+
   const extractJobIdFromSlug = (slugStr) => {
     if (!slugStr) return null;
     const match = slugStr.match(/-(\d+)$/);
@@ -174,6 +272,14 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
 
     if (hasApplied) {
       setApplicationError("You have already applied for this job");
+      return;
+    }
+
+    // Profile completion check - must be 100% to apply
+    const profileCompletion = calculateProfileCompletion(user);
+    if (profileCompletion < 100) {
+      alert(`Your profile is only ${profileCompletion}% complete. You must complete your profile 100% before applying for jobs. Redirecting to profile management...`);
+      navigate("/profile");
       return;
     }
 
