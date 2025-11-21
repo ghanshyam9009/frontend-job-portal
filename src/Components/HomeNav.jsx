@@ -18,7 +18,11 @@ const HomeNav = () => {
   const isActive = (path) => {
     return currentPath === path;
   };
+  
+  console.log(currentPath)
+  
 
+  
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 50) {
@@ -92,7 +96,7 @@ const HomeNav = () => {
               <img src={logo} alt="Bigsources logo" loading="lazy" decoding="async" />
             </div>
             <span className={textColor}>
-              Big<span className="text-[#2271B5]">sources</span>.in
+             Big<span className="text-[#2271B5]">sources</span>.in
             </span>
           </Link>
 
@@ -215,6 +219,7 @@ const HomeNav = () => {
               to="/candidate/login"
               className={`px-4 py-2 text-sm font-bold text-[#2271B5] hover:text-[#1a5a8f] rounded-md transition-colors ${
                 isDark ? 'hover:bg-[#2271B5]/20' : 'hover:bg-[#2271B5]/10'
+           
               }`}
             >
               Candidate Login
@@ -400,13 +405,8 @@ const HomeNav = () => {
                   >
                     Recruiter Login
                   </Link>
-                  <Link
-                    to="/admin/login"
-                    className={`block px-4 py-2 text-sm ${textSecondary} ${dropdownHover} rounded-md transition-colors`}
-                    onClick={closeMobileMenu}
-                  >
-                    Admin Login
-                  </Link>
+                 
+                  
                 </div>
               </div>
             </div>
