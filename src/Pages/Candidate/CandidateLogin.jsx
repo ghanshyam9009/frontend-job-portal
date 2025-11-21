@@ -155,13 +155,15 @@ const CandidateLogin = () => {
             phone: ""
           });
         } else {
-          const errorMessage = extractErrorMessage(result.error);
+          const rawError = result.error?.raw || result.error;
+          const errorMessage = extractErrorMessage(rawError) || result.error?.message || '';
           const normalizedMessage = errorMessage.toLowerCase();
           const isDuplicateEmail =
             normalizedMessage.includes('already') &&
             (normalizedMessage.includes('email') ||
              normalizedMessage.includes('student') ||
-             normalizedMessage.includes('registered'));
+             normalizedMessage.includes('registered') ||
+             normalizedMessage.includes('exist'));
 
           if (isDuplicateEmail) {
             setError("This email address is already registered. Please use a different email or try logging in.");

@@ -198,8 +198,9 @@ export const withErrorHandling = async (apiCall, errorMessage = null) => {
     const result = await apiCall();
     return { success: true, data: result };
   } catch (error) {
+    const rawErrorData = error?.response?.data || error;
     const parsedError = handleApiError(error, errorMessage);
-    return { success: false, error: parsedError };
+    return { success: false, error: { ...parsedError, raw: rawErrorData } };
   }
 };
 

@@ -14,6 +14,7 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
   const [recruiterProfile, setRecruiterProfile] = useState(null);
   const [applicationCount, setApplicationCount] = useState(0);
   const [canAccessJobFeatures, setCanAccessJobFeatures] = useState(false);
+  const [restrictionMessage, setRestrictionMessage] = useState('Complete profile, admin approval, and KYC to use recruiting tools');
 
   useEffect(() => {
     const fetchRecruiterProfile = async () => {
@@ -23,17 +24,31 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
           setRecruiterProfile(profile);
 
           // Check profile completion and KYC status
-          const requiredFields = ['company_name', 'email', 'industry', 'company_size', 'description'];
+          const requiredFields = ['company_name', 'email', 'description'];
           const completedRequired = requiredFields.filter(field =>
             profile[field] && profile[field].toString().trim() !== ''
           ).length;
           const profileComplete = completedRequired === requiredFields.length;
           const kycVerified = profile.kyc_status === 'verified';
+          const adminApproved = profile.hasadminapproved === true ||
+            profile.status?.toLowerCase() === 'approved' ||
+            profile.approval_status?.toLowerCase() === 'approved';
 
-          setCanAccessJobFeatures(profileComplete && kycVerified);
+          if (!adminApproved) {
+            setRestrictionMessage('Admin approval pending. Please wait for approval before accessing hiring tools.');
+          } else if (!profileComplete) {
+            setRestrictionMessage('Complete your company profile to unlock hiring tools.');
+          } else if (!kycVerified) {
+            setRestrictionMessage('Complete KYC verification to access hiring tools.');
+          } else {
+            setRestrictionMessage('');
+          }
+
+          setCanAccessJobFeatures(profileComplete && kycVerified && adminApproved);
         } catch (err) {
           console.error('Failed to fetch recruiter profile:', err);
           setCanAccessJobFeatures(false);
+          setRestrictionMessage('Unable to verify account status. Please try again.');
         }
       }
     };
@@ -89,7 +104,7 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
       icon: <Plus size={20} />,
       path: '/post-job',
       restricted: !canAccessJobFeatures,
-      restrictionMessage: 'Complete profile and KYC verification to post jobs'
+      restrictionMessage: restrictionMessage
     },
     {
       id: 'manage-jobs',
@@ -97,7 +112,7 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
       icon: <FileText size={20} />,
       path: '/manage-jobs',
       restricted: !canAccessJobFeatures,
-      restrictionMessage: 'Complete profile and KYC verification to manage jobs'
+      restrictionMessage: restrictionMessage
     },
     {
       id: 'applications',
@@ -105,7 +120,7 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
       icon: <Users size={20} />,
       path: '/candidate-applications',
       restricted: !canAccessJobFeatures,
-      restrictionMessage: 'Complete profile and KYC verification to view applications'
+      restrictionMessage: restrictionMessage
     },
     {
       id: 'shortlist',
@@ -113,7 +128,7 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
       icon: <Star size={20} />,
       path: '/shortlist-candidates',
       restricted: !canAccessJobFeatures,
-      restrictionMessage: 'Complete profile and KYC verification to shortlist candidates'
+      restrictionMessage: restrictionMessage
     },
     {
       id: 'profile',

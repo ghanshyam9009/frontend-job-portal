@@ -327,25 +327,89 @@ export const adminService = {
 
       console.log('Candidate Array:', candidateArray);
 
-      const candidates = candidateArray.map(candidate => ({
-        id: candidate.candidate_id || candidate.user_id || candidate.id,
-        name: candidate.full_name || candidate.name || `${candidate.first_name || ''} ${candidate.last_name || ''}`.trim() || 'Unknown',
-        email: candidate.email || '',
-        phone: candidate.phone_number || candidate.phone || '',
-        location: candidate.location || candidate.address || 'Not specified',
-        experience: candidate.experience_years || candidate.experience || 'Not specified',
-        skills: Array.isArray(candidate.skills) ? candidate.skills : (candidate.skills ? candidate.skills.split(',').map(s => s.trim()) : []),
-        status: candidate.status || 'active',
-        created_at: candidate.created_at || candidate.registration_date || new Date().toISOString(),
-        profile_image: candidate.profile_image || null,
-        bio: candidate.bio || '',
-        education: candidate.education || [],
-        dob: candidate.dob || null,
-        gender: candidate.gender || null,
-        role: candidate.role || 'Candidate',
-        premium_user: candidate.premium_user || false,
-        plan: candidate.plan || null
-      }));
+      const candidates = candidateArray.map(candidate => {
+        const normalizeSkills = (skillsValue) => {
+          if (!skillsValue) return [];
+          if (Array.isArray(skillsValue)) {
+            return skillsValue.map(skill => {
+              if (typeof skill === 'string') return skill.trim();
+              if (skill && typeof skill === 'object') {
+                return [skill.name, skill.level].filter(Boolean).join(' - ') || 'Skill';
+              }
+              return 'Skill';
+            }).filter(Boolean);
+          }
+          if (typeof skillsValue === 'object') {
+            return Object.values(skillsValue).map(value => value?.toString().trim()).filter(Boolean);
+          }
+          return skillsValue.split(',').map(s => s.trim()).filter(Boolean);
+        };
+
+        const normalizeExperience = () => {
+          if (candidate.experience_years) {
+            return typeof candidate.experience_years === 'string'
+              ? candidate.experience_years
+              : `${candidate.experience_years} years`;
+          }
+          const experienceData = candidate.experience;
+          if (!experienceData) return 'Not specified';
+          if (typeof experienceData === 'string') return experienceData;
+          if (Array.isArray(experienceData)) {
+            if (experienceData.length === 0) return 'Not specified';
+            return experienceData
+              .map(exp => {
+                if (typeof exp === 'string') return exp;
+                if (exp && typeof exp === 'object') {
+                  return [exp.title, exp.company, exp.duration].filter(Boolean).join(' | ');
+                }
+                return '';
+              })
+              .filter(Boolean)
+              .join(', ');
+          }
+          if (typeof experienceData === 'object') {
+            return [experienceData.title, experienceData.company, experienceData.duration]
+              .filter(Boolean)
+              .join(' | ') || 'Not specified';
+          }
+          return 'Not specified';
+        };
+
+        const normalizeLocation = () => {
+          const locationData = candidate.location || candidate.address;
+          if (!locationData) return 'Not specified';
+          if (typeof locationData === 'string') return locationData;
+          if (typeof locationData === 'object') {
+            if (Array.isArray(locationData)) {
+              return locationData.join(', ');
+            }
+            return [locationData.street, locationData.city, locationData.state, locationData.country]
+              .filter(Boolean)
+              .join(', ') || 'Not specified';
+          }
+          return 'Not specified';
+        };
+
+        return {
+          id: candidate.candidate_id || candidate.user_id || candidate.id,
+          name: candidate.full_name || candidate.name || `${candidate.first_name || ''} ${candidate.last_name || ''}`.trim() || 'Unknown',
+          email: candidate.email || '',
+          phone: candidate.phone_number || candidate.phone || '',
+          location: normalizeLocation(),
+          experience: normalizeExperience(),
+          skills: normalizeSkills(candidate.skills),
+          status: candidate.status || 'active',
+          created_at: candidate.created_at || candidate.registration_date || new Date().toISOString(),
+          profile_image: candidate.profile_image || null,
+          bio: candidate.bio || '',
+          education: candidate.education || [],
+          dob: candidate.dob || null,
+          gender: candidate.gender || null,
+          role: candidate.role || 'Candidate',
+          premium_user: candidate.premium_user || false,
+          plan: candidate.plan || null
+        };
+      });
 
       console.log('Transformed candidates:', candidates);
       return candidates;

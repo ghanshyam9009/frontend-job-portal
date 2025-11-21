@@ -79,12 +79,18 @@ const PostJob = () => {
           const completionPercentage = calculateRecruiterProfileCompletion(profileForCalculation);
           const profileComplete = isProfileComplete(profileForCalculation);
 
-          // Check KYC status - check for kycDocUrl or kyc_status
+          // Check approvals
+          const adminApproved = data.hasadminapproved === true ||
+            data.status?.toLowerCase() === 'approved' ||
+            data.approval_status?.toLowerCase() === 'approved';
           const kycVerified = data.kycDocUrl || data.kyc_status === 'verified' || data.kyc_status === 'Verified';
 
           if (!profileComplete) {
             setCanPostJob(false);
             setRestrictionReason(`Complete your company profile (${completionPercentage}% / 100%) before posting jobs. Please complete all required fields.`);
+          } else if (!adminApproved) {
+            setCanPostJob(false);
+            setRestrictionReason("Admin approval is required before you can access hiring features. Please wait for approval.");
           } else if (!kycVerified) {
             setCanPostJob(false);
             setRestrictionReason("KYC verification required before posting jobs. Please complete KYC verification.");
