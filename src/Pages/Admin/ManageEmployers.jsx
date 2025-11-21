@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
+import { recruiterService } from "../../services/recruiterService";
 import { Eye, Edit, CheckCircle, Briefcase, X, Search, Building, Download } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
@@ -141,19 +142,12 @@ const ManageEmployers = () => {
   // Handle view recruiter details
   const handleViewRecruiter = async (recruiter) => {
     try {
-      // Fetch detailed recruiter data from the API with email parameter
-      const response = await fetch(`https://4x10ubol84.execute-api.ap-southeast-1.amazonaws.com/default/getepmloyerdetailed?email=${encodeURIComponent(recruiter.email)}`);
+      // Fetch detailed recruiter data using cached service
+      const response = await recruiterService.getProfile(recruiter.email);
 
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-      }
-
-      const detailedData = await response.json();
-
-      // The API returns a single recruiter object
-      // Merge detailed data with basic data to preserve email and other fields
-      const recruiterDetails = detailedData && Object.keys(detailedData).length > 0
-        ? { ...recruiter, ...detailedData }
+      // Merge detailed data with basic data to preserve all fields
+      const recruiterDetails = response.success && response.data
+        ? { ...recruiter, ...response.data }
         : recruiter;
 
       setSelectedRecruiter(recruiterDetails);
@@ -193,12 +187,13 @@ const ManageEmployers = () => {
   // Handle edit recruiter - open modal
   const handleEditRecruiter = async (recruiter) => {
     try {
-      // Fetch detailed recruiter data from the API with email parameter
-      const response = await fetch(`https://4x10ubol84.execute-api.ap-southeast-1.amazonaws.com/default/getepmloyerdetailed?email=${encodeURIComponent(recruiter.email)}`);
-      const detailedData = await response.json();
+      // Fetch detailed recruiter data using cached service
+      const response = await recruiterService.getProfile(recruiter.email);
 
-      // The API returns a single recruiter object, not an array
-      const recruiterDetails = detailedData || recruiter;
+      // Merge detailed data with basic data to preserve all fields
+      const recruiterDetails = response.success && response.data
+        ? { ...recruiter, ...response.data }
+        : recruiter;
 
       setSelectedRecruiter(recruiter);
       setEditFormData({

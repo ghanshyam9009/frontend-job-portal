@@ -54,16 +54,18 @@ export const API_ENDPOINTS = {
   recruiters: {
     register: '/recruiter/register',
     login: '/Recruiter/login',
-   resetPassword: '/recruiter/reset-password',
-    getProfile: (email) => `/recruiter/profile/${email}`,
-    updateProfile: (email) => `/recruiter/profile/${email}`,
+    resetPassword: '/recruiter/reset-password',
+    getProfile: (email) => `/recruiter/profile/${encodeURIComponent(email)}`,
+    updateProfile: (email) => `/Recruiter/update/${encodeURIComponent(email)}`,
+    submitKyc: (email) => `/Recruiter/update/${encodeURIComponent(email)}/kyc`,
     getAll: '/employers',
     getById: (id) => `/employers/${id}`,
     update: (id) => `/employers/${id}`,
     delete: (id) => `/employers/${id}`,
     getJobs: (id) => `/employers/${id}/jobs`,
     getApplications: (id) => `/employers/${id}/applications`,
-    uploadLogo: (id) => `/employers/${id}/logo`
+    uploadLogo: (id) => `/employers/${id}/logo`,
+    getEmployerDetails: (email) => `https://4x10ubol84.execute-api.ap-southeast-1.amazonaws.com/default/getepmloyerdetailed?email=${encodeURIComponent(email)}`
   },
 
   // Admin

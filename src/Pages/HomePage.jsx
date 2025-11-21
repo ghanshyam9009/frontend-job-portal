@@ -64,6 +64,8 @@ function JobRoleCard({ title, image, link, isDark }) {
         <img 
           src={image} 
           alt={title}
+          loading="lazy"
+          decoding="async"
           className={`w-10 h-10 object-contain ${imageBrightness}`}
         />
       </div>
@@ -1047,7 +1049,9 @@ const toggleBookmark = (jobId) => {
               <img
                 src={company.logo}
                 alt={`${company.name} logo`}
-                className="object-contain "
+                loading="lazy"
+                decoding="async"
+                className="object-contain"
                 onError={(e) => {
                   e.target.src = `https://ui-avatars.com/api/?name=${company.name}&background=2563eb&color=fff&`;
                 }}

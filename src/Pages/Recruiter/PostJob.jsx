@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { jobService } from "../../services/jobService";
+import { recruiterService } from "../../services/recruiterService";
+import { calculateRecruiterProfileCompletion, isProfileComplete } from "../../utils/recruiterProfileUtils";
 import { Check, AlertTriangle, Building } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 
@@ -43,42 +45,61 @@ const PostJob = () => {
   const [canPostJob, setCanPostJob] = useState(false);
   const [restrictionReason, setRestrictionReason] = useState("");
 
-  // Check profile and KYC status
+  // Check profile completion and KYC status
   useEffect(() => {
     const checkPostingEligibility = async () => {
       if (!user?.email) return;
 
       try {
-        const response = await fetch(`https://api.bigsources.in/api/Recruiter/profile/${user.email}`);
-        if (response.ok) {
-          const data = await response.json();
+        // Use the recruiterService to get profile
+        const response = await recruiterService.getProfile(user.email);
+        
+        if (response.success && response.data) {
+          const data = response.data.profile || response.data;
           setProfileData(data);
 
-          // Calculate profile completion
-          const requiredFields = ['company_name', 'email', 'industry', 'company_size', 'description'];
-          const completedRequired = requiredFields.filter(field =>
-            data[field] && data[field].toString().trim() !== ''
-          ).length;
-          const profileComplete = completedRequired === requiredFields.length;
+          // Prepare data for completion calculation
+          const profileForCalculation = {
+            company_name: data.company_name,
+            email: data.email || user.email,
+            phone_number: data.phone_number || data.phone,
+            company_website: data.company_website || data.website,
+            industry: data.industry,
+            company_size: data.company_size,
+            description: data.description,
+            address: data.address || data.location,
+            city: data.city,
+            state: data.state,
+            country: data.country,
+            postal_code: data.postal_code,
+            founded_year: data.founded_year,
+          };
 
-          // Check KYC status
-          const kycVerified = data.kyc_status === 'verified';
+          // Calculate profile completion percentage
+          const completionPercentage = calculateRecruiterProfileCompletion(profileForCalculation);
+          const profileComplete = isProfileComplete(profileForCalculation);
+
+          // Check KYC status - check for kycDocUrl or kyc_status
+          const kycVerified = data.kycDocUrl || data.kyc_status === 'verified' || data.kyc_status === 'Verified';
 
           if (!profileComplete) {
             setCanPostJob(false);
-            setRestrictionReason("Complete your company profile (100%) before posting jobs");
+            setRestrictionReason(`Complete your company profile (${completionPercentage}% / 100%) before posting jobs. Please complete all required fields.`);
           } else if (!kycVerified) {
             setCanPostJob(false);
-            setRestrictionReason("KYC verification required before posting jobs");
+            setRestrictionReason("KYC verification required before posting jobs. Please complete KYC verification.");
           } else {
             setCanPostJob(true);
             setRestrictionReason("");
           }
+        } else {
+          setCanPostJob(false);
+          setRestrictionReason("Unable to load profile data. Please try again.");
         }
       } catch (err) {
         console.error('Failed to check posting eligibility:', err);
         setCanPostJob(false);
-        setRestrictionReason("Unable to verify account status");
+        setRestrictionReason("Unable to verify account status. Please refresh and try again.");
       }
     };
 

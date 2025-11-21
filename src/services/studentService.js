@@ -130,37 +130,57 @@ export const studentService = {
         });
 
         // Use apiClient (handles auth automatically)
-        // Note: Don't set Content-Type manually - axios will set it with boundary automatically
-        const response = await apiClient.put(endpoint, formData);
+        // Ensure multipart header overrides default JSON header
+        const response = await apiClient.put(endpoint, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
         
         console.log('Upload response:', response);
+        console.log('Upload response profile resume data:', {
+          profileResumeUrl: response?.profile?.resumeUrl,
+          profileResume: response?.profile?.resume,
+          profileResumeFile: response?.profile?.resumeFile
+        });
         
         // Handle different response formats
         let resumeUrl = null;
         if (response) {
-          // Response might be the URL directly, or an object with url/resumeUrl property
+          // Response might be the URL directly, or nested within profile/resumeFile objects
           if (typeof response === 'string') {
             resumeUrl = response;
           } else if (response.resumeUrl) {
             resumeUrl = response.resumeUrl;
           } else if (response.url) {
             resumeUrl = response.url;
+          } else if (response.profile?.resumeUrl) {
+            resumeUrl = response.profile.resumeUrl;
+          } else if (response.profile?.resume) {
+            resumeUrl = response.profile.resume;
+          } else if (response.profile?.resumeFile?.resumeUrl) {
+            resumeUrl = response.profile.resumeFile.resumeUrl;
+          } else if (response.profile?.resumeFile?.url) {
+            resumeUrl = response.profile.resumeFile.url;
+          } else if (typeof response.profile?.resumeFile === 'string') {
+            resumeUrl = response.profile.resumeFile;
+          } else if (response.profile?.resumeUrl === null && response.profile?.resume !== null) {
+            resumeUrl = response.profile.resume;
           } else if (response.data?.resumeUrl) {
             resumeUrl = response.data.resumeUrl;
           } else if (response.data?.url) {
             resumeUrl = response.data.url;
+          } else if (response.data?.profile?.resumeUrl) {
+            resumeUrl = response.data.profile.resumeUrl;
           } else if (response.resumeFile?.url) {
             resumeUrl = response.resumeFile.url;
           } else if (response.resumeFile?.resumeUrl) {
             resumeUrl = response.resumeFile.resumeUrl;
-          } else if (response.resumeFile && typeof response.resumeFile === 'string') {
+          } else if (typeof response.resumeFile === 'string') {
             resumeUrl = response.resumeFile;
-          } else {
-            // Construct default URL if not provided
-            resumeUrl = `https://api.bigsources.in/resume/${email}`;
           }
-        } else {
-          // Default fallback URL
+        }
+
+        if (!resumeUrl) {
+          // Construct default URL if API didn't return one
           resumeUrl = `https://api.bigsources.in/resume/${email}`;
         }
         

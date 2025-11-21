@@ -31,6 +31,39 @@ const CandidateLogin = () => {
     phone: ""
   });
 
+  const extractErrorMessage = (errorObj) => {
+    const normalize = (value) => {
+      if (!value) return "";
+      if (typeof value === "string") return value;
+      if (Array.isArray(value)) {
+        return value
+          .map((item) => normalize(item))
+          .filter(Boolean)
+          .join(" ");
+      }
+      if (typeof value === "object") {
+        return Object.values(value || {})
+          .map((item) => normalize(item))
+          .filter(Boolean)
+          .join(" ");
+      }
+      return "";
+    };
+
+    if (!errorObj) return "";
+    if (typeof errorObj === "string") return errorObj;
+
+    return (
+      normalize(errorObj.message) ||
+      normalize(errorObj.details) ||
+      normalize(errorObj.error) ||
+      normalize(errorObj?.error?.message) ||
+      normalize(errorObj?.response?.data?.message) ||
+      normalize(errorObj?.response?.data?.error) ||
+      ""
+    );
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -122,12 +155,18 @@ const CandidateLogin = () => {
             phone: ""
           });
         } else {
-          // Handle specific error messages
-          const errorMessage = result.error?.message || result.error?.details || '';
-          if (errorMessage.toLowerCase().includes('email') && errorMessage.toLowerCase().includes('already')) {
+          const errorMessage = extractErrorMessage(result.error);
+          const normalizedMessage = errorMessage.toLowerCase();
+          const isDuplicateEmail =
+            normalizedMessage.includes('already') &&
+            (normalizedMessage.includes('email') ||
+             normalizedMessage.includes('student') ||
+             normalizedMessage.includes('registered'));
+
+          if (isDuplicateEmail) {
             setError("This email address is already registered. Please use a different email or try logging in.");
           } else {
-            setError("Registration failed. Please try again.");
+            setError(errorMessage || "Registration failed. Please try again.");
           }
         }
       }

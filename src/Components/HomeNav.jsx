@@ -89,7 +89,7 @@ const HomeNav = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 text-xl lg:text-2xl font-bold">
             <div className="w-18 h-18 rounded-lg flex items-center justify-center text-white">
-              <img src={logo} alt="" />
+              <img src={logo} alt="Bigsources logo" loading="lazy" decoding="async" />
             </div>
             <span className={textColor}>
               Big<span className="text-[#2271B5]">sources</span>.in
@@ -282,7 +282,7 @@ const HomeNav = () => {
               <div className="flex items-center justify-between mb-6">
                 <Link to="/" className="flex items-center space-x-2 text-xl font-bold">
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white">
-                    <img src={logo} alt="" />
+                    <img src={logo} alt="Bigsources logo" loading="lazy" decoding="async" />
                   </div>
                   <span className={textColor}>
                     Big<span className="text-[#2271B5]">sources</span>.in

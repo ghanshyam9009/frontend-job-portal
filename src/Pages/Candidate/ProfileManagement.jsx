@@ -256,7 +256,7 @@ const ProfileManagement = () => {
           // Fetch latest profile data using the new API endpoint
           const profileResponse = await studentService.fetchProfileDetails(user.email);
           if (profileResponse.success && profileResponse.data) {
-            const profileData = profileResponse.data;
+            const profileData = profileResponse.data.profile || profileResponse.data;
             const loadedData = {
               full_name: profileData.full_name || user.full_name || '',
               phone_number: profileData.phone_number || user.phone_number || '',
@@ -271,7 +271,18 @@ const ProfileManagement = () => {
                 country: profileData.address?.country || user.address?.country || ''
               },
               bio: profileData.bio || user.bio || '',
-              resume: profileData.resumeUrl || profileData.resume || user.resumeUrl || user.resume || null,
+              resume: profileData.resumeUrl
+                || profileData.resume
+                || profileData.resumeFile?.resumeUrl
+                || profileData.resumeFile?.url
+                || (typeof profileData.resumeFile === 'string' ? profileData.resumeFile : null)
+                || profileData.resume
+                || profileData.resumeFile?.resumeUrl
+                || profileData.resumeFile?.url
+                || (typeof profileData.resumeFile === 'string' ? profileData.resumeFile : null)
+                || user.resumeUrl
+                || user.resume
+                || null,
               education: (() => {
                 // Handle education - could be array, string, or missing
                 if (Array.isArray(profileData.education) && profileData.education.length > 0) {
@@ -347,7 +358,7 @@ const ProfileManagement = () => {
                   country: user.address?.country || ''
                 },
                 bio: user.bio || '',
-                resume: user.resumeUrl || user.resume || null,
+              resume: user.resumeUrl || user.resume || null,
                 education: (() => {
                   if (Array.isArray(user.education) && user.education.length > 0) {
                     return user.education;
@@ -477,8 +488,46 @@ const ProfileManagement = () => {
       const uploadResponse = await studentService.uploadResumeFile(user.email, file);
 
       if (uploadResponse.success) {
-        // Store the resume URL in formData
-        setFormData({ ...formData, resume: uploadResponse.data.resumeUrl || uploadResponse.data.url || uploadResponse.data });
+        const uploadedResumeUrl =
+          uploadResponse.data?.resumeUrl ||
+          uploadResponse.data?.url ||
+          uploadResponse.data?.profile?.resumeUrl ||
+          uploadResponse.data?.profile?.resume ||
+          uploadResponse.data?.profile?.resumeFile?.resumeUrl ||
+          uploadResponse.data?.profile?.resumeFile?.url ||
+          (typeof uploadResponse.data?.profile?.resumeFile === 'string' ? uploadResponse.data?.profile?.resumeFile : null) ||
+          uploadResponse.data?.data?.resumeUrl ||
+          uploadResponse.data?.data?.url ||
+          (typeof uploadResponse.data === 'string' ? uploadResponse.data : null);
+
+        // Store the resume URL in formData if available
+        if (uploadedResumeUrl) {
+          setFormData(prev => ({ ...prev, resume: uploadedResumeUrl }));
+          updateUser({ ...user, resume: uploadedResumeUrl, resumeUrl: uploadedResumeUrl });
+        } else {
+          // If the upload response doesn't contain the URL, fetch the profile to get the updated value
+          try {
+            const profileResponse = await studentService.fetchProfileDetails(user.email);
+            if (profileResponse.success && profileResponse.data) {
+              const profileData = profileResponse.data.profile || profileResponse.data.student || profileResponse.data;
+              const fetchedResume =
+                profileData?.resumeUrl ||
+                profileData?.resume ||
+                profileData?.resumeFile?.resumeUrl ||
+                profileData?.resumeFile?.url ||
+                (typeof profileData?.resumeFile === 'string' ? profileData.resumeFile : null);
+
+              if (fetchedResume) {
+                setFormData(prev => ({ ...prev, resume: fetchedResume }));
+                updateUser({ ...user, resume: fetchedResume, resumeUrl: fetchedResume });
+              } else {
+                console.warn('Profile fetch after upload still missing resume URL.', profileResponse);
+              }
+            }
+          } catch (fetchErr) {
+            console.error('Failed to fetch profile after resume upload:', fetchErr);
+          }
+        }
         setValidationErrors({ ...validationErrors, resume: '' });
         setSuccess('Resume uploaded successfully');
         setTimeout(() => setSuccess(''), 3000);
@@ -613,7 +662,7 @@ const ProfileManagement = () => {
           if (profileResponse.success && profileResponse.data) {
             // Handle different API response structures
             // Some APIs return {student: {...}} while others return data directly
-            const profileData = profileResponse.data.student || profileResponse.data;
+            const profileData = profileResponse.data.student || profileResponse.data.profile || profileResponse.data;
             console.log('Profile data received:', profileData);
             
             if (profileData) {
@@ -643,7 +692,16 @@ const ProfileManagement = () => {
                 experience: Array.isArray(profileData.experience)
                   ? profileData.experience.filter(exp => exp && (exp.title || exp.company || exp.duration))
                   : (Array.isArray(jsonData.experience) ? jsonData.experience : (user.experience || [])),
-                resume: profileData.resume || profileData.resumeUrl || user.resume || user.resumeUrl || null
+                resume: profileData.resume
+                  || profileData.resumeUrl
+                  || profileData.profile?.resumeUrl
+                  || profileData.resumeFile?.resumeUrl
+                  || profileData.resumeFile?.url
+                  || (typeof profileData.resumeFile === 'string' ? profileData.resumeFile : null)
+                  || jsonData.resume
+                  || user.resume
+                  || user.resumeUrl
+                  || null
               };
               
               console.log('Normalized user data:', normalizedData);
@@ -674,7 +732,12 @@ const ProfileManagement = () => {
             country: normalizedData.address?.country || ''
           },
           bio: normalizedData.bio || '',
-          resume: normalizedData.resume || normalizedData.resumeUrl || null,
+          resume: normalizedData.resume
+            || normalizedData.resumeUrl
+            || normalizedData.resumeFile?.resumeUrl
+            || normalizedData.resumeFile?.url
+            || (typeof normalizedData.resumeFile === 'string' ? normalizedData.resumeFile : null)
+            || null,
           education: Array.isArray(normalizedData.education) ? normalizedData.education : [{ degree: '', institution: '', year: '' }],
           experience: Array.isArray(normalizedData.experience) ? normalizedData.experience : [{ title: '', company: '', duration: '' }],
           skills: normalizedData.skills || ''

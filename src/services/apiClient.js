@@ -6,10 +6,7 @@ import { handleApiError } from '../utils/errorHandler';
 // Create axios instance
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: API_TIMEOUT,
-  headers: {
-    'Content-Type': 'application/json',
-  }
+  timeout: API_TIMEOUT
 });
 
 // Request interceptor to add auth token
