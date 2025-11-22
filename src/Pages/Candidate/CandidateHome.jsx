@@ -9,7 +9,7 @@ import styles from "./CandidateHome.module.css";
 
 const CandidateHome = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { theme } = useTheme();
 
   const [profileCompletion, setProfileCompletion] = useState(0);
@@ -19,62 +19,158 @@ const CandidateHome = () => {
 
   // Calculate profile completion percentage
   const calculateProfileCompletion = (userData) => {
-    const steps = [
-      {
-        fields: ['full_name', 'phone_number', 'username', 'dob', 'gender'],
-        weight: 20
-      },
-      {
-        fields: ['address.street', 'address.city', 'address.state', 'address.zip', 'address.country'],
-        weight: 20
-      },
-      {
-        fields: ['bio', 'skills'],
-        weight: 20
-      },
-      {
-        fields: ['education'],
-        weight: 20
-      },
-      {
-        fields: ['experience'],
-        weight: 20
+    if (!userData) {
+      console.log('✗ No user data provided');
+      return 0;
+    }
+
+    console.log('=== CALCULATING PROFILE COMPLETION ===');
+    console.log('Input user data:', JSON.stringify(userData, null, 2));
+
+    let completedFields = 0;
+    const totalFields = 10; // 10 core fields for 100% completion
+
+    // Core required fields
+    const fullName = userData.full_name || userData.fullName;
+    if (fullName && String(fullName).trim()) {
+      console.log('✓ full_name present:', fullName);
+      completedFields++;
+    } else {
+      console.log('✗ full_name missing');
+    }
+
+    const phoneNumber = userData.phone_number || userData.phoneNumber;
+    if (phoneNumber && String(phoneNumber).trim()) {
+      console.log('✓ phone_number present:', phoneNumber);
+      completedFields++;
+    } else {
+      console.log('✗ phone_number missing');
+    }
+
+    const gender = userData.gender;
+    if (gender && String(gender).trim()) {
+      console.log('✓ gender present:', gender);
+      completedFields++;
+    } else {
+      console.log('✗ gender missing');
+    }
+
+    // Address fields - handle both object and flat structure
+    const address = userData.address || {};
+    const city = address.city || userData.address_city;
+    const state = address.state || userData.address_state;
+    const country = address.country || userData.address_country;
+
+    if (city && String(city).trim()) {
+      console.log('✓ address.city present:', city);
+      completedFields++;
+    } else {
+      console.log('✗ address.city missing');
+    }
+
+    if (state && String(state).trim()) {
+      console.log('✓ address.state present:', state);
+      completedFields++;
+    } else {
+      console.log('✗ address.state missing');
+    }
+
+    if (country && String(country).trim()) {
+      console.log('✓ address.country present:', country);
+      completedFields++;
+    } else {
+      console.log('✗ address.country missing');
+    }
+
+    // Professional info
+    const bio = userData.bio;
+    if (bio && String(bio).trim()) {
+      console.log('✓ bio present:', bio.substring(0, 50) + '...');
+      completedFields++;
+    } else {
+      console.log('✗ bio missing');
+    }
+
+    const skills = userData.skills;
+    if (skills && String(skills).trim()) {
+      console.log('✓ skills present:', skills);
+      completedFields++;
+    } else {
+      console.log('✗ skills missing');
+    }
+
+    // Education - handle different formats
+    let education = userData.education;
+    if (typeof education === 'string') {
+      try {
+        education = JSON.parse(education);
+      } catch (e) {
+        education = [];
       }
-    ];
-
-    let completedWeight = 0;
-    let totalWeight = 0;
-
-    steps.forEach(step => {
-      totalWeight += step.weight;
-
-      if (step.fields.includes('education') || step.fields.includes('experience')) {
-        const field = step.fields[0];
-        if (userData[field] && Array.isArray(userData[field]) && userData[field].length > 0) {
-          const hasValidData = userData[field].some(item =>
-            Object.values(item).some(value => value && value.trim() !== '')
-          );
-          if (hasValidData) {
-            completedWeight += step.weight;
-          }
-        }
+    }
+    
+    if (education && Array.isArray(education) && education.length > 0) {
+      const hasValidEntry = education.some(edu => {
+        const degree = edu?.degree || edu?.Degree || '';
+        const institution = edu?.institution || edu?.Institution || '';
+        return degree && String(degree).trim() && institution && String(institution).trim();
+      });
+      console.log('Education check - has array:', !!education, 'length:', education.length, 'has valid entry:', hasValidEntry);
+      if (hasValidEntry) {
+        completedFields++;
+        console.log('✓ education present and valid');
       } else {
-        const hasAllFields = step.fields.every(field => {
-          const keys = field.split('.');
-          let value = userData;
-          for (const key of keys) {
-            value = value && value[key];
-          }
-          return value && value.trim() !== '';
-        });
-        if (hasAllFields) {
-          completedWeight += step.weight;
-        }
+        console.log('✗ education entries incomplete');
       }
-    });
+    } else {
+      console.log('✗ education missing or empty, type:', typeof education, 'value:', education);
+    }
 
-    return Math.round((completedWeight / totalWeight) * 100);
+    // Experience - handle different formats
+    let experience = userData.experience;
+    if (typeof experience === 'string') {
+      try {
+        experience = JSON.parse(experience);
+      } catch (e) {
+        experience = [];
+      }
+    }
+    
+    if (experience && Array.isArray(experience) && experience.length > 0) {
+      const hasValidEntry = experience.some(exp => {
+        const title = exp?.title || exp?.Title || '';
+        const company = exp?.company || exp?.Company || '';
+        return title && String(title).trim() && company && String(company).trim();
+      });
+      console.log('Experience check - has array:', !!experience, 'length:', experience.length, 'has valid entry:', hasValidEntry);
+      if (hasValidEntry) {
+        completedFields++;
+        console.log('✓ experience present and valid');
+      } else {
+        console.log('✗ experience entries incomplete');
+      }
+    } else {
+      console.log('✗ experience missing or empty, type:', typeof experience, 'value:', experience);
+    }
+
+    const percentage = Math.round((completedFields / totalFields) * 100);
+    console.log(`COMPLETION RESULT: ${completedFields}/${totalFields} = ${percentage}%`);
+    console.log('Final percentage:', percentage);
+
+    return percentage;
   };
+
+  // Recalculate completion when user data changes (real-time updates)
+  useEffect(() => {
+    if (user) {
+      // Use a small delay to ensure data is normalized
+      const timer = setTimeout(() => {
+        const completion = calculateProfileCompletion(user);
+        setProfileCompletion(completion);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [user]);
 
   // Fetch all data on component mount
   useEffect(() => {
@@ -82,19 +178,72 @@ const CandidateHome = () => {
       if (!user) return;
 
       try {
-        // Fetch profile data
-        let profileData = user;
+        // Fetch latest profile data to ensure we have the most up-to-date information
+        let latestUserData = user;
         try {
-          const profileResponse = await studentService.getProfile(user.email);
-          if (profileResponse?.success && profileResponse?.data) {
-            profileData = { ...user, ...profileResponse.data };
+          const profileResponse = await studentService.fetchProfileDetails(user.email);
+          console.log('Profile fetch response:', profileResponse);
+          
+          if (profileResponse.success && profileResponse.data) {
+            const profileData = profileResponse.data;
+            console.log('Raw profile data from API:', profileData);
+            
+            // Normalize and merge the data
+            latestUserData = {
+              ...user,
+              // Map all possible field name variations
+              full_name: profileData.full_name || profileData.fullName || user.full_name || '',
+              phone_number: profileData.phone_number || profileData.phoneNumber || user.phone_number || '',
+              username: profileData.username || user.username || '',
+              dob: profileData.dob || user.dob || '',
+              gender: profileData.gender || user.gender || '',
+              bio: profileData.bio || user.bio || '',
+              skills: profileData.skills || user.skills || '',
+              // Handle address - could be object or flat structure
+              address: profileData.address || (profileData.address_city ? {
+                street: profileData.address_street || user.address?.street || '',
+                city: profileData.address_city || user.address?.city || '',
+                state: profileData.address_state || user.address?.state || '',
+                zip: profileData.address_zip || user.address?.zip || '',
+                country: profileData.address_country || user.address?.country || ''
+              } : user.address || {}),
+              // Handle education - ensure it's an array
+              education: Array.isArray(profileData.education) 
+                ? profileData.education
+                : (typeof profileData.education === 'string' 
+                  ? (() => { try { return JSON.parse(profileData.education); } catch { return []; } })()
+                  : (user.education || [])),
+              // Handle experience - ensure it's an array
+              experience: Array.isArray(profileData.experience)
+                ? profileData.experience
+                : (typeof profileData.experience === 'string'
+                  ? (() => { try { return JSON.parse(profileData.experience); } catch { return []; } })()
+                  : (user.experience || [])),
+              resume: profileData.resume || profileData.resumeUrl || user.resume || user.resumeUrl || null
+            };
+            
+            console.log('Normalized latest profile data:', latestUserData);
+            
+            // Update user context with normalized data
+            if (user && Object.keys(latestUserData).length > 0) {
+              updateUser(latestUserData);
+              console.log('Updated user context with latest data');
+            }
+          } else {
+            console.warn('Profile fetch returned no data, using cached user data');
           }
         } catch (profileError) {
-          console.error('Error fetching profile:', profileError);
+          console.error('Error fetching profile details, using cached user data:', profileError);
         }
 
-        // Calculate profile completion
-        const completion = calculateProfileCompletion(profileData);
+        // Calculate profile completion with latest user data
+        console.log('=== CANDIDATE HOME COMPONENT LOADING ===');
+        console.log('Final user data for completion calculation:', latestUserData);
+        const completion = calculateProfileCompletion(latestUserData);
+
+        console.log('Calculated completion in CandidateHome:', completion);
+        console.log('Setting profile completion to:', completion);
+
         setProfileCompletion(completion);
 
         // Fetch latest jobs
@@ -158,7 +307,7 @@ const CandidateHome = () => {
       </div>
     );
   }
-
+  
   return (
     <div className={styles.container}>
       <div className={styles.grid}>

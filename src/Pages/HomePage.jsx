@@ -526,7 +526,15 @@ const popularSearches = [
     setDemoError(null);
     setDemoSuccess(false);
     try {
-      await demoService.requestDemo(demoData);
+      // Transform form data to match API expectations
+      const apiData = {
+        name: demoData.fullName,
+        email: demoData.email,
+        question: demoData.message,
+        // Add phone field as empty or remove userType since it may not be needed
+      };
+
+      await demoService.requestDemo(apiData);
       setDemoSuccess(true);
       setDemoData({ fullName: "", email: "", message: "", userType: "candidate" });
     } catch (err) {

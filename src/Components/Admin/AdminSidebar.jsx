@@ -4,6 +4,8 @@ import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext"; // Import useTheme
 import { Home, Users, Building, FileText, Clock, Building2, ClipboardList, CreditCard, Phone, BarChart3, Settings, Bell } from "lucide-react";
 import { adminService } from "../../services/adminService";
+import { contactService } from "../../services/contactService";
+import { demoService } from "../../services/demoService";
 import styles from "../../Styles/AdminSidebar.module.css";
 
 const AdminSidebar = ({ isOpen, onClose }) => {
@@ -12,6 +14,8 @@ const AdminSidebar = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const { theme } = useTheme(); // Use theme context
   const [pendingRecruiters, setPendingRecruiters] = useState(0);
+  const [contactFormsCount, setContactFormsCount] = useState(0);
+  const [homepageFormsCount, setHomepageFormsCount] = useState(0);
 
   // Fetch pending recruiters count
   useEffect(() => {
@@ -26,6 +30,74 @@ const AdminSidebar = ({ isOpen, onClose }) => {
     };
 
     fetchPendingRecruiters();
+  }, []);
+
+  // Fetch contact forms count
+  useEffect(() => {
+    const fetchContactFormsCount = async () => {
+      try {
+        const response = await contactService.getAllContacts();
+
+        // Handle different API response structures
+        let dataArray = [];
+        if (Array.isArray(response.data)) {
+          dataArray = response.data;
+        } else if (response.data && typeof response.data === 'object') {
+          // Handle case where data is wrapped in an object
+          const possibleArrays = ['data', 'contacts', 'forms', 'results'];
+          for (const key of possibleArrays) {
+            if (Array.isArray(response.data[key])) {
+              dataArray = response.data[key];
+              break;
+            }
+          }
+          // If no array found in common properties, check if data itself is the array
+          if (dataArray.length === 0 && Array.isArray(response)) {
+            dataArray = response;
+          }
+        }
+
+        setContactFormsCount(dataArray.length);
+      } catch (error) {
+        console.error('Failed to fetch contact forms count:', error);
+      }
+    };
+
+    fetchContactFormsCount();
+  }, []);
+
+  // Fetch homepage forms count
+  useEffect(() => {
+    const fetchHomepageFormsCount = async () => {
+      try {
+        const response = await demoService.getAllDemoRequests();
+
+        // Handle different API response structures
+        let dataArray = [];
+        if (Array.isArray(response.data)) {
+          dataArray = response.data;
+        } else if (response.data && typeof response.data === 'object') {
+          // Handle case where data is wrapped in an object
+          const possibleArrays = ['data', 'queries', 'forms', 'results', 'demos'];
+          for (const key of possibleArrays) {
+            if (Array.isArray(response.data[key])) {
+              dataArray = response.data[key];
+              break;
+            }
+          }
+          // If no array found in common properties, check if data itself is the array
+          if (dataArray.length === 0 && Array.isArray(response)) {
+            dataArray = response;
+          }
+        }
+
+        setHomepageFormsCount(dataArray.length);
+      } catch (error) {
+        console.error('Failed to fetch homepage forms count:', error);
+      }
+    };
+
+    fetchHomepageFormsCount();
   }, []);
 
   const menuItems = [
@@ -93,14 +165,14 @@ const AdminSidebar = ({ isOpen, onClose }) => {
       label: 'Homepage Forms',
       icon: FileText,
       path: '/admin/homepage-forms',
-      badge: 5
+      badge: homepageFormsCount > 0 ? homepageFormsCount : null
     },
     {
       id: 'contact-forms',
       label: 'Contact Forms',
       icon: Phone,
       path: '/admin/contact-forms',
-      badge: 3
+      badge: contactFormsCount > 0 ? contactFormsCount : null
     },
     {
       id: 'reports',

@@ -4,6 +4,12 @@ import { useAuth } from "../Contexts/AuthContext";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import HomeNav from "../Components/HomeNav";
 import Footer from "../Components/Footer";
+<<<<<<< HEAD
+=======
+import logo from "../assets/logo2.png";
+import { contactService } from "../services/contactService";
+import { withErrorHandling } from "../utils/errorHandler";
+>>>>>>> 0511b222a738b17461c4ac79900835018cdf629f
 
 const ContactUs = () => {
   const [theme, setTheme] = useState('light');
@@ -16,8 +22,14 @@ const ContactUs = () => {
     phone: "",
     subject: ""
   });
+<<<<<<< HEAD
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
+=======
+  const [loading, setLoading] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState("");
+  const [submitError, setSubmitError] = useState("");
+>>>>>>> 0511b222a738b17461c4ac79900835018cdf629f
 
   const handleInputChange = (e) => {
     setFormData({
@@ -26,8 +38,9 @@ const ContactUs = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+<<<<<<< HEAD
     setIsSubmitting(true);
     
     // Simulate API call
@@ -39,6 +52,34 @@ const ContactUs = () => {
       
       setTimeout(() => setSubmitStatus(null), 5000);
     }, 1500);
+=======
+    setLoading(true);
+    setSubmitError("");
+    setSubmitMessage("");
+
+    try {
+      // Submit contact form to API
+      const response = await contactService.submitContact(formData);
+
+      if (response.success) {
+        setSubmitMessage("Your message has been sent successfully! We'll get back to you soon.");
+        // Reset form
+        setFormData({
+          name: "",
+          email: "",
+          message: "",
+          userType: "candidate"
+        });
+      } else {
+        setSubmitError("Failed to send message. Please try again.");
+      }
+    } catch (error) {
+      console.error("Contact form submission error:", error);
+      setSubmitError(error?.message || "Failed to send message. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+>>>>>>> 0511b222a738b17461c4ac79900835018cdf629f
   };
 
   const isDark = theme === 'dark';
@@ -216,6 +257,7 @@ const ContactUs = () => {
                     } focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all resize-none`}
                   ></textarea>
                 </div>
+<<<<<<< HEAD
 
                 {/* Submit Button */}
                 <button
@@ -241,6 +283,27 @@ const ContactUs = () => {
                       Send Message
                     </span>
                   )}
+=======
+                
+                {submitMessage && (
+                  <div className={styles.successMessage}>
+                    {submitMessage}
+                  </div>
+                )}
+
+                {submitError && (
+                  <div className={styles.errorMessage}>
+                    {submitError}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className={styles.submitBtn}
+                  disabled={loading}
+                >
+                  {loading ? "Sending..." : "Send Message"}
+>>>>>>> 0511b222a738b17461c4ac79900835018cdf629f
                 </button>
               </div>
             </div>
