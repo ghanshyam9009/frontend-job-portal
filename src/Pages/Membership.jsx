@@ -1,12 +1,65 @@
 import React, { useState } from 'react';
-import { Check, Crown, Briefcase, User, Sparkles, ChevronDown, ChevronUp, Moon, Sun } from 'lucide-react';
+import { Check, Crown, Briefcase, User, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import HomeNav from '../Components/HomeNav';
-import Footer from '../Components/Footer';
 
 export default function Membership() {
   const [activeTab, setActiveTab] = useState('employers');
   const [expandedFaq, setExpandedFaq] = useState(null);
   const [darkMode, setDarkMode] = useState(false);
+
+  // Check if user is logged in and get user type
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+  const userType = localStorage.getItem('userType'); // 'employer' or 'candidate'
+
+  const handleBuyNow = (planPrice, planName) => {
+    if (!isLoggedIn) {
+      // Store intended plan for after login
+      localStorage.setItem('intendedPlan', JSON.stringify({
+        type: activeTab,
+        planName: planName,
+        price: planPrice
+      }));
+
+      // Redirect to appropriate login page
+      if (activeTab === 'employers') {
+        window.location.href = '/recruiter/login'; 
+      } else {
+        window.location.href = '/candidate/login';
+       
+      }
+    } else {
+      // User is logged in - verify they're on correct tab
+      if (activeTab === 'employers' && userType !== 'employer') {
+        alert('Please switch to the Employers tab or login as an employer');
+        return;
+      }
+      if (activeTab === 'candidates' && userType !== 'candidate') {
+        alert('Please switch to the Candidates tab or login as a candidate');
+        return;
+      }
+
+      // Proceed to payment/checkout
+      proceedToPayment(planPrice, planName);
+    }
+  };
+
+  const proceedToPayment = (price, planName) => {
+    if (price === 0) {
+      // Handle free plan activation
+      console.log('Activating free plan:', planName);
+      // Add your free plan activation logic here
+      alert(`Free plan "${planName}" activated successfully!`);
+    } else {
+      // Redirect to payment page
+      const paymentData = {
+        plan: planName,
+        price: price,
+        userType: activeTab
+      };
+      localStorage.setItem('paymentData', JSON.stringify(paymentData));
+      window.location.href = '/payment'; // Replace with your payment route
+    }
+  };
 
   const employerPlans = [
     {
@@ -126,13 +179,12 @@ export default function Membership() {
   };
 
   return (
+    <><HomeNav/>
     <div className={`min-h-screen transition-colors duration-300 ${
       darkMode 
         ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
         : 'bg-gradient-to-br from-blue-50 via-white to-purple-50'
     }`}>
-      
-     <HomeNav/>
 
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-4 mt-10 lg:mt-20 sm:px-6 lg:px-8 py-12">
@@ -153,6 +205,17 @@ export default function Membership() {
             Select the plan that best fits your needs and start your journey today
           </p>
         </div>
+
+        {/* Login Status Indicator */}
+        {isLoggedIn && (
+          <div className="text-center mb-6">
+            <span className={`inline-block px-4 py-2 rounded-full text-sm font-semibold ${
+              darkMode ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800'
+            }`}>
+              ✓ Logged in as {userType === 'employer' ? 'Employer' : 'Candidate'}
+            </span>
+          </div>
+        )}
 
         {/* Tab Selector */}
         <div className="flex justify-center mb-12">
@@ -200,10 +263,7 @@ export default function Membership() {
                 </div>
               )}
 
-              {/* Card Body - FIXED HEIGHT + FLEX COLUMN */}
               <div className="p-6 flex flex-col h-full">
-
-                {/* Icon */}
                 <div className="flex justify-center mb-4">
                   <div className={`p-3 rounded-full ${
                     plan.popular
@@ -214,21 +274,18 @@ export default function Membership() {
                   </div>
                 </div>
 
-                {/* Title */}
                 <h3 className={`text-xl font-bold text-center mb-2 ${
                   darkMode ? 'text-white' : 'text-gray-900'
                 }`}>
                   {plan.name}
                 </h3>
 
-                {/* Description */}
                 <p className={`text-center text-xs mb-4 min-h-[32px] ${
                   darkMode ? 'text-gray-400' : 'text-gray-600'
                 }`}>
                   {plan.description}
                 </p>
 
-                {/* Price */}
                 <div className="text-center mb-5">
                   <span className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                     {plan.price === 0 ? 'Free' : `₹${plan.price}`}
@@ -242,7 +299,6 @@ export default function Membership() {
                   </div>
                 </div>
 
-                {/* Features */}
                 <div className="mb-6">
                   <h4 className={`font-semibold mb-3 text-xs uppercase tracking-wide ${
                     darkMode ? 'text-gray-300' : 'text-gray-900'
@@ -265,17 +321,17 @@ export default function Membership() {
                   </ul>
                 </div>
 
-                {/* BUTTON AT BOTTOM */}
                 <button 
+                  onClick={() => handleBuyNow(plan.price, plan.name)}
                   className={`w-full py-3 rounded-lg font-bold text-sm transition-all ${
                     plan.popular
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg'
                       : darkMode
-                        ? ' mt-auto bg-gray-700 text-white hover:bg-blue-600'
+                        ? 'mt-auto bg-gray-700 text-white hover:bg-blue-600'
                         : 'bg-gray-100 mt-auto text-gray-900 hover:bg-blue-600 hover:text-white'
                   }`}
                 >
-                  {plan.price === 0 ? 'Start Free' : 'Get Started'}
+                  {plan.price === 0 ? 'Start Free' : (isLoggedIn ? 'Buy Now' : 'Buy Now')}
                 </button>
               </div>
             </div>
@@ -357,7 +413,7 @@ export default function Membership() {
           </p>
         </div>
       </div>
-      <Footer/>
     </div>
+    </>
   );
 }

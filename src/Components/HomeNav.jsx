@@ -174,7 +174,7 @@ const HomeNav = () => {
                 Membership
               </Link>
             </li>
-            <li className="relative">
+            {/* <li className="relative">
               <button
                 onClick={() => setShowCareerDropdown(!showCareerDropdown)}
                 className={`flex items-center gap-1 text-sm font-bold transition-colors ${
@@ -210,7 +210,7 @@ const HomeNav = () => {
                   </Link>
                 </div>
               )}
-            </li>
+            </li> */}
           </ul>
 
           {/* Desktop Right Menu */}

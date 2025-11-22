@@ -6,6 +6,7 @@ import styles from "./UserJobListings.module.css";
 import { candidateExternalService } from "../../services";
 import { candidateService } from "../../services/candidateService";
 import { Briefcase, Crown } from "lucide-react";
+import HomeNav from "../../Components/HomeNav";
 
 const UserJobListings = () => {
   const navigate = useNavigate();
@@ -143,7 +144,8 @@ const UserJobListings = () => {
 
   return (
     <div className={styles.dashboardContainer}>
-      <CandidateNavbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+      {/* <HomeNav/>*/}
+      {/* <CandidateNavbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} /> */}
       <main className={styles.main}>
 
         <section className={styles.jobsSection}>

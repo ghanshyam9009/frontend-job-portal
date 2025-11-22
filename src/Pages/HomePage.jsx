@@ -42,6 +42,7 @@ import jobImage from "../assets/job.jfif";
 import axisBanner from "../assets/axis-banner.jpg";
 import axisBanner1 from "../assets/a-1.png";
 import bannerSmall from "../assets/banner-small.png";
+import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 
 // job role card
 function JobRoleCard({ title, image, link, isDark }) {
@@ -111,7 +112,7 @@ const Homepage = () => {
 
   
    const [jobTitle, setJobTitle] = useState('');
-
+const { user, isAuthenticated } = useAuth();
   const [category, setCategory] = useState('');
    const [location, setLocation] = useState("");
   // Autocomplete states
@@ -260,9 +261,8 @@ const Homepage = () => {
   
 
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  // const { isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
- 
   const [featuredJobs, setFeaturedJobs] = useState([]);
   const [demoData, setDemoData] = useState({ fullName: "", email: "", message: "", userType: "candidate" });
   const [demoLoading, setDemoLoading] = useState(false);
@@ -691,7 +691,8 @@ const toggleBookmark = (jobId) => {
     <div className={styles.container}>
       {/* Navigation */}
 
-<HomeNav/>
+
+{user?<CandidateNavbar/>:<HomeNav/>}
 {/* Hero section */}
  <div className="relative min-h-24 bg-gray-900 overflow-hidden">
   {/* Background Video */}
@@ -712,7 +713,7 @@ const toggleBookmark = (jobId) => {
   {/* Increased vertical padding on larger screens (pt, pb) */}
   <div className="  relative z-10 max-w-8xl mx-auto px-6 sm:px-6 lg:px-16 pt-28 pb-24 md:pt-32 md:pb-28">
     {/* Main Heading */}
-    <div className="text-center mb-12 md:mb-16">
+    <div className="text-center mb-8 md:mb-16">
       {/* Increased text size for xl screens */}
       <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 text-white ">
         Find Your Dream Job Today!
@@ -725,21 +726,21 @@ const toggleBookmark = (jobId) => {
 
     {/* Search Bar */}
     {/* Increased max-width for the search bar container */}
-    <div className="max-w-5xl mx-auto mb-20">
+    <div className="max-w-5xl mx-auto mb-10">
             <div className="rounded-xl shadow-2xl flex flex-col md:flex-row relative overflow-visible bg-gray-800/90 backdrop-blur-sm">
               
               {/* Job Title Input with Autocomplete */}
               <div className="flex-1 relative" ref={jobTitleRef}>
                 <div className="p-5 border-b md:border-b-0 md:border-r border-gray-700">
                   <div className="flex items-center gap-3">
-                    <Briefcase className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <Briefcase className="w-5 h-5  text-white  flex-shrink-0" />
                     <input
                       type="text"
                       placeholder="Job Title or Keyword"
                       value={jobTitle}
                       onChange={(e) => setJobTitle(e.target.value)}
                       onFocus={() => jobTitle.trim() && setShowJobTitleDropdown(true)}
-                      className="w-full focus:outline-none text-lg bg-transparent text-white placeholder-gray-400"
+                      className="w-full focus:outline-none text-lg bg-transparent text-white placeholder-white"
                     />
                   </div>
                 </div>
@@ -767,14 +768,14 @@ const toggleBookmark = (jobId) => {
               <div className="flex-1 relative" ref={locationRef}>
                 <div className="p-5 border-b md:border-b-0 md:border-r border-gray-700">
                   <div className="flex items-center gap-3">
-                    <MapPin className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <MapPin className="w-5 h-5  text-white flex-shrink-0" />
                     <input
                       type="text"
                       placeholder="Select Location"
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
                       onFocus={() => location.trim() && setShowLocationDropdown(true)}
-                      className="w-full focus:outline-none text-lg bg-transparent text-white placeholder-gray-400"
+                      className="w-full focus:outline-none text-lg bg-transparent text-white placeholder-white"
                     />
                   </div>
                 </div>
@@ -802,14 +803,14 @@ const toggleBookmark = (jobId) => {
               <div className="flex-1 relative" ref={categoryRef}>
                 <div className="p-5 border-b md:border-b-0 md:border-r border-gray-700">
                   <div className="flex items-center gap-3">
-                    <Building2 className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <Building2 className="w-5 h-5 text-white flex-shrink-0" />
                     <input
                       type="text"
                       placeholder="Company Name"
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
                       onFocus={() => category.trim() && setShowCategoryDropdown(true)}
-                      className="w-full focus:outline-none text-lg bg-transparent text-white placeholder-gray-400"
+                      className="w-full focus:outline-none text-lg bg-transparent text-white placeholder-white"
                     />
                   </div>
                 </div>
@@ -846,11 +847,11 @@ const toggleBookmark = (jobId) => {
 
     {/* Stats Section */}
     {/* Increased max-width for the stats container */}
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+    <div className=" grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
       
       {/* Jobs */}
       {/* Increased icon container size, icon size, and text sizes */}
-      <div className="flex items-center gap-4 justify-center">
+      <div className="hidden md:flex items-center gap-4 justify-center">
         <div className="w-16 h-16 md:w-18 md:h-18 bg-[#2042E3] rounded-full flex items-center justify-center shadow-lg flex-shrink-0">
           <Briefcase size={32} className="text-white" />
         </div>
@@ -862,7 +863,7 @@ const toggleBookmark = (jobId) => {
 
       {/* Candidates */}
       {/* Increased icon container size, icon size, and text sizes */}
-      <div className="flex items-center gap-4 justify-center">
+      <div className="hidden md:flex flex items-center gap-4 justify-center">
         <div className="w-16 h-16 md:w-18 md:h-18 bg-[#2042E3] rounded-full flex items-center justify-center shadow-lg flex-shrink-0">
           <Users size={32} className="text-white" />
         </div>
@@ -874,7 +875,7 @@ const toggleBookmark = (jobId) => {
 
       {/* Companies */}
       {/* Increased icon container size, icon size, and text sizes */}
-      <div className="flex items-center gap-4 justify-center">
+      <div className=" hidden md:flex flex items-center gap-4 justify-center">
         <div className="w-16 h-16 md:w-18 md:h-18 bg-[#2042E3] rounded-full flex items-center justify-center shadow-lg flex-shrink-0">
           <Building2 size={32} className="text-white" />
         </div>
@@ -893,9 +894,8 @@ const toggleBookmark = (jobId) => {
 
     
     <div className="w-full">
-     
       {/* Blue Info Section */}
-      <div className=" bg-[#2271B5] py-16 px-4">
+      <div className=" bg-[#2271B5] py-6 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
             {features.map((feature, index) => {
@@ -1054,8 +1054,6 @@ const toggleBookmark = (jobId) => {
 
       {/* Featured Jobs */}
   <div className={`min-h-screen ${bgColor} transition-colors duration-300`}>
-      
-     
       {/* Main Content - Jobs and Contact Side by Side */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -1079,16 +1077,16 @@ const toggleBookmark = (jobId) => {
 
               {/* Jobs List with Scroll */}
               <div 
-                className="space-y-4 max-h-[1000px] overflow-y-auto pr-2"
+                className="space-y-4 max-h-[1200px] overflow-y-auto pr-2"
                 style={{ 
                   // scrollbarWidth: 'thin', 
                   // scrollbarColor: isDark ? '#4B5563 #1F2937' : '#D1D5DB #F3F4F6' 
                 }}
               >
-                {featuredJobs.map(job => (
+                {featuredJobs.slice(0, 5).map(job => (
                                   <div 
                                     key={job.job_id}
-                                    className={`${bgSecondary} rounded-xl shadow-sm border ${borderColor} ${hoverBorder} p-5 hover:shadow-lg transition-all duration-300 relative overflow-hidden cursor-pointer`}
+                                    className={`${bgSecondary} rounded-xl shadow-sm border ${borderColor} ${hoverBorder} p-2 hover:shadow-lg transition-all duration-300 relative overflow-hidden cursor-pointer`}
                                     onClick={() => handleJobClick(job)}
                                   >
                                     
@@ -1116,17 +1114,21 @@ const toggleBookmark = (jobId) => {
                                         <span className="text-white text-base font-bold">
                                           {getInitials(job.company_name)}
                                         </span>
+                                        
                                       </div>
                                       <div className="flex-1">
                                         <h3 className={`text-lg font-bold ${textPrimary} mb-1 hover:text-blue-600 transition-colors`}>
                                           {job.title}
-                                         
-                                        </h3>
+                      
+                                              </h3>
                                         <p className={`text-xs ${textSecondary} font-bold flex items-center gap-1`}>
                                           <Building2 className="w-3 h-3" />
                                           {job.company_name}
+
                                         </p>
+
                                       </div>
+                                      
                                     </div>
                 
                                     {/* Job Details */}
@@ -1198,7 +1200,7 @@ const toggleBookmark = (jobId) => {
                                      
                                       {/* Premium Badge */}
                                     {!job.is_premium && (
-                                      <div className="absolute top-0 left-0 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-xs font-bold px-3 p-0.5  rounded-br-lg shadow-md">
+                                      <div className="absolute bottom-0 left-0 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-xs font-bold px-3   rounded-tr-lg shadow-md">
                                         PREMIUM
                                       </div>
                                     )}

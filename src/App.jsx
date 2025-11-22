@@ -90,7 +90,7 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           
           <Route element={<ProtectedRoute role="candidate"><CandidateLayout /></ProtectedRoute>}>
-            <Route path="/candidate-home" element={<JobListings />} />
+            <Route path="/candidate-home" element={<HomePage />} />
             <Route path="/jobs" element={<JobListings />} />
             <Route path="/government-jobs" element={<GovernmentJobs />} />
             <Route path="/about" element={<AboutUs />} />
