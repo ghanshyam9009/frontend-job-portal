@@ -11,6 +11,7 @@ import { jobService } from "../services/jobService";
 import { showError } from "../utils/errorHandler";
 import { candidateExternalService } from "../services/candidateExternalService";
 import { candidateService } from "../services/candidateService";
+import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 
 const JobListings = () => {
   const { theme } = useTheme();
@@ -20,7 +21,7 @@ const JobListings = () => {
   const locationHook = useLocation();
   const [querySearch, setQuerySearch] = useState("");
   const [queryLocation, setQueryLocation] = useState("");
-  
+ 
   useEffect(() => {
     const params = new URLSearchParams(locationHook.search);
     setQuerySearch(params.get("search") || "");
@@ -58,7 +59,7 @@ const JobListings = () => {
   });
 
   const [currentPage, setCurrentPage] = useState(1);
-  const jobsPerPage = 7;
+  const jobsPerPage = 25;
 
  // Theme-based styling
   const isDark = false;
@@ -695,7 +696,7 @@ const fetchJobs = async () => {
 
   return (
     <div className={`min-h-screen ${bgPrimary} transition-colors duration-300 `}>
-      <HomeNav/>
+     {user?<CandidateNavbar/>: <HomeNav/>}
       
       {/* Search Section */}
       <div className={`${isDark ? 'bg-gradient-to-r from-gray-800 to-gray-700' : 'bg-gray-50'} lg:mt-20 border-b ${borderColor}`}>
