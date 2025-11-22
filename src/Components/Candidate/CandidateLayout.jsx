@@ -23,6 +23,7 @@ const CandidateLayout = () => {
       <CandidateNavbar
         toggleSidebar={showSidebar ? toggleSidebar : undefined}
       />
+      
       {showSidebar && <CandidateSidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />}
       <main className={styles.main}>
         <Outlet />
