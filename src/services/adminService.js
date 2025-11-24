@@ -283,6 +283,16 @@ export const adminService = {
     }
   },
 
+  async closeAdminJob(jobId) {
+    try {
+      const response = await adminApiClient.post(`/job/closedadminjobs/${jobId}`, { job_id: jobId });
+      return response.data;
+    } catch (error) {
+      console.error('Error closing admin job:', error);
+      throw error;
+    }
+  },
+
   // Candidate Management Functions
   async getCandidates() {
     try {
@@ -415,6 +425,16 @@ export const adminService = {
       return candidates;
     } catch (error) {
       console.error('Error fetching candidates from API:', error);
+      throw error;
+    }
+  },
+
+  async updateCandidateStatus(email, status) {
+    try {
+      const response = await adminApiClient.put(API_ENDPOINTS.admin.updateCandidateStatus(email), { status });
+      return response.data;
+    } catch (error) {
+      console.error('Error updating candidate status:', error);
       throw error;
     }
   },

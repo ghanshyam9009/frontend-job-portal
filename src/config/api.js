@@ -40,8 +40,8 @@ export const API_ENDPOINTS = {
     login: '/students/login',
     forgotPassword: '/students/forgot-password',
     resetPassword: '/students/reset-password',
-    getProfile: (email) => `/student/profile/${email}`,
-    updateProfile: (email) => `/student/profile/${email}`,
+    getProfile: (email) => `/students/profile/${email}`,
+    updateProfile: (email) => `/students/profile/${email}`,
     getAll: '/students',
     getById: (id) => `/students/${id}`,
     update: (id) => `/students/${id}`,
@@ -82,7 +82,8 @@ export const API_ENDPOINTS = {
     getAllRecruiters: '/admin/get-all-recruiter',
     approveRecruiter: '/admin/approved-recruiter',
     updateRecruiter: '/admin/update-recruiter',
-    rejectRecruiter: '/admin/approved-recruiter'
+    rejectRecruiter: '/admin/approved-recruiter',
+    updateCandidateStatus: (email) => `/admin/candidate/${email}/status`
   },
 
   // Users
