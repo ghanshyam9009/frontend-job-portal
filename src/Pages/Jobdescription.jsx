@@ -276,13 +276,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
       return;
     }
 
-    // Profile completion check - must be 100% to apply
-    const profileCompletion = calculateProfileCompletion(user);
-    if (profileCompletion < 100) {
-      alert(`Your profile is only ${profileCompletion}% complete. You must complete your profile 100% before applying for jobs. Redirecting to profile management...`);
-      navigate("/profile");
-      return;
-    }
+    // Profile completion check removed - candidates can apply for jobs regardless of profile completeness
 
     // membership check
     if (user?.membership !== "premium") {

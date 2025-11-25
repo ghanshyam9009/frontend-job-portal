@@ -59,6 +59,14 @@ export const studentService = {
     }, 'Failed to fetch profile details');
   },
 
+  async fetchProfileDetailsById(email) {
+    return withErrorHandling(async () => {
+      // Construct the URL for fetching student details by ID
+      const response = await apiClient.get(`https://gfiwltw271.execute-api.ap-southeast-1.amazonaws.com/default/getstudentdetails?email=${email}`);
+      return response;
+    }, 'Failed to fetch profile details by ID');
+  },
+
   async updateProfileDetails(email, profileData) {
     return withErrorHandling(async () => {
       const response = await apiClient.put(`https://api.bigsources.in/api/students/profile/${email}`, profileData);

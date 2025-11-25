@@ -50,13 +50,12 @@ const JobPostingManagement = () => {
       setLoading(true);
       setError("");
 
-      // Get all jobs from the API and filter for admin-posted jobs
+      // Get all jobs from the API and filter for current admin's posted jobs only (excluding government jobs)
       const jobsData = await candidateExternalService.getAllJobs();
       const currentAdminId = user?.admin_id || user?.id || user?.user_id;
       const adminJobs = (jobsData?.jobs || [])
-        .filter(job =>
-          job.admin_id === currentAdminId || job.admin_id === "admin" || job.posted_by === "admin"
-        )
+        .filter(job => job.admin_id === currentAdminId)
+        .filter(job => job.category !== 'Government')
         .filter(job => job.status !== 'closed'); // Filter out closed jobs from display
 
       // Fetch application counts for admin jobs in batches to avoid overwhelming the API
@@ -299,15 +298,15 @@ const JobPostingManagement = () => {
     console.log('Fetching names from API for applications:', applications);
 
     const studentNamesMap = {};
+    const { studentService } = await import("../../services/studentService");
 
     // Get unique student IDs
     const uniqueStudentIds = [...new Set(applications.map(app => app.student_id).filter(id => id))];
 
     console.log('Unique student IDs:', uniqueStudentIds);
 
-    // Extract names from application data since API calls are failing
-    applications.forEach(app => {
-      // Extract student name from resume URL or other available data
+    // Fetch student details for each unique student ID
+    const fetchPromises = uniqueStudentIds.map(async (studentId) => {
       if (app.student_id) {
         let studentName = `Student ${app.student_id}`; // Default fallback
 
