@@ -11,10 +11,11 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isRecruiterApproved, setIsRecruiterApproved] = useState(false);
 
   useEffect(() => {
     // Check if user is already authenticated on app load
-    const checkAuth = () => {
+    const checkAuth = async () => {
       console.log('Checking auth on app load...');
       console.log('Token exists:', !!localStorage.getItem('authToken'));
       console.log('User exists:', !!localStorage.getItem('user'));
@@ -25,6 +26,18 @@ export const AuthProvider = ({ children }) => {
         console.log('Auth check passed, user:', currentUser);
         setUser(currentUser);
         setIsAuthenticated(true);
+
+        if (currentUser?.role === 'Recruiter') {
+          try {
+            const profile = await recruiterService.getProfile(currentUser.email);
+            if (profile?.success && profile?.data) {
+              const employerData = profile.data.employer || profile.data;
+              setIsRecruiterApproved(employerData.hasadminapproved === true);
+            }
+          } catch (error) {
+            console.error("Failed to fetch recruiter profile for auth check", error);
+          }
+        }
       } else {
         console.log('Auth check failed - logging out');
         // Session expired or invalid
@@ -114,6 +127,7 @@ export const AuthProvider = ({ children }) => {
       // Clear state regardless of API call success
       setUser(null);
       setIsAuthenticated(false);
+      localStorage.clear();
     }
   };
 
@@ -205,6 +219,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated,
     user,
     loading,
+    isRecruiterApproved,
     login,
     register,
     logout,

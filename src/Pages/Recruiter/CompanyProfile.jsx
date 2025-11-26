@@ -3,11 +3,11 @@ import { useAuth } from '../../Contexts/AuthContext';
 import { useTheme } from '../../Contexts/ThemeContext';
 import { recruiterService } from '../../services/recruiterService';
 import { calculateRecruiterProfileCompletion, getMissingRequiredFields } from '../../utils/recruiterProfileUtils';
-import { TrendingUp, CheckCircle, AlertCircle, Shield } from 'lucide-react';
+import { TrendingUp, CheckCircle, AlertCircle, Shield, Edit, MapPin, Briefcase, Globe, Calendar, FileText, Building } from 'lucide-react';
 import styles from '../../Styles/RecruiterDashboard.module.css';
 
 const CompanyProfile = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { theme } = useTheme();
   
   const [profileData, setProfileData] = useState({
@@ -45,6 +45,8 @@ const CompanyProfile = () => {
   const [kycLoading, setKycLoading] = useState(false);
   const [kycError, setKycError] = useState(null);
   const [kycSuccess, setKycSuccess] = useState('');
+  const [isEditMode, setIsEditMode] = useState(true); // Start in edit mode if profile incomplete
+  const [detailedData, setDetailedData] = useState(null);
 
   const formatKycStatusLabel = (status = '') => {
     if (!status) return 'Pending';
@@ -71,7 +73,20 @@ const CompanyProfile = () => {
       postal_code: profileData.postal_code,
       founded_year: profileData.founded_year,
     };
-    return calculateRecruiterProfileCompletion(dataForCalculation);
+
+    const completion = calculateRecruiterProfileCompletion(dataForCalculation);
+    console.log('Profile completion calculation:', {
+      data: dataForCalculation,
+      completion: completion + '%',
+      hasCompanyName: !!(profileData.company_name && profileData.company_name.trim()),
+      hasEmail: !!(profileData.email && profileData.email.trim()),
+      hasPhone: !!(profileData.phone && profileData.phone.trim()),
+      hasIndustry: !!(profileData.industry && profileData.industry.trim()),
+      hasCompanySize: !!(profileData.company_size && profileData.company_size.trim()),
+      hasDescription: !!(profileData.description && profileData.description.trim()),
+    });
+
+    return completion;
   }, [profileData]);
 
   const missingFields = useMemo(() => {
@@ -113,10 +128,10 @@ const CompanyProfile = () => {
       if (user?.email) {
         try {
           setLoading(true);
-          const response = await recruiterService.getProfile(user.email);
-          
+          const response = await recruiterService.getProfile(user.email, true); // Force refresh
+
           if (response.success && response.data) {
-            const data = response.data.profile || response.data;
+            const data = response.data.employer || response.data.profile || response.data;
             setProfileData({
               company_name: data.company_name || '',
               email: data.email || user.email || '',
@@ -158,6 +173,36 @@ const CompanyProfile = () => {
     fetchProfile();
   }, [user]);
 
+  // Fetch detailed data from AWS API when profile is complete
+  const fetchDetailedData = async () => {
+    if (user?.email && isProfileComplete) {
+      try {
+        const url = `https://4x10ubol84.execute-api.ap-southeast-1.amazonaws.com/default/getepmloyerdetailed?email=${encodeURIComponent(user.email)}`;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setDetailedData(data);
+        console.log('Fetched detailed data:', data);
+      } catch (err) {
+        console.error('Error fetching detailed data:', err);
+        // Don't set error state here as this is optional additional data
+      }
+    }
+  };
+
+  // Update edit mode when profile completion changes
+  useEffect(() => {
+    if (!isProfileComplete) {
+      setIsEditMode(true); // Force edit mode if profile is incomplete
+    }
+    // Don't automatically switch to view mode when profile becomes complete
+    // Let user decide when to view or edit
+  }, [isProfileComplete]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setProfileData(prev => ({
@@ -176,11 +221,6 @@ const CompanyProfile = () => {
       // Validate required fields first
       if (!profileData.company_name?.trim()) {
         setError('Company name is required');
-        setLoading(false);
-        return;
-      }
-      if (!profileData.email?.trim()) {
-        setError('Email is required');
         setLoading(false);
         return;
       }
@@ -210,7 +250,6 @@ const CompanyProfile = () => {
       const cleanProfileData = {
         // Required fields - always include
         company_name: profileData.company_name.trim(),
-        email: profileData.email.trim(),
         phone_number: profileData.phone.trim(),
         industry: profileData.industry.trim(),
         company_size: profileData.company_size.trim(),
@@ -264,13 +303,28 @@ const CompanyProfile = () => {
 
         // Update local state with successful response data if available
         if (response.data || response.profile) {
-          const updatedData = response.data?.profile || response.data || response.profile || response;
-          setProfileData(prev => ({
-            ...prev,
-            ...updatedData,
-            phone: updatedData.phone_number || updatedData.phone || prev.phone,
-            website: updatedData.company_website || updatedData.website || prev.website
-          }));
+          const updatedData = response.data?.profile || response.profile || response.data;
+          // A safer way to update state: spread previous state and override with new values
+          // Use nullish coalescing (??) to correctly handle empty strings as valid values
+          if (updatedData && typeof updatedData === 'object') {
+            updateUser(updatedData); // Update global state
+            setProfileData(prev => ({
+              ...prev,
+              company_name: updatedData.company_name ?? prev.company_name,
+              email: updatedData.email ?? prev.email,
+              phone: (updatedData.phone_number ?? updatedData.phone) ?? prev.phone,
+              website: (updatedData.company_website ?? updatedData.website) ?? prev.website,
+              address: updatedData.address ?? prev.address,
+              city: updatedData.city ?? prev.city,
+              state: updatedData.state ?? prev.state,
+              country: updatedData.country ?? prev.country,
+              postal_code: updatedData.postal_code ?? prev.postal_code,
+              industry: updatedData.industry ?? prev.industry,
+              company_size: updatedData.company_size ?? prev.company_size,
+              description: updatedData.description ?? prev.description,
+              founded_year: updatedData.founded_year ?? prev.founded_year,
+            }));
+          }
           console.log('Updated data from response:', updatedData);
         }
       } else {
@@ -347,7 +401,7 @@ const CompanyProfile = () => {
       if (kycData.additionalNotes?.trim()) {
         formData.append('kyc_notes', kycData.additionalNotes.trim());
       }
-      formData.append('kyc_document', kycData.documentFile);
+      formData.append('document', kycData.documentFile);
 
       const response = await recruiterService.submitKyc(user.email, formData);
 
@@ -377,6 +431,148 @@ const CompanyProfile = () => {
     }
   };
 
+  // Render profile view when complete and not in edit mode
+  const renderProfileView = () => {
+    if (!isProfileComplete || isEditMode) return null;
+
+    return (
+      <div className={styles.profileView}>
+        <div className={styles.profileHeader}>
+          <div className={styles.profileTitle}>
+            <h1>Company Profile</h1>
+            <button
+              className={styles.editButton}
+              onClick={() => {
+                setIsEditMode(true);
+                // Fetch detailed data when entering edit mode
+                fetchDetailedData();
+              }}
+            >
+              <Edit size={16} />
+              Edit Profile
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.profileSections}>
+          {/* Company Information */}
+          <div className={styles.profileSection}>
+            <h2 className={styles.sectionTitle}>
+              <Building size={20} />
+              Company Information
+            </h2>
+            <div className={styles.profileGrid}>
+              <div className={styles.profileField}>
+                <label>Company Name</label>
+                <p>{profileData.company_name || 'Not provided'}</p>
+              </div>
+              <div className={styles.profileField}>
+                <label>Email</label>
+                <p>{profileData.email || 'Not provided'}</p>
+              </div>
+              <div className={styles.profileField}>
+                <label>Phone Number</label>
+                <p>{profileData.phone || 'Not provided'}</p>
+              </div>
+              <div className={styles.profileField}>
+                <label>Website</label>
+                <p>
+                  {profileData.website ? (
+                    <a href={profileData.website} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'underline' }}>
+                      {profileData.website}
+                    </a>
+                  ) : (
+                    'Not provided'
+                  )}
+                </p>
+              </div>
+              <div className={styles.profileField}>
+                <label>Industry</label>
+                <p>{profileData.industry || 'Not provided'}</p>
+              </div>
+              <div className={styles.profileField}>
+                <label>Company Size</label>
+                <p>{profileData.company_size || 'Not provided'}</p>
+              </div>
+              <div className={styles.profileField}>
+                <label>Founded Year</label>
+                <p>{profileData.founded_year || 'Not provided'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Address */}
+          <div className={styles.profileSection}>
+            <h2 className={styles.sectionTitle}>
+              <MapPin size={20} />
+              Address
+            </h2>
+            <div className={styles.profileGrid}>
+              <div className={`${styles.profileField} ${styles.fullWidth}`}>
+                <label>Street Address</label>
+                <p>{profileData.address || 'Not provided'}</p>
+              </div>
+              <div className={styles.profileField}>
+                <label>City</label>
+                <p>{profileData.city || 'Not provided'}</p>
+              </div>
+              <div className={styles.profileField}>
+                <label>State</label>
+                <p>{profileData.state || 'Not provided'}</p>
+              </div>
+              <div className={styles.profileField}>
+                <label>Country</label>
+                <p>{profileData.country || 'Not provided'}</p>
+              </div>
+              <div className={styles.profileField}>
+                <label>Postal Code</label>
+                <p>{profileData.postal_code || 'Not provided'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Company Description */}
+          <div className={styles.profileSection}>
+            <h2 className={styles.sectionTitle}>
+              <Briefcase size={20} />
+              Company Description
+            </h2>
+            <div className={styles.profileGrid}>
+              <div className={`${styles.profileField} ${styles.fullWidth}`}>
+                <label>Description</label>
+                <p className={styles.descriptionText}>{profileData.description || 'Not provided'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Details from AWS API */}
+          {detailedData && (
+            <div className={styles.profileSection}>
+              <h2 className={styles.sectionTitle}>
+                <FileText size={20} />
+                Additional Details
+              </h2>
+              <div className={styles.profileGrid}>
+                {Object.entries(detailedData).map(([key, value]) => {
+                  // Skip common fields already displayed above
+                  const skipFields = ['company_name', 'email', 'phone', 'phone_number', 'website', 'company_website', 'address', 'city', 'state', 'country', 'postal_code', 'industry', 'company_size', 'description', 'founded_year'];
+                  if (skipFields.includes(key.toLowerCase()) || !value) return null;
+
+                  return (
+                    <div key={key} className={styles.profileField}>
+                      <label>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</label>
+                      <p>{String(value)}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   if (loading && !profileData.company_name) {
     return (
       <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
@@ -394,12 +590,12 @@ const CompanyProfile = () => {
   return (
     <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
       <main className={styles.main}>
-        <section className={styles.companyProfileSection}>
-          <div className={styles.sectionHeader}>
-            <h1>Company Profile</h1>
-            <p>Update your company information</p>
-          </div>
+        {/* Render Profile View when complete and not editing */}
+        {renderProfileView()}
 
+        {/* Render Edit Form when in edit mode or profile incomplete */}
+        {(isEditMode || !isProfileComplete) && (
+          <section className={styles.companyProfileSection}>
           <div className={styles.stepIndicator}>
             <div className={styles.stepProgress}>
               <div
@@ -498,16 +694,6 @@ const CompanyProfile = () => {
                     type="text"
                     name="company_name"
                     value={profileData.company_name}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Email *</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={profileData.email}
                     onChange={handleInputChange}
                     required
                   />
@@ -707,7 +893,6 @@ const CompanyProfile = () => {
                     name="documentType"
                     value={kycData.documentType}
                     onChange={handleKycInputChange}
-                    disabled={!isProfileComplete}
                   >
                     <option value="GST">GST Certificate</option>
                     <option value="PAN">PAN Card</option>
@@ -724,7 +909,6 @@ const CompanyProfile = () => {
                     value={kycData.documentNumber}
                     onChange={handleKycInputChange}
                     placeholder="Enter registration / document number"
-                    disabled={!isProfileComplete}
                     required
                   />
                 </div>
@@ -734,7 +918,6 @@ const CompanyProfile = () => {
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
                     onChange={handleKycFileChange}
-                    disabled={!isProfileComplete}
                     required
                   />
                   {kycData.documentFile && (
@@ -751,7 +934,6 @@ const CompanyProfile = () => {
                     onChange={handleKycInputChange}
                     rows="3"
                     placeholder="Add any clarifications for the verification team (optional)"
-                    disabled={!isProfileComplete}
                   />
                 </div>
                 {kycStatus.documentUrl && (
@@ -780,14 +962,15 @@ const CompanyProfile = () => {
                 <button
                   type="submit"
                   className={styles.submitBtn}
-                  disabled={kycLoading || !isProfileComplete}
+                  disabled={kycLoading}
                 >
-                  {kycLoading ? 'Submitting...' : (isProfileComplete ? 'Submit KYC for Review' : 'Complete Profile to Submit')}
+                  {kycLoading ? 'Submitting...' : 'Submit KYC for Review'}
                 </button>
               </div>
             </form>
           </div>
         </section>
+        )}
       </main>
 
       {/* Success Modal */}

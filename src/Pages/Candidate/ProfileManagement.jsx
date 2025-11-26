@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../Contexts/AuthContext';
-import { useTheme } from '../../Contexts/ThemeContext';
 import { studentService } from '../../services/studentService';
 import { ChevronLeft, ChevronRight, Check, User, MapPin, Briefcase, GraduationCap, Award, AlertCircle, Edit, Mail, Phone, Calendar, Globe, FileText } from 'lucide-react';
 import styles from './ProfileManagement.module.css';
 
 const ProfileManagement = () => {
   const { user, updateUser } = useAuth();
-  const { theme } = useTheme();
+  const todayForDateInput = new Date().toISOString().split("T")[0];
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
     full_name: '',
@@ -82,19 +81,8 @@ const ProfileManagement = () => {
           const birthDate = new Date(value);
           const today = new Date();
 
-          // Check if birth date is in the future
           if (birthDate > today) {
-            error = 'Date of birth cannot be in the future';
-          } else {
-            // Optional: Check minimum age (16 years) but allow younger for now
-            const age = today.getFullYear() - birthDate.getFullYear();
-            const monthDiff = today.getMonth() - birthDate.getMonth();
-            const actualAge = age - (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? 1 : 0);
-
-            if (actualAge < 0) {
-              error = 'Please enter a valid date of birth';
-            }
-            // Removed strict age validation - allow flexible dates
+            error = "Invalid date. Please select a date that is not in the future.";
           }
         }
         break;
@@ -793,7 +781,14 @@ const renderBasicInformationForm = () => (
           name="dob"
           value={formData.dob}
           onChange={handleInputChange}
+          max={todayForDateInput}
         />
+        {validationErrors.dob && (
+          <div className={styles.errorMessage}>
+            <AlertCircle size={14} />
+            {validationErrors.dob}
+          </div>
+        )}
       </div>
 
       {/* Address Information */}
@@ -1214,7 +1209,7 @@ const renderStepContent = () => {
   };
 
   return (
-    <div className={`${styles.container} ${theme === 'dark' ? styles.dark : ''}`}>
+    <div className={`${styles.container}`}>
       {profileComplete && !isEditMode ? (
         renderProfileView()
       ) : (

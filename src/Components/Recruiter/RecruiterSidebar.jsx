@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { recruiterExternalService } from "../../services";
+import { isProfileComplete } from "../../utils/recruiterProfileUtils";
 import { Home, Plus, FileText, Users, Star, Building, CreditCard, Settings } from "lucide-react";
 import styles from "./RecruiterSidebar.module.css";
 
@@ -14,47 +15,26 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
   const [recruiterProfile, setRecruiterProfile] = useState(null);
   const [applicationCount, setApplicationCount] = useState(0);
   const [canAccessJobFeatures, setCanAccessJobFeatures] = useState(false);
-  const [restrictionMessage, setRestrictionMessage] = useState('Complete profile, admin approval, and KYC to use recruiting tools');
+  const [restrictionMessage, setRestrictionMessage] = useState('Complete profile and get admin approval to use recruiting tools');
 
   useEffect(() => {
-    const fetchRecruiterProfile = async () => {
-      if (user?.employer_id || user?.id) {
-        try {
-          const profile = await recruiterExternalService.getRecruiterProfile(user.employer_id || user.id);
-          setRecruiterProfile(profile);
+    if (user) {
+      // Use the user object from AuthContext as the source of truth
+      const profileComplete = isProfileComplete(user);
+      const adminApproved = user.hasadminapproved === true;
 
-          // Check profile completion and KYC status
-          const requiredFields = ['company_name', 'email', 'description'];
-          const completedRequired = requiredFields.filter(field =>
-            profile[field] && profile[field].toString().trim() !== ''
-          ).length;
-          const profileComplete = completedRequired === requiredFields.length;
-          const kycVerified = profile.kyc_status === 'verified';
-          const adminApproved = profile.hasadminapproved === true ||
-            profile.status?.toLowerCase() === 'approved' ||
-            profile.approval_status?.toLowerCase() === 'approved';
-
-          if (!adminApproved) {
-            setRestrictionMessage('Admin approval pending. Please wait for approval before accessing hiring tools.');
-          } else if (!profileComplete) {
-            setRestrictionMessage('Complete your company profile to unlock hiring tools.');
-          } else if (!kycVerified) {
-            setRestrictionMessage('Complete KYC verification to access hiring tools.');
-          } else {
-            setRestrictionMessage('');
-          }
-
-          setCanAccessJobFeatures(profileComplete && kycVerified && adminApproved);
-        } catch (err) {
-          console.error('Failed to fetch recruiter profile:', err);
-          setCanAccessJobFeatures(false);
-          setRestrictionMessage('Unable to verify account status. Please try again.');
-        }
+      if (!adminApproved) {
+        setRestrictionMessage('Admin approval pending. Please wait for approval before accessing hiring tools.');
+      } else if (!profileComplete) {
+        setRestrictionMessage('Complete your company profile to unlock hiring tools.');
+      } else {
+        setRestrictionMessage('');
       }
-    };
 
-    fetchRecruiterProfile();
-  }, [user?.employer_id, user?.id]);
+      setCanAccessJobFeatures(profileComplete && adminApproved);
+      setRecruiterProfile(user);
+    }
+  }, [user]);
 
   // Fetch application count dynamically
   useEffect(() => {

@@ -56,8 +56,8 @@ export const API_ENDPOINTS = {
     login: '/Recruiter/login',
     resetPassword: '/recruiter/reset-password',
     getProfile: (email) => `/recruiter/profile/${encodeURIComponent(email)}`,
-    updateProfile: (email) => `/Recruiter/update/${encodeURIComponent(email)}`,
-    submitKyc: (email) => `/Recruiter/update/${encodeURIComponent(email)}/kyc`,
+    updateProfile: (email) => `/Recruiter/update/${email}`,
+    submitKyc: (email) => `/Recruiter/update/${email}/kyc`,
     getAll: '/employers',
     getById: (id) => `/employers/${id}`,
     update: (id) => `/employers/${id}`,
@@ -65,7 +65,7 @@ export const API_ENDPOINTS = {
     getJobs: (id) => `/employers/${id}/jobs`,
     getApplications: (id) => `/employers/${id}/applications`,
     uploadLogo: (id) => `/employers/${id}/logo`,
-    getEmployerDetails: (email) => `https://4x10ubol84.execute-api.ap-southeast-1.amazonaws.com/default/getepmloyerdetailed?email=${encodeURIComponent(email)}`
+    getEmployerDetails: (email) => `https://4x10ubol84.execute-api.ap-southeast-1.amazonaws.com/default/getepmloyerdetailed?email=${email}`
   },
 
   // Admin

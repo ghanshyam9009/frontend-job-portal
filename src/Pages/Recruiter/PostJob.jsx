@@ -41,76 +41,31 @@ const PostJob = () => {
   });
 
   const [newSkill, setNewSkill] = useState("");
-  const [profileData, setProfileData] = useState(null);
   const [canPostJob, setCanPostJob] = useState(false);
   const [restrictionReason, setRestrictionReason] = useState("");
 
   // Check profile completion and KYC status
   useEffect(() => {
-    const checkPostingEligibility = async () => {
-      if (!user?.email) return;
+    if (user) {
+      const profileComplete = isProfileComplete(user);
+      const adminApproved = user.hasadminapproved === true;
 
-      try {
-        // Use the recruiterService to get profile
-        const response = await recruiterService.getProfile(user.email);
-        
-        if (response.success && response.data) {
-          const data = response.data.profile || response.data;
-          setProfileData(data);
-
-          // Prepare data for completion calculation
-          const profileForCalculation = {
-            company_name: data.company_name,
-            email: data.email || user.email,
-            phone_number: data.phone_number || data.phone,
-            company_website: data.company_website || data.website,
-            industry: data.industry,
-            company_size: data.company_size,
-            description: data.description,
-            address: data.address || data.location,
-            city: data.city,
-            state: data.state,
-            country: data.country,
-            postal_code: data.postal_code,
-            founded_year: data.founded_year,
-          };
-
-          // Calculate profile completion percentage
-          const completionPercentage = calculateRecruiterProfileCompletion(profileForCalculation);
-          const profileComplete = isProfileComplete(profileForCalculation);
-
-          // Check approvals
-          const adminApproved = data.hasadminapproved === true ||
-            data.status?.toLowerCase() === 'approved' ||
-            data.approval_status?.toLowerCase() === 'approved';
-          const kycVerified = data.kycDocUrl || data.kyc_status === 'verified' || data.kyc_status === 'Verified';
-
-          if (!profileComplete) {
-            setCanPostJob(false);
-            setRestrictionReason(`Complete your company profile (${completionPercentage}% / 100%) before posting jobs. Please complete all required fields.`);
-          } else if (!adminApproved) {
-            setCanPostJob(false);
-            setRestrictionReason("Admin approval is required before you can access hiring features. Please wait for approval.");
-          } else if (!kycVerified) {
-            setCanPostJob(false);
-            setRestrictionReason("KYC verification required before posting jobs. Please complete KYC verification.");
-          } else {
-            setCanPostJob(true);
-            setRestrictionReason("");
-          }
-        } else {
-          setCanPostJob(false);
-          setRestrictionReason("Unable to load profile data. Please try again.");
-        }
-      } catch (err) {
-        console.error('Failed to check posting eligibility:', err);
+      if (!profileComplete) {
+        const completionPercentage = calculateRecruiterProfileCompletion(user);
+        setCanPostJob(false);
+        setRestrictionReason(`Complete your company profile (${completionPercentage}% / 100%) before posting jobs. Please complete all required fields.`);
+      } else if (!adminApproved) {
+        setCanPostJob(false);
+        setRestrictionReason("Admin approval is required before you can access hiring features. Please wait for approval.");
+      } else {
+        setCanPostJob(true);
+        setRestrictionReason("");
+      }
+    } else {
         setCanPostJob(false);
         setRestrictionReason("Unable to verify account status. Please refresh and try again.");
-      }
-    };
-
-    checkPostingEligibility();
-  }, [user?.email]);
+    }
+  }, [user]);
 
   const handleInputChange = (field, value) => {
     const keys = field.split(".");

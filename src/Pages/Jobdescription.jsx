@@ -277,7 +277,6 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
     }
 
     // Profile completion check removed - candidates can apply for jobs regardless of profile completeness
-
     // membership check
     if (user?.membership !== "premium") {
       try {

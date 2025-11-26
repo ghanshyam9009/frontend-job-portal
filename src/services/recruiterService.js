@@ -34,16 +34,16 @@ export const recruiterService = {
   },
 
   // Cached version to prevent duplicate API calls for employer details
-  async getProfile(email) {
+  async getProfile(email, forceRefresh = false) {
     if (!email) {
       throw new Error('Email is required');
     }
 
     const cacheKey = email.toLowerCase();
 
-    // Return cached data if available and not expired (5 minutes TTL)
+    // If not forcing a refresh, return cached data if available and not expired (5 minutes TTL)
     const cached = employerCache.get(cacheKey);
-    if (cached && (Date.now() - cached.timestamp) < 300000) {
+    if (!forceRefresh && cached && (Date.now() - cached.timestamp) < 300000) {
       return { success: true, data: cached.data, fromCache: true };
     }
 
@@ -80,15 +80,9 @@ export const recruiterService = {
   // Private method to actually fetch data
   async _fetchEmployerDetails(email) {
     try {
-      const url = API_ENDPOINTS.recruiters.getEmployerDetails(email);
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return { success: true, data: data };
+      const endpoint = API_ENDPOINTS.recruiters.getEmployerDetails(email);
+      const response = await apiClient.get(endpoint);
+      return { success: true, data: response };
     } catch (error) {
       console.error(`Error fetching employer details for ${email}:`, error);
       throw error;
