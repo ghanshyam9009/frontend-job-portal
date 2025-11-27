@@ -128,6 +128,8 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setIsAuthenticated(false);
       localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/'; 
     }
   };
 
