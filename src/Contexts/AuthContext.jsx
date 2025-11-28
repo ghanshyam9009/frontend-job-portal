@@ -17,9 +17,9 @@ export const AuthProvider = ({ children }) => {
     // Check if user is already authenticated on app load
     const checkAuth = async () => {
       console.log('Checking auth on app load...');
-      console.log('Token exists:', !!localStorage.getItem('authToken'));
-      console.log('User exists:', !!localStorage.getItem('user'));
-      console.log('Timestamp exists:', !!localStorage.getItem('loginTimestamp'));
+      console.log('Token exists:', !!sessionStorage.getItem('authToken'));
+      console.log('User exists:', !!sessionStorage.getItem('user'));
+      console.log('Timestamp exists:', !!sessionStorage.getItem('loginTimestamp'));
 
       if (authService.checkAuthWithExpiry()) {
         const currentUser = authService.getCurrentUser();
@@ -127,7 +127,6 @@ export const AuthProvider = ({ children }) => {
       // Clear state regardless of API call success
       setUser(null);
       setIsAuthenticated(false);
-      localStorage.clear();
       sessionStorage.clear();
       window.location.href = '/'; 
     }
@@ -163,8 +162,8 @@ export const AuthProvider = ({ children }) => {
     console.log('AuthContext - Updated data:', updatedUserData);
     console.log('AuthContext - Merged result:', updatedUser);
     setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-    console.log('AuthContext - Updated localStorage');
+    sessionStorage.setItem('user', JSON.stringify(updatedUser));
+    console.log('AuthContext - Updated sessionStorage');
   };
 
   const refreshToken = async () => {

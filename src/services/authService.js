@@ -32,9 +32,9 @@ export const authService = {
 
         // Store login timestamp for 24-hour auto logout
         const loginTimestamp = Date.now();
-        localStorage.setItem('authToken', response.token);
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('loginTimestamp', loginTimestamp.toString());
+        sessionStorage.setItem('authToken', response.token);
+        sessionStorage.setItem('user', JSON.stringify(user));
+        sessionStorage.setItem('loginTimestamp', loginTimestamp.toString());
 
         return { success: true, data: { ...response, user: user } };
       }
@@ -90,7 +90,7 @@ export const authService = {
     try {
       const response = await apiClient.post(API_ENDPOINTS.auth.refresh);
       if (response.success && response.data.token) {
-        localStorage.setItem('authToken', response.data.token);
+        sessionStorage.setItem('authToken', response.data.token);
         return response;
       }
       throw new Error('Token refresh failed');
@@ -152,9 +152,9 @@ export const authService = {
     }
   },
 
-  // Get current user from localStorage
+  // Get current user from sessionStorage
   getCurrentUser() {
-    const userStr = localStorage.getItem('user');
+    const userStr = sessionStorage.getItem('user');
     if (userStr && userStr !== 'undefined') {
       return JSON.parse(userStr);
     }
@@ -163,19 +163,19 @@ export const authService = {
 
   // Check if user is authenticated
   isAuthenticated() {
-    const token = localStorage.getItem('authToken');
+    const token = sessionStorage.getItem('authToken');
     const user = this.getCurrentUser();
     return !!(token && user);
   },
 
   // Get auth token
   getToken() {
-    return localStorage.getItem('authToken');
+    return sessionStorage.getItem('authToken');
   },
 
   // Get login timestamp
   getLoginTimestamp() {
-    return localStorage.getItem('loginTimestamp');
+    return sessionStorage.getItem('loginTimestamp');
   },
 
   // Check if session has expired (24 hours)
@@ -201,9 +201,9 @@ export const authService = {
 
   // Clear all auth data
   clearAuthData() {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
-    localStorage.removeItem('loginTimestamp');
+    sessionStorage.removeItem('authToken');
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('loginTimestamp');
   },
 
   // Check authentication with session expiry

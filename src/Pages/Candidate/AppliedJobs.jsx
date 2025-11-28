@@ -5,7 +5,7 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
 import styles from "./AppliedJobs.module.css";
 import { candidateExternalService } from "../../services";
-import { Briefcase, Eye, Calendar, PartyPopper, X, FileText } from "lucide-react";
+import { Briefcase, Eye, Calendar, PartyPopper, X, FileText, Check } from "lucide-react";
 
 const AppliedJobs = () => {
   const navigate = useNavigate();
@@ -14,6 +14,9 @@ const AppliedJobs = () => {
   const [appliedJobs, setAppliedJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [trackingInfo, setTrackingInfo] = useState(null);
+  const [timeline, setTimeline] = useState([]);
 
   useEffect(() => {
     const userId = user?.user_id || user?.id || '';
@@ -23,18 +26,18 @@ const AppliedJobs = () => {
         setLoading(true);
         setError("");
         const data = await candidateExternalService.getAppliedJobs(userId);
-        const mapped = (data?.applications || data?.jobs || []).map((a, idx) => ({
+        const mapped = (data?.jobs || []).map((a, idx) => ({
           id: a.job_id || idx,
-          title: a.job_title || a.title || '',
+          title: a.job_title || '',
           company: a.company_name || '',
-          salary: a.salary_range ? `₹${a.salary_range.min} - ₹${a.salary_range.max}` : '',
+          salary: a.salary_range ? `₹${a.salary_range.min} - ₹${a.salary_range.max}` : 'Salary not disclosed',
           location: a.location || '',
           type: a.employment_type || '',
           appliedDate: a.created_at ? a.created_at.split('T')[0] : '',
-          appliedDateTime: a.created_at || '', // Keep full datetime for sorting
+          appliedDateTime: a.created_at || '',
           status: a.status || 'Under Review',
-          applicationId: a.application_id || '',
-          is_premium: a.is_premium || false // Include premium status
+          applicationId: a.job_id || '',
+          is_premium: a.premium_job || false,
         }));
 
         // Sort by applied date (latest first)
@@ -95,14 +98,74 @@ const AppliedJobs = () => {
     }
   };
 
-  const handleTrack = async (applicationId) => {
+  const handleTrack = async (jobId) => {
+    if (!jobId) return alert('No job ID');
+
     try {
-      if (!applicationId) return alert('No application ID');
-      const data = await candidateExternalService.getApplicationStatus(applicationId);
-      alert(`Status: ${data?.status || 'Unknown'}${data?.message ? `\n${data.message}` : ''}`);
+      const data = await candidateExternalService.getApplicationStatus(jobId);
+
+      // Add a defensive check for the response data
+      if (!data || typeof data.status !== 'string') {
+        console.error("Invalid status data received:", data);
+        alert('Could not retrieve valid tracking information.');
+        return;
+      }
+
+      setTrackingInfo(data);
+
+      const statusOrder = ['pending', 'applied', 'under review', 'interview scheduled', 'offer received', 'hired'];
+      const currentStatus = data.status.toLowerCase();
+      const isRejected = currentStatus === 'rejected';
+      const currentIndex = statusOrder.indexOf(currentStatus);
+
+      let timeline = [
+        // Ensure applied_date or created_at is used for the first step
+        { stage: 'Application Sent', status: 'Pending', date: data.applied_date || data.created_at || null },
+        { stage: 'Under Review', status: 'Pending', date: null },
+        { stage: 'Interview Scheduled', status: 'Pending', date: null },
+        { stage: 'Offer Received', status: 'Pending', date: null },
+        { stage: 'Hired', status: 'Pending', date: null },
+      ];
+
+      if (isRejected) {
+        // If rejected, mark 'Applied' as complete and add a 'Rejected' step.
+        timeline[0].status = 'Completed';
+        timeline.push({ 
+          stage: 'Rejected', 
+          status: 'Completed', 
+          date: data.status_date || data.updated_at || new Date().toISOString() 
+        });
+      } else if (currentIndex > -1) {
+        // Mark all steps up to and including the current one as complete.
+        for (let i = 0; i <= currentIndex; i++) {
+          timeline[i].status = 'Completed';
+          // Put the date on the actual current step
+          if (i === currentIndex) {
+            timeline[i].date = data.status_date || data.updated_at || new Date().toISOString();
+          }
+        }
+      } else {
+        // If the status is unknown but not rejected, just show 'Applied' as completed.
+        timeline[0].status = 'Completed';
+      }
+
+      setTimeline(timeline);
+      setIsModalOpen(true);
     } catch (e) {
-      alert('Failed to fetch status');
+      console.error('Failed to fetch application status:', e);
+      if (e.error === 'Application not found') {
+        alert('Could not find application. It might still be processing. Please try again later.');
+      } else {
+        const errorMessage = e?.message || 'An unknown error occurred.';
+        alert(`Failed to fetch status: ${errorMessage}`);
+      }
     }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setTrackingInfo(null);
+    setTimeline([]);
   };
 
   return (
@@ -198,6 +261,30 @@ const AppliedJobs = () => {
           )}
         </section>
       </main>
+
+      {isModalOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>Application Status</h3>
+              <button onClick={closeModal} className={styles.closeButton}><X size={24} /></button>
+            </div>
+            <ul className={styles.timeline}>
+              {timeline.map((item, index) => (
+                <li key={index} className={styles.timelineItem}>
+                  <div className={`${styles.timelineIcon} ${item.status === 'Completed' ? styles.completed : ''}`}>
+                    {item.status === 'Completed' && <Check size={14} />}
+                  </div>
+                  <div className={styles.timelineContent}>
+                    <h4>{item.stage}</h4>
+                    <p>{item.date ? new Date(item.date).toLocaleDateString() : 'Pending'}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
