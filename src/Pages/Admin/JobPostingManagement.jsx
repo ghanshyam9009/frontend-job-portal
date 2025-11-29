@@ -293,48 +293,56 @@ const JobPostingManagement = () => {
     }
   };
 
-  // Function to fetch student names using API calls
-  const fetchNamesFromAPI = async (applications) => {
-    console.log('Fetching names from API for applications:', applications);
+  // Function to enrich applications with student details (similar to JobApplicationReports.jsx)
+  const enrichApplicationsWithStudentData = async (applications, jobId) => {
+    console.log('Enriching applications with student data for job:', jobId);
 
-    const studentNamesMap = {};
-    const { studentService } = await import("../../services/studentService");
-
-    // Get unique student IDs
-    const uniqueStudentIds = [...new Set(applications.map(app => app.student_id).filter(id => id))];
-
-    console.log('Unique student IDs:', uniqueStudentIds);
-
-    // Fetch student details for each unique student ID
-    const fetchPromises = uniqueStudentIds.map(async (studentId) => {
-      if (app.student_id) {
-        let studentName = `Student ${app.student_id}`; // Default fallback
-
-        // Try to extract name from resume URL (e.g., "johndoe" from "https://myresume.com/johndoe.pdf")
-        if (app.resume_url) {
-          try {
-            const urlParts = app.resume_url.split('/');
-            const filename = urlParts[urlParts.length - 1];
-            const namePart = filename.split('.')[0]; // Remove extension
-            if (namePart && namePart !== 'resume' && namePart !== 'cv') {
-              // Capitalize first letter
-              studentName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-            }
-          } catch (e) {
-            // Keep default name if extraction fails
+    // Use the same approach as JobApplicationReports.jsx
+    const applicationsWithDetails = applications.map((app) => {
+      // Check if application already has embedded student data
+      if (app.student_name) {
+        return {
+          ...app,
+          student_details: {
+            name: app.student_name || "Unknown",
+            email: app.student_email || app.email || null,
+            phone: app.student_phone || null,
+            skills: app.student_skills ? app.student_skills.split(',').map(skill => skill.trim()) : [],
+            location: app.student_location || null,
+            experience: app.student_experience || null,
+            education: app.student_university ? [app.student_university] : [],
+            experience_years: app.student_experience_years || null,
+            bio: app.student_bio || null,
+            resumeUrl: app.resume_url || app.student_profile?.resume || null,
+            department: app.student_department || null,
+            cgpa: app.student_cgpa || null
           }
-        }
-
-        studentNamesMap[app.student_id] = studentName;
+        };
       }
+
+      // Fallback if no embedded data - create a map for backward compatibility
+      const enrichedApp = {
+        ...app,
+        student_details: {
+          name: `Student ${app.student_id || 'Unknown'}`,
+          email: null,
+          phone: null,
+          skills: [],
+          location: null,
+          experience: null,
+          education: [],
+          experience_years: null,
+          bio: null,
+          resumeUrl: app.resume_url || null,
+          department: null,
+          cgpa: null
+        }
+      };
+
+      return enrichedApp;
     });
 
-    console.log('Fetched student names:', studentNamesMap);
-
-    // Update state with fetched names
-    if (Object.keys(studentNamesMap).length > 0) {
-      setStudentNames(prev => ({ ...prev, ...studentNamesMap }));
-    }
+    return applicationsWithDetails;
   };
 
   const handleViewApplications = async (job) => {
@@ -384,8 +392,11 @@ const JobPostingManagement = () => {
       }
     }
 
-    // Fetch student names using API calls
-    await fetchNamesFromAPI(job.applications);
+    // Enrich applications with student data (similar to JobApplicationReports.jsx)
+    const enrichedApplications = await enrichApplicationsWithStudentData(job.applications, job.job_id);
+
+    // Update the job with enriched applications
+    job.applications = enrichedApplications;
 
     setSelectedJobForApplications(job);
     setShowApplicationsModal(true);
@@ -683,13 +694,22 @@ const JobPostingManagement = () => {
                 </div>
                 <div className={styles.formGroup}>
                   <label>Experience Required</label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.experience_required}
                     onChange={(e) => handleInputChange('experience_required', e.target.value)}
-                    className={styles.formInput}
-                    placeholder="2-5 years"
-                  />
+                    className={styles.formSelect}
+                  >
+                    <option value="">Select experience level</option>
+                    <option value="No experience required">No experience required</option>
+                    <option value="0-1 year">0-1 year</option>
+                    <option value="1-2 years">1-2 years</option>
+                    <option value="2-3 years">2-3 years</option>
+                    <option value="3-5 years">3-5 years</option>
+                    <option value="5-7 years">5-7 years</option>
+                    <option value="7-10 years">7-10 years</option>
+                    <option value="10+ years">10+ years</option>
+                    <option value="15+ years">15+ years</option>
+                  </select>
                 </div>
               </div>
 
@@ -861,7 +881,7 @@ const JobPostingManagement = () => {
                   backgroundColor: theme === 'dark' ? '#444' : '#f9f9f9'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <h4 style={{ margin: 0 }}>Application #{index + 1}</h4>
+                    <h4 style={{ margin: 0 }}>{application.student_details?.name || `Student ${application.student_id}`}</h4>
                     <span style={{
                       padding: '4px 8px',
                       borderRadius: '4px',
@@ -874,25 +894,28 @@ const JobPostingManagement = () => {
                     </span>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                     <div>
-                      <strong>Student Name:</strong> {studentNames[application.student_id] || `Loading...`}
+                      <strong>Email:</strong><br />{application.student_details?.email || 'N/A'}
                     </div>
                     <div>
-                      <strong>Applied Date:</strong> {formatDate(application.created_at || application.applied_date)}
+                      <strong>Phone:</strong><br />{application.student_details?.phone || 'N/A'}
                     </div>
                     <div>
-                      <strong>Last Updated:</strong> {formatDate(application.updated_at)}
+                      <strong>Skills:</strong><br />{application.student_details?.skills && application.student_details.skills.length > 0 ?
+                        application.student_details.skills.join(', ') : 'N/A'}
                     </div>
                     <div>
-                      <strong>Status Verified:</strong> {application.status_verified || 'Not verified'}
+                      <strong>Applied Date:</strong><br />{formatDate(application.created_at || application.applied_date)}
                     </div>
                   </div>
 
                   {application.cover_letter && (
                     <div style={{ marginBottom: '10px' }}>
                       <strong>Cover Letter:</strong>
-                      <p style={{ margin: '5px 0', fontStyle: 'italic' }}>{application.cover_letter}</p>
+                      <p style={{ margin: '5px 0', fontStyle: 'italic', backgroundColor: theme === 'dark' ? '#333' : '#f0f0f0', padding: '8px', borderRadius: '4px' }}>
+                        {application.cover_letter}
+                      </p>
                     </div>
                   )}
 
@@ -909,16 +932,16 @@ const JobPostingManagement = () => {
                       }}
                     >
                       <Eye size={14} style={{ marginRight: '5px' }} />
-                      View Details
+                      View Full Details
                     </button>
 
-                    {application.resume_url && (
+                    {(application.resume_url || application.student_details?.resumeUrl) && (
                       <a
-                        href={application.resume_url}
+                        href={application.resume_url || application.student_details?.resumeUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
-                          backgroundColor: '#6c757d',
+                          backgroundColor: '#28a745',
                           color: '#fff',
                           textDecoration: 'none',
                           padding: '8px 16px',
@@ -927,8 +950,8 @@ const JobPostingManagement = () => {
                           alignItems: 'center'
                         }}
                       >
-                        <Eye size={14} style={{ marginRight: '5px' }} />
-                        Resume
+                        <Download size={14} style={{ marginRight: '5px' }} />
+                        Download Resume
                       </a>
                     )}
                   </div>

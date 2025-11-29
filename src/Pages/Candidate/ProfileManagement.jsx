@@ -220,7 +220,31 @@ const ProfileManagement = () => {
             const loadedData = {
               full_name: profileData.full_name || user.full_name || '',
               phone_number: profileData.phone_number || user.phone_number || '',
-              dob: profileData.dob ? new Date(profileData.dob).toISOString().split('T')[0] : '',
+              dob: (() => {
+                try {
+                  if (profileData.dob) {
+                    // Handle different date formats from API
+                    let date = profileData.dob;
+                    // If it's already in YYYY-MM-DD format, use it directly
+                    if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                      return date;
+                    }
+                    // Otherwise parse it and format it
+                    const parsed = new Date(date);
+                    if (!isNaN(parsed.getTime())) {
+                      // Ensure it's in local timezone for consistent display
+                      const year = parsed.getFullYear();
+                      const month = String(parsed.getMonth() + 1).padStart(2, '0');
+                      const day = String(parsed.getDate()).padStart(2, '0');
+                      return `${year}-${month}-${day}`;
+                    }
+                  }
+                  return '';
+                } catch (error) {
+                  console.warn('Error parsing DOB:', profileData.dob, error);
+                  return '';
+                }
+              })(),
               gender: profileData.gender || user.gender || '',
               address: {
                 street: profileData.address?.street || user.address?.street || '',
@@ -677,7 +701,31 @@ const ProfileManagement = () => {
         setFormData({
           full_name: normalizedData.full_name || '',
           phone_number: normalizedData.phone_number || '',
-          dob: normalizedData.dob ? new Date(normalizedData.dob).toISOString().split('T')[0] : '',
+          dob: (() => {
+            try {
+              if (normalizedData.dob) {
+                // Handle different date formats from API
+                let date = normalizedData.dob;
+                // If it's already in YYYY-MM-DD format, use it directly
+                if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                  return date;
+                }
+                // Otherwise parse it and format it
+                const parsed = new Date(date);
+                if (!isNaN(parsed.getTime())) {
+                  // Ensure it's in local timezone for consistent display
+                  const year = parsed.getFullYear();
+                  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+                  const day = String(parsed.getDate()).padStart(2, '0');
+                  return `${year}-${month}-${day}`;
+                }
+              }
+              return '';
+            } catch (error) {
+              console.warn('Error parsing DOB after update:', normalizedData.dob, error);
+              return '';
+            }
+          })(),
           gender: normalizedData.gender || '',
           address: {
             street: normalizedData.address?.street || '',
@@ -1084,7 +1132,24 @@ const renderStepContent = () => {
             
               <div className={styles.profileField}>
                 <label>Date of Birth</label>
-                <p>{formData.dob ? new Date(formData.dob).toLocaleDateString() : 'Not provided'}</p>
+                <p>{(() => {
+                  // Simple, direct date formatting
+                  try {
+                    if (formData.dob && formData.dob.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                      const date = new Date(formData.dob);
+                      return date.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      });
+                    } else {
+                      console.log('DOB not displaying - value:', JSON.stringify(formData.dob));
+                    }
+                  } catch (error) {
+                    console.error('DOB display error:', error);
+                  }
+                  return 'Not provided';
+                })()}</p>
               </div>
               <div className={styles.profileField}>
                 <label>Gender</label>
@@ -1209,7 +1274,7 @@ const renderStepContent = () => {
   };
 
   return (
-    <div className={`${styles.container}`}>
+    <div className={`${styles.container}`} style={{ minHeight: '100vh', overflowY: 'auto' }}>
       {profileComplete && !isEditMode ? (
         renderProfileView()
       ) : (

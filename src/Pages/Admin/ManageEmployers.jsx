@@ -226,7 +226,8 @@ const ManageEmployers = () => {
   // Handle edit form submission
   const handleEditSubmit = async () => {
     try {
-      await adminService.updateRecruiter(selectedRecruiter.employer_id, editFormData);
+      const { email, ...updatedData } = editFormData;
+      await recruiterService.updateProfile(selectedRecruiter.email, updatedData);
 
       // Refresh the data - only update recruiters state, let useEffect handle filtering/sorting
       const response = await adminService.getAllRecruiters();
@@ -571,7 +572,7 @@ const ManageEmployers = () => {
                   <input
                     type="email"
                     value={editFormData.email}
-                    onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                    readOnly
                     className={styles.formInput}
                     placeholder="Enter email address"
                   />
@@ -700,7 +701,7 @@ const ManageEmployers = () => {
                     <input
                       type="email"
                       value={editFormData.email}
-                      onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                      readOnly
                       className={styles.formInput}
                       placeholder="Enter email address"
                     />
@@ -868,7 +869,8 @@ const ManageEmployers = () => {
                       className={styles.submitBtn}
                       onClick={async () => {
                         try {
-                          await adminService.updateRecruiter(selectedRecruiter.employer_id, editFormData);
+                          const { email, ...updatedData } = editFormData;
+                          await recruiterService.updateProfile(selectedRecruiter.email, updatedData);
 
                           // Refresh the data
                           const response = await adminService.getAllRecruiters();

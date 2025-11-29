@@ -11,7 +11,21 @@ const UPDATE_JOB_URL = 'https://api.bigsources.in/api/job/Updatejobs';
 export const recruiterExternalService = {
   async getAllPostedJobs(employerId) {
     const response = await axios.get(JOBS_URL, { params: { employer_id: employerId } });
-    return response.data;
+    const jobsData = response.data;
+
+    if (jobsData && jobsData.jobs) {
+        for (const job of jobsData.jobs) {
+            const applicantsData = await this.getApplicationCount(job.job_id);
+            job.application_count = applicantsData.application_count || 0;
+        }
+    }
+    
+    return jobsData;
+  },
+
+  async getApplicationCount(jobId) {
+    const response = await axios.get(APPLICANTS_URL, { params: { job_id: jobId } });
+    return { application_count: response.data.applications?.length || 0 };
   },
 
   async getRecruiterProfile(employerId) {

@@ -53,10 +53,13 @@ const PendingJobApplications = () => {
           studentName: 'Loading...',
           studentEmail: '',
           resumeUrl: '',
+          studentPhone: '',
+          studentSkills: [],
           jobTitle: 'Loading...',
           jobLocation: '',
           companyName: 'Loading...',
-          applicationDate: app.created_at || app.posted_date || ''
+          applicationDate: app.created_at || app.posted_date || '',
+          studentDetails: null
         };
 
         // Fetch job details
@@ -67,10 +70,10 @@ const PendingJobApplications = () => {
             );
             if (jobResponse.ok) {
               const jobData = await jobResponse.json();
-              const job = Array.isArray(jobData.jobs) 
+              const job = Array.isArray(jobData.jobs)
                 ? jobData.jobs.find(j => j.job_id === app.job_id) || jobData.jobs[0]
                 : jobData.job || jobData;
-              
+
               if (job) {
                 details.jobTitle = job.job_title || job.title || 'Not specified';
                 details.jobLocation = job.location || 'Not specified';
@@ -82,162 +85,49 @@ const PendingJobApplications = () => {
           }
         }
 
-        // Step 1: Try to get student email from multiple sources
-        let studentEmailToUse = '';
-        
-        // First, try to get email from application data
-        if (app.job_id && app.student_id) {
+        // Fetch application details for the job to get student data (similar to JobApplicationReports)
+        if (app.job_id) {
           try {
-            console.log(`Fetching applicants for job ${app.job_id}, student ${app.student_id}`);
-            const applicantsData = await recruiterExternalService.getAllApplicants(app.job_id);
-            console.log('Applicants data:', applicantsData);
-            
-            // Handle different response structures
-            let applicationsList = [];
-            if (Array.isArray(applicantsData)) {
-              applicationsList = applicantsData;
-            } else if (applicantsData.applications && Array.isArray(applicantsData.applications)) {
-              applicationsList = applicantsData.applications;
-            } else if (applicantsData.data && Array.isArray(applicantsData.data)) {
-              applicationsList = applicantsData.data;
+            // Use the same approach as JobApplicationReports.jsx
+            const applicationsResponse = await adminService.getApplicationsForJob(app.job_id);
+            const applications = applicationsResponse.applications || [];
+
+            // Try to find the specific application for this student, but also get all applications for context
+            const studentApplication = applications.find(a =>
+              a.student_id?.toString() === app.student_id?.toString()
+            ) || applications[0]; // Fallback to first application if exact match fails
+
+            if (studentApplication) {
+              // Use embedded student data directly from the application (similar to JobApplicationReports)
+              details.studentName = studentApplication.student_name || `Student ${app.student_id}`;
+              details.studentEmail = studentApplication.student_email || studentApplication.email || '';
+              details.resumeUrl = studentApplication.resume_url || studentApplication.resume || '';
+              details.studentPhone = studentApplication.student_phone || '';
+              details.studentSkills = studentApplication.student_skills ?
+                studentApplication.student_skills.split(',').map(skill => skill.trim()) : [];
+
+              // Create student details object like JobApplicationReports.jsx
+              details.studentDetails = {
+                name: studentApplication.student_name || "Unknown",
+                email: studentApplication.student_email || studentApplication.email || null,
+                phone: studentApplication.student_phone || null,
+                skills: studentApplication.student_skills ? studentApplication.student_skills.split(',').map(skill => skill.trim()) : [],
+                location: studentApplication.student_location || null,
+                experience: studentApplication.student_experience || null,
+                education: studentApplication.student_university ? [studentApplication.student_university] : [],
+                experience_years: studentApplication.student_experience_years || null,
+                bio: studentApplication.student_bio || null,
+                resumeUrl: studentApplication.resume_url || studentApplication.student_profile?.resume || null,
+                department: studentApplication.student_department || null,
+                cgpa: studentApplication.student_cgpa || null
+              };
             }
-            
-            console.log(`Applications list length: ${applicationsList.length}`);
-            if (applicationsList.length > 0) {
-              console.log('First application structure:', applicationsList[0]);
-              console.log('All application keys:', applicationsList.map(a => Object.keys(a)));
-            }
-            
-            // Try to find matching application by student_id
-            let application = applicationsList.find(a => {
-              const studentIdMatch = a.student_id === app.student_id || 
-                                   a.student_id?.toString() === app.student_id?.toString() ||
-                                   a.user_id === app.student_id ||
-                                   a.user_id?.toString() === app.student_id?.toString() ||
-                                   a.student_id === app.student_id?.toString() ||
-                                   a.user_id === app.student_id?.toString();
-              return studentIdMatch;
-            });
-            
-            // If no match found but there's only one application, use it
-            if (!application && applicationsList.length === 1) {
-              application = applicationsList[0];
-              console.log('Using single application as fallback:', application);
-            }
-            
-            // If still no match, try to find by application_id
-            if (!application && app.application_id) {
-              application = applicationsList.find(a => 
-                a.application_id === app.application_id ||
-                a.id === app.application_id ||
-                a.application_id?.toString() === app.application_id?.toString()
-              );
-              console.log('Found by application_id:', application);
-            }
-            
-            console.log('Final application found:', application);
-            if (application) {
-              // Extract resume URL
-              details.resumeUrl = application.resume_url || 
-                                 application.resume || 
-                                 application.resumeFile || 
-                                 application.resumeUrl || 
-                                 application.resume_file ||
-                                 application.resumeFileUrl ||
-                                 '';
-              
-              // Extract email - check multiple possible field names
-              studentEmailToUse = application.email || 
-                                 application.student_email || 
-                                 application.studentEmail || 
-                                 application.user_email ||
-                                 application.email_address ||
-                                 application.contact_email ||
-                                 '';
-              
-              console.log(`Extracted from application - Email: ${studentEmailToUse}, Resume: ${details.resumeUrl}`);
-              console.log('Application fields:', Object.keys(application));
-            } else {
-              console.warn('Could not find matching application. Available applications:', applicationsList);
-            }
-          } catch (err) {
-            console.warn(`Failed to fetch application details for job ${app.job_id}:`, err);
+          } catch (error) {
+            console.error(`Failed to fetch application details for job ${app.job_id}, student ${app.student_id}:`, error);
           }
         }
 
-        // Step 2: Try to get email from task data itself
-        if (!studentEmailToUse && app.email) {
-          studentEmailToUse = app.email;
-          console.log(`Using email from task data: ${app.email}`);
-        }
-
-        // Step 3: If student_id looks like an email, use it
-        if (!studentEmailToUse && app.student_id && typeof app.student_id === 'string' && app.student_id.includes('@')) {
-          studentEmailToUse = app.student_id;
-          console.log(`Using student_id as email: ${studentEmailToUse}`);
-        }
-
-        // Step 4: Fetch student profile using email
-        if (studentEmailToUse) {
-          try {
-            console.log(`Fetching student profile for email: ${studentEmailToUse}`);
-            const profileResponse = await studentService.fetchProfileDetails(studentEmailToUse);
-            console.log('Profile response:', profileResponse);
-            
-            // Handle response structure from withErrorHandling wrapper
-            if (profileResponse && profileResponse.success && profileResponse.data) {
-              const apiResponse = profileResponse.data;
-              
-              // Handle different API response structures
-              let profile = null;
-              if (apiResponse.data && apiResponse.data.profile) {
-                profile = apiResponse.data.profile;
-              } else if (apiResponse.data) {
-                profile = apiResponse.data;
-              } else if (apiResponse.profile) {
-                profile = apiResponse.profile;
-              } else if (apiResponse) {
-                profile = apiResponse;
-              }
-              
-              if (profile && typeof profile === 'object') {
-                // Extract student name
-                details.studentName = profile.full_name || 
-                                     profile.name || 
-                                     `${profile.first_name || ''} ${profile.last_name || ''}`.trim() ||
-                                     'Unknown Student';
-                
-                // Update email if we got a better one
-                if (profile.email) {
-                  details.studentEmail = profile.email;
-                } else {
-                  details.studentEmail = studentEmailToUse;
-                }
-                
-                // Get resume URL if not already set
-                if (!details.resumeUrl) {
-                  details.resumeUrl = profile.resumeUrl || 
-                                     profile.resume || 
-                                     profile.resumeFile || 
-                                     profile.resume_url ||
-                                     profile.resume_file || '';
-                }
-                
-                console.log(`✅ Student details fetched - Name: ${details.studentName}, Email: ${details.studentEmail}, Resume: ${details.resumeUrl}`);
-              } else {
-                console.warn('Profile data structure unexpected:', profile);
-              }
-            } else if (profileResponse && !profileResponse.success) {
-              console.warn('Profile fetch failed:', profileResponse.error);
-            }
-          } catch (emailErr) {
-            console.error(`Failed to fetch student by email ${studentEmailToUse}:`, emailErr);
-          }
-        } else {
-          console.warn(`⚠️ No email found for student_id: ${app.student_id}. Cannot fetch student details.`);
-        }
-
-        // Fetch company name if recruiter_id is available
+        // Fetch company name if recruiter_id is available and company name not found
         if (app.recruiter_id && details.companyName === 'Loading...') {
           try {
             const recruiterData = await recruiterExternalService.getRecruiterCompanyName(app.recruiter_id);
@@ -266,10 +156,13 @@ const PendingJobApplications = () => {
           studentName: `Student ${app.student_id || 'Unknown'}`,
           studentEmail: '',
           resumeUrl: '',
+          studentPhone: '',
+          studentSkills: [],
           jobTitle: app.title || 'Not specified',
           jobLocation: app.location || 'Not specified',
           companyName: app.company_name || 'Unknown Company',
-          applicationDate: app.created_at || app.posted_date || ''
+          applicationDate: app.created_at || app.posted_date || '',
+          studentDetails: null
         };
       }
     }
@@ -374,19 +267,33 @@ const PendingJobApplications = () => {
                   boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <h3 style={{ margin: '0 0 5px 0', color: theme === 'dark' ? '#fff' : '#333' }}>
                         Job Application Review
                       </h3>
-                      <p style={{ margin: '0', color: '#666', fontSize: '14px' }}>
-                        <strong>Company:</strong> {details.companyName || application.company_name || 'Unknown Company'} | 
-                        <strong> Candidate:</strong> {details.studentName || `Student ${application.student_id}`}
-                      </p>
-                      {details.studentEmail && (
-                        <p style={{ margin: '5px 0 0 0', color: '#666', fontSize: '13px' }}>
-                          <strong>Email:</strong> {details.studentEmail}
+                      <div style={{ display: 'grid', gap: '3px' }}>
+                        <p style={{ margin: '0', color: '#666', fontSize: '14px' }}>
+                          <strong>Company:</strong> {details.companyName || application.company_name || 'Unknown Company'}
                         </p>
-                      )}
+                        <p style={{ margin: '0', color: '#666', fontSize: '14px' }}>
+                          <strong>Candidate:</strong> {details.studentName || `Student ${application.student_id}`}
+                        </p>
+                        {details.studentEmail && (
+                          <p style={{ margin: '0', color: '#666', fontSize: '13px' }}>
+                            <strong>Email:</strong> {details.studentEmail}
+                          </p>
+                        )}
+                        {details.studentPhone && (
+                          <p style={{ margin: '0', color: '#666', fontSize: '13px' }}>
+                            <strong>Phone:</strong> {details.studentPhone}
+                          </p>
+                        )}
+                        {details.studentSkills && details.studentSkills.length > 0 && (
+                          <p style={{ margin: '0', color: '#666', fontSize: '13px' }}>
+                            <strong>Skills:</strong> {details.studentSkills.join(', ')}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <div style={{
                       padding: '6px 12px',

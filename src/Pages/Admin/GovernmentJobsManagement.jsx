@@ -139,7 +139,7 @@ const GovernmentJobsManagement = () => {
           return;
         }
 
-        await adminService.createGovernmentJob({
+        const jobData = {
           admin_id: adminId,
           job_title: formData.job_title,
           description: formData.description,
@@ -152,8 +152,11 @@ const GovernmentJobsManagement = () => {
           total_posts: formData.total_posts,
           application_fee: formData.application_fee,
           status: "Open",
-          location: "N/A" // Add location field that might be required
-        });
+          location: "N/A"
+        };
+
+        console.log("Submitting Government Job Data:", jobData);
+        await adminService.createGovernmentJob(jobData);
       }
       
       // Refresh jobs data

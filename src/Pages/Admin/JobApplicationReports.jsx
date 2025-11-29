@@ -20,19 +20,16 @@ const JobApplicationReports = () => {
   const [showCandidateModal, setShowCandidateModal] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [loadingMessage, setLoadingMessage] = useState('');
-  const [studentNames, setStudentNames] = useState({});
-  const [employerNames, setEmployerNames] = useState({});
   const jobsPerPage = 10;
 
-  // Fetch jobs with application counts
   useEffect(() => {
     const fetchJobReports = async () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await adminService.getJobsWithApplicationCounts();
-        setJobs(data);
-        setFilteredJobs(data);
+        const jobsData = await adminService.getJobsWithApplicationCounts();
+        setJobs(jobsData);
+        setFilteredJobs(jobsData);
       } catch (error) {
         console.error('Failed to fetch job application reports:', error);
         setError('Failed to fetch job application reports. Please try again.');
@@ -73,88 +70,71 @@ const JobApplicationReports = () => {
     return `${salary.min || salary.max} ${salary.currency || 'INR'}`;
   };
 
-  // Function to fetch student and employer names using API calls
-  const fetchNamesFromAPI = async (applications) => {
-    console.log('Fetching names from API for applications:', applications);
-
-    const studentNamesMap = {};
-    const employerNamesMap = {};
-
-    // Get unique student IDs
-    const uniqueStudentIds = [...new Set(applications.map(app => app.student_id).filter(id => id))];
-    const uniqueEmployerIds = [...new Set(applications.map(app => app.employer_id).filter(id => id))];
-
-    console.log('Unique student IDs:', uniqueStudentIds);
-    console.log('Unique employer IDs:', uniqueEmployerIds);
-
-    // Extract names from application data since API calls are failing
-    applications.forEach(app => {
-      // Extract student name from resume URL or other available data
-      if (app.student_id) {
-        let studentName = `Student ${app.student_id}`; // Default fallback
-
-        // Try to extract name from resume URL (e.g., "johndoe" from "https://myresume.com/johndoe.pdf")
-        if (app.resume_url) {
-          try {
-            const urlParts = app.resume_url.split('/');
-            const filename = urlParts[urlParts.length - 1];
-            const namePart = filename.split('.')[0]; // Remove extension
-            if (namePart && namePart !== 'resume' && namePart !== 'cv') {
-              // Capitalize first letter
-              studentName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-            }
-          } catch (e) {
-            // Keep default name if extraction fails
-          }
-        }
-
-        studentNamesMap[app.student_id] = studentName;
-      }
-
-      // For employer names, use the job's company_name since employer API is failing
-      if (app.employer_id) {
-        // Since employer API is failing, we'll use a generic company name
-        // In a real scenario, this would be fetched from employer data
-        employerNamesMap[app.employer_id] = `Company ${app.employer_id}`;
-      }
-    });
-
-    console.log('Fetched student names:', studentNamesMap);
-    console.log('Fetched employer names:', employerNamesMap);
-
-    // Update state with fetched names
-    if (Object.keys(studentNamesMap).length > 0) {
-      setStudentNames(prev => ({ ...prev, ...studentNamesMap }));
-    }
-    if (Object.keys(employerNamesMap).length > 0) {
-      setEmployerNames(prev => ({ ...prev, ...employerNamesMap }));
-    }
-  };
-
   const handleViewApplications = async (job) => {
-    // If applications are not loaded yet, show loading indicator
-    if (job.application_count > 0 && (!job.applications || job.applications.length === 0)) {
-      alert('Applications data is loading. Please wait a moment and try again.');
-      return;
-    }
-
-    // Show applications in a modal
-    const applications = job.applications || [];
-    if (applications.length === 0) {
-      alert('No applications found for this job.');
-      return;
-    }
-
-    // Fetch student and employer names using API calls
-    await fetchNamesFromAPI(applications);
-
-    setSelectedJob(job);
+    setSelectedJob({ ...job, applications: [] });
     setShowModal(true);
+    setLoadingMessage('Loading applications...');
+
+    try {
+      const applicationsData = await adminService.getApplicationsForJob(job.id);
+      const applications = applicationsData.applications || [];
+
+      // Applications already contain full student data from the API
+      const applicationsWithDetails = applications.map((app) => {
+        // Student data is embedded directly in the application object
+        // Fields like student_name, student_email, student_phone, student_skills, etc. are already available
+        return {
+          ...app,
+          student_details: {
+            name: app.student_name || "Unknown",
+            email: app.student_email || app.email || null,
+            phone: app.student_phone || null,
+            skills: app.student_skills ? app.student_skills.split(',').map(skill => skill.trim()) : [],
+            location: app.student_location || null,
+            experience: app.student_experience || null,
+            education: app.student_university ? [app.student_university] : [],
+            experience_years: app.student_experience_years || null,
+            bio: app.student_bio || null,
+            resumeUrl: app.resume_url || app.student_profile?.resume || null,
+            department: app.student_department || null,
+            cgpa: app.student_cgpa || null
+          }
+        };
+      });
+
+      setSelectedJob({ ...job, applications: applicationsWithDetails, application_count: applicationsWithDetails.length });
+    } catch (e) {
+      console.error(`Failed to fetch applications for job ${job.id}`, e);
+      // Optionally set an error message to display in the modal
+    } finally {
+      setLoadingMessage('');
+    }
   };
 
-  const handleViewCandidateDetails = (candidate) => {
-    setSelectedCandidate(candidate);
+  const handleViewCandidateDetails = async (candidate) => {
+    setSelectedCandidate({ ...candidate, loading: true });
     setShowCandidateModal(true);
+
+    // If we don't have full student details and we have an email, try to fetch them
+    if (!candidate.student_details && candidate.email) {
+      try {
+        const studentDetails = await studentService.fetchProfileDetails(candidate.email);
+        setSelectedCandidate({
+          ...candidate,
+          student_details: studentDetails,
+          loading: false
+        });
+      } catch (error) {
+        console.error('Failed to fetch detailed student profile:', error);
+        setSelectedCandidate({
+          ...candidate,
+          student_details: null,
+          loading: false
+        });
+      }
+    } else {
+      setSelectedCandidate({ ...candidate, loading: false });
+    }
   };
 
   const handleExportToExcel = async (job) => {
@@ -171,22 +151,64 @@ const JobApplicationReports = () => {
     }
 
     try {
-      const exportData = job.applications.map(app => ({
-        'Application ID': app.application_id || 'Not provided',
-        'Student Name': studentNames[app.student_id] || `Student ${app.student_id}`,
-        'Job Title': job.job_title || 'Not provided',
-        'Company Name': job.company_name || 'Not provided',
-        'Application Status': app.status || 'pending',
-        'Status Verified': app.status_verified || 'Not verified',
-        'Application Date': formatDate(app.created_at || app.applied_date),
-        'Last Updated': formatDate(app.updated_at),
-        'Resume URL': app.resume_url || app.resume_link || 'Not available',
-        'Cover Letter': app.cover_letter || 'Not provided',
-        'Show to Recruiter': app.to_show_recruiter ? 'Yes' : 'No',
-        'Show to User': app.to_show_user ? 'Yes' : 'No'
-      }));
+      // Prepare applications with candidate details
+      let exportData = [];
 
-      console.log('Export data:', exportData);
+      for (const app of job.applications) {
+        const baseData = {
+          'Application ID': app.application_id || 'Not provided',
+          'Job Title': job.job_title || 'Not provided',
+          'Company Name': job.company_name || 'Not provided',
+          'Application Status': app.status || 'pending',
+          'Status Verified': app.status_verified || 'Not verified',
+          'Application Date': formatDate(app.created_at || app.applied_date),
+          'Last Updated': formatDate(app.updated_at),
+          'Resume URL': app.resume_url || app.resume_link || 'Not available',
+          'Cover Letter': app.cover_letter || 'Not provided',
+          'Show to Recruiter': app.to_show_recruiter ? 'Yes' : 'No',
+          'Show to User': app.to_show_user ? 'Yes' : 'No'
+        };
+
+        // Add candidate profile information if available
+        if (app.student_details) {
+          const profile = app.student_details;
+          exportData.push({
+            ...baseData,
+            'Candidate Name': profile.name || profile.full_name || app.student_name || 'Unknown',
+            'Email': profile.email || app.student_id || 'Not provided',
+            'Phone': profile.phone || profile.phone_number || 'Not provided',
+            'Location': profile.location || profile.address || 'Not provided',
+            'Experience': profile.experience || (profile.experience_years ? `${profile.experience_years} years` : 'Not provided'),
+            'Skills': Array.isArray(profile.skills) ? profile.skills.join(', ') : (profile.skills || 'Not provided'),
+            'Education': Array.isArray(profile.education)
+              ? profile.education.map(edu =>
+                  typeof edu === 'string' ? edu :
+                  `${edu.degree || ''} ${edu.institution || ''} ${edu.year || ''}`.trim()
+                ).join('; ')
+              : (profile.education || 'Not provided'),
+            'Bio': profile.bio || 'Not provided',
+            'Date of Birth': profile.dob || 'Not provided',
+            'Gender': profile.gender || 'Not provided'
+          });
+        } else {
+          // If no detailed profile, still include basic info
+          exportData.push({
+            ...baseData,
+            'Candidate Name': app.student_name || 'Unknown',
+            'Email': 'Not available (fetch failed)',
+            'Phone': 'Not available (fetch failed)',
+            'Location': 'Not available (fetch failed)',
+            'Experience': 'Not available (fetch failed)',
+            'Skills': 'Not available (fetch failed)',
+            'Education': 'Not available (fetch failed)',
+            'Bio': 'Not available (fetch failed)',
+            'Date of Birth': 'Not available (fetch failed)',
+            'Gender': 'Not available (fetch failed)'
+          });
+        }
+      }
+
+      console.log('Enhanced export data with candidate details:', exportData);
 
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
@@ -195,7 +217,7 @@ const JobApplicationReports = () => {
       // Generate filename with job title and company
       const sanitizedCompany = (job.company_name || 'Unknown').replace(/[^a-zA-Z0-9_]/g, '_');
       const sanitizedJobTitle = (job.job_title || job.title || 'Job').replace(/[^a-zA-Z0-9_]/g, '_');
-      const filename = `${sanitizedCompany}_${sanitizedJobTitle}_Applications.xlsx`;
+      const filename = `${sanitizedCompany}_${sanitizedJobTitle}_Applications_with_Candidate_Details.xlsx`;
 
       console.log('Attempting to download file:', filename);
 
@@ -213,7 +235,7 @@ const JobApplicationReports = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      console.log('Excel file download triggered successfully');
+      console.log('Excel file with candidate details download triggered successfully');
 
     } catch (error) {
       console.error('Error exporting Excel:', error);
@@ -360,18 +382,16 @@ const JobApplicationReports = () => {
                 <td>
                   <div className={styles.actionButtons}>
                     <button
-                      className={`${styles.actionBtn} ${job.application_count > 0 ? styles.infoBtn : styles.disabledBtn}`}
+                      className={`${styles.actionBtn} ${styles.infoBtn}`}
                       title="View Applications"
                       onClick={() => handleViewApplications(job)}
-                      disabled={job.application_count === 0}
                     >
                       <Eye size={16} />
                     </button>
                     <button
-                      className={`${styles.actionBtn} ${job.application_count > 0 ? styles.exportBtn : styles.disabledBtn}`}
+                      className={`${styles.actionBtn} ${styles.exportBtn}`}
                       title="Export to Excel"
                       onClick={() => handleExportToExcel(job)}
-                      disabled={job.application_count === 0}
                     >
                       <Download size={16} />
                     </button>
@@ -505,83 +525,91 @@ const JobApplicationReports = () => {
               </button>
             </div>
 
-            <div style={{ display: 'grid', gap: '15px' }}>
-              {selectedJob.applications.map((application, index) => (
-                <div key={application.application_id || index} style={{
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  padding: '15px',
-                  backgroundColor: theme === 'dark' ? '#444' : '#f9f9f9'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <h4 style={{ margin: 0 }}>Application #{index + 1}</h4>
-                    <span style={{
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      backgroundColor: application.status === 'Shortlisted' ? '#28a745' :
-                                     application.status === 'Rejected' ? '#dc3545' : '#ffc107',
-                      color: '#fff',
-                      fontSize: '12px'
+            {loadingMessage ? (
+              <div style={{ textAlign: 'center', padding: '20px' }}>{loadingMessage}</div>
+            ) : (
+              <div style={{ display: 'grid', gap: '15px' }}>
+                {selectedJob.applications && selectedJob.applications.length > 0 ? (
+                  selectedJob.applications.map((application, index) => (
+                    <div key={application.application_id || index} style={{
+                      border: '1px solid #ddd',
+                      borderRadius: '8px',
+                      padding: '15px',
+                      backgroundColor: theme === 'dark' ? '#444' : '#f9f9f9'
                     }}>
-                      {application.status || 'pending'}
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                    <div>
-                      <strong>Applied Date:</strong> {formatDate(application.created_at || application.applied_date)}
-                    </div>
-                    <div>
-                      <strong>Last Updated:</strong> {formatDate(application.updated_at)}
-                    </div>
-                  </div>
-
-                  {application.cover_letter && (
-                    <div style={{ marginBottom: '10px' }}>
-                      <strong>Cover Letter:</strong>
-                      <p style={{ margin: '5px 0', fontStyle: 'italic' }}>{application.cover_letter}</p>
-                    </div>
-                  )}
-
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button
-                      onClick={() => handleViewCandidateDetails(application)}
-                      style={{
-                        backgroundColor: '#007bff',
-                        color: '#fff',
-                        border: 'none',
-                        padding: '8px 16px',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <Eye size={14} style={{ marginRight: '5px' }} />
-                      View Details
-                    </button>
-
-                    {application.resume_url && (
-                      <a
-                        href={application.resume_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          backgroundColor: '#6c757d',
-                          color: '#fff',
-                          textDecoration: 'none',
-                          padding: '8px 16px',
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <h4 style={{ margin: 0 }}>{application.student_name}</h4>
+                        <span style={{
+                          padding: '4px 8px',
                           borderRadius: '4px',
-                          display: 'inline-flex',
-                          alignItems: 'center'
-                        }}
-                      >
-                        <Download size={14} style={{ marginRight: '5px' }} />
-                        Resume
-                      </a>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+                          backgroundColor: application.status === 'Shortlisted' ? '#28a745' :
+                                         application.status === 'Rejected' ? '#dc3545' : '#ffc107',
+                          color: '#fff',
+                          fontSize: '12px'
+                        }}>
+                          {application.status || 'pending'}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                        <div>
+                          <strong>Applied Date:</strong> {formatDate(application.created_at || application.applied_date)}
+                        </div>
+                        <div>
+                          <strong>Last Updated:</strong> {formatDate(application.updated_at)}
+                        </div>
+                      </div>
+
+                      {application.cover_letter && (
+                        <div style={{ marginBottom: '10px' }}>
+                          <strong>Cover Letter:</strong>
+                          <p style={{ margin: '5px 0', fontStyle: 'italic' }}>{application.cover_letter}</p>
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button
+                          onClick={() => handleViewCandidateDetails(application)}
+                          style={{
+                            backgroundColor: '#007bff',
+                            color: '#fff',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Eye size={14} style={{ marginRight: '5px' }} />
+                          View Details
+                        </button>
+
+                        {application.resume_url && (
+                          <a
+                            href={application.resume_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              backgroundColor: '#6c757d',
+                              color: '#fff',
+                              textDecoration: 'none',
+                              padding: '8px 16px',
+                              borderRadius: '4px',
+                              display: 'inline-flex',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <Download size={14} style={{ marginRight: '5px' }} />
+                            Resume
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div>No applications found for this job.</div>
+                )}
+              </div>
+            )}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
               <button
@@ -622,13 +650,13 @@ const JobApplicationReports = () => {
             padding: '20px',
             borderRadius: '8px',
             width: '90%',
-            maxWidth: '800px',
+            maxWidth: '900px',
             maxHeight: '90%',
             overflowY: 'auto',
             color: theme === 'dark' ? '#fff' : '#000'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3>Candidate Application Details</h3>
+              <h3>Candidate Application & Profile Details</h3>
               <button
                 onClick={() => setShowCandidateModal(false)}
                 style={{
@@ -643,101 +671,220 @@ const JobApplicationReports = () => {
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-              <div>
-                <label style={{ fontWeight: 'bold' }}>Application ID:</label>
-                <p>{selectedCandidate.application_id}</p>
+            {selectedCandidate.loading ? (
+              <div style={{ textAlign: 'center', padding: '20px' }}>
+                <div className={styles.loadingSpinner}></div>
+                <p>Loading candidate details...</p>
               </div>
-              <div>
-                <label style={{ fontWeight: 'bold' }}>Student Name:</label>
-                <p>{studentNames[selectedCandidate.student_id] || `Loading...`}</p>
-              </div>
-              <div>
-                <label style={{ fontWeight: 'bold' }}>Job Title:</label>
-                <p>{selectedJob?.job_title || 'Not available'}</p>
-              </div>
-              <div>
-                <label style={{ fontWeight: 'bold' }}>Company Name:</label>
-                <p>{employerNames[selectedCandidate.employer_id] || `Loading...`}</p>
-              </div>
-              <div>
-                <label style={{ fontWeight: 'bold' }}>Application Status:</label>
-                <p style={{
-                  display: 'inline-block',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  backgroundColor: selectedCandidate.status === 'Shortlisted' ? '#28a745' :
-                                 selectedCandidate.status === 'Rejected' ? '#dc3545' : '#ffc107',
-                  color: '#fff'
-                }}>
-                  {selectedCandidate.status || 'pending'}
-                </p>
-              </div>
-              <div>
-                <label style={{ fontWeight: 'bold' }}>Status Verified:</label>
-                <p>{selectedCandidate.status_verified || 'Not verified'}</p>
-              </div>
-              <div>
-                <label style={{ fontWeight: 'bold' }}>Applied Date:</label>
-                <p>{formatDate(selectedCandidate.created_at || selectedCandidate.applied_date)}</p>
-              </div>
-              <div>
-                <label style={{ fontWeight: 'bold' }}>Last Updated:</label>
-                <p>{formatDate(selectedCandidate.updated_at)}</p>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ fontWeight: 'bold' }}>Show to Recruiter:</label>
-              <p>{selectedCandidate.to_show_recruiter ? 'Yes' : 'No'}</p>
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ fontWeight: 'bold' }}>Show to User:</label>
-              <p>{selectedCandidate.to_show_user ? 'Yes' : 'No'}</p>
-            </div>
-
-            {selectedCandidate.cover_letter && (
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ fontWeight: 'bold' }}>Cover Letter:</label>
+            ) : (
+              <div style={{ display: 'grid', gap: '20px' }}>
+                {/* Application Details Section */}
                 <div style={{
-                  padding: '10px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  backgroundColor: theme === 'dark' ? '#444' : '#f9f9f9',
-                  marginTop: '5px'
+                  border: '2px solid #007bff',
+                  borderRadius: '8px',
+                  padding: '15px',
+                  backgroundColor: theme === 'dark' ? '#2a4a6b' : '#f8f9ff'
                 }}>
-                  {selectedCandidate.cover_letter}
+                  <h4 style={{ margin: '0 0 15px 0', color: '#007bff' }}>Application Details</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                    <div>
+                      <label style={{ fontWeight: 'bold' }}>Application ID:</label>
+                      <p>{selectedCandidate.application_id}</p>
+                    </div>
+                    <div>
+                      <label style={{ fontWeight: 'bold' }}>Student Name:</label>
+                      <p>{selectedCandidate.student_name || 'Unknown'}</p>
+                    </div>
+                    <div>
+                      <label style={{ fontWeight: 'bold' }}>Job Title:</label>
+                      <p>{selectedJob?.job_title || 'Not available'}</p>
+                    </div>
+                    <div>
+                      <label style={{ fontWeight: 'bold' }}>Company Name:</label>
+                      <p>{selectedJob?.company_name || 'Unknown'}</p>
+                    </div>
+                    <div>
+                      <label style={{ fontWeight: 'bold' }}>Application Status:</label>
+                      <p style={{
+                        display: 'inline-block',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        backgroundColor: selectedCandidate.status === 'Shortlisted' ? '#28a745' :
+                                       selectedCandidate.status === 'Rejected' ? '#dc3545' : '#ffc107',
+                        color: '#fff'
+                      }}>
+                        {selectedCandidate.status || 'pending'}
+                      </p>
+                    </div>
+                    <div>
+                      <label style={{ fontWeight: 'bold' }}>Status Verified:</label>
+                      <p>{selectedCandidate.status_verified || 'Not verified'}</p>
+                    </div>
+                    <div>
+                      <label style={{ fontWeight: 'bold' }}>Applied Date:</label>
+                      <p>{formatDate(selectedCandidate.created_at || selectedCandidate.applied_date)}</p>
+                    </div>
+                    <div>
+                      <label style={{ fontWeight: 'bold' }}>Last Updated:</label>
+                      <p>{formatDate(selectedCandidate.updated_at)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Candidate Profile Details Section */}
+                {selectedCandidate.student_details && (
+                  <div style={{
+                    border: '2px solid #28a745',
+                    borderRadius: '8px',
+                    padding: '15px',
+                    backgroundColor: theme === 'dark' ? '#2d5a2d' : '#f8fff8'
+                  }}>
+                    <h4 style={{ margin: '0 0 15px 0', color: '#28a745' }}>Candidate Profile</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                      <div>
+                        <label style={{ fontWeight: 'bold' }}>Full Name:</label>
+                        <p>{selectedCandidate.student_details.name || selectedCandidate.student_details.full_name || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 'bold' }}>Email:</label>
+                        <p>{selectedCandidate.student_details.email || selectedCandidate.student_id || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 'bold' }}>Phone:</label>
+                        <p>{selectedCandidate.student_details.phone || selectedCandidate.student_details.phone_number || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 'bold' }}>Location:</label>
+                        <p>{selectedCandidate.student_details.location || selectedCandidate.student_details.address || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 'bold' }}>Experience:</label>
+                        <p>{selectedCandidate.student_details.experience || selectedCandidate.student_details.experience_years ? `${selectedCandidate.student_details.experience_years || ''} years`.trim() : 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 'bold' }}>Skills:</label>
+                        <p>{Array.isArray(selectedCandidate.student_details.skills)
+                          ? selectedCandidate.student_details.skills.join(', ')
+                          : (selectedCandidate.student_details.skills || 'Not provided')
+                        }</p>
+                      </div>
+                      {selectedCandidate.student_details.education && (
+                        <div style={{ gridColumn: 'span 2' }}>
+                          <label style={{ fontWeight: 'bold' }}>Education:</label>
+                          <p>{Array.isArray(selectedCandidate.student_details.education)
+                            ? selectedCandidate.student_details.education.map(edu =>
+                                typeof edu === 'string' ? edu :
+                                `${edu.degree || ''} ${edu.institution || ''} ${edu.year || ''}`.trim()
+                              ).join(', ')
+                            : selectedCandidate.student_details.education
+                          }</p>
+                        </div>
+                      )}
+                      {selectedCandidate.student_details.bio && (
+                        <div style={{ gridColumn: 'span 2' }}>
+                          <label style={{ fontWeight: 'bold' }}>Bio/About:</label>
+                          <p>{selectedCandidate.student_details.bio}</p>
+                        </div>
+                      )}
+                      {selectedCandidate.student_details.resumeUrl || (selectedCandidate.resume_url && selectedCandidate.resume_url !== 'Not available') && (
+                        <div style={{ gridColumn: 'span 2' }}>
+                          <label style={{ fontWeight: 'bold' }}>Resume Details:</label>
+                          <div style={{
+                            padding: '10px',
+                            border: '1px solid #ddd',
+                            borderRadius: '4px',
+                            backgroundColor: theme === 'dark' ? '#555' : '#f8f8f8',
+                            marginTop: '5px'
+                          }}>
+                            <p style={{ margin: '0 0 10px 0' }}>
+                              Resume URL: {selectedCandidate.student_details.resumeUrl || selectedCandidate.resume_url}
+                            </p>
+                            {selectedCandidate.student_details.resumeUrl || selectedCandidate.resume_url ? (
+                              <a
+                                href={selectedCandidate.student_details.resumeUrl || selectedCandidate.resume_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  backgroundColor: '#007bff',
+                                  color: '#fff',
+                                  textDecoration: 'none',
+                                  padding: '6px 12px',
+                                  borderRadius: '4px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  fontSize: '14px'
+                                }}
+                              >
+                                <Download size={14} style={{ marginRight: '5px' }} />
+                                View/Download Resume
+                              </a>
+                            ) : (
+                              <p>Resume not available</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Application Specific Details */}
+                <div style={{ display: 'grid', gap: '15px' }}>
+                  <div>
+                    <label style={{ fontWeight: 'bold' }}>Show to Recruiter:</label>
+                    <p>{selectedCandidate.to_show_recruiter ? 'Yes' : 'No'}</p>
+                  </div>
+
+                  <div>
+                    <label style={{ fontWeight: 'bold' }}>Show to User:</label>
+                    <p>{selectedCandidate.to_show_user ? 'Yes' : 'No'}</p>
+                  </div>
+
+                  {selectedCandidate.cover_letter && (
+                    <div>
+                      <label style={{ fontWeight: 'bold' }}>Cover Letter:</label>
+                      <div style={{
+                        padding: '10px',
+                        border: '1px solid #ddd',
+                        borderRadius: '4px',
+                        backgroundColor: theme === 'dark' ? '#444' : '#f9f9f9',
+                        marginTop: '5px',
+                        whiteSpace: 'pre-wrap'
+                      }}>
+                        {selectedCandidate.cover_letter}
+                      </div>
+                    </div>
+                  )}
+
+                  {(selectedCandidate.resume_url || (selectedCandidate.student_details && selectedCandidate.student_details.resumeUrl)) && (
+                    <div>
+                      <label style={{ fontWeight: 'bold' }}>Resume:</label>
+                      <div style={{ marginTop: '5px' }}>
+                        <a
+                          href={selectedCandidate.resume_url || selectedCandidate.student_details.resumeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            backgroundColor: '#007bff',
+                            color: '#fff',
+                            textDecoration: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '4px',
+                            display: 'inline-flex',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <Download size={14} style={{ marginRight: '5px' }} />
+                          Download Resume
+                        </a>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            {selectedCandidate.resume_url && (
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ fontWeight: 'bold' }}>Resume:</label>
-                <div style={{ marginTop: '5px' }}>
-                  <a
-                    href={selectedCandidate.resume_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      backgroundColor: '#007bff',
-                      color: '#fff',
-                      textDecoration: 'none',
-                      padding: '8px 16px',
-                      borderRadius: '4px',
-                      display: 'inline-flex',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <Download size={14} style={{ marginRight: '5px' }} />
-                    Download Resume
-                  </a>
-                </div>
-              </div>
-            )}
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
               <button
                 onClick={() => setShowCandidateModal(false)}
                 style={{

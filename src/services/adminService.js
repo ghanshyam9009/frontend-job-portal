@@ -255,7 +255,7 @@ export const adminService = {
 
   async updateAdminJob(jobId, jobData) {
     try {
-      const response = await adminApiClient.put(`/job/updateadmintjobs/${jobId}`, jobData);
+      const response = await adminApiClient.post(`/job/updateadminjobs/${jobId}`, jobData);
       return response.data;
     } catch (error) {
       console.error('Error updating admin job:', error);
@@ -471,18 +471,6 @@ export const adminService = {
     }
   },
 
-  async updateRecruiter(recruiterId, recruiterData) {
-    try {
-      const response = await adminApiClient.put(API_ENDPOINTS.admin.updateRecruiter, {
-        employer_id: recruiterId,
-        ...recruiterData
-      });
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  },
-
   async rejectRecruiter(recruiter) {
     try {
       const response = await adminApiClient.put(API_ENDPOINTS.admin.rejectRecruiter, {
@@ -647,129 +635,46 @@ export const adminService = {
     }
   },
 
-  // Job Applications Summary Functions
   async getJobsWithApplicationCounts() {
     try {
-      // Fetch all active jobs using the external API (same as JobListings.jsx)
       const apiUrl = 'https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs';
       const searchParams = {
         page: 1,
-        limit: 1000, // Get all active jobs
+        limit: 1000, 
         status: 'approved'
       };
 
       const queryString = new URLSearchParams(searchParams).toString();
-      const response = await fetch(`${apiUrl}?${queryString}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(`${apiUrl}?${queryString}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const jobsData = await response.json();
-      const jobs = jobsData?.jobs || jobsData.data || jobsData || [];
+      const jobs = jobsData?.jobs || jobsData.data || [];
 
-      console.log(`Fetched ${jobs.length} jobs from external API`);
-
-      // Optimized batch processing to avoid overwhelming the API
-      const { recruiterExternalService } = await import('./recruiterExternalService');
-
-      const BATCH_SIZE = 5; // Process 5 jobs at a time
-      const DELAY_MS = 200; // 200ms delay between batches
-      const RETRY_ATTEMPTS = 2; // Retry failed requests up to 2 times
-
-      const jobsWithCounts = [];
-      const errors = [];
-
-      // Process jobs in batches
-      for (let i = 0; i < jobs.length; i += BATCH_SIZE) {
-        const batch = jobs.slice(i, i + BATCH_SIZE);
-        console.log(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(jobs.length / BATCH_SIZE)} (${batch.length} jobs)`);
-
-        // Process batch in parallel
-        const batchPromises = batch.map(async (job) => {
-          const jobId = job.job_id || job.id;
-
-          // Retry logic for failed API calls
-          for (let attempt = 0; attempt <= RETRY_ATTEMPTS; attempt++) {
-            try {
-              console.log(`Fetching applicants for job ${jobId} (attempt ${attempt + 1})`);
-              const applicantsData = await recruiterExternalService.getAllApplicants(jobId);
-
-              // Handle different response formats from the API
-              let applications = [];
-              let applicationCount = 0;
-
-              if (applicantsData) {
-                if (Array.isArray(applicantsData)) {
-                  // Direct array of applications
-                  applications = applicantsData;
-                  applicationCount = applicantsData.length;
-                } else if (applicantsData.applications && Array.isArray(applicantsData.applications)) {
-                  // Object with applications array and count
-                  applications = applicantsData.applications;
-                  applicationCount = applicantsData.count || applicantsData.applications.length;
-                } else if (typeof applicantsData === 'object' && applicantsData.count !== undefined) {
-                  // Object with count but no applications array
-                  applicationCount = applicantsData.count;
-                  applications = [];
-                }
-              }
-
-              console.log(`Job ${jobId}: ${applicationCount} applications`);
-              return {
-                ...job,
-                application_count: applicationCount,
-                applications: applications
-              };
-            } catch (error) {
-              console.error(`Attempt ${attempt + 1} failed for job ${jobId}:`, error.message);
-
-              if (attempt === RETRY_ATTEMPTS) {
-                // All retry attempts failed
-                errors.push({ jobId, error: error.message });
-                return {
-                  ...job,
-                  application_count: 0,
-                  applications: []
-                };
-              }
-
-              // Wait before retrying (exponential backoff)
-              await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
-            }
-          }
-        });
-
-        // Wait for current batch to complete
-        const batchResults = await Promise.all(batchPromises);
-        jobsWithCounts.push(...batchResults);
-
-        // Add delay between batches (except for the last batch)
-        if (i + BATCH_SIZE < jobs.length) {
-          console.log(`Waiting ${DELAY_MS}ms before next batch...`);
-          await new Promise(resolve => setTimeout(resolve, DELAY_MS));
-        }
-      }
-
-      console.log(`Processing complete. ${jobsWithCounts.length} jobs processed.`);
-      if (errors.length > 0) {
-        console.warn(`${errors.length} jobs had API errors:`, errors);
-      }
-
-      const totalApplications = jobsWithCounts.reduce((sum, job) => sum + (job.application_count || 0), 0);
-      console.log(`Total applications across all jobs: ${totalApplications}`);
-
-      return jobsWithCounts;
+      return jobs.map(job => ({
+        ...job,
+        id: job.job_id,
+        application_count: job.application_count || 0,
+      }));
     } catch (error) {
       console.error('Failed to fetch jobs with application counts:', error);
       return [];
     }
-  }
+  },
+
+  async getApplicationsForJob(jobId) {
+    try {
+        const { recruiterExternalService } = await import('./recruiterExternalService');
+        const applicantsData = await recruiterExternalService.getAllApplicants(jobId);
+        return applicantsData;
+    } catch (error) {
+        console.error(`Failed to fetch applications for job ${jobId}:`, error);
+        return { applications: [] };
+    }
+  },
 };
 
 
