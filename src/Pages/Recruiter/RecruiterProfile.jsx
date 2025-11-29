@@ -75,14 +75,41 @@ const RecruiterProfile = () => {
     setLoading(true);
     try {
       const response = await recruiterService.updateProfile(user.email, formData);
+      console.log('RecruiterProfile - Update response:', response);
+      console.log('RecruiterProfile - User before update:', user);
+
       if (response.success) {
-        const updatedData = response.data.employer || response.data;
-        updateUser(updatedData);
-        setFormData(updatedData);
-        const isComplete = checkProfileComplete(updatedData);
+        const rawUpdatedData = response.data.employer || response.data;
+        console.log('RecruiterProfile - Raw updated data:', rawUpdatedData);
+
+        // Extract only profile fields to avoid overwriting critical auth fields
+        const profileOnlyData = {
+          company_name: rawUpdatedData.company_name,
+          full_name: rawUpdatedData.full_name,
+          phone_number: rawUpdatedData.phone_number,
+          company_website: rawUpdatedData.company_website,
+          industry: rawUpdatedData.industry,
+          company_size: rawUpdatedData.company_size,
+          founded_year: rawUpdatedData.founded_year,
+          description: rawUpdatedData.description,
+          location: rawUpdatedData.location
+        };
+
+        console.log('RecruiterProfile - Sending to updateUser:', profileOnlyData);
+
+        // Update user context with profile data only (preserve role, user_id, email, etc.)
+        updateUser(profileOnlyData);
+
+        // Update local form state with the profile data
+        setFormData(profileOnlyData);
+
+        const isComplete = checkProfileComplete(profileOnlyData);
         setProfileComplete(isComplete);
         setIsEditMode(!isComplete);
         setSuccess('Profile updated successfully');
+
+        // Check user context after update
+        console.log('RecruiterProfile - User after update (should be same):', user);
       } else {
         setError(response.message || 'Failed to update profile');
       }

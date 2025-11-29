@@ -304,27 +304,45 @@ const CompanyProfile = () => {
         // Update local state with successful response data if available
         if (response.data || response.profile) {
           const updatedData = response.data?.profile || response.profile || response.data;
+
+          // Extract only profile fields to avoid overwriting critical auth fields
+          const profileOnlyData = {
+            company_name: updatedData?.company_name,
+            phone_number: updatedData?.phone_number || updatedData?.phone,
+            company_website: updatedData?.company_website || updatedData?.website,
+            industry: updatedData?.industry,
+            company_size: updatedData?.company_size,
+            description: updatedData?.description,
+            address: updatedData?.address,
+            city: updatedData?.city,
+            state: updatedData?.state,
+            country: updatedData?.country,
+            postal_code: updatedData?.postal_code,
+            founded_year: updatedData?.founded_year
+          };
+
+          // Update user context with profile data only (preserve role, user_id, email, etc.)
+          updateUser(profileOnlyData);
+
           // A safer way to update state: spread previous state and override with new values
           // Use nullish coalescing (??) to correctly handle empty strings as valid values
-          if (updatedData && typeof updatedData === 'object') {
-            updateUser(updatedData); // Update global state
-            setProfileData(prev => ({
-              ...prev,
-              company_name: updatedData.company_name ?? prev.company_name,
-              email: updatedData.email ?? prev.email,
-              phone: (updatedData.phone_number ?? updatedData.phone) ?? prev.phone,
-              website: (updatedData.company_website ?? updatedData.website) ?? prev.website,
-              address: updatedData.address ?? prev.address,
-              city: updatedData.city ?? prev.city,
-              state: updatedData.state ?? prev.state,
-              country: updatedData.country ?? prev.country,
-              postal_code: updatedData.postal_code ?? prev.postal_code,
-              industry: updatedData.industry ?? prev.industry,
-              company_size: updatedData.company_size ?? prev.company_size,
-              description: updatedData.description ?? prev.description,
-              founded_year: updatedData.founded_year ?? prev.founded_year,
-            }));
-          }
+          setProfileData(prev => ({
+            ...prev,
+            company_name: updatedData.company_name ?? prev.company_name,
+            email: updatedData.email ?? prev.email,
+            phone: (updatedData.phone_number ?? updatedData.phone) ?? prev.phone,
+            website: (updatedData.company_website ?? updatedData.website) ?? prev.website,
+            address: updatedData.address ?? prev.address,
+            city: updatedData.city ?? prev.city,
+            state: updatedData.state ?? prev.state,
+            country: updatedData.country ?? prev.country,
+            postal_code: updatedData.postal_code ?? prev.postal_code,
+            industry: updatedData.industry ?? prev.industry,
+            company_size: updatedData.company_size ?? prev.company_size,
+            description: updatedData.description ?? prev.description,
+            founded_year: updatedData.founded_year ?? prev.founded_year,
+          }));
+
           console.log('Updated data from response:', updatedData);
         }
       } else {
