@@ -327,6 +327,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
 
       const applicationData = {
         student_id: studentId,
+        student_email: user.email,
         resume_url: user.resume_url || "",
         cover_letter: user.cover_letter || "",
       };

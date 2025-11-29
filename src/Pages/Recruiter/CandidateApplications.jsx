@@ -4,6 +4,7 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
 import RecruiterSidebar from "../../Components/Recruiter/RecruiterSidebar";
 import { recruiterExternalService } from "../../services";
+import { studentService } from "../../services/studentService";
 import { Check, X, ArrowLeft, FileText } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 
@@ -51,7 +52,19 @@ const CandidateApplications = () => {
           }
         }
         
-        setApplications(allApplications);
+        const applicationsWithDetails = await Promise.all(
+          allApplications.map(async (app) => {
+            try {
+              const studentDetails = await studentService.getStudentById(app.student_id);
+              return { ...app, ...studentDetails };
+            } catch (err) {
+              console.error(`Failed to fetch details for student ${app.student_id}:`, err);
+              return { ...app, student_name: "Unknown", student_email: "Unknown" }; // Fallback
+            }
+          })
+        );
+
+        setApplications(applicationsWithDetails);
       } catch (e) {
         console.error(e);
         setError(typeof e === "string" ? e : e?.message || "Failed to load applications");
@@ -169,10 +182,13 @@ const CandidateApplications = () => {
                 <div key={application.application_id} className={styles.applicationCard}>
                   <div className={styles.applicationHeader}>
                     <div className={styles.applicationInfo}>
-                      <h3>{application.job_title}</h3>
-                      <p className={styles.studentId}>Student ID: {application.student_id}</p>
+                      <h3>{application.student_name}</h3>
+                      <p>{application.student_email}</p>
                       <p className={styles.applicationDate}>
-                        Applied: {new Date(application.created_at).toLocaleDateString()}
+                        Applied for: {application.job_title}
+                      </p>
+                      <p className={styles.applicationDate}>
+                        Applied on: {new Date(application.created_at).toLocaleDateString()}
                       </p>
                     </div>
                     <div className={styles.applicationStatus}>

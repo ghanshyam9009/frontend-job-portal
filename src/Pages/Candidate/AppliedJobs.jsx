@@ -4,8 +4,9 @@ import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
 import styles from "./AppliedJobs.module.css";
-import { candidateExternalService } from "../../services";
+import { candidateExternalService, recruiterExternalService } from "../../services";
 import { Briefcase, Eye, Calendar, PartyPopper, X, FileText, Check } from "lucide-react";
+import toast from "react-hot-toast";
 
 const AppliedJobs = () => {
   const navigate = useNavigate();
@@ -19,24 +20,46 @@ const AppliedJobs = () => {
   const [timeline, setTimeline] = useState([]);
 
   useEffect(() => {
-    const userId = user?.user_id || user?.id || '';
+    const userId = user?.user_id || user?.id || "";
     if (!userId) return;
     const fetchApplied = async () => {
       try {
         setLoading(true);
         setError("");
         const data = await candidateExternalService.getAppliedJobs(userId);
-        const mapped = (data?.jobs || []).map((a, idx) => ({
+
+        const jobsWithApps = await Promise.all(
+          (data?.jobs || []).map(async (job) => {
+            try {
+              const applicantsData = await recruiterExternalService.getAllApplicants(job.job_id);
+              const currentUserApplication = (applicantsData.applications || []).find(
+                (app) => app.student_id === userId
+              );
+              return {
+                ...job,
+                application_id: currentUserApplication?.application_id || "",
+              };
+            } catch (error) {
+              console.error(`Failed to fetch applicants for job ${job.job_id}`, error);
+              return job; // Return job without application_id if fetch fails
+            }
+          })
+        );
+
+        const mapped = (jobsWithApps || []).map((a, idx) => ({
           id: a.job_id || idx,
-          title: a.job_title || '',
-          company: a.company_name || '',
-          salary: a.salary_range ? `₹${a.salary_range.min} - ₹${a.salary_range.max}` : 'Salary not disclosed',
-          location: a.location || '',
-          type: a.employment_type || '',
-          appliedDate: a.created_at ? a.created_at.split('T')[0] : '',
-          appliedDateTime: a.created_at || '',
-          status: a.status || 'Under Review',
-          applicationId: a.job_id || '',
+          title: a.job_title || "",
+          company: a.company_name || "",
+          salary:
+            a.salary_range && a.salary_range.min && a.salary_range.max
+              ? `₹${a.salary_range.min} - ₹${a.salary_range.max}`
+              : "Salary not disclosed",
+          location: a.location && a.location.toLowerCase() !== "n/a" ? a.location : "",
+          type: a.employment_type || "",
+          appliedDate: a.created_at ? a.created_at.split("T")[0] : "",
+          appliedDateTime: a.created_at || "",
+          status: a.status || "Under Review",
+          applicationId: a.application_id || "",
           is_premium: a.premium_job || false,
         }));
 
@@ -98,22 +121,26 @@ const AppliedJobs = () => {
     }
   };
 
-  const handleTrack = async (jobId) => {
-    if (!jobId) return alert('No job ID');
+  const handleTrack = async (applicationId) => {
+    if (!applicationId) {
+      return toast.error(
+        "Application ID not found. The application may still be processing. Please try again later."
+      );
+    }
 
     try {
-      const data = await candidateExternalService.getApplicationStatus(jobId);
+      const data = await candidateExternalService.getApplicationStatus(applicationId);
 
       // Add a defensive check for the response data
       if (!data || typeof data.status !== 'string') {
         console.error("Invalid status data received:", data);
-        alert('Could not retrieve valid tracking information.');
+        toast.error("Could not retrieve valid tracking information.");
         return;
       }
 
       setTrackingInfo(data);
 
-      const statusOrder = ['pending', 'applied', 'under review', 'interview scheduled', 'offer received', 'hired'];
+      const statusOrder = ['pending', 'applied', 'under review', 'shortlisted', 'interview scheduled', 'offer received', 'hired'];
       const currentStatus = data.status.toLowerCase();
       const isRejected = currentStatus === 'rejected';
       const currentIndex = statusOrder.indexOf(currentStatus);
@@ -122,6 +149,7 @@ const AppliedJobs = () => {
         // Ensure applied_date or created_at is used for the first step
         { stage: 'Application Sent', status: 'Pending', date: data.applied_date || data.created_at || null },
         { stage: 'Under Review', status: 'Pending', date: null },
+        { stage: 'Shortlisted', status: 'Pending', date: null },
         { stage: 'Interview Scheduled', status: 'Pending', date: null },
         { stage: 'Offer Received', status: 'Pending', date: null },
         { stage: 'Hired', status: 'Pending', date: null },
@@ -152,12 +180,14 @@ const AppliedJobs = () => {
       setTimeline(timeline);
       setIsModalOpen(true);
     } catch (e) {
-      console.error('Failed to fetch application status:', e);
-      if (e.error === 'Application not found') {
-        alert('Could not find application. It might still be processing. Please try again later.');
+      console.error("Failed to fetch application status:", e);
+      if (e.error === "Application not found") {
+        toast.error(
+          "Could not find application. It might still be processing. Please try again later."
+        );
       } else {
-        const errorMessage = e?.message || 'An unknown error occurred.';
-        alert(`Failed to fetch status: ${errorMessage}`);
+        const errorMessage = e?.message || "An unknown error occurred.";
+        toast.error(`Failed to fetch status: ${errorMessage}`);
       }
     }
   };
@@ -233,7 +263,6 @@ const AppliedJobs = () => {
                   <p className={styles.jobLocation}>{job.location}</p>
                   <div className={styles.jobMeta}>
                     <span className={styles.appliedDate}>Applied: {job.appliedDate}</span>
-                    <span className={styles.applicationId}>ID: {job.applicationId}</span>
                   </div>
                   {job.interviewDate && (
                     <div className={styles.interviewInfo}>
@@ -248,9 +277,15 @@ const AppliedJobs = () => {
                     >
                       View Details
                     </button>
-                    <button 
+                    <button
                       className={styles.trackBtn}
                       onClick={() => handleTrack(job.applicationId)}
+                      disabled={!job.applicationId}
+                      title={
+                        !job.applicationId
+                          ? "Tracking information is not yet available for this application."
+                          : "Track your application status"
+                      }
                     >
                       Track Application
                     </button>

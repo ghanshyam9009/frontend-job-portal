@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { recruiterExternalService } from "../../services";
+import { studentService } from "../../services/studentService";
 import { useSidebar } from "../../Contexts/SidebarContext";
 import { Plus, Users, Star, Building, FileText, Circle, Trophy, Calendar, Briefcase, Mail, ArrowLeft } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
@@ -87,7 +88,19 @@ const RecruiterDashboard = () => {
         );
         const recent = sortedApplications.slice(0, 4);
 
-        setRecentApplications(recent);
+        const recentWithDetails = await Promise.all(
+          recent.map(async (app) => {
+            try {
+              const studentDetails = await studentService.getStudentById(app.student_id);
+              return { ...app, ...studentDetails };
+            } catch (err) {
+              console.error(`Failed to fetch details for student ${app.student_id}:`, err);
+              return { ...app, student_name: "Unknown", student_email: "Unknown" }; // Fallback
+            }
+          })
+        );
+
+        setRecentApplications(recentWithDetails);
         setStats({
           totalJobs,
           activeJobs,
@@ -368,7 +381,8 @@ const RecruiterDashboard = () => {
                         <div key={application.application_id} className={styles.applicationCard}>
                           <div className={styles.applicationHeader}>
                             <div className={styles.candidateInfo}>
-                              <h4>{application.candidateName}</h4>
+                              <h4>{application.student_name}</h4>
+                              <p>{application.student_email}</p>
                               <p>{application.job_title}</p>
                             </div>
                             <span className={`${styles.statusBadge} ${getStatusClass(application.status)}`}>
@@ -376,7 +390,6 @@ const RecruiterDashboard = () => {
                             </span>
                           </div>
                           <div className={styles.applicationDetails}>
-                            <span className={styles.studentId}>Student ID: {application.student_id}</span>
                             <span className={styles.appliedDate}>
                               Applied {new Date(application.created_at).toLocaleDateString()}
                             </span>

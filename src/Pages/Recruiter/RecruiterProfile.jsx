@@ -77,7 +77,7 @@ const RecruiterProfile = () => {
       const response = await recruiterService.updateProfile(user.email, formData);
       if (response.success) {
         const updatedData = response.data.employer || response.data;
-        updateUser({...user, ...updatedData});
+        updateUser(updatedData);
         setFormData(updatedData);
         const isComplete = checkProfileComplete(updatedData);
         setProfileComplete(isComplete);

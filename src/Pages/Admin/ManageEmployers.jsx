@@ -774,6 +774,34 @@ const ManageEmployers = () => {
               </div>
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
+                  <label>KYC Type</label>
+                  <p>{selectedRecruiter.kyc_type || 'N/A'}</p>
+                </div>
+                <div className={styles.formGroup}>
+                  <label>KYC Document Number</label>
+                  <p>{selectedRecruiter.kyc_document_number || 'N/A'}</p>
+                </div>
+              </div>
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label>KYC Status</label>
+                  <p>{selectedRecruiter.kyc_status || 'N/A'}</p>
+                </div>
+                <div className={styles.formGroup}>
+                  <label>KYC Document</label>
+                  <p>
+                    {selectedRecruiter.kycDocUrl ? (
+                      <a href={selectedRecruiter.kycDocUrl} target="_blank" rel="noopener noreferrer">
+                        View Document
+                      </a>
+                    ) : (
+                      'Not Uploaded'
+                    )}
+                  </p>
+                </div>
+              </div>
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
                   <label>Status</label>
                   <p>{getStatusBadge(selectedRecruiter.status)}</p>
                 </div>

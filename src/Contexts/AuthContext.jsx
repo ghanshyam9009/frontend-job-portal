@@ -157,6 +157,11 @@ export const AuthProvider = ({ children }) => {
       return output;
     };
 
+    // Ensure role is consistent ('Recruiter' instead of 'Employer')
+    if (updatedUserData.role === 'Employer') {
+      updatedUserData.role = 'Recruiter';
+    }
+
     const updatedUser = deepMerge(user || {}, updatedUserData);
     console.log('AuthContext - Updating user from:', user);
     console.log('AuthContext - Updated data:', updatedUserData);

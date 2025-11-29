@@ -8,6 +8,7 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import { Edit, Users, CircleX, FileText, MapPin, Check, ArrowLeft, ExternalLink } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 import { recruiterExternalService } from "../../services";
+import { studentService } from "../../services/studentService";
 
 const ManageJobs = () => {
   const navigate = useNavigate();
@@ -111,9 +112,22 @@ const ManageJobs = () => {
       setApplicationsLoading(true);
       setSelectedJobId(jobId);
       const applicationsData = await recruiterExternalService.getAllApplicants(jobId);
+      
+      const applicationsWithDetails = await Promise.all(
+        (applicationsData.applications || []).map(async (app) => {
+          try {
+            const studentDetails = await studentService.getStudentById(app.student_id);
+            return { ...app, ...studentDetails };
+          } catch (err) {
+            console.error(`Failed to fetch details for student ${app.student_id}:`, err);
+            return { ...app, student_name: "Unknown", student_email: "Unknown" }; // Fallback
+          }
+        })
+      );
+
       setApplications(prev => ({
         ...prev,
-        [jobId]: applicationsData.applications || []
+        [jobId]: applicationsWithDetails
       }));
       setShowApplicationsModal(true);
     } catch (e) {
@@ -317,7 +331,8 @@ const ManageJobs = () => {
                       <div key={application.application_id} className={styles.applicationCard}>
                         <div className={styles.applicationHeader}>
                           <div className={styles.applicationInfo}>
-                            <h4>Student ID: {application.student_id}</h4>
+                            <h4>{application.student_name}</h4>
+                            <p>{application.student_email}</p>
                             <p className={styles.applicationDate}>
                               Applied: {new Date(application.created_at).toLocaleDateString()}
                             </p>

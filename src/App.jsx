@@ -1,4 +1,5 @@
 import React from 'react'
+import { Toaster } from "react-hot-toast";
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './Contexts/AuthContext'
 import { SidebarProvider } from './Contexts/SidebarContext'
@@ -66,6 +67,7 @@ function App() {
     <AuthProvider>
       <SidebarProvider>
         <BrowserRouter>
+        <Toaster />
           <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/jobs" element={<JobListings/>} />
