@@ -528,83 +528,119 @@ const JobApplicationReports = () => {
             {loadingMessage ? (
               <div style={{ textAlign: 'center', padding: '20px' }}>{loadingMessage}</div>
             ) : (
-              <div style={{ display: 'grid', gap: '15px' }}>
+              <div style={{ overflowX: 'auto' }}>
                 {selectedJob.applications && selectedJob.applications.length > 0 ? (
-                  selectedJob.applications.map((application, index) => (
-                    <div key={application.application_id || index} style={{
-                      border: '1px solid #ddd',
-                      borderRadius: '8px',
-                      padding: '15px',
-                      backgroundColor: theme === 'dark' ? '#444' : '#f9f9f9'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                        <h4 style={{ margin: 0 }}>{application.student_name}</h4>
-                        <span style={{
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          backgroundColor: application.status === 'Shortlisted' ? '#28a745' :
-                                         application.status === 'Rejected' ? '#dc3545' : '#ffc107',
-                          color: '#fff',
-                          fontSize: '12px'
+                  <table style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    backgroundColor: theme === 'dark' ? '#333' : '#fff',
+                    color: theme === 'dark' ? '#fff' : '#000'
+                  }}>
+                    <thead>
+                      <tr style={{
+                        backgroundColor: theme === 'dark' ? '#444' : '#f8f8f8',
+                        borderBottom: '2px solid #ddd'
+                      }}>
+                        <th style={{ padding: '12px 8px', textAlign: 'left', border: '1px solid #ddd' }}>Name</th>
+                        <th style={{ padding: '12px 8px', textAlign: 'left', border: '1px solid #ddd' }}>Email</th>
+                        <th style={{ padding: '12px 8px', textAlign: 'left', border: '1px solid #ddd' }}>Phone</th>
+                        <th style={{ padding: '12px 8px', textAlign: 'left', border: '1px solid #ddd' }}>Skills</th>
+                        <th style={{ padding: '12px 8px', textAlign: 'left', border: '1px solid #ddd' }}>Experience</th>
+                        <th style={{ padding: '12px 8px', textAlign: 'left', border: '1px solid #ddd' }}>Education</th>
+                        <th style={{ padding: '12px 8px', textAlign: 'left', border: '1px solid #ddd' }}>Status</th>
+                        <th style={{ padding: '12px 8px', textAlign: 'left', border: '1px solid #ddd' }}>Applied Date</th>
+                        <th style={{ padding: '12px 8px', textAlign: 'center', border: '1px solid #ddd' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedJob.applications.map((application, index) => (
+                        <tr key={application.application_id || index} style={{
+                          borderBottom: '1px solid #ddd',
+                          backgroundColor: theme === 'dark' ? '#222' : '#f9f9f9'
                         }}>
-                          {application.status || 'pending'}
-                        </span>
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                        <div>
-                          <strong>Applied Date:</strong> {formatDate(application.created_at || application.applied_date)}
-                        </div>
-                        <div>
-                          <strong>Last Updated:</strong> {formatDate(application.updated_at)}
-                        </div>
-                      </div>
-
-                      {application.cover_letter && (
-                        <div style={{ marginBottom: '10px' }}>
-                          <strong>Cover Letter:</strong>
-                          <p style={{ margin: '5px 0', fontStyle: 'italic' }}>{application.cover_letter}</p>
-                        </div>
-                      )}
-
-                      <div style={{ display: 'flex', gap: '10px' }}>
-                        <button
-                          onClick={() => handleViewCandidateDetails(application)}
-                          style={{
-                            backgroundColor: '#007bff',
-                            color: '#fff',
-                            border: 'none',
-                            padding: '8px 16px',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <Eye size={14} style={{ marginRight: '5px' }} />
-                          View Details
-                        </button>
-
-                        {application.resume_url && (
-                          <a
-                            href={application.resume_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              backgroundColor: '#6c757d',
-                              color: '#fff',
-                              textDecoration: 'none',
-                              padding: '8px 16px',
+                          <td style={{ padding: '12px 8px', border: '1px solid #ddd' }}>
+                            {application.student_name || 'Unknown'}
+                          </td>
+                          <td style={{ padding: '12px 8px', border: '1px solid #ddd' }}>
+                            {application.student_email || application.email || 'Not provided'}
+                          </td>
+                          <td style={{ padding: '12px 8px', border: '1px solid #ddd' }}>
+                            {application.student_phone || (application.student_details && application.student_details.phone) || 'Not provided'}
+                          </td>
+                          <td style={{ padding: '12px 8px', border: '1px solid #ddd' }}>
+                            {Array.isArray(application.student_details?.skills) ? application.student_details.skills.join(', ') : (application.student_details?.skills || application.student_skills ? application.student_skills.split(',').map(skill => skill.trim()).join(', ') : 'Not provided')}
+                          </td>
+                          <td style={{ padding: '12px 8px', border: '1px solid #ddd' }}>
+                            {application.student_details?.experience_years ? `${application.student_details.experience_years} years` : (application.student_experience || 'Not provided')}
+                          </td>
+                          <td style={{ padding: '12px 8px', border: '1px solid #ddd' }}>
+                            {Array.isArray(application.student_details?.education)
+                              ? application.student_details.education.map(edu =>
+                                  typeof edu === 'string' ? edu :
+                                  `${edu.degree || ''} ${edu.institution || ''} ${edu.year || ''}`.trim()
+                                ).join('; ')
+                              : (application.student_details?.education || 'Not provided')
+                            }
+                          </td>
+                          <td style={{ padding: '12px 8px', border: '1px solid #ddd' }}>
+                            <span style={{
+                              padding: '4px 8px',
                               borderRadius: '4px',
-                              display: 'inline-flex',
-                              alignItems: 'center'
-                            }}
-                          >
-                            <Download size={14} style={{ marginRight: '5px' }} />
-                            Resume
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  ))
+                              backgroundColor: application.status === 'Shortlisted' ? '#28a745' :
+                                             application.status === 'Rejected' ? '#dc3545' : '#ffc107',
+                              color: '#fff',
+                              fontSize: '12px'
+                            }}>
+                              {application.status || 'pending'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 8px', border: '1px solid #ddd' }}>
+                            {formatDate(application.created_at || application.applied_date)}
+                          </td>
+                          <td style={{ padding: '12px 8px', border: '1px solid #ddd', textAlign: 'center' }}>
+                            <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                              <button
+                                onClick={() => handleViewCandidateDetails(application)}
+                                style={{
+                                  backgroundColor: '#007bff',
+                                  color: '#fff',
+                                  border: 'none',
+                                  padding: '6px 12px',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  fontSize: '12px'
+                                }}
+                              >
+                                <Eye size={14} style={{ marginRight: '3px' }} />
+                                Details
+                              </button>
+
+                              {(application.resume_url || (application.student_details && application.student_details.resumeUrl)) && (
+                                <a
+                                  href={application.resume_url || application.student_details.resumeUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{
+                                    backgroundColor: '#6c757d',
+                                    color: '#fff',
+                                    textDecoration: 'none',
+                                    padding: '6px 12px',
+                                    borderRadius: '4px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    fontSize: '12px'
+                                  }}
+                                >
+                                  <Download size={14} style={{ marginRight: '3px' }} />
+                                  Resume
+                                </a>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 ) : (
                   <div>No applications found for this job.</div>
                 )}
