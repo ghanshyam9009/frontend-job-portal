@@ -1208,7 +1208,7 @@ const toggleBookmark = (jobId) => {
                                      
                                       {/* Premium Badge */}
                                     {!job.is_premium && (
-                                      <div className="absolute bottom-0 left-0 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-xs font-bold px-3   rounded-tr-lg shadow-md">
+                                      <div className="absolute top-0 left-0 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-xs font-bold px-3   rounded-br-lg shadow-md">
                                         PREMIUM
                                       </div>
                                     )}
