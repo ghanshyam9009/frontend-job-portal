@@ -1094,7 +1094,7 @@ const toggleBookmark = (jobId) => {
                 {featuredJobs.slice(0, 5).map(job => (
                                   <div 
                                     key={job.job_id}
-                                    className={`${bgSecondary} rounded-xl shadow-sm border ${borderColor} ${hoverBorder} p-2 hover:shadow-lg transition-all duration-300 relative overflow-hidden cursor-pointer`}
+                                    className={`${bgSecondary} rounded-xl shadow-sm border ${borderColor} ${hoverBorder} p-4 hover:shadow-lg transition-all duration-300 relative overflow-hidden cursor-pointer`}
                                     onClick={() => handleJobClick(job)}
                                   >
                                     
