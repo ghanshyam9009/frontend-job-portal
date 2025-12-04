@@ -634,18 +634,96 @@ const borderColor = isDark ? 'border-gray-700' : 'border-gray-200';
 
 
 
- const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
-  
-const toggleBookmark = (jobId) => {
-    setBookmarkedJobs(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(jobId)) {
-        newSet.delete(jobId);
-      } else {
-        newSet.add(jobId);
+  const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
+
+  // Fetch bookmarked jobs on component mount if user is authenticated
+  useEffect(() => {
+    const fetchBookmarkedJobs = async () => {
+      if (user && isAuthenticated && featuredJobs.length > 0) {
+        try {
+          const userId = user.user_id || user.id;
+          if (userId) {
+            const response = await candidateExternalService.getBookmarkedJobs(userId);
+            console.log('Bookmarked jobs response:', response);
+
+            // Handle different response formats
+            let bookmarks = [];
+            if (response && response.jobs && Array.isArray(response.jobs)) {
+              bookmarks = response.jobs;
+            } else if (response && Array.isArray(response)) {
+              bookmarks = response;
+            } else if (response && typeof response === 'object' && response.bookmarks) {
+              bookmarks = Array.isArray(response.bookmarks) ? response.bookmarks : [response.bookmarks];
+            } else if (response && typeof response === 'object') {
+              // If it's a single job object, make it an array
+              bookmarks = [response];
+            }
+
+            console.log('Processing bookmarks:', bookmarks);
+            console.log('Available job IDs from page:', featuredJobs.map(job => ({ title: job.title, id: job.id, job_id: job.job_id })));
+
+            const bookmarkedJobIds = new Set(bookmarks.map(job => {
+              // Try different possible ID fields
+              const jobId = job.job_id || job.id;
+              console.log('Job bookmark:', job.job_title, '-> ID:', jobId);
+              return jobId;
+            }).filter(Boolean));
+            console.log('Extracted bookmark IDs:', bookmarkedJobIds);
+            setBookmarkedJobs(bookmarkedJobIds);
+          }
+        } catch (error) {
+          console.error('Error fetching bookmarked jobs:', error);
+        }
       }
-      return newSet;
-    });
+    };
+
+    fetchBookmarkedJobs();
+  }, [user, isAuthenticated, featuredJobs]);
+
+  const toggleBookmark = async (jobId) => {
+    if (!isAuthenticated || !user) {
+      // Show login prompt or redirect to login
+      alert('Please log in to bookmark jobs.');
+      navigate('/candidate/login');
+      return;
+    }
+
+    setBookmarkLoading(true);
+    try {
+      const userId = user.user_id || user.id;
+      if (!userId) {
+        alert('User ID not found. Please log in again.');
+        navigate('/candidate/login');
+        return;
+      }
+
+      const isCurrentlyBookmarked = bookmarkedJobs.has(jobId);
+
+      // For now, we'll use the bookmark API which seems to be idempotent
+      // If the job is already bookmarked, calling it again should unbookmark
+      await candidateExternalService.bookmarkJob({
+        user_id: userId,
+        job_id: jobId
+      });
+
+      // Update local state
+      setBookmarkedJobs(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(jobId)) {
+          newSet.delete(jobId);
+        } else {
+          newSet.add(jobId);
+        }
+        return newSet;
+      });
+
+    } catch (error) {
+      console.error('Error toggling bookmark:', error);
+      alert('Failed to update bookmark. Please try again.');
+    } finally {
+      setBookmarkLoading(false);
+    }
   };
   // Calculate time ago from created_at
   const getTimeAgo = (dateString) => {
@@ -1154,7 +1232,7 @@ const toggleBookmark = (jobId) => {
                                         <span className={`${textSecondary} font-bold`}>{job.location}</span>
                                       </div>
                                       <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2.5 py-1.5 rounded-md`}>
-                                        <DollarSign className="w-3 h-3 text-blue-600 flex-shrink-0" />
+                                        <span className="w-3 h-3 text-blue-600 flex-shrink-0 text-xs font-bold">₹</span>
                                         <span className={`${textSecondary} font-bold`}>{job.salary}</span>
                                       </div>
                                       {job.experience_required && (
@@ -1194,16 +1272,16 @@ const toggleBookmark = (jobId) => {
                 
                                   
                 
-                                  <button 
+                                  <button
   onClick={(e) => {
     e.stopPropagation();
-    toggleBookmark(job.job_id);
+    toggleBookmark(job.id);
   }}
   className={`${textSecondary} absolute bottom-2 right-4 hover:text-yellow-500 transition-colors p-1.5 rounded-lg`}
 >
-  <Bookmark 
-    className="w-5 h-5"  
-    fill={bookmarkedJobs.has(job.job_id) ? "currentColor" : "none"} 
+  <Bookmark
+    className="w-5 h-5"
+    fill={bookmarkedJobs.has(job.id) ? "currentColor" : "none"}
   />
 </button>
 

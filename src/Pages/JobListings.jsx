@@ -34,6 +34,7 @@ const JobListings = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalJobs, setTotalJobs] = useState(0);
   const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
   // Autocomplete states
@@ -78,6 +79,42 @@ const JobListings = () => {
     // Scroll to top when page changes
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentPage, filters, querySearch, queryLocation]);
+
+  // Fetch bookmarked jobs on component mount if user is authenticated
+  useEffect(() => {
+    const fetchBookmarkedJobs = async () => {
+      if (user && isAuthenticated && jobs.length > 0) {
+        try {
+          const userId = user.user_id || user.id;
+          if (userId) {
+            const response = await candidateExternalService.getBookmarkedJobs(userId);
+            console.log('JobListings - Bookmarked jobs response:', response);
+
+            // Handle different response formats
+            let bookmarks = [];
+            if (response && response.jobs && Array.isArray(response.jobs)) {
+              bookmarks = response.jobs;
+            } else if (response && Array.isArray(response)) {
+              bookmarks = response;
+            } else if (response && typeof response === 'object' && response.bookmarks) {
+              bookmarks = Array.isArray(response.bookmarks) ? response.bookmarks : [response.bookmarks];
+            } else if (response && typeof response === 'object') {
+              // If it's a single job object, make it an array
+              bookmarks = [response];
+            }
+
+            const bookmarkedJobIds = new Set(bookmarks.map(job => job.job_id).filter(Boolean));
+            console.log('JobListings - Extracted bookmark IDs:', bookmarkedJobIds);
+            setBookmarkedJobs(bookmarkedJobIds);
+          }
+        } catch (error) {
+          console.error('Error fetching bookmarked jobs:', error);
+        }
+      }
+    };
+
+    fetchBookmarkedJobs();
+  }, [user, isAuthenticated, jobs]);
 
   // Filter locations based on queryLocation input
   useEffect(() => {
@@ -402,11 +439,13 @@ const fetchJobs = async () => {
 
   const toggleBookmark = async (jobId) => {
     if (!isAuthenticated || !user) {
+      // Show login prompt or redirect to login
       alert('Please log in to bookmark jobs.');
       navigate('/candidate/login');
       return;
     }
 
+    setBookmarkLoading(true);
     try {
       const userId = user.user_id || user.id;
       if (!userId) {
@@ -415,20 +454,31 @@ const fetchJobs = async () => {
         return;
       }
 
-      const newBookmarked = new Set(bookmarkedJobs);
-      if (newBookmarked.has(jobId)) {
-        newBookmarked.delete(jobId);
-      } else {
-        newBookmarked.add(jobId);
-        await candidateExternalService.bookmarkJob({ 
-          user_id: userId, 
-          job_id: jobId 
-        });
-      }
-      setBookmarkedJobs(newBookmarked);
+      const isCurrentlyBookmarked = bookmarkedJobs.has(jobId);
+
+      // For now, we'll use the bookmark API which seems to be idempotent
+      // If the job is already bookmarked, calling it again should unbookmark
+      await candidateExternalService.bookmarkJob({
+        user_id: userId,
+        job_id: jobId
+      });
+
+      // Update local state
+      setBookmarkedJobs(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(jobId)) {
+          newSet.delete(jobId);
+        } else {
+          newSet.add(jobId);
+        }
+        return newSet;
+      });
+
     } catch (error) {
-      console.error('Error bookmarking job:', error);
-      alert('Failed to bookmark job. Please try again.');
+      console.error('Error toggling bookmark:', error);
+      alert('Failed to update bookmark. Please try again.');
+    } finally {
+      setBookmarkLoading(false);
     }
   };
 
@@ -1044,7 +1094,7 @@ const fetchJobs = async () => {
                         <span className={`${textSecondary} font-bold`}>{job.location}</span>
                       </div>
                       <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2.5 py-1.5 rounded-md`}>
-                        <DollarSign className="w-3 h-3 text-blue-600 flex-shrink-0" />
+                        <span className="w-3 h-3 text-blue-600 flex-shrink-0 text-xs font-bold">₹</span>
                         <span className={`${textSecondary} font-bold`}>{formatSalary(job.salary_range)}</span>
                       </div>
                       {job.experience_required && (

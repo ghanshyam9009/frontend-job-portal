@@ -424,6 +424,45 @@ const ProfileManagement = () => {
     loadProfileData();
   }, [user]);
 
+  // Ensure scrollability after data loads and on component mount
+  useEffect(() => {
+    // Immediate check on mount
+    const enableScrolling = () => {
+      // Ensure body scrolling is enabled
+      document.body.style.overflowY = 'auto';
+      document.documentElement.style.overflowY = 'auto';
+
+      // Force container scroll recalculation
+      const container = document.querySelector(`.${styles.container}`);
+      if (container) {
+        container.style.overflowY = 'auto';
+        // Trigger reflow
+        container.offsetHeight;
+      }
+    };
+
+    // Immediate execution
+    enableScrolling();
+
+    // Add a small timeout to handle any reflow issues during loading
+    const timer = setTimeout(enableScrolling, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Additional effect for data loading changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const container = document.querySelector(`.${styles.container}`);
+      if (container) {
+        container.style.overflowY = 'auto';
+        container.offsetHeight;
+      }
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [formData, loading, styles.container]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -1274,7 +1313,7 @@ const renderStepContent = () => {
   };
 
   return (
-    <div className={`${styles.container}`} style={{ minHeight: '100vh', overflowY: 'auto' }}>
+    <div className={`${styles.container}`}>
       {profileComplete && !isEditMode ? (
         renderProfileView()
       ) : (

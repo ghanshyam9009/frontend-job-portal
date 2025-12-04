@@ -17,10 +17,15 @@ img, video, canvas, svg {
 
 body {
   overflow-x: hidden;
+  overflow-y: auto;
   background-color: var(--background-color);
   color: var(--text-color);
   transition: background-color 0.3s ease, color 0.3s ease;
   font-family: "Open Sans", sans-serif;
+}
+
+html {
+  overflow-y: auto;
 }
 
 h1, h2, h3, h4, h5, h6 {

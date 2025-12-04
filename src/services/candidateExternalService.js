@@ -29,10 +29,62 @@ export const candidateExternalService = {
     return data;
   },
 
-  // Get bookmarked jobs by user
+  // Get bookmarked jobs by user - try pagination approach
   async getBookmarkedJobs(userId) {
-    const { data } = await axios.get(CANDIDATE_GET_BOOKMARKS_URL, { params: { user_id: userId } });
-    return data;
+    try {
+      // Try to get all pages if pagination exists
+      let allBookmarks = [];
+      let page = 1;
+      let hasMorePages = true;
+
+      while (hasMorePages) {
+        const { data } = await axios.get(CANDIDATE_GET_BOOKMARKS_URL, {
+          params: {
+            user_id: userId,
+            page: page,
+            per_page: 100,
+            limit: 100
+          }
+        });
+
+        // Handle different response formats
+        let bookmarks = [];
+        if (data && data.jobs && Array.isArray(data.jobs)) {
+          bookmarks = data.jobs;
+        } else if (data && Array.isArray(data)) {
+          bookmarks = data;
+        } else if (data && typeof data === 'object' && data.bookmarks && Array.isArray(data.bookmarks)) {
+          bookmarks = data.bookmarks;
+        } else if (data && typeof data === 'object' && data.jobs) {
+          bookmarks = data.jobs;
+        }
+
+        allBookmarks = allBookmarks.concat(bookmarks);
+
+        // Check if there's more data (if count is less than requested, no more pages)
+        if (bookmarks.length < 100) {
+          hasMorePages = false;
+        } else {
+          page++;
+          // Safety check to prevent infinite loops
+          if (page > 10) hasMorePages = false;
+        }
+      }
+
+      return { jobs: allBookmarks, count: allBookmarks.length };
+    } catch (error) {
+      console.error('Error fetching bookmarked jobs:', error);
+      // Fallback to single page request
+      try {
+        const { data } = await axios.get(CANDIDATE_GET_BOOKMARKS_URL, {
+          params: { user_id: userId, limit: 1000, per_page: 1000, page: 1 }
+        });
+        return data;
+      } catch (fallbackError) {
+        console.error('Fallback error:', fallbackError);
+        return { jobs: [], count: 0 };
+      }
+    }
   },
 
   // Get applied jobs by user

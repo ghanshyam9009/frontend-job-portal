@@ -120,9 +120,9 @@ export const studentService = {
 
   async uploadResumeFile(email, resumeFile) {
     return withErrorHandling(async () => {
-      // Use the working combination: endpoint `/students/profile/${email}/upload` with field name `resumeFile`
+      // Use the working combination: endpoint `/students/profile/${email}/upload` with field name `resume`
       const endpoint = `/students/profile/${email}/upload`;
-      const fieldName = 'resumeFile';
+      const fieldName = 'resume';
       
       try {
         const formData = new FormData();
@@ -130,18 +130,17 @@ export const studentService = {
         formData.append(fieldName, resumeFile, resumeFile.name);
         
         console.log(`Uploading resume:`, {
-          fileName: resumeFile.name,
+          resumeUrl: resumeFile.name,
           fileSize: resumeFile.size,
           fileType: resumeFile.type,
           endpoint: endpoint,
-          fieldName: fieldName
+          fieldName: fieldName,
+          formDataFields: Array.from(formData.keys()) // Debug: check what fields are in formData
         });
 
         // Use apiClient (handles auth automatically)
-        // Ensure multipart header overrides default JSON header
-        const response = await apiClient.put(endpoint, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        // Let axios automatically set Content-Type for FormData with proper boundary
+        const response = await apiClient.put(endpoint, formData);
         
         console.log('Upload response:', response);
         console.log('Upload response profile resume data:', {
