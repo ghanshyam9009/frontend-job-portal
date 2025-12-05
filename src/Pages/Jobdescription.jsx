@@ -392,6 +392,12 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
     return exp; // Return as-is if it's already a string/number
   };
 
+  const formatJobDescription = (description) => {
+    if (!description) return null;
+    // Convert <ul> tags to <ol> tags for numbered lists
+    return description.replace(/<ul/g, '<ol').replace(/<\/ul>/g, '</ol>');
+  };
+
   // loading / error UI
   if (loading) {
     return (
@@ -530,7 +536,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
               <div className="prose max-w-none prose-sm dark:prose-invert text-gray-700">
                 {/* job.description may be HTML — render safely */}
                 {job.description ? (
-                  <div dangerouslySetInnerHTML={{ __html: job.description }} />
+                  <div dangerouslySetInnerHTML={{ __html: formatJobDescription(job.description) }} />
                 ) : (
                   <p>No description available.</p>
                 )}
