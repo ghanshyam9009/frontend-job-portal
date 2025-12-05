@@ -24,7 +24,10 @@ const ProfileManagement = () => {
     resume: null,
     education: [{ degree: '', institution: '', year: '' }],
     experience: [{ title: '', company: '', duration: '' }],
-    skills: ''
+    skills: '',
+    experienceLevel: 'Experienced',
+    internships: [{ title: '', company: '', duration: '' }],
+    certifications: [{ name: '', authority: '', year: '' }]
   });
 
   const [loading, setLoading] = useState(false);
@@ -298,7 +301,10 @@ const ProfileManagement = () => {
                 }
                 return [{ title: '', company: '', duration: '' }];
               })(),
-              skills: profileData.skills || user.skills || ''
+              skills: profileData.skills || user.skills || '',
+              experienceLevel: profileData.experienceLevel || 'Experienced',
+              internships: profileData.internships || [{ title: '', company: '', duration: '' }],
+              certifications: profileData.certifications || [{ name: '', authority: '', year: '' }]
             };
             setFormData(loadedData);
 
@@ -591,7 +597,9 @@ const ProfileManagement = () => {
   const addDynamicField = (type) => {
     const fields = {
       education: { degree: '', institution: '', year: '' },
-      experience: { title: '', company: '', duration: '' }
+      experience: { title: '', company: '', duration: '' },
+      internships: { title: '', company: '', duration: '' },
+      certifications: [{ name: '', authority: '', year: '' }]
     };
     setFormData({ ...formData, [type]: [...formData[type], fields[type]] });
   };
@@ -647,7 +655,19 @@ const ProfileManagement = () => {
           exp.title?.trim() || exp.company?.trim() || exp.duration?.trim()
         ).length > 0
           ? formData.experience.filter(exp => exp.title?.trim() || exp.company?.trim() || exp.duration?.trim())
-          : formData.experience
+          : formData.experience,
+        // Filter out empty internships entries
+        internships: formData.internships.filter(internship =>
+          internship.title?.trim() || internship.company?.trim() || internship.duration?.trim()
+        ).length > 0
+          ? formData.internships.filter(internship => internship.title?.trim() || internship.company?.trim() || internship.duration?.trim())
+          : formData.internships,
+        // Filter out empty certifications entries
+        certifications: formData.certifications.filter(certification =>
+          certification.name?.trim() || certification.authority?.trim() || certification.year?.trim()
+        ).length > 0
+          ? formData.certifications.filter(certification => certification.name?.trim() || certification.authority?.trim() || certification.year?.trim())
+          : formData.certifications
       };
 
       // Prepare data for JSON submission - remove the resume File object for now
@@ -1053,66 +1073,201 @@ const renderBackgroundForm = () => (
       </button>
     </div>
 
-    {/* Experience Section */}
-    <div className={styles.sectionHeader}>
-      <Award size={18} />
-      <span>Work Experience</span>
+    {/* Experience Level Dropdown */}
+    <div className={styles.formGroup}>
+      <label>Experience Level</label>
+      <select name="experienceLevel" value={formData.experienceLevel} onChange={handleInputChange}>
+        <option value="Experienced">Experienced</option>
+        <option value="Fresher">Fresher</option>
+      </select>
     </div>
-    <div className={styles.dynamicSection}>
-      {formData.experience.map((exp, index) => (
-        <div key={index} className={styles.dynamicGroup}>
-          <div className={styles.formGroup}>
-            <label>Job Title *</label>
-            <input
-              type="text"
-              name="title"
-              value={exp.title}
-              onChange={(e) => handleDynamicChange(e, index, 'experience')}
-              placeholder="Software Developer"
-              required
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Company *</label>
-            <input
-              type="text"
-              name="company"
-              value={exp.company}
-              onChange={(e) => handleDynamicChange(e, index, 'experience')}
-              placeholder="Company Name"
-              required
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Duration</label>
-            <input
-              type="text"
-              name="duration"
-              value={exp.duration}
-              onChange={(e) => handleDynamicChange(e, index, 'experience')}
-              placeholder="2020 - 2023"
-            />
-          </div>
-          {formData.experience.length > 1 && (
-            <button
-              type="button"
-              className={styles.removeBtn}
-              onClick={() => removeDynamicField(index, 'experience')}
-            >
-              Remove
-            </button>
-          )}
-        </div>
-      ))}
 
-      <button
-        type="button"
-        className={styles.addBtn}
-        onClick={() => addDynamicField('experience')}
-      >
-        + Add Experience
-      </button>
-    </div>
+    {formData.experienceLevel === 'Experienced' ? (
+      <>
+        {/* Experience Section */}
+        <div className={styles.sectionHeader}>
+          <Award size={18} />
+          <span>Work Experience</span>
+        </div>
+        <div className={styles.dynamicSection}>
+          {formData.experience.map((exp, index) => (
+            <div key={index} className={styles.dynamicGroup}>
+              <div className={styles.formGroup}>
+                <label>Job Title *</label>
+                <input
+                  type="text"
+                  name="title"
+                  value={exp.title}
+                  onChange={(e) => handleDynamicChange(e, index, 'experience')}
+                  placeholder="Software Developer"
+                  required
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label>Company *</label>
+                <input
+                  type="text"
+                  name="company"
+                  value={exp.company}
+                  onChange={(e) => handleDynamicChange(e, index, 'experience')}
+                  placeholder="Company Name"
+                  required
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label>Duration</label>
+                <input
+                  type="text"
+                  name="duration"
+                  value={exp.duration}
+                  onChange={(e) => handleDynamicChange(e, index, 'experience')}
+                  placeholder="2020 - 2023"
+                />
+              </div>
+              {formData.experience.length > 1 && (
+                <button
+                  type="button"
+                  className={styles.removeBtn}
+                  onClick={() => removeDynamicField(index, 'experience')}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          ))}
+
+          <button
+            type="button"
+            className={styles.addBtn}
+            onClick={() => addDynamicField('experience')}
+          >
+            + Add Experience
+          </button>
+        </div>
+      </>
+    ) : (
+      <>
+        {/* Internships Section */}
+        <div className={styles.sectionHeader}>
+          <Award size={18} />
+          <span>Internships</span>
+        </div>
+        <div className={styles.dynamicSection}>
+          {formData.internships.map((internship, index) => (
+            <div key={index} className={styles.dynamicGroup}>
+              <div className={styles.formGroup}>
+                <label>Title *</label>
+                <input
+                  type="text"
+                  name="title"
+                  value={internship.title}
+                  onChange={(e) => handleDynamicChange(e, index, 'internships')}
+                  placeholder="Software Engineer Intern"
+                  required
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label>Company *</label>
+                <input
+                  type="text"
+                  name="company"
+                  value={internship.company}
+                  onChange={(e) => handleDynamicChange(e, index, 'internships')}
+                  placeholder="Google"
+                  required
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label>Duration</label>
+                <input
+                  type="text"
+                  name="duration"
+                  value={internship.duration}
+                  onChange={(e) => handleDynamicChange(e, index, 'internships')}
+                  placeholder="Jan 2023 - Jun 2023"
+                />
+              </div>
+              {formData.internships.length > 1 && (
+                <button
+                  type="button"
+                  className={styles.removeBtn}
+                  onClick={() => removeDynamicField(index, 'internships')}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            type="button"
+            className={styles.addBtn}
+            onClick={() => addDynamicField('internships')}
+          >
+            + Add Internship
+          </button>
+        </div>
+
+        {/* Certifications Section */}
+        <div className={styles.sectionHeader}>
+          <Award size={18} />
+          <span>Certifications</span>
+        </div>
+        <div className={styles.dynamicSection}>
+          {formData.certifications.map((certification, index) => (
+            <div key={index} className={styles.dynamicGroup}>
+              <div className={styles.formGroup}>
+                <label>Name *</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={certification.name}
+                  onChange={(e) => handleDynamicChange(e, index, 'certifications')}
+                  placeholder="Google Cloud Certified"
+                  required
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label>Authority *</label>
+                <input
+                  type="text"
+                  name="authority"
+                  value={certification.authority}
+                  onChange={(e) => handleDynamicChange(e, index, 'certifications')}
+                  placeholder="Google"
+                  required
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label>Year</label>
+                <input
+                  type="text"
+                  name="year"
+                  value={certification.year}
+                  onChange={(e) => handleDynamicChange(e, index, 'certifications')}
+                  placeholder="2023"
+                />
+              </div>
+              {formData.certifications.length > 1 && (
+                <button
+                  type="button"
+                  className={styles.removeBtn}
+                  onClick={() => removeDynamicField(index, 'certifications')}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            type="button"
+            className={styles.addBtn}
+            onClick={() => addDynamicField('certifications')}
+          >
+            + Add Certification
+          </button>
+        </div>
+      </>
+    )}
   </div>
 );
 

@@ -120,9 +120,9 @@ export const studentService = {
 
   async uploadResumeFile(email, resumeFile) {
     return withErrorHandling(async () => {
-      // Use the working combination: endpoint `/students/profile/${email}/upload` with field name `resume`
+      // Use the working combination: endpoint `/students/profile/${email}/upload` with field name `document`
       const endpoint = `/students/profile/${email}/upload`;
-      const fieldName = 'resume';
+      const fieldName = 'document';
       
       try {
         const formData = new FormData();

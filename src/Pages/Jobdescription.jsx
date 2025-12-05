@@ -445,7 +445,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
                   <h1 className="text-2xl font-bold mb-2">{job.job_title || job.title || "Job Title"}</h1>
 
                   <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
-                    <span className="font-semibold text-base text-slate-800 dark:text-slate-100">{job.company_name || "Company"}</span>
+                    <span className="font-semibold text-base text-slate-800 dark:text-red-400">{job.company_name || "Company"}</span>
                     {job.company_rating && <span className="text-yellow-500">⭐ {job.company_rating}</span>}
                     {job.company_reviews && <span className="text-gray-400">({job.company_reviews} Reviews)</span>}
                     {job.is_premium && (
@@ -455,7 +455,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
 
                   <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                     {/* <div className="flex items-center gap-1">💼 {formatExperience(job.experience_required || job.experience)}</div> */}
-                    <div className="flex items-center gap-1">💰 {formatSalary(job.salary_min, job.salary_max)}</div>
+                    <div className="flex items-center gap-1">💰 <span className={formatSalary(job.salary_min, job.salary_max) === "Not Disclosed" ? "text-red-500" : ""}>{formatSalary(job.salary_min, job.salary_max)}</span></div>
                     <div className="flex items-center gap-1">📍 {job.location || "Remote"}</div>
                   </div>
                 </div>

@@ -38,7 +38,11 @@ const UserJobListings = () => {
           id: j.job_id || idx,
           title: j.job_title,
           company: j.company_name || "",
-          salary: j.salary_range ? `₹${j.salary_range.min} - ₹${j.salary_range.max} / ${j.employment_type ? 'year' : ''}` : "",
+          salary: j.salary_range ?
+            (typeof j.salary_range === 'string' ?
+              `₹${j.salary_range}` :
+              `₹${j.salary_range.min} - ₹${j.salary_range.max} / ${j.employment_type ? 'year' : ''}`)
+            : "",
           location: j.location || "",
           type: j.employment_type || "Full-time",
           isPremium: j.is_premium || false, // Use actual premium status
@@ -97,7 +101,11 @@ const UserJobListings = () => {
         id: j.job_id || idx,
         title: j.job_title,
         company: j.company_name || "",
-        salary: j.salary_range ? `₹${j.salary_range.min} - ₹${j.salary_range.max} / ${j.employment_type ? 'year' : ''}` : "",
+        salary: j.salary_range ?
+          (typeof j.salary_range === 'string' ?
+            `₹${j.salary_range}` :
+            `₹${j.salary_range.min} - ₹${j.salary_range.max} / ${j.employment_type ? 'year' : ''}`)
+          : "",
         location: j.location || "",
         type: j.employment_type || "Full-time",
         isPremium: j.is_premium || false, // Use actual premium status
