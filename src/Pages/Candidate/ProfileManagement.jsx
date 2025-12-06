@@ -25,9 +25,7 @@ const ProfileManagement = () => {
     education: [{ degree: '', institution: '', year: '' }],
     experience: [{ title: '', company: '', duration: '' }],
     skills: '',
-    experienceLevel: 'Experienced',
-    internships: [{ title: '', company: '', duration: '' }],
-    certifications: [{ name: '', authority: '', year: '' }]
+    experienceLevel: 'Experienced'
   });
 
   const [loading, setLoading] = useState(false);
@@ -202,12 +200,14 @@ const ProfileManagement = () => {
     const hasCountry = data.address?.country && data.address.country.trim();
     const hasBio = data.bio && data.bio.trim();
     const hasSkills = data.skills && data.skills.trim();
-    const hasEducation = Array.isArray(data.education) && data.education.length > 0 && 
+    const hasEducation = Array.isArray(data.education) && data.education.length > 0 &&
       data.education.some(edu => edu.degree?.trim() && edu.institution?.trim());
-    const hasExperience = Array.isArray(data.experience) && data.experience.length > 0 && 
-      data.experience.some(exp => exp.title?.trim() && exp.company?.trim());
-    
-    return hasName && hasPhone && hasGender && hasCity && hasState && hasCountry && 
+    const hasExperience = data.experienceLevel === 'Fresher' || (
+      Array.isArray(data.experience) && data.experience.length > 0 &&
+      data.experience.some(exp => exp.title?.trim() && exp.company?.trim())
+    );
+
+    return hasName && hasPhone && hasGender && hasCity && hasState && hasCountry &&
            hasBio && hasSkills && hasEducation && hasExperience;
   };
 
@@ -225,15 +225,16 @@ const ProfileManagement = () => {
               phone_number: profileData.phone_number || user.phone_number || '',
               dob: (() => {
                 try {
-                  if (profileData.dob) {
-                    // Handle different date formats from API
-                    let date = profileData.dob;
+                  // Check multiple possible DOB sources and formats
+                  let dateValue = profileData.dob || profileData.date_of_birth || profileData.birth_date || profileData.dateOfBirth || user.dob || user.date_of_birth || user.birth_date || user.dateOfBirth;
+
+                  if (dateValue) {
                     // If it's already in YYYY-MM-DD format, use it directly
-                    if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-                      return date;
+                    if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+                      return dateValue;
                     }
-                    // Otherwise parse it and format it
-                    const parsed = new Date(date);
+                    // Try to parse various date formats
+                    const parsed = new Date(dateValue);
                     if (!isNaN(parsed.getTime())) {
                       // Ensure it's in local timezone for consistent display
                       const year = parsed.getFullYear();
@@ -244,7 +245,7 @@ const ProfileManagement = () => {
                   }
                   return '';
                 } catch (error) {
-                  console.warn('Error parsing DOB:', profileData.dob, error);
+                  console.warn('Error parsing DOB:', profileData.dob, user.dob, error);
                   return '';
                 }
               })(),
@@ -286,25 +287,25 @@ const ProfileManagement = () => {
                 return [{ degree: '', institution: '', year: '' }];
               })(),
               experience: (() => {
-                // Handle experience - could be array, string, or missing
-                if (Array.isArray(profileData.experience) && profileData.experience.length > 0) {
+                // Handle experience - for fresher, if backend sends 'fresher', start with empty array
+                if (profileData.experienceLevel === 'Fresher' && profileData.experience === 'fresher') {
+                  return [];
+                } else if (Array.isArray(profileData.experience) && profileData.experience.length > 0) {
                   return profileData.experience;
                 } else if (typeof profileData.experience === 'string') {
                   try {
                     const parsed = JSON.parse(profileData.experience);
-                    return Array.isArray(parsed) && parsed.length > 0 ? parsed : [{ title: '', company: '', duration: '' }];
+                    return Array.isArray(parsed) && parsed.length > 0 ? parsed : [];
                   } catch {
-                    return [{ title: '', company: '', duration: '' }];
+                    return [];
                   }
                 } else if (Array.isArray(user.experience) && user.experience.length > 0) {
                   return user.experience;
                 }
-                return [{ title: '', company: '', duration: '' }];
+                return [];
               })(),
               skills: profileData.skills || user.skills || '',
-              experienceLevel: profileData.experienceLevel || 'Experienced',
-              internships: profileData.internships || [{ title: '', company: '', duration: '' }],
-              certifications: profileData.certifications || [{ name: '', authority: '', year: '' }]
+              experienceLevel: profileData.experienceLevel || user.experienceLevel || (profileData.experience === 'fresher' ? 'Fresher' : 'Experienced')
             };
             setFormData(loadedData);
 
@@ -325,8 +326,10 @@ const ProfileManagement = () => {
               hasSkills: !!(loadedData.skills && loadedData.skills.trim()),
               hasEducation: Array.isArray(loadedData.education) && loadedData.education.length > 0 &&
                 loadedData.education.some(edu => edu.degree?.trim() && edu.institution?.trim()),
-              hasExperience: Array.isArray(loadedData.experience) && loadedData.experience.length > 0 &&
+              hasExperience: loadedData.experienceLevel === 'Fresher' || (
+                Array.isArray(loadedData.experience) && loadedData.experience.length > 0 &&
                 loadedData.experience.some(exp => exp.title?.trim() && exp.company?.trim())
+              )
             });
 
             setProfileComplete(isComplete);
@@ -346,7 +349,7 @@ const ProfileManagement = () => {
                   country: user.address?.country || ''
                 },
                 bio: user.bio || '',
-              resume: user.resumeUrl || user.resume || null,
+                resume: user.resumeUrl || user.resume || null,
                 education: (() => {
                   if (Array.isArray(user.education) && user.education.length > 0) {
                     return user.education;
@@ -372,9 +375,10 @@ const ProfileManagement = () => {
                     }
                   }
                   return [{ title: '', company: '', duration: '' }];
-                })(),
-                skills: user.skills || ''
-              });
+            })(),
+            skills: user.skills || '',
+            experienceLevel: user.experienceLevel || 'Experienced'
+          });
             }
         } catch (error) {
           console.error('Error loading profile data:', error);
@@ -418,9 +422,10 @@ const ProfileManagement = () => {
                 }
               }
               return [{ title: '', company: '', duration: '' }];
-            })(),
-            skills: user.skills || ''
-          });
+                })(),
+                skills: user.skills || '',
+                experienceLevel: user.experienceLevel || 'Experienced'
+              });
         } finally {
           setLoading(false);
         }
@@ -650,24 +655,14 @@ const ProfileManagement = () => {
         ).length > 0
           ? formData.education.filter(edu => edu.degree?.trim() || edu.institution?.trim() || edu.year?.trim())
           : formData.education,
-        // Filter out empty experience entries
-        experience: formData.experience.filter(exp =>
-          exp.title?.trim() || exp.company?.trim() || exp.duration?.trim()
-        ).length > 0
-          ? formData.experience.filter(exp => exp.title?.trim() || exp.company?.trim() || exp.duration?.trim())
-          : formData.experience,
-        // Filter out empty internships entries
-        internships: formData.internships.filter(internship =>
-          internship.title?.trim() || internship.company?.trim() || internship.duration?.trim()
-        ).length > 0
-          ? formData.internships.filter(internship => internship.title?.trim() || internship.company?.trim() || internship.duration?.trim())
-          : formData.internships,
-        // Filter out empty certifications entries
-        certifications: formData.certifications.filter(certification =>
-          certification.name?.trim() || certification.authority?.trim() || certification.year?.trim()
-        ).length > 0
-          ? formData.certifications.filter(certification => certification.name?.trim() || certification.authority?.trim() || certification.year?.trim())
-          : formData.certifications
+        // Handle experience based on experience level
+        experience: formData.experienceLevel === 'Fresher'
+          ? 'fresher'
+          : (formData.experience.filter(exp =>
+              exp.title?.trim() || exp.company?.trim() || exp.duration?.trim()
+            ).length > 0
+              ? formData.experience.filter(exp => exp.title?.trim() || exp.company?.trim() || exp.duration?.trim())
+              : formData.experience)
       };
 
       // Prepare data for JSON submission - remove the resume File object for now
@@ -731,6 +726,7 @@ const ProfileManagement = () => {
                 experience: Array.isArray(profileData.experience)
                   ? profileData.experience.filter(exp => exp && (exp.title || exp.company || exp.duration))
                   : (Array.isArray(jsonData.experience) ? jsonData.experience : (user.experience || [])),
+                experienceLevel: profileData.experienceLevel || jsonData.experienceLevel || (profileData.experience === 'fresher' ? 'Fresher' : 'Experienced'),
                 resume: profileData.resume
                   || profileData.resumeUrl
                   || profileData.profile?.resumeUrl
@@ -1082,7 +1078,7 @@ const renderBackgroundForm = () => (
       </select>
     </div>
 
-    {formData.experienceLevel === 'Experienced' ? (
+    {formData.experienceLevel === 'Experienced' && (
       <>
         {/* Experience Section */}
         <div className={styles.sectionHeader}>
@@ -1142,128 +1138,6 @@ const renderBackgroundForm = () => (
             onClick={() => addDynamicField('experience')}
           >
             + Add Experience
-          </button>
-        </div>
-      </>
-    ) : (
-      <>
-        {/* Internships Section */}
-        <div className={styles.sectionHeader}>
-          <Award size={18} />
-          <span>Internships</span>
-        </div>
-        <div className={styles.dynamicSection}>
-          {formData.internships.map((internship, index) => (
-            <div key={index} className={styles.dynamicGroup}>
-              <div className={styles.formGroup}>
-                <label>Title *</label>
-                <input
-                  type="text"
-                  name="title"
-                  value={internship.title}
-                  onChange={(e) => handleDynamicChange(e, index, 'internships')}
-                  placeholder="Software Engineer Intern"
-                  required
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>Company *</label>
-                <input
-                  type="text"
-                  name="company"
-                  value={internship.company}
-                  onChange={(e) => handleDynamicChange(e, index, 'internships')}
-                  placeholder="Google"
-                  required
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>Duration</label>
-                <input
-                  type="text"
-                  name="duration"
-                  value={internship.duration}
-                  onChange={(e) => handleDynamicChange(e, index, 'internships')}
-                  placeholder="Jan 2023 - Jun 2023"
-                />
-              </div>
-              {formData.internships.length > 1 && (
-                <button
-                  type="button"
-                  className={styles.removeBtn}
-                  onClick={() => removeDynamicField(index, 'internships')}
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-          ))}
-          <button
-            type="button"
-            className={styles.addBtn}
-            onClick={() => addDynamicField('internships')}
-          >
-            + Add Internship
-          </button>
-        </div>
-
-        {/* Certifications Section */}
-        <div className={styles.sectionHeader}>
-          <Award size={18} />
-          <span>Certifications</span>
-        </div>
-        <div className={styles.dynamicSection}>
-          {formData.certifications.map((certification, index) => (
-            <div key={index} className={styles.dynamicGroup}>
-              <div className={styles.formGroup}>
-                <label>Name *</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={certification.name}
-                  onChange={(e) => handleDynamicChange(e, index, 'certifications')}
-                  placeholder="Google Cloud Certified"
-                  required
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>Authority *</label>
-                <input
-                  type="text"
-                  name="authority"
-                  value={certification.authority}
-                  onChange={(e) => handleDynamicChange(e, index, 'certifications')}
-                  placeholder="Google"
-                  required
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>Year</label>
-                <input
-                  type="text"
-                  name="year"
-                  value={certification.year}
-                  onChange={(e) => handleDynamicChange(e, index, 'certifications')}
-                  placeholder="2023"
-                />
-              </div>
-              {formData.certifications.length > 1 && (
-                <button
-                  type="button"
-                  className={styles.removeBtn}
-                  onClick={() => removeDynamicField(index, 'certifications')}
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-          ))}
-          <button
-            type="button"
-            className={styles.addBtn}
-            onClick={() => addDynamicField('certifications')}
-          >
-            + Add Certification
           </button>
         </div>
       </>
@@ -1327,20 +1201,38 @@ const renderStepContent = () => {
               <div className={styles.profileField}>
                 <label>Date of Birth</label>
                 <p>{(() => {
-                  // Simple, direct date formatting
                   try {
-                    if (formData.dob && formData.dob.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                      const date = new Date(formData.dob);
-                      return date.toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      });
-                    } else {
-                      console.log('DOB not displaying - value:', JSON.stringify(formData.dob));
+                    if (formData.dob && formData.dob.trim()) {
+                      let dateValue = formData.dob.trim();
+
+                      // Handle different date formats
+                      if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+                        // Already in YYYY-MM-DD format
+                        const date = new Date(dateValue);
+                        if (!isNaN(date.getTime())) {
+                          return date.toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          });
+                        }
+                      } else {
+                        // Try parsing other date formats
+                        const date = new Date(dateValue);
+                        if (!isNaN(date.getTime())) {
+                          return date.toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          });
+                        }
+                      }
+
+                      // If parsing failed, return the original value
+                      return dateValue;
                     }
                   } catch (error) {
-                    console.error('DOB display error:', error);
+                    console.error('DOB display error:', error, formData.dob);
                   }
                   return 'Not provided';
                 })()}</p>
@@ -1443,22 +1335,28 @@ const renderStepContent = () => {
           )}
 
           {/* Experience */}
-          {formData.experience && formData.experience.length > 0 && formData.experience.some(exp => exp.title || exp.company) && (
+          {(formData.experienceLevel === 'Fresher' || (formData.experience && formData.experience.length > 0 && formData.experience.some(exp => exp.title || exp.company))) && (
             <div className={styles.profileSection}>
               <h2 className={styles.sectionTitle}>
                 <Award size={20} />
                 Work Experience
               </h2>
               <div className={styles.listSection}>
-                {formData.experience
-                  .filter(exp => exp.title || exp.company)
-                  .map((exp, index) => (
-                    <div key={index} className={styles.listItem}>
-                      <h3>{exp.title || 'Title not specified'}</h3>
-                      <p className={styles.company}>{exp.company || 'Company not specified'}</p>
-                      {exp.duration && <p className={styles.duration}>{exp.duration}</p>}
-                    </div>
-                  ))}
+                {formData.experienceLevel === 'Fresher' ? (
+                  <div className={styles.listItem}>
+                    <h3>Fresher Candidate</h3>
+                  </div>
+                ) : (
+                  formData.experience
+                    .filter(exp => exp.title || exp.company)
+                    .map((exp, index) => (
+                      <div key={index} className={styles.listItem}>
+                        <h3>{exp.title || 'Title not specified'}</h3>
+                        <p className={styles.company}>{exp.company || 'Company not specified'}</p>
+                        {exp.duration && <p className={styles.duration}>{exp.duration}</p>}
+                      </div>
+                    ))
+                )}
               </div>
             </div>
           )}
