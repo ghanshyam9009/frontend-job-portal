@@ -1176,7 +1176,7 @@ const borderColor = isDark ? 'border-gray-700' : 'border-gray-200';
                 {featuredJobs.slice(0, 5).map(job => (
                                   <div 
                                     key={job.job_id}
-                                    className={`${bgSecondary} rounded-xl shadow-sm border ${borderColor} ${hoverBorder} p-2 hover:shadow-lg transition-all duration-300 relative overflow-hidden cursor-pointer`}
+                                    className={`${bgSecondary} rounded-xl shadow-sm border ${borderColor} ${hoverBorder} p-4 hover:shadow-lg transition-all duration-300 relative overflow-hidden cursor-pointer`}
                                     onClick={() => handleJobClick(job)}
                                   >
                                     
@@ -1290,7 +1290,7 @@ const borderColor = isDark ? 'border-gray-700' : 'border-gray-200';
                                      
                                       {/* Premium Badge */}
                                     {!job.is_premium && (
-                                      <div className="absolute bottom-0 left-0 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-xs font-bold px-3   rounded-tr-lg shadow-md">
+                                      <div className="absolute top-0 left-0 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-xs font-bold px-3   rounded-br-lg shadow-md">
                                         PREMIUM
                                       </div>
                                     )}
