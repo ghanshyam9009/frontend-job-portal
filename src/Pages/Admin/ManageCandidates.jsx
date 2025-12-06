@@ -1,8 +1,8 @@
 ﻿import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
-import apiClient from "../../services/apiClient";
-import { Eye, Edit, Ban, Search, Users, X, Save } from "lucide-react";
+import { studentService } from "../../services/studentService";
+import { Eye, Edit, Search, Users, X, Save } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const ManageCandidates = () => {
@@ -14,6 +14,10 @@ const ManageCandidates = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const candidatesPerPage = 10;
+
+  // View Modal State
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewingCandidate, setViewingCandidate] = useState(null);
 
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -34,17 +38,10 @@ const ManageCandidates = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-
-        // Fetch candidates (optional - won't fail if API doesn't exist)
-        try {
-          const candidatesData = await adminService.getCandidates();
-          setCandidates(candidatesData);
-          setFilteredCandidates(candidatesData);
-        } catch (candidatesError) {
-          console.warn('Candidates API not available, showing empty list:', candidatesError.message);
-          setCandidates([]);
-          setFilteredCandidates([]);
-        }
+        const candidatesData = await adminService.getCandidates();
+        const sortedCandidates = candidatesData.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        setCandidates(sortedCandidates);
+        setFilteredCandidates(sortedCandidates);
       } catch (error) {
         console.error('Failed to fetch candidates:', error);
         setCandidates([]);
@@ -53,25 +50,21 @@ const ManageCandidates = () => {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
   // Filter candidates based on search and status
   useEffect(() => {
     let filtered = candidates;
-
     if (searchTerm) {
       filtered = filtered.filter(candidate =>
-        candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        candidate.email.toLowerCase().includes(searchTerm.toLowerCase())
+        (candidate.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (candidate.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
       );
     }
-
     if (statusFilter !== "all") {
       filtered = filtered.filter(candidate => candidate.status === statusFilter);
     }
-
     setFilteredCandidates(filtered);
     setCurrentPage(1);
   }, [searchTerm, statusFilter, candidates]);
@@ -79,20 +72,28 @@ const ManageCandidates = () => {
   const getStatusBadge = (status) => {
     const statusStyles = {
       active: { class: 'statusActive', text: 'Active' },
-      inactive: { class: 'statusInactive', text: 'Inactive' },
-      blocked: { class: 'statusBlocked', text: 'Blocked' }
+      inactive: { class: 'statusInactive', text: 'Inactive' }
     };
-    
     const statusInfo = statusStyles[status] || statusStyles.active;
     return <span className={`${styles.statusBadge} ${styles[statusInfo.class]}`}>{statusInfo.text}</span>;
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+      year: 'numeric', month: 'short', day: 'numeric'
     });
+  };
+
+  // View Modal Functions
+  const openViewModal = (candidate) => {
+    setViewingCandidate(candidate);
+    setIsViewModalOpen(true);
+  };
+
+  const closeViewModal = () => {
+    setIsViewModalOpen(false);
+    setViewingCandidate(null);
   };
 
   // Edit Modal Functions
@@ -106,7 +107,7 @@ const ManageCandidates = () => {
         ? `${candidate.location.city || ''}, ${candidate.location.state || ''}`.trim().replace(/^,/, '') || ''
         : candidate.location || '',
       experience_years: candidate.experience || '',
-      skills: Array.isArray(candidate.skills) ? candidate.skills : (candidate.skills ? candidate.skills.split(',').map(s => s.trim()) : []),
+      skills: Array.isArray(candidate.skills) ? candidate.skills : (candidate.skills ? String(candidate.skills).split(',').map(s => s.trim()) : []),
       status: candidate.status || 'active'
     });
     setIsEditModalOpen(true);
@@ -116,86 +117,48 @@ const ManageCandidates = () => {
     setIsEditModalOpen(false);
     setEditingCandidate(null);
     setEditFormData({
-      full_name: '',
-      email: '',
-      phone_number: '',
-      address: '',
-      experience_years: '',
-      skills: [],
-      status: 'active'
+      full_name: '', email: '', phone_number: '', address: '',
+      experience_years: '', skills: [], status: 'active'
     });
   };
 
   const handleEditFormChange = (field, value) => {
     if (field === 'skills') {
-      setEditFormData(prev => ({
-        ...prev,
-        skills: value.split(',').map(s => s.trim()).filter(s => s)
-      }));
+      setEditFormData(prev => ({ ...prev, skills: value.split(',').map(s => s.trim()).filter(s => s) }));
     } else {
-      setEditFormData(prev => ({
-        ...prev,
-        [field]: value
-      }));
+      setEditFormData(prev => ({ ...prev, [field]: value }));
     }
   };
 
   const handleSaveEdit = async () => {
     if (!editingCandidate) return;
-
-   setSaving(true);
-try {
-  // Prepare data to match API expectations
-  const dataForSubmission = {
-    full_name: editFormData.full_name,
-    phone_number: editFormData.phone_number,
-    // Parse address string and convert to object structure
-    address: (() => {
-      const addressString = editFormData.address || '';
-      const parts = addressString.split(',').map(p => p.trim());
-      return {
-        street: '',
-        city: parts[0] || '',
-        state: parts[1] || '',
-        zip: '',
-        country: parts[2] || ''
+    setSaving(true);
+    try {
+      const dataForSubmission = {
+        full_name: editFormData.full_name,
+        phone_number: editFormData.phone_number,
+        address: editFormData.address,
+        skills: Array.isArray(editFormData.skills) ? editFormData.skills.join(', ') : editFormData.skills,
+        experience_years: editFormData.experience_years,
+        status: editFormData.status,
       };
-    })(),
-    // Convert skills array to comma-separated string
-    skills: editFormData.skills.join(', '),
-    experience_years: editFormData.experience_years,
-    status: editFormData.status,
-    // Add required fields that may be missing
-    bio: editingCandidate.bio || '',
-    username: editingCandidate.username || '',
-    dob: editingCandidate.dob || '',
-    gender: editingCandidate.gender || '',
-    education: Array.isArray(editingCandidate.education)
-      ? editingCandidate.education
-      : [{ degree: '', institution: '', year: '' }],
-    experience: Array.isArray(editingCandidate.experience)
-      ? editingCandidate.experience
-      : [{ title: '', company: '', duration: editFormData.experience_years || '' }]
-  };
 
-  // Use the student service which has proper error handling
-  const result = await studentService.updateProfileDetails(editingCandidate.email, dataForSubmission,);
+      await studentService.updateProfile(editingCandidate.email, dataForSubmission);
 
-  // Update the candidates list
-  const updatedCandidates = candidates.map(c =>
-    c.id === editingCandidate.id ? { ...c, name: dataForSubmission.full_name, phone: dataForSubmission.phone_number, skills: dataForSubmission.skills.split(',').map(s => s.trim()).filter(s => s) } : c
-  );
-  setCandidates(updatedCandidates);
+      const updatedCandidates = candidates.map(c =>
+        c.email === editingCandidate.email ? { ...c, name: editFormData.full_name, phone: editFormData.phone_number, location: editFormData.address, skills: editFormData.skills, status: editFormData.status } : c
+      );
+      setCandidates(updatedCandidates);
+      setFilteredCandidates(updatedCandidates);
 
-  closeEditModal();
-  alert('Candidate updated successfully!');
-} catch (error) {
-  console.error('Error updating candidate:', error);
-  alert('Failed to update candidate. Please try again.');
-} finally {
-  setSaving(false);
-}
-
+      closeEditModal();
+      alert('Candidate updated successfully!');
+    } catch (error) {
+      console.error('Error updating candidate:', error);
+      alert('Failed to update candidate. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Pagination
@@ -207,10 +170,7 @@ try {
   if (loading) {
     return (
       <div className={`${styles.mainContent} ${theme === 'dark' ? styles.dark : ''}`}>
-        <div className={styles.loadingContainer}>
-          <div className={styles.loadingSpinner}></div>
-          <p>Loading candidates...</p>
-        </div>
+        <div className={styles.loadingContainer}><div className={styles.loadingSpinner}></div><p>Loading candidates...</p></div>
       </div>
     );
   }
@@ -222,55 +182,24 @@ try {
         <p className={styles.pageSubtitle}>View and manage all registered candidates</p>
       </div>
 
-      {/* Filters and Search */}
       <div className={styles.filtersContainer}>
         <div className={styles.searchBox}>
-          <input
-            type="text"
-            placeholder="Search by name or email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className={styles.searchInput}
-          />
+          <input type="text" placeholder="Search by name or email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={styles.searchInput} />
           <Search className={styles.searchIcon} />
         </div>
-        
         <div className={styles.filterButtons}>
-          <button
-            className={`${styles.filterBtn} ${statusFilter === 'all' ? styles.active : ''}`}
-            onClick={() => setStatusFilter('all')}
-          >
-            All ({candidates.length})
-          </button>
-          <button
-            className={`${styles.filterBtn} ${statusFilter === 'active' ? styles.active : ''}`}
-            onClick={() => setStatusFilter('active')}
-          >
-            Active ({candidates.filter(c => c.status?.toLowerCase() === 'active').length})
-          </button>
-          <button
-            className={`${styles.filterBtn} ${statusFilter === 'inactive' ? styles.active : ''}`}
-            onClick={() => setStatusFilter('inactive')}
-          >
-            Inactive ({candidates.filter(c => c.status?.toLowerCase() === 'inactive').length})
-          </button>
+          <button className={`${styles.filterBtn} ${statusFilter === 'all' ? styles.active : ''}`} onClick={() => setStatusFilter('all')}>All ({candidates.length})</button>
+          <button className={`${styles.filterBtn} ${statusFilter === 'active' ? styles.active : ''}`} onClick={() => setStatusFilter('active')}>Active ({candidates.filter(c => c.status?.toLowerCase() === 'active').length})</button>
+          <button className={`${styles.filterBtn} ${statusFilter === 'inactive' ? styles.active : ''}`} onClick={() => setStatusFilter('inactive')}>Inactive ({candidates.filter(c => c.status?.toLowerCase() === 'inactive').length})</button>
         </div>
       </div>
 
-      {/* Candidates Table */}
       <div className={styles.tableContainer}>
         <table className={styles.dataTable}>
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Phone</th>
-              <th>Location</th>
-              <th>Experience</th>
-              <th>Skills</th>
-              <th>Status</th>
-              <th>Joined</th>
-              <th>Actions</th>
+              <th>Name</th><th>Email</th><th>Phone</th><th>Location</th>
+              <th>Experience</th><th>Skills</th><th>Status</th><th>Joined</th><th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -278,50 +207,28 @@ try {
               <tr key={candidate.id}>
                 <td>
                   <div className={styles.userInfo}>
-                    <div className={styles.userAvatar}>
-                      {candidate.name.charAt(0).toUpperCase()}
-                    </div>
+                    <div className={styles.userAvatar}>{(candidate.name || 'U').charAt(0).toUpperCase()}</div>
                     <span className={styles.userName}>{candidate.name}</span>
                   </div>
                 </td>
-                <td>
-                  <a href={`mailto:${candidate.email}`} className={styles.emailLink}>
-                    {candidate.email}
-                  </a>
-                </td>
+                <td><a href={`mailto:${candidate.email}`} className={styles.emailLink}>{candidate.email}</a></td>
                 <td>{candidate.phone}</td>
                 <td className={styles.locationCell}>
-                  {typeof candidate.location === 'object'
-                    ? `${candidate.location.city || ''}, ${candidate.location.state || ''}`.trim().replace(/^,/, '') || 'N/A'
-                    : candidate.location || 'N/A'
-                  }
+                  {typeof candidate.location === 'object' ? `${candidate.location.city || ''}, ${candidate.location.state || ''}`.trim().replace(/^,/, '') || 'N/A' : candidate.location || 'N/A'}
                 </td>
                 <td>{candidate.experience}</td>
                 <td>
                   <div className={styles.skillsContainer}>
-                    {candidate.skills.slice(0, 2).map((skill, index) => (
-                      <span key={index} className={styles.skillTag}>
-                        {skill}
-                      </span>
-                    ))}
-                    {candidate.skills.length > 2 && (
-                      <span className={styles.skillTag}>+{candidate.skills.length - 2}</span>
-                    )}
+                    {(candidate.skills || []).slice(0, 2).map((skill, index) => (<span key={index} className={styles.skillTag}>{skill}</span>))}
+                    {(candidate.skills || []).length > 2 && (<span className={styles.skillTag}>+{(candidate.skills || []).length - 2}</span>)}
                   </div>
                 </td>
                 <td>{getStatusBadge(candidate.status)}</td>
                 <td className={styles.dateCell}>{formatDate(candidate.created_at)}</td>
                 <td>
                   <div className={styles.actionButtons}>
-                    <button className={styles.actionBtn} title="View Profile" onClick={() => console.log('View profile:', candidate.name)}>
-                      <Eye size={16} />
-                    </button>
-                    <button className={styles.actionBtn} title="Edit" onClick={() => openEditModal(candidate)}>
-                      <Edit size={16} />
-                    </button>
-                    <button className={styles.actionBtn} title="Block/Unblock" onClick={() => console.log('Block/Unblock candidate:', candidate.name)}>
-                      <Ban size={16} />
-                    </button>
+                    <button className={styles.actionBtn} title="View Profile" onClick={() => openViewModal(candidate)}><Eye size={16} /></button>
+                    <button className={styles.actionBtn} title="Edit" onClick={() => openEditModal(candidate)}><Edit size={16} /></button>
                   </div>
                 </td>
               </tr>
@@ -330,34 +237,44 @@ try {
         </table>
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className={styles.pagination}>
-          <button
-            className={styles.paginationBtn}
-            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-          >
-            Previous
-          </button>
-          <span className={styles.paginationInfo}>
-            Page {currentPage} of {totalPages}
-          </span>
-          <button
-            className={styles.paginationBtn}
-            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </button>
+          <button className={styles.paginationBtn} onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}>Previous</button>
+          <span className={styles.paginationInfo}>Page {currentPage} of {totalPages}</span>
+          <button className={styles.paginationBtn} onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}>Next</button>
         </div>
       )}
 
       {filteredCandidates.length === 0 && (
         <div className={styles.emptyState}>
-          <Users className={styles.emptyIcon} />
-          <h3>No candidates found</h3>
-          <p>No candidates match your current filters.</p>
+          <Users className={styles.emptyIcon} /><h3>No candidates found</h3><p>No candidates match your current filters.</p>
+        </div>
+      )}
+
+      {/* View Modal */}
+      {isViewModalOpen && viewingCandidate && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h2>View Candidate</h2>
+              <button className={styles.modalCloseBtn} onClick={closeViewModal}><X size={20} /></button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.viewDetails}>
+                <p><strong>Name:</strong> {viewingCandidate.name}</p>
+                <p><strong>Email:</strong> {viewingCandidate.email}</p>
+                <p><strong>Phone:</strong> {viewingCandidate.phone}</p>
+                <p><strong>Location:</strong> {typeof viewingCandidate.location === 'object' ? `${viewingCandidate.location.city || ''}, ${viewingCandidate.location.state || ''}`.trim().replace(/^,/, '') || 'N/A' : viewingCandidate.location || 'N/A'}</p>
+                <p><strong>Experience:</strong> {viewingCandidate.experience}</p>
+                <p><strong>Skills:</strong> {(viewingCandidate.skills || []).join(', ')}</p>
+                <p><strong>Status:</strong> {getStatusBadge(viewingCandidate.status)}</p>
+                <p><strong>Joined:</strong> {formatDate(viewingCandidate.created_at)}</p>
+              </div>
+            </div>
+            <div className={styles.modalFooter}>
+              <button className={styles.cancelBtn} onClick={closeViewModal}>Close</button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -367,114 +284,27 @@ try {
           <div className={styles.modalContent}>
             <div className={styles.modalHeader}>
               <h2>Edit Candidate</h2>
-              <button className={styles.modalCloseBtn} onClick={closeEditModal}>
-                <X size={20} />
-              </button>
+              <button className={styles.modalCloseBtn} onClick={closeEditModal}><X size={20} /></button>
             </div>
             <div className={styles.modalBody}>
               <form className={styles.editForm}>
-                <div className={styles.formGroup}>
-                  <label htmlFor="name">Name</label>
-                  <input
-                    type="text"
-                    id="name"
-                    value={editFormData.full_name}
-                    onChange={(e) => handleEditFormChange('full_name', e.target.value)}
-                    className={styles.formInput}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label htmlFor="email">Email</label>
-                  <input
-                    type="email"
-                    id="email"
-                    value={editFormData.email}
-                    onChange={(e) => handleEditFormChange('email', e.target.value)}
-                    className={styles.formInput}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label htmlFor="phone">Phone</label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    value={editFormData.phone_number}
-                    onChange={(e) => handleEditFormChange('phone_number', e.target.value)}
-                    className={styles.formInput}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label htmlFor="location">Location</label>
-                  <input
-                    type="text"
-                    id="location"
-                    value={editFormData.address}
-                    onChange={(e) => handleEditFormChange('address', e.target.value)}
-                    className={styles.formInput}
-                    placeholder="City, State"
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label htmlFor="experience">Experience</label>
-                  <input
-                    type="text"
-                    id="experience"
-                    value={editFormData.experience_years}
-                    onChange={(e) => handleEditFormChange('experience_years', e.target.value)}
-                    className={styles.formInput}
-                    placeholder="e.g. 3 years"
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label htmlFor="skills">Skills</label>
-                  <input
-                    type="text"
-                    id="skills"
-                    value={editFormData.skills.join(', ')}
-                    onChange={(e) => handleEditFormChange('skills', e.target.value)}
-                    className={styles.formInput}
-                    placeholder="JavaScript, React, Node.js (comma separated)"
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label htmlFor="status">Status</label>
-                  <select
-                    id="status"
-                    value={editFormData.status}
-                    onChange={(e) => handleEditFormChange('status', e.target.value)}
-                    className={styles.formSelect}
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                    <option value="blocked">Blocked</option>
+                <div className={styles.formGroup}><label htmlFor="name">Name</label><input type="text" id="name" value={editFormData.full_name} onChange={(e) => handleEditFormChange('full_name', e.target.value)} className={styles.formInput} /></div>
+                <div className={styles.formGroup}><label htmlFor="email">Email</label><input type="email" id="email" value={editFormData.email} readOnly className={styles.formInput} /></div>
+                <div className={styles.formGroup}><label htmlFor="phone">Phone</label><input type="tel" id="phone" value={editFormData.phone_number} onChange={(e) => handleEditFormChange('phone_number', e.target.value)} className={styles.formInput} /></div>
+                <div className={styles.formGroup}><label htmlFor="location">Location</label><input type="text" id="location" value={editFormData.address} onChange={(e) => handleEditFormChange('address', e.target.value)} className={styles.formInput} placeholder="City, State" /></div>
+                <div className={styles.formGroup}><label htmlFor="experience">Experience</label><input type="text" id="experience" value={editFormData.experience_years} onChange={(e) => handleEditFormChange('experience_years', e.target.value)} className={styles.formInput} placeholder="e.g. 3 years" /></div>
+                <div className={styles.formGroup}><label htmlFor="skills">Skills</label><input type="text" id="skills" value={editFormData.skills.join(', ')} onChange={(e) => handleEditFormChange('skills', e.target.value)} className={styles.formInput} placeholder="JavaScript, React, Node.js (comma separated)" /></div>
+                <div className={styles.formGroup}><label htmlFor="status">Status</label>
+                  <select id="status" value={editFormData.status} onChange={(e) => handleEditFormChange('status', e.target.value)} className={styles.formSelect}>
+                    <option value="active">Active</option><option value="inactive">Inactive</option>
                   </select>
                 </div>
               </form>
             </div>
             <div className={styles.modalFooter}>
-              <button
-                className={styles.cancelBtn}
-                onClick={closeEditModal}
-                disabled={saving}
-              >
-                Cancel
-              </button>
-              <button
-                className={styles.saveBtn}
-                onClick={handleSaveEdit}
-                disabled={saving}
-              >
-                {saving ? (
-                  <>
-                    <div className={styles.loadingSpinner}></div>
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save size={16} />
-                    Save Changes
-                  </>
-                )}
+              <button className={styles.cancelBtn} onClick={closeEditModal} disabled={saving}>Cancel</button>
+              <button className={styles.saveBtn} onClick={handleSaveEdit} disabled={saving}>
+                {saving ? (<><div className={styles.loadingSpinner}></div>Saving...</>) : (<><Save size={16} /> Save Changes</>)}
               </button>
             </div>
           </div>
@@ -485,5 +315,3 @@ try {
 };
 
 export default ManageCandidates;
-
-

@@ -50,67 +50,74 @@ const JobPostingManagement = () => {
       setLoading(true);
       setError("");
 
-      // Get all jobs from the API and filter for admin-posted jobs
+      // Get all jobs from the API and filter for current admin's posted jobs only (excluding government jobs)
       const jobsData = await candidateExternalService.getAllJobs();
       const currentAdminId = user?.admin_id || user?.id || user?.user_id;
-      const adminJobs = (jobsData?.jobs || []).filter(job =>
-        job.admin_id === currentAdminId || job.admin_id === "admin" || job.posted_by === "admin"
-      );
+      const adminJobs = (jobsData?.jobs || [])
+        .filter(job => job.admin_id === currentAdminId)
+        .filter(job => job.category !== 'Government')
+        .filter(job => job.status !== 'closed'); // Filter out closed jobs from display
 
-      // Fetch application counts for admin jobs
-      const jobsWithApplications = await Promise.all(
-        adminJobs.map(async (job) => {
+      // Fetch application counts for admin jobs in batches to avoid overwhelming the API
+      const BATCH_SIZE = 3; // Process 3 jobs at a time
+      const DELAY_MS = 100; // 100ms delay between batches
+      const jobsWithCounts = [];
+
+      for (let i = 0; i < adminJobs.length; i += BATCH_SIZE) {
+        const batch = adminJobs.slice(i, i + BATCH_SIZE);
+        console.log(`Fetching application counts for batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(adminJobs.length / BATCH_SIZE)} (${batch.length} jobs)`);
+
+        // Process batch concurrently
+        const batchPromises = batch.map(async (job) => {
           try {
-            // Get applications for this job using the same method as JobApplicationReports.jsx
-            console.log(`Fetching applications for job ${job.job_id}`);
             const applicantsData = await recruiterExternalService.getAllApplicants(job.job_id);
-            console.log(`Applicants data for job ${job.job_id}:`, applicantsData);
 
-            // Handle different response formats from the API (same logic as JobApplicationReports.jsx)
-            let applications = [];
+            // Handle different response formats from the API
             let applicationCount = 0;
-
             if (applicantsData) {
               if (Array.isArray(applicantsData)) {
-                // Direct array of applications
-                applications = applicantsData;
                 applicationCount = applicantsData.length;
               } else if (applicantsData.applications && Array.isArray(applicantsData.applications)) {
-                // Object with applications array and count
-                applications = applicantsData.applications;
                 applicationCount = applicantsData.count || applicantsData.applications.length;
               } else if (typeof applicantsData === 'object' && applicantsData.count !== undefined) {
-                // Object with count but no applications array
                 applicationCount = applicantsData.count;
-                applications = [];
               }
             }
-
-            console.log(`Processed applications for job ${job.job_id}:`, applications);
-            console.log(`Application count:`, applicationCount);
 
             return {
               ...job,
               application_count: applicationCount,
-              applications: applications
+              applications: [] // Applications loaded on-demand when viewing details
             };
           } catch (error) {
-            console.error(`Failed to fetch applications for job ${job.job_id}:`, error);
+            console.error(`Failed to fetch applications for job ${job.job_id}:`, error.message);
             return {
               ...job,
               application_count: 0,
               applications: []
             };
           }
-        })
-      );
+        });
+
+        // Wait for current batch to complete
+        const batchResults = await Promise.all(batchPromises);
+        jobsWithCounts.push(...batchResults);
+
+        // Add delay between batches (except for the last batch)
+        if (i + BATCH_SIZE < adminJobs.length) {
+          console.log(`Waiting ${DELAY_MS}ms before next batch...`);
+          await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+        }
+      }
 
       // Sort jobs by posted date (latest first)
-      const sortedJobs = jobsWithApplications.sort((a, b) => {
+      const sortedJobs = jobsWithCounts.sort((a, b) => {
         const dateA = new Date(a.created_at || a.posted_date || 0);
         const dateB = new Date(b.created_at || b.posted_date || 0);
         return dateB - dateA; // Descending order (newest first)
       });
+
+      console.log(`Job loading complete. Processed ${sortedJobs.length} jobs with application counts.`);
 
       setJobs(sortedJobs);
       setFilteredJobs(sortedJobs);
@@ -151,7 +158,8 @@ const JobPostingManagement = () => {
       approved: { class: 'statusActive', text: 'Approved' },
       pending: { class: 'statusInactive', text: 'Pending' },
       rejected: { class: 'statusBlocked', text: 'Rejected' },
-      draft: { class: 'statusInactive', text: 'Draft' }
+      draft: { class: 'statusInactive', text: 'Draft' },
+      closed: { class: 'statusBlocked', text: 'Closed' }
     };
 
     const statusInfo = statusStyles[status] || statusStyles.approved;
@@ -273,79 +281,122 @@ const JobPostingManagement = () => {
   };
 
   const handleDelete = async (jobId) => {
-    if (window.confirm('Are you sure you want to delete this job? This action cannot be undone.')) {
+    if (window.confirm('Are you sure you want to close this job? This will remove it from public display.')) {
       try {
-        await adminService.deleteAdminJob(jobId);
+        await adminService.closeAdminJob(jobId);
         await fetchJobs();
-        alert('Job deleted successfully!');
+        alert('Job closed successfully!');
       } catch (error) {
-        console.error('Failed to delete job:', error);
-        alert('Failed to delete job. Please try again.');
+        console.error('Failed to close job:', error);
+        alert('Failed to close job. Please try again.');
       }
     }
   };
 
-  // Function to fetch student names using API calls
-  const fetchNamesFromAPI = async (applications) => {
-    console.log('Fetching names from API for applications:', applications);
+  // Function to enrich applications with student details (similar to JobApplicationReports.jsx)
+  const enrichApplicationsWithStudentData = async (applications, jobId) => {
+    console.log('Enriching applications with student data for job:', jobId);
 
-    const studentNamesMap = {};
-
-    // Get unique student IDs
-    const uniqueStudentIds = [...new Set(applications.map(app => app.student_id).filter(id => id))];
-
-    console.log('Unique student IDs:', uniqueStudentIds);
-
-    // Extract names from application data since API calls are failing
-    applications.forEach(app => {
-      // Extract student name from resume URL or other available data
-      if (app.student_id) {
-        let studentName = `Student ${app.student_id}`; // Default fallback
-
-        // Try to extract name from resume URL (e.g., "johndoe" from "https://myresume.com/johndoe.pdf")
-        if (app.resume_url) {
-          try {
-            const urlParts = app.resume_url.split('/');
-            const filename = urlParts[urlParts.length - 1];
-            const namePart = filename.split('.')[0]; // Remove extension
-            if (namePart && namePart !== 'resume' && namePart !== 'cv') {
-              // Capitalize first letter
-              studentName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-            }
-          } catch (e) {
-            // Keep default name if extraction fails
+    // Use the same approach as JobApplicationReports.jsx
+    const applicationsWithDetails = applications.map((app) => {
+      // Check if application already has embedded student data
+      if (app.student_name) {
+        return {
+          ...app,
+          student_details: {
+            name: app.student_name || "Unknown",
+            email: app.student_email || app.email || null,
+            phone: app.student_phone || null,
+            skills: app.student_skills ? app.student_skills.split(',').map(skill => skill.trim()) : [],
+            location: app.student_location || null,
+            experience: app.student_experience || null,
+            education: app.student_university ? [app.student_university] : [],
+            experience_years: app.student_experience_years || null,
+            bio: app.student_bio || null,
+            resumeUrl: app.resume_url || app.student_profile?.resume || null,
+            department: app.student_department || null,
+            cgpa: app.student_cgpa || null
           }
-        }
-
-        studentNamesMap[app.student_id] = studentName;
+        };
       }
+
+      // Fallback if no embedded data - create a map for backward compatibility
+      const enrichedApp = {
+        ...app,
+        student_details: {
+          name: `Student ${app.student_id || 'Unknown'}`,
+          email: null,
+          phone: null,
+          skills: [],
+          location: null,
+          experience: null,
+          education: [],
+          experience_years: null,
+          bio: null,
+          resumeUrl: app.resume_url || null,
+          department: null,
+          cgpa: null
+        }
+      };
+
+      return enrichedApp;
     });
 
-    console.log('Fetched student names:', studentNamesMap);
-
-    // Update state with fetched names
-    if (Object.keys(studentNamesMap).length > 0) {
-      setStudentNames(prev => ({ ...prev, ...studentNamesMap }));
-    }
+    return applicationsWithDetails;
   };
 
   const handleViewApplications = async (job) => {
     console.log('Viewing applications for job:', job);
-    console.log('Applications data:', job.applications);
-    console.log('Application count:', job.application_count);
 
-    if (job.application_count > 0 && (!job.applications || job.applications.length === 0)) {
-      alert('Applications data is loading. Please wait a moment and try again.');
-      return;
-    }
-
+    // If applications haven't been loaded yet, fetch them
     if (!job.applications || job.applications.length === 0) {
-      alert('No applications found for this job.');
-      return;
+      try {
+        console.log(`Fetching applications for job ${job.job_id}`);
+
+        // Fetch applications from API
+        const applicantsData = await recruiterExternalService.getAllApplicants(job.job_id);
+        console.log('Raw applicants data:', applicantsData);
+
+        // Handle different response formats from the API
+        let applications = [];
+        let applicationCount = 0;
+
+        if (applicantsData) {
+          if (Array.isArray(applicantsData)) {
+            applications = applicantsData;
+            applicationCount = applicantsData.length;
+          } else if (applicantsData.applications && Array.isArray(applicantsData.applications)) {
+            applications = applicantsData.applications;
+            applicationCount = applicantsData.count || applicantsData.applications.length;
+          } else if (typeof applicantsData === 'object' && applicantsData.count !== undefined) {
+            applicationCount = applicantsData.count;
+            applications = [];
+          }
+        }
+
+        console.log(`Processed ${applicationCount} applications`);
+
+        // Update the job object with fetched applications
+        job.applications = applications;
+        job.application_count = applicationCount;
+
+        // If no applications found, show message
+        if (!applications || applications.length === 0) {
+          alert('No applications found for this job.');
+          return;
+        }
+      } catch (error) {
+        console.error('Failed to fetch applications:', error);
+        alert('Failed to load applications. Please try again.');
+        return;
+      }
     }
 
-    // Fetch student names using API calls
-    await fetchNamesFromAPI(job.applications);
+    // Enrich applications with student data (similar to JobApplicationReports.jsx)
+    const enrichedApplications = await enrichApplicationsWithStudentData(job.applications, job.job_id);
+
+    // Update the job with enriched applications
+    job.applications = enrichedApplications;
 
     setSelectedJobForApplications(job);
     setShowApplicationsModal(true);
@@ -414,6 +465,12 @@ const JobPostingManagement = () => {
             onClick={() => setStatusFilter('pending')}
           >
             Pending ({jobs.filter(j => j.status === 'pending').length})
+          </button>
+          <button
+            className={`${styles.filterBtn} ${statusFilter === 'closed' ? styles.active : ''}`}
+            onClick={() => setStatusFilter('closed')}
+          >
+            Closed ({jobs.filter(j => j.status === 'closed').length})
           </button>
           <button
             className={styles.addBtn}
@@ -499,7 +556,7 @@ const JobPostingManagement = () => {
                     <button
                       onClick={() => handleDelete(job.job_id || job.id)}
                       className={`${styles.actionBtn} ${styles.rejectBtn}`}
-                      title="Delete Job"
+                      title="Close Job"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -637,13 +694,22 @@ const JobPostingManagement = () => {
                 </div>
                 <div className={styles.formGroup}>
                   <label>Experience Required</label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.experience_required}
                     onChange={(e) => handleInputChange('experience_required', e.target.value)}
-                    className={styles.formInput}
-                    placeholder="2-5 years"
-                  />
+                    className={styles.formSelect}
+                  >
+                    <option value="">Select experience level</option>
+                    <option value="No experience required">No experience required</option>
+                    <option value="0-1 year">0-1 year</option>
+                    <option value="1-2 years">1-2 years</option>
+                    <option value="2-3 years">2-3 years</option>
+                    <option value="3-5 years">3-5 years</option>
+                    <option value="5-7 years">5-7 years</option>
+                    <option value="7-10 years">7-10 years</option>
+                    <option value="10+ years">10+ years</option>
+                    <option value="15+ years">15+ years</option>
+                  </select>
                 </div>
               </div>
 
@@ -815,7 +881,7 @@ const JobPostingManagement = () => {
                   backgroundColor: theme === 'dark' ? '#444' : '#f9f9f9'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <h4 style={{ margin: 0 }}>Application #{index + 1}</h4>
+                    <h4 style={{ margin: 0 }}>{application.student_details?.name || `Student ${application.student_id}`}</h4>
                     <span style={{
                       padding: '4px 8px',
                       borderRadius: '4px',
@@ -828,25 +894,28 @@ const JobPostingManagement = () => {
                     </span>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                     <div>
-                      <strong>Student Name:</strong> {studentNames[application.student_id] || `Loading...`}
+                      <strong>Email:</strong><br />{application.student_details?.email || 'N/A'}
                     </div>
                     <div>
-                      <strong>Applied Date:</strong> {formatDate(application.created_at || application.applied_date)}
+                      <strong>Phone:</strong><br />{application.student_details?.phone || 'N/A'}
                     </div>
                     <div>
-                      <strong>Last Updated:</strong> {formatDate(application.updated_at)}
+                      <strong>Skills:</strong><br />{application.student_details?.skills && application.student_details.skills.length > 0 ?
+                        application.student_details.skills.join(', ') : 'N/A'}
                     </div>
                     <div>
-                      <strong>Status Verified:</strong> {application.status_verified || 'Not verified'}
+                      <strong>Applied Date:</strong><br />{formatDate(application.created_at || application.applied_date)}
                     </div>
                   </div>
 
                   {application.cover_letter && (
                     <div style={{ marginBottom: '10px' }}>
                       <strong>Cover Letter:</strong>
-                      <p style={{ margin: '5px 0', fontStyle: 'italic' }}>{application.cover_letter}</p>
+                      <p style={{ margin: '5px 0', fontStyle: 'italic', backgroundColor: theme === 'dark' ? '#333' : '#f0f0f0', padding: '8px', borderRadius: '4px' }}>
+                        {application.cover_letter}
+                      </p>
                     </div>
                   )}
 
@@ -863,16 +932,16 @@ const JobPostingManagement = () => {
                       }}
                     >
                       <Eye size={14} style={{ marginRight: '5px' }} />
-                      View Details
+                      View Full Details
                     </button>
 
-                    {application.resume_url && (
+                    {(application.resume_url || application.student_details?.resumeUrl) && (
                       <a
-                        href={application.resume_url}
+                        href={application.resume_url || application.student_details?.resumeUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
-                          backgroundColor: '#6c757d',
+                          backgroundColor: '#28a745',
                           color: '#fff',
                           textDecoration: 'none',
                           padding: '8px 16px',
@@ -881,8 +950,8 @@ const JobPostingManagement = () => {
                           alignItems: 'center'
                         }}
                       >
-                        <Eye size={14} style={{ marginRight: '5px' }} />
-                        Resume
+                        <Download size={14} style={{ marginRight: '5px' }} />
+                        Download Resume
                       </a>
                     )}
                   </div>

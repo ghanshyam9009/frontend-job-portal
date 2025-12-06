@@ -40,8 +40,8 @@ export const API_ENDPOINTS = {
     login: '/students/login',
     forgotPassword: '/students/forgot-password',
     resetPassword: '/students/reset-password',
-    getProfile: (email) => `/student/profile/${email}`,
-    updateProfile: (email) => `/student/profile/${email}`,
+    getProfile: (email) => `/students/profile/${email}`,
+    updateProfile: (email) => `/students/profile/${email}`,
     getAll: '/students',
     getById: (id) => `/students/${id}`,
     update: (id) => `/students/${id}`,
@@ -54,16 +54,18 @@ export const API_ENDPOINTS = {
   recruiters: {
     register: '/recruiter/register',
     login: '/Recruiter/login',
-   resetPassword: '/recruiter/reset-password',
-    getProfile: (email) => `/recruiter/profile/${email}`,
-    updateProfile: (email) => `/recruiter/profile/${email}`,
+    resetPassword: '/recruiter/reset-password',
+    getProfile: (email) => `/recruiter/profile/${encodeURIComponent(email)}`,
+    updateProfile: (email) => `/Recruiter/update/${email}`,
+    submitKyc: (email) => `/Recruiter/update/${email}/kyc`,
     getAll: '/employers',
     getById: (id) => `/employers/${id}`,
     update: (id) => `/employers/${id}`,
     delete: (id) => `/employers/${id}`,
     getJobs: (id) => `/employers/${id}/jobs`,
     getApplications: (id) => `/employers/${id}/applications`,
-    uploadLogo: (id) => `/employers/${id}/logo`
+    uploadLogo: (id) => `/employers/${id}/logo`,
+    getEmployerDetails: (email) => `https://4x10ubol84.execute-api.ap-southeast-1.amazonaws.com/default/getepmloyerdetailed?email=${email}`
   },
 
   // Admin
@@ -79,8 +81,8 @@ export const API_ENDPOINTS = {
     delete: (id) => `/admin/${id}`,
     getAllRecruiters: '/admin/get-all-recruiter',
     approveRecruiter: '/admin/approved-recruiter',
-    updateRecruiter: '/admin/update-recruiter',
-    rejectRecruiter: '/admin/approved-recruiter'
+    rejectRecruiter: '/admin/approved-recruiter',
+    updateCandidateStatus: (email) => `/admin/candidate/${email}/status`
   },
 
   // Users

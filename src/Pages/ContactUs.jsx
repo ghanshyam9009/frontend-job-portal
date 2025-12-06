@@ -6,11 +6,10 @@ import HomeNav from "../Components/HomeNav";
 import Footer from "../Components/Footer";
 import logo from "../assets/logo2.png";
 import { contactService } from "../services/contactService";
-import { withErrorHandling } from "../utils/errorHandler";
 
 const ContactUs = () => {
   const [theme, setTheme] = useState('light');
-   const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -19,8 +18,6 @@ const ContactUs = () => {
     phone: "",
     subject: ""
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
   const [submitError, setSubmitError] = useState("");
@@ -34,17 +31,6 @@ const ContactUs = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      console.log("Form submitted:", formData);
-      setSubmitStatus('success');
-      setFormData({ name: "", email: "", message: "", userType: "candidate", phone: "", subject: "" });
-      setIsSubmitting(false);
-      
-      setTimeout(() => setSubmitStatus(null), 5000);
-    }, 1500);
     setLoading(true);
     setSubmitError("");
     setSubmitMessage("");
@@ -60,7 +46,9 @@ const ContactUs = () => {
           name: "",
           email: "",
           message: "",
-          userType: "candidate"
+          userType: "candidate",
+          phone: "",
+          subject: ""
         });
       } else {
         setSubmitError("Failed to send message. Please try again.");
@@ -77,12 +65,12 @@ const ContactUs = () => {
 
   return (
     <div className={`min-h-screen ${isDark ? 'bg-gray-900' : 'bg-gray-50'} transition-colors duration-300`}>
-      
+
     <div className="lg:h-20 h-15">
          {isAuthenticated ? <CandidateNavbar /> : <HomeNav />}
       </div>
 
-    
+
       {/* Hero Section */}
       <div className={`${isDark ? 'bg-gradient-to-br from-blue-900 to-gray-800' : 'bg-gradient-to-br from-blue-600 to-blue-800'} text-white py-16`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -108,10 +96,16 @@ const ContactUs = () => {
                 </p>
               </div>
 
-              {submitStatus === 'success' && (
+              {submitMessage && (
                 <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg flex items-center">
                   <FaPaperPlane className="mr-3" />
-                  <span>Message sent successfully! We'll get back to you soon.</span>
+                  <span>{submitMessage}</span>
+                </div>
+              )}
+
+              {submitError && (
+                <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                  {submitError}
                 </div>
               )}
 
@@ -161,8 +155,8 @@ const ContactUs = () => {
                       onChange={handleInputChange}
                       placeholder="John Doe"
                       className={`w-full px-4 py-3 rounded-lg border ${
-                        isDark 
-                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
+                        isDark
+                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500'
                           : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500'
                       } focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all`}
                     />
@@ -180,8 +174,8 @@ const ContactUs = () => {
                       onChange={handleInputChange}
                       placeholder="john@example.com"
                       className={`w-full px-4 py-3 rounded-lg border ${
-                        isDark 
-                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
+                        isDark
+                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500'
                           : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500'
                       } focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all`}
                     />
@@ -202,8 +196,8 @@ const ContactUs = () => {
                       onChange={handleInputChange}
                       placeholder="+91 98765 43210"
                       className={`w-full px-4 py-3 rounded-lg border ${
-                        isDark 
-                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
+                        isDark
+                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500'
                           : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500'
                       } focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all`}
                     />
@@ -221,8 +215,8 @@ const ContactUs = () => {
                       onChange={handleInputChange}
                       placeholder="How can we help?"
                       className={`w-full px-4 py-3 rounded-lg border ${
-                        isDark 
-                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
+                        isDark
+                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500'
                           : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500'
                       } focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all`}
                     />
@@ -242,8 +236,8 @@ const ContactUs = () => {
                     placeholder="Tell us more about your inquiry..."
                     rows="6"
                     className={`w-full px-4 py-3 rounded-lg border ${
-                      isDark 
-                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
+                      isDark
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500'
                         : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500'
                     } focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all resize-none`}
                   ></textarea>
@@ -252,14 +246,14 @@ const ContactUs = () => {
                 {/* Submit Button */}
                 <button
                   onClick={handleSubmit}
-                  disabled={isSubmitting}
+                  disabled={loading}
                   className={`w-full py-4 px-6 rounded-lg font-semibold text-white transition-all ${
-                    isSubmitting
+                    loading
                       ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
                   }`}
                 >
-                  {isSubmitting ? (
+                  {loading ? (
                     <span className="flex items-center justify-center">
                       <svg className="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
@@ -285,7 +279,7 @@ const ContactUs = () => {
               <h3 className={`text-xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 Contact Information
               </h3>
-              
+
               <div className="space-y-5">
                 <div className="flex items-start">
                   <div className={`${isDark ? 'bg-blue-900/50' : 'bg-blue-50'} p-3 rounded-lg mr-4 flex-shrink-0`}>
@@ -386,7 +380,7 @@ const ContactUs = () => {
       </div>
 
        <Footer/>
-      
+
     </div>
   );
 };
