@@ -32,18 +32,20 @@ const CandidateNavbar = ({ toggleSidebar }) => {
     const calculateProfileCompletion = (user) => {
       if (!user) return 0;
       let score = 0;
-      const totalPoints = 10;
+      const totalPoints = 12;
 
       if (user.full_name && user.full_name.trim()) score++;
       if (user.phone_number && user.phone_number.trim()) score++;
+      if (user.dob && user.dob.trim()) score++;
       if (user.gender && user.gender.trim()) score++;
       if (user.address?.city && user.address.city.trim()) score++;
       if (user.address?.state && user.address.state.trim()) score++;
       if (user.address?.country && user.address.country.trim()) score++;
       if (user.bio && user.bio.trim()) score++;
       if (user.skills && user.skills.trim()) score++;
+      if (user.resume) score++;
       if (Array.isArray(user.education) && user.education.length > 0 && user.education.some(edu => edu.degree?.trim() && edu.institution?.trim())) score++;
-      if (Array.isArray(user.experience) && user.experience.length > 0 && user.experience.some(exp => exp.title?.trim() && exp.company?.trim())) score++;
+      if (user.experienceLevel === 'Fresher' || (Array.isArray(user.experience) && user.experience.length > 0 && user.experience.some(exp => exp.title?.trim() && exp.company?.trim()))) score++;
 
       return Math.round((score / totalPoints) * 100);
     };
