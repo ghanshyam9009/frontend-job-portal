@@ -445,6 +445,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
         <div className="grid  lg:grid-cols-12 gap-6">
           {/* left */}
           <main className=" space-y-6 lg:col-span-8">
+            {console.log(job.salary_range.max)}
             <div className={`lg:sticky lg:top-24 bg-white ${isDarkMode ? "dark:bg-slate-800" : ""} rounded-xl p-6 shadow`}>
               <div className="flex justify-between items-start gap-4">
                 <div className="flex-1 min-w-0">
@@ -461,7 +462,8 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
 
                   <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                     {/* <div className="flex items-center gap-1">💼 {formatExperience(job.experience_required || job.experience)}</div> */}
-                    <div className="flex items-center gap-1">💰 {formatSalary(job.salary_min, job.salary_max)}</div>
+                    <div className="flex items-center gap-1">💰 {formatSalary(job.salary_range.min,job.salary_range.max)}</div>
+                
                     <div className="flex items-center gap-1">📍 {job.location || "Remote"}</div>
                   </div>
                 </div>
