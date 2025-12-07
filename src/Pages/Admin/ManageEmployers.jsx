@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
+import { recruiterService } from "../../services/recruiterService";
 import { Eye, Edit, CheckCircle, Briefcase, X, Search, Building, Download } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
@@ -141,19 +142,12 @@ const ManageEmployers = () => {
   // Handle view recruiter details
   const handleViewRecruiter = async (recruiter) => {
     try {
-      // Fetch detailed recruiter data from the API with email parameter
-      const response = await fetch(`https://4x10ubol84.execute-api.ap-southeast-1.amazonaws.com/default/getepmloyerdetailed?email=${encodeURIComponent(recruiter.email)}`);
+      // Fetch detailed recruiter data using cached service
+      const response = await recruiterService.getProfile(recruiter.email);
 
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-      }
-
-      const detailedData = await response.json();
-
-      // The API returns a single recruiter object
-      // Merge detailed data with basic data to preserve email and other fields
-      const recruiterDetails = detailedData && Object.keys(detailedData).length > 0
-        ? { ...recruiter, ...detailedData }
+      // Merge detailed data with basic data to preserve all fields
+      const recruiterDetails = response.success && response.data
+        ? { ...recruiter, ...response.data }
         : recruiter;
 
       setSelectedRecruiter(recruiterDetails);
@@ -193,12 +187,13 @@ const ManageEmployers = () => {
   // Handle edit recruiter - open modal
   const handleEditRecruiter = async (recruiter) => {
     try {
-      // Fetch detailed recruiter data from the API with email parameter
-      const response = await fetch(`https://4x10ubol84.execute-api.ap-southeast-1.amazonaws.com/default/getepmloyerdetailed?email=${encodeURIComponent(recruiter.email)}`);
-      const detailedData = await response.json();
+      // Fetch detailed recruiter data using cached service
+      const response = await recruiterService.getProfile(recruiter.email);
 
-      // The API returns a single recruiter object, not an array
-      const recruiterDetails = detailedData || recruiter;
+      // Merge detailed data with basic data to preserve all fields
+      const recruiterDetails = response.success && response.data
+        ? { ...recruiter, ...response.data }
+        : recruiter;
 
       setSelectedRecruiter(recruiter);
       setEditFormData({
@@ -231,7 +226,8 @@ const ManageEmployers = () => {
   // Handle edit form submission
   const handleEditSubmit = async () => {
     try {
-      await adminService.updateRecruiter(selectedRecruiter.employer_id, editFormData);
+      const { email, ...updatedData } = editFormData;
+      await recruiterService.updateProfile(selectedRecruiter.email, updatedData);
 
       // Refresh the data - only update recruiters state, let useEffect handle filtering/sorting
       const response = await adminService.getAllRecruiters();
@@ -576,7 +572,7 @@ const ManageEmployers = () => {
                   <input
                     type="email"
                     value={editFormData.email}
-                    onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                    readOnly
                     className={styles.formInput}
                     placeholder="Enter email address"
                   />
@@ -705,7 +701,7 @@ const ManageEmployers = () => {
                     <input
                       type="email"
                       value={editFormData.email}
-                      onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                      readOnly
                       className={styles.formInput}
                       placeholder="Enter email address"
                     />
@@ -779,6 +775,34 @@ const ManageEmployers = () => {
               </div>
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
+                  <label>KYC Type</label>
+                  <p>{selectedRecruiter.kyc_type || 'N/A'}</p>
+                </div>
+                <div className={styles.formGroup}>
+                  <label>KYC Document Number</label>
+                  <p>{selectedRecruiter.kyc_document_number || 'N/A'}</p>
+                </div>
+              </div>
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label>KYC Status</label>
+                  <p>{selectedRecruiter.kyc_status || 'N/A'}</p>
+                </div>
+                <div className={styles.formGroup}>
+                  <label>KYC Document</label>
+                  <p>
+                    {selectedRecruiter.kycDocUrl ? (
+                      <a href={selectedRecruiter.kycDocUrl} target="_blank" rel="noopener noreferrer">
+                        View Document
+                      </a>
+                    ) : (
+                      'Not Uploaded'
+                    )}
+                  </p>
+                </div>
+              </div>
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
                   <label>Status</label>
                   <p>{getStatusBadge(selectedRecruiter.status)}</p>
                 </div>
@@ -845,7 +869,8 @@ const ManageEmployers = () => {
                       className={styles.submitBtn}
                       onClick={async () => {
                         try {
-                          await adminService.updateRecruiter(selectedRecruiter.employer_id, editFormData);
+                          const { email, ...updatedData } = editFormData;
+                          await recruiterService.updateProfile(selectedRecruiter.email, updatedData);
 
                           // Refresh the data
                           const response = await adminService.getAllRecruiters();

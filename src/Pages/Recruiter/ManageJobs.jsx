@@ -8,6 +8,7 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import { Edit, Users, CircleX, FileText, MapPin, Check, ArrowLeft, ExternalLink } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 import { recruiterExternalService } from "../../services";
+import { studentService } from "../../services/studentService";
 
 const ManageJobs = () => {
   const navigate = useNavigate();
@@ -33,7 +34,6 @@ const ManageJobs = () => {
         setLoading(true);
         setError("");
 
-        // Only fetch if we have a valid employer ID
         if (!employerId) {
           console.warn('No employer ID available');
           setJobs([]);
@@ -43,30 +43,22 @@ const ManageJobs = () => {
         const data = await recruiterExternalService.getAllPostedJobs(employerId);
         const allJobs = data?.jobs || [];
 
-        // Debug: Log the raw jobs data
-        console.log('Raw jobs data:', allJobs);
-        console.log('Employer ID:', employerId);
-        console.log('User object:', user);
-
-        // Filter jobs - be more inclusive with status check
-        // Show all jobs for this employer, regardless of status for debugging
         const approvedJobs = allJobs.filter(job => job && job.job_id && job.job_title);
 
-        console.log('Filtered jobs:', approvedJobs);
-        
-        const mapped = approvedJobs.map((j) => ({
-          id: j.job_id,
-          title: j.job_title,
-          company: j.company_name || "",
-          location: j.location || "",
-          type: j.employment_type || "",
-          salary: j.salary_range ? `${Math.round(j.salary_range.min/100000)}L - ${Math.round(j.salary_range.max/100000)}L` : "",
-          status: (j.status || "Open").toLowerCase() === "open" ? "Active" : j.status,
-          postedDate: (j.created_at || "").split("T")[0] || "",
-          applications: 0,
-          views: 0
+        const jobsData = approvedJobs.map(job => ({
+            id: job.job_id,
+            title: job.job_title,
+            company: job.company_name || "",
+            location: job.location || "",
+            type: job.employment_type || "",
+            salary: job.salary_range ? `${Math.round(job.salary_range.min/100000)}L - ${Math.round(job.salary_range.max/100000)}L` : "",
+            status: (job.status || "Open").toLowerCase() === "open" ? "Active" : job.status,
+            postedDate: (job.created_at || "").split("T")[0] || "",
+            applications: job.application_count || 0,
+            views: 0
         }));
-        setJobs(mapped);
+        
+        setJobs(jobsData);
       } catch (e) {
         console.error(e);
         setError(typeof e === "string" ? e : e?.message || "Failed to load jobs");
@@ -107,20 +99,35 @@ const ManageJobs = () => {
   };
 
   const handleViewApplications = async (jobId) => {
+    setSelectedJobId(jobId);
+    setShowApplicationsModal(true);
+    
+    if (applications[jobId]) {
+        return;
+    }
+
     try {
-      setApplicationsLoading(true);
-      setSelectedJobId(jobId);
-      const applicationsData = await recruiterExternalService.getAllApplicants(jobId);
-      setApplications(prev => ({
-        ...prev,
-        [jobId]: applicationsData.applications || []
-      }));
-      setShowApplicationsModal(true);
-    } catch (e) {
-      console.error(e);
-      alert('Failed to load applications');
+        setApplicationsLoading(true);
+        const applicationsData = await recruiterExternalService.getAllApplicants(jobId);
+        const applicationsList = applicationsData.applications || [];
+        
+        const applicationsWithDetails = await Promise.all(
+            applicationsList.map(async (app) => {
+                try {
+                    const studentDetails = await studentService.getStudentById(app.student_id);
+                    return { ...app, ...studentDetails };
+                } catch (err) {
+                    console.error(`Failed to fetch details for student ${app.student_id}:`, err);
+                    return { ...app, student_name: "Unknown", student_email: "Unknown" };
+                }
+            })
+        );
+
+        setApplications(prev => ({ ...prev, [jobId]: applicationsWithDetails }));
+    } catch (error) {
+        console.error(`Failed to fetch applications for job ${jobId}:`, error);
     } finally {
-      setApplicationsLoading(false);
+        setApplicationsLoading(false);
     }
   };
 
@@ -317,7 +324,8 @@ const ManageJobs = () => {
                       <div key={application.application_id} className={styles.applicationCard}>
                         <div className={styles.applicationHeader}>
                           <div className={styles.applicationInfo}>
-                            <h4>Student ID: {application.student_id}</h4>
+                            <h4>{application.student_name}</h4>
+                            <p>{application.student_email}</p>
                             <p className={styles.applicationDate}>
                               Applied: {new Date(application.created_at).toLocaleDateString()}
                             </p>

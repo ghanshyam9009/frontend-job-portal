@@ -4,6 +4,7 @@
   margin: 0 auto;
   padding: 2rem;
   min-height: 100vh;
+  overflow-y: auto;
   color: #111827;
   border-radius: 16px;
   margin-top: 2rem;

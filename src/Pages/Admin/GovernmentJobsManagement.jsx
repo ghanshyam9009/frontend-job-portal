@@ -139,7 +139,7 @@ const GovernmentJobsManagement = () => {
           return;
         }
 
-        await adminService.createGovernmentJob({
+        const jobData = {
           admin_id: adminId,
           job_title: formData.job_title,
           description: formData.description,
@@ -152,8 +152,11 @@ const GovernmentJobsManagement = () => {
           total_posts: formData.total_posts,
           application_fee: formData.application_fee,
           status: "Open",
-          location: "N/A" // Add location field that might be required
-        });
+          location: "N/A"
+        };
+
+        console.log("Submitting Government Job Data:", jobData);
+        await adminService.createGovernmentJob(jobData);
       }
       
       // Refresh jobs data
@@ -196,14 +199,14 @@ const GovernmentJobsManagement = () => {
   };
 
   const handleDelete = async (jobId) => {
-    if (window.confirm('Are you sure you want to delete this government job?')) {
+    if (window.confirm('Are you sure you want to close this government job? This will remove it from public display.')) {
       try {
-        // Mock delete - replace with actual API call
-        setJobs(jobs.filter(job => job.id !== jobId));
-        alert('Government job deleted successfully!');
+        await adminService.closeAdminJob(jobId);
+        await fetchJobs();
+        alert('Government job closed successfully!');
       } catch (error) {
-        console.error('Failed to delete job:', error);
-        alert('Failed to delete job. Please try again.');
+        console.error('Failed to close job:', error);
+        alert('Failed to close job. Please try again.');
       }
     }
   };

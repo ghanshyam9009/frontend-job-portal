@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { jobService } from "../../services/jobService";
+import { recruiterService } from "../../services/recruiterService";
+import { calculateRecruiterProfileCompletion, isProfileComplete } from "../../utils/recruiterProfileUtils";
 import { Check, AlertTriangle, Building } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 
@@ -39,51 +41,31 @@ const PostJob = () => {
   });
 
   const [newSkill, setNewSkill] = useState("");
-  const [profileData, setProfileData] = useState(null);
   const [canPostJob, setCanPostJob] = useState(false);
   const [restrictionReason, setRestrictionReason] = useState("");
 
-  // Check profile and KYC status
+  // Check profile completion and KYC status
   useEffect(() => {
-    const checkPostingEligibility = async () => {
-      if (!user?.email) return;
+    if (user) {
+      const profileComplete = isProfileComplete(user);
+      const adminApproved = user.hasadminapproved === true;
 
-      try {
-        const response = await fetch(`https://api.bigsources.in/api/Recruiter/profile/${user.email}`);
-        if (response.ok) {
-          const data = await response.json();
-          setProfileData(data);
-
-          // Calculate profile completion
-          const requiredFields = ['company_name', 'email', 'industry', 'company_size', 'description'];
-          const completedRequired = requiredFields.filter(field =>
-            data[field] && data[field].toString().trim() !== ''
-          ).length;
-          const profileComplete = completedRequired === requiredFields.length;
-
-          // Check KYC status
-          const kycVerified = data.kyc_status === 'verified';
-
-          if (!profileComplete) {
-            setCanPostJob(false);
-            setRestrictionReason("Complete your company profile (100%) before posting jobs");
-          } else if (!kycVerified) {
-            setCanPostJob(false);
-            setRestrictionReason("KYC verification required before posting jobs");
-          } else {
-            setCanPostJob(true);
-            setRestrictionReason("");
-          }
-        }
-      } catch (err) {
-        console.error('Failed to check posting eligibility:', err);
+      if (!profileComplete) {
+        const completionPercentage = calculateRecruiterProfileCompletion(user);
         setCanPostJob(false);
-        setRestrictionReason("Unable to verify account status");
+        setRestrictionReason(`Complete your company profile (${completionPercentage}% / 100%) before posting jobs. Please complete all required fields.`);
+      } else if (!adminApproved) {
+        setCanPostJob(false);
+        setRestrictionReason("Admin approval is required before you can access hiring features. Please wait for approval.");
+      } else {
+        setCanPostJob(true);
+        setRestrictionReason("");
       }
-    };
-
-    checkPostingEligibility();
-  }, [user?.email]);
+    } else {
+        setCanPostJob(false);
+        setRestrictionReason("Unable to verify account status. Please refresh and try again.");
+    }
+  }, [user]);
 
   const handleInputChange = (field, value) => {
     const keys = field.split(".");

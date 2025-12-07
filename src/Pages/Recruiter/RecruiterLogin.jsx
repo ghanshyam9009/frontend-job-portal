@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext"; // Import useTheme
 import { validateForm } from "../../utils/errorHandler";
-import { CheckCircle, Clock, XCircle, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Clock, XCircle, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import styles from "../../Styles/Auth.module.css";
 import HomeNav from "../../Components/HomeNav";
 import logo from "../../assets/logo.png";
@@ -17,7 +17,6 @@ const RecruiterLogin = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [errors, setErrors] = useState({});
-  const [showModal, setShowModal] = useState(false);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState(""); // "pending" or "rejected"
   const [showPassword, setShowPassword] = useState(false);
@@ -28,11 +27,7 @@ const RecruiterLogin = () => {
     confirmPassword: "",
     companyName: "",
     contactPerson: "",
-    phone: "",
-    companySize: "",
-    location: "",
-    industry: "",
-    otherIndustry: ""
+    phone: ""
   });
 
   const handleInputChange = (e) => {
@@ -64,16 +59,10 @@ const RecruiterLogin = () => {
     const rules = {
       companyName: { required: true, minLength: 2, label: 'Company Name' },
       contactPerson: { required: true, minLength: 2, label: 'Contact Person' },
-      companySize: { required: true, label: 'Company Size' },
-      industry: { required: true, label: 'Industry' },
-      location: { required: true, minLength: 2, label: 'Location' },
       email: { required: true, type: 'email', label: 'Email' },
       phone: { required: true, type: 'phone', label: 'Phone Number' },
       password: { required: true, type: 'password', label: 'Password' },
-      confirmPassword: { required: true, label: 'Confirm Password' },
-      ...(formData.industry === "Other" && {
-        otherIndustry: { required: true, minLength: 2, label: 'Other Industry' }
-      })
+      confirmPassword: { required: true, label: 'Confirm Password' }
     };
 
     const validationErrors = validateForm(formData, rules);
@@ -137,17 +126,28 @@ const RecruiterLogin = () => {
         password: formData.password,
         phone_number: formData.phone,
         company_name: formData.companyName,
-        company_website: "", // Not in form, but required by API
-        industry: formData.industry === "Other" ? formData.otherIndustry : formData.industry,
-        company_size: formData.companySize,
-        location: formData.location,
-        description: "", // Not in form, but required by API
+        company_website: "",
+        description: "",
         role: 'recruiter'
       });
 
       if (result.success) {
-        setShowModal(true);
         setError("");
+        setSuccess("Registration successful! Let's complete your company profile.");
+        try {
+          const loginResult = await login(formData.email, formData.password, 'recruiter');
+          if (loginResult.success) {
+            navigate('/company-profile', { replace: true, state: { onboarding: true } });
+          } else {
+            const pendingMessage = loginResult?.error?.error || loginResult?.error?.message || '';
+            if (pendingMessage?.includes('Recruiter not approved')) {
+              setApprovalStatus('pending');
+              setShowApprovalModal(true);
+            }
+          }
+        } catch (loginError) {
+          console.error('Auto login after registration failed:', loginError);
+        }
       } else {
         // Handle specific error messages from API response
         const errorMessage = result.error?.response?.data?.message ||
@@ -230,83 +230,6 @@ const RecruiterLogin = () => {
                   </label>
                 </div>
 
-                <div className={styles.inputGroup}>
-                  <label className={styles.label}>
-                    <span className={styles.labelText}>Company Size</span>
-                    <select
-                      name="companySize"
-                      value={formData.companySize}
-                      onChange={handleInputChange}
-                      className={`${styles.input} ${errors.companySize ? styles.inputError : ''}`}
-                      required={!isLogin}
-                    >
-                      <option value="">Select company size</option>
-                      <option value="1-10">1-10 employees</option>
-                      <option value="11-50">11-50 employees</option>
-                      <option value="51-200">51-200 employees</option>
-                      <option value="201-500">201-500 employees</option>
-                      <option value="500+">500+ employees</option>
-                    </select>
-                    {errors.companySize && <span className={styles.errorText}>{errors.companySize}</span>}
-                  </label>
-                </div>
-
-                <div className={styles.inputGroup}>
-                  <label className={styles.label}>
-                    <span className={styles.labelText}>Industry</span>
-                    <select
-                      name="industry"
-                      value={formData.industry}
-                      onChange={handleInputChange}
-                      className={`${styles.input} ${errors.industry ? styles.inputError : ''}`}
-                      required={!isLogin}
-                    >
-                      <option value="">Select industry</option>
-                      <option value="Technology">Technology</option>
-                      <option value="Healthcare">Healthcare</option>
-                      <option value="Finance">Finance</option>
-                      <option value="Education">Education</option>
-                      <option value="Manufacturing">Manufacturing</option>
-                      <option value="Retail">Retail</option>
-                      <option value="Other">Other</option>
-                    </select>
-                    {errors.industry && <span className={styles.errorText}>{errors.industry}</span>}
-                  </label>
-                </div>
-
-                {formData.industry === "Other" && (
-                  <div className={styles.inputGroup}>
-                    <label className={styles.label}>
-                      <span className={styles.labelText}>Other Industry</span>
-                      <input
-                        type="text"
-                        name="otherIndustry"
-                        value={formData.otherIndustry}
-                        onChange={handleInputChange}
-                        placeholder="Enter your industry"
-                        className={`${styles.input} ${errors.otherIndustry ? styles.inputError : ''}`}
-                        required={formData.industry === "Other"}
-                      />
-                      {errors.otherIndustry && <span className={styles.errorText}>{errors.otherIndustry}</span>}
-                    </label>
-                  </div>
-                )}
-
-                <div className={styles.inputGroup}>
-                  <label className={styles.label}>
-                    <span className={styles.labelText}>Location</span>
-                    <input
-                      type="text"
-                      name="location"
-                      value={formData.location}
-                      onChange={handleInputChange}
-                      placeholder="City, State, Country"
-                      className={`${styles.input} ${errors.location ? styles.inputError : ''}`}
-                      required={!isLogin}
-                    />
-                    {errors.location && <span className={styles.errorText}>{errors.location}</span>}
-                  </label>
-                </div>
               </>
             )}
 
@@ -436,47 +359,6 @@ const RecruiterLogin = () => {
           </div>
         </div>
       </div>
-
-      {/* Success Modal */}
-      {showModal && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <div className={styles.modalHeader}>
-              <CheckCircle className={styles.modalIcon} />
-              <h2>Registration Successful!</h2>
-            </div>
-            <div className={styles.modalBody}>
-              <p>Your registration request has been sent successfully!</p>
-              <p>Please wait for admin approval before you can log in to your account.</p>
-              <p>You will receive a notification once your account is approved.</p>
-            </div>
-            <div className={styles.modalActions}>
-              <button
-                className={styles.modalBtn}
-                onClick={() => {
-                  setShowModal(false);
-                  setIsLogin(true);
-                  // Clear form data
-                  setFormData({
-                    email: "",
-                    password: "",
-                    confirmPassword: "",
-                    companyName: "",
-                    contactPerson: "",
-                    phone: "",
-                    companySize: "",
-                    location: "",
-                    industry: "",
-                    otherIndustry: ""
-                  });
-                }}
-              >
-                Continue to Login
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Approval Status Modal */}
       {showApprovalModal && (

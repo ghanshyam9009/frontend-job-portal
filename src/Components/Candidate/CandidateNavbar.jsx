@@ -26,6 +26,31 @@ import logo from "../../assets/favicon-icon.png";
 const CandidateNavbar = ({ toggleSidebar }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [profileCompletion, setProfileCompletion] = useState(0);
+
+  useEffect(() => {
+    const calculateProfileCompletion = (user) => {
+      if (!user) return 0;
+      let score = 0;
+      const totalPoints = 12;
+
+      if (user.full_name && user.full_name.trim()) score++;
+      if (user.phone_number && user.phone_number.trim()) score++;
+      if (user.dob && user.dob.trim()) score++;
+      if (user.gender && user.gender.trim()) score++;
+      if (user.address?.city && user.address.city.trim()) score++;
+      if (user.address?.state && user.address.state.trim()) score++;
+      if (user.address?.country && user.address.country.trim()) score++;
+      if (user.bio && user.bio.trim()) score++;
+      if (user.skills && user.skills.trim()) score++;
+      if (user.resume) score++;
+      if (Array.isArray(user.education) && user.education.length > 0 && user.education.some(edu => edu.degree?.trim() && edu.institution?.trim())) score++;
+      if (user.experienceLevel === 'Fresher' || (Array.isArray(user.experience) && user.experience.length > 0 && user.experience.some(exp => exp.title?.trim() && exp.company?.trim()))) score++;
+
+      return Math.round((score / totalPoints) * 100);
+    };
+    setProfileCompletion(calculateProfileCompletion(user));
+  }, [user]);
   const { theme, toggleTheme } = useTheme();
   const [showProfileSidebar, setShowProfileSidebar] = useState(false);
   const [showCareerDropdown, setShowCareerDropdown] = useState(false);
@@ -333,10 +358,10 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                 <div className="mt-4">
                   <div className="flex justify-between items-center mb-2">
                     <span className={`text-sm font-medium ${textSecondary}`}>Profile Completion</span>
-                    <span className={`text-sm font-bold ${textColor}`}>20%</span>
+                    <span className={`text-sm font-bold ${textColor}`}>{profileCompletion}%</span>
                   </div>
                   <div className={`w-full h-2 rounded-full ${isDark ? 'bg-gray-600' : 'bg-gray-300'}`}>
-                    <div className="h-2 bg-[#2271B5] rounded-full" style={{ width: '20%' }}></div>
+                    <div className="h-2 bg-[#2271B5] rounded-full" style={{ width: `${profileCompletion}%` }}></div>
                   </div>
                   <p className={`text-xs mt-2 ${textSecondary}`}>
                     Complete your profile to get better job matches
@@ -528,10 +553,10 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                 <div className="mt-4">
                   <div className="flex justify-between items-center mb-2">
                     <span className={`text-sm font-medium ${textSecondary}`}>Profile Completion</span>
-                    <span className={`text-sm font-bold ${textColor}`}>20%</span>
+                    <span className={`text-sm font-bold ${textColor}`}>{profileCompletion}%</span>
                   </div>
                   <div className={`w-full h-2 rounded-full ${isDark ? 'bg-gray-600' : 'bg-gray-300'}`}>
-                    <div className="h-2 bg-[#2271B5] rounded-full" style={{ width: '20%' }}></div>
+                    <div className="h-2 bg-[#2271B5] rounded-full" style={{ width: `${profileCompletion}%` }}></div>
                   </div>
                   <p className={`text-xs mt-2 ${textSecondary}`}>
                     Complete your profile to get better job matches

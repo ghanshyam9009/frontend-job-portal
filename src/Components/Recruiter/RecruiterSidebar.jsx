@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { recruiterExternalService } from "../../services";
+import { isProfileComplete } from "../../utils/recruiterProfileUtils";
 import { Home, Plus, FileText, Users, Star, Building, CreditCard, Settings } from "lucide-react";
 import styles from "./RecruiterSidebar.module.css";
 
@@ -14,32 +15,26 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
   const [recruiterProfile, setRecruiterProfile] = useState(null);
   const [applicationCount, setApplicationCount] = useState(0);
   const [canAccessJobFeatures, setCanAccessJobFeatures] = useState(false);
+  const [restrictionMessage, setRestrictionMessage] = useState('Complete profile and get admin approval to use recruiting tools');
 
   useEffect(() => {
-    const fetchRecruiterProfile = async () => {
-      if (user?.employer_id || user?.id) {
-        try {
-          const profile = await recruiterExternalService.getRecruiterProfile(user.employer_id || user.id);
-          setRecruiterProfile(profile);
+    if (user) {
+      // Use the user object from AuthContext as the source of truth
+      const profileComplete = isProfileComplete(user);
+      const adminApproved = user.hasadminapproved === true;
 
-          // Check profile completion and KYC status
-          const requiredFields = ['company_name', 'email', 'industry', 'company_size', 'description'];
-          const completedRequired = requiredFields.filter(field =>
-            profile[field] && profile[field].toString().trim() !== ''
-          ).length;
-          const profileComplete = completedRequired === requiredFields.length;
-          const kycVerified = profile.kyc_status === 'verified';
-
-          setCanAccessJobFeatures(profileComplete && kycVerified);
-        } catch (err) {
-          console.error('Failed to fetch recruiter profile:', err);
-          setCanAccessJobFeatures(false);
-        }
+      if (!adminApproved) {
+        setRestrictionMessage('Admin approval pending. Please wait for approval before accessing hiring tools.');
+      } else if (!profileComplete) {
+        setRestrictionMessage('Complete your company profile to unlock hiring tools.');
+      } else {
+        setRestrictionMessage('');
       }
-    };
 
-    fetchRecruiterProfile();
-  }, [user?.employer_id, user?.id]);
+      setCanAccessJobFeatures(profileComplete && adminApproved);
+      setRecruiterProfile(user);
+    }
+  }, [user]);
 
   // Fetch application count dynamically
   useEffect(() => {
@@ -89,7 +84,7 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
       icon: <Plus size={20} />,
       path: '/post-job',
       restricted: !canAccessJobFeatures,
-      restrictionMessage: 'Complete profile and KYC verification to post jobs'
+      restrictionMessage: restrictionMessage
     },
     {
       id: 'manage-jobs',
@@ -97,7 +92,7 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
       icon: <FileText size={20} />,
       path: '/manage-jobs',
       restricted: !canAccessJobFeatures,
-      restrictionMessage: 'Complete profile and KYC verification to manage jobs'
+      restrictionMessage: restrictionMessage
     },
     {
       id: 'applications',
@@ -105,7 +100,7 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
       icon: <Users size={20} />,
       path: '/candidate-applications',
       restricted: !canAccessJobFeatures,
-      restrictionMessage: 'Complete profile and KYC verification to view applications'
+      restrictionMessage: restrictionMessage
     },
     {
       id: 'shortlist',
@@ -113,7 +108,7 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
       icon: <Star size={20} />,
       path: '/shortlist-candidates',
       restricted: !canAccessJobFeatures,
-      restrictionMessage: 'Complete profile and KYC verification to shortlist candidates'
+      restrictionMessage: restrictionMessage
     },
     {
       id: 'profile',

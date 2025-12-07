@@ -4,6 +4,7 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
 import RecruiterSidebar from "../../Components/Recruiter/RecruiterSidebar";
 import { recruiterExternalService } from "../../services";
+import { studentService } from "../../services/studentService";
 import { Star, Mail, Calendar, ArrowLeft, FileText } from "lucide-react";
 import styles from "../../Styles/RecruiterDashboard.module.css";
 
@@ -52,7 +53,20 @@ const ShortlistCandidates = () => {
           }
         }
         
-        setShortlistedCandidates(allShortlistedCandidates);
+        // Fetch student details for each shortlisted candidate
+        const candidatesWithDetails = await Promise.all(
+          allShortlistedCandidates.map(async (app) => {
+            try {
+              const studentDetails = await studentService.getStudentById(app.student_id);
+              return { ...app, ...studentDetails };
+            } catch (err) {
+              console.error(`Failed to fetch details for student ${app.student_id}:`, err);
+              return { ...app, student_name: "Unknown", student_email: "Unknown" }; // Fallback
+            }
+          })
+        );
+
+        setShortlistedCandidates(candidatesWithDetails);
       } catch (e) {
         console.error(e);
         setError(typeof e === "string" ? e : e?.message || "Failed to load shortlisted candidates");
@@ -152,10 +166,13 @@ const ShortlistCandidates = () => {
                 <div key={candidate.application_id} className={styles.candidateCard}>
                   <div className={styles.candidateHeader}>
                     <div className={styles.candidateInfo}>
-                      <h3>{candidate.job_title}</h3>
-                      <p className={styles.studentId}>Student ID: {candidate.student_id}</p>
+                      <h3>{candidate.student_name}</h3>
+                      <p>{candidate.student_email}</p>
                       <p className={styles.applicationDate}>
-                        Applied: {new Date(candidate.created_at).toLocaleDateString()}
+                        Applied for: {candidate.job_title}
+                      </p>
+                      <p className={styles.applicationDate}>
+                        Applied on: {new Date(candidate.created_at).toLocaleDateString()}
                       </p>
                       <p className={styles.shortlistedDate}>
                         Shortlisted: {new Date(candidate.updated_at).toLocaleDateString()}
