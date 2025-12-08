@@ -27,14 +27,14 @@ const JobListings = () => {
     setQuerySearch(params.get("search") || "");
     setQueryLocation(params.get("location") || "");
   }, [locationHook.search]);
+
   const [jobs, setJobs] = useState([]);
-  const [allJobs, setAllJobs] = useState([]); // Store all jobs for autocomplete
+  const [allJobs, setAllJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalPages, setTotalPages] = useState(1);
   const [totalJobs, setTotalJobs] = useState(0);
   const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
-  const [bookmarkLoading, setBookmarkLoading] = useState(false);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
   // Autocomplete states
@@ -45,7 +45,6 @@ const JobListings = () => {
   const [filteredLocations, setFilteredLocations] = useState([]);
   const [filteredJobTypes, setFilteredJobTypes] = useState([]);
   
-  // Refs for click outside detection
   const searchRef = useRef(null);
   const locationRef = useRef(null);
 
@@ -62,7 +61,7 @@ const JobListings = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const jobsPerPage = 25;
 
- // Theme-based styling
+  // Theme-based styling - COMPACT
   const isDark = false;
   const bgPrimary = isDark ? 'bg-gray-900' : 'bg-gray-50';
   const bgSecondary = isDark ? 'bg-gray-800' : 'bg-white';
@@ -76,53 +75,15 @@ const JobListings = () => {
 
   useEffect(() => {
     fetchJobs();
-    // Scroll to top when page changes
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentPage, filters, querySearch, queryLocation]);
 
-  // Fetch bookmarked jobs on component mount if user is authenticated
-  useEffect(() => {
-    const fetchBookmarkedJobs = async () => {
-      if (user && isAuthenticated && jobs.length > 0) {
-        try {
-          const userId = user.user_id || user.id;
-          if (userId) {
-            const response = await candidateExternalService.getBookmarkedJobs(userId);
-            console.log('JobListings - Bookmarked jobs response:', response);
-
-            // Handle different response formats
-            let bookmarks = [];
-            if (response && response.jobs && Array.isArray(response.jobs)) {
-              bookmarks = response.jobs;
-            } else if (response && Array.isArray(response)) {
-              bookmarks = response;
-            } else if (response && typeof response === 'object' && response.bookmarks) {
-              bookmarks = Array.isArray(response.bookmarks) ? response.bookmarks : [response.bookmarks];
-            } else if (response && typeof response === 'object') {
-              // If it's a single job object, make it an array
-              bookmarks = [response];
-            }
-
-            const bookmarkedJobIds = new Set(bookmarks.map(job => job.job_id).filter(Boolean));
-            console.log('JobListings - Extracted bookmark IDs:', bookmarkedJobIds);
-            setBookmarkedJobs(bookmarkedJobIds);
-          }
-        } catch (error) {
-          console.error('Error fetching bookmarked jobs:', error);
-        }
-      }
-    };
-
-    fetchBookmarkedJobs();
-  }, [user, isAuthenticated, jobs]);
-
-  // Filter locations based on queryLocation input
   useEffect(() => {
     if (queryLocation.trim()) {
       const filtered = availableLocations.filter(loc =>
         loc.toLowerCase().includes(queryLocation.toLowerCase())
       );
-      setFilteredLocations(filtered.slice(0, 10)); // Limit to 10 suggestions
+      setFilteredLocations(filtered.slice(0, 10));
       setShowLocationDropdown(filtered.length > 0);
     } else {
       setFilteredLocations([]);
@@ -130,13 +91,12 @@ const JobListings = () => {
     }
   }, [queryLocation, availableLocations]);
 
-  // Filter job types based on querySearch input
   useEffect(() => {
     if (querySearch.trim()) {
       const filtered = availableJobTypes.filter(type =>
         type.toLowerCase().includes(querySearch.toLowerCase())
       );
-      setFilteredJobTypes(filtered.slice(0, 10)); // Limit to 10 suggestions
+      setFilteredJobTypes(filtered.slice(0, 10));
       setShowSearchDropdown(filtered.length > 0);
     } else {
       setFilteredJobTypes([]);
@@ -144,7 +104,6 @@ const JobListings = () => {
     }
   }, [querySearch, availableJobTypes]);
 
-  // Click outside to close dropdowns
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
@@ -159,248 +118,202 @@ const JobListings = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-    const handleSearchSelect = (jobType) => {
-    // Set the search value
+  const handleSearchSelect = (jobType) => {
     setQuerySearch(jobType);
-    
-    // Update URL parameters
     const params = new URLSearchParams(locationHook.search);
     params.set('search', jobType);
     navigate({ search: params.toString() }, { replace: true });
-    
-    // Close dropdown
     setShowSearchDropdown(false);
-    
-    // Reset to first page and fetch jobs
     setCurrentPage(1);
   };
 
   const handleLocationSelect = (location) => {
-    // Set the location value
     setQueryLocation(location);
-    
-    // Update URL parameters
     const params = new URLSearchParams(locationHook.search);
     params.set('location', location);
-    // navigate({ search: params.toString() }, { replace: true });
-    
-    // Close dropdown
     setShowLocationDropdown(false);
-    
-    // Reset to first page and fetch jobs
     setCurrentPage(1);
   };
-const fetchJobs = async () => {
-  setLoading(true);
-  setError(null);
 
-  try {
-    const apiUrl = 'https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs';
-    const searchParams = {
-      status: 'approved',
-      ...(querySearch && { keyword: querySearch }),
-      ...(queryLocation && { location: queryLocation }),
-    };
+  const fetchJobs = async () => {
+    setLoading(true);
+    setError(null);
 
-    Object.keys(searchParams).forEach(key => {
-      if (searchParams[key] === undefined || searchParams[key] === "" || searchParams[key] === null) {
-        delete searchParams[key];
-      }
-    });
+    try {
+      const apiUrl = 'https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs';
+      const searchParams = {
+        status: 'approved',
+        ...(querySearch && { keyword: querySearch }),
+        ...(queryLocation && { location: queryLocation }),
+      };
 
-    const queryString = new URLSearchParams(searchParams).toString();
-    const response = await fetch(`${apiUrl}?${queryString}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const jobsData = await response.json();
-
-    if (jobsData.jobs || Array.isArray(jobsData)) {
-      let jobsArray = jobsData.jobs || jobsData.data || jobsData;
-      let allJobsData = Array.isArray(jobsArray) ? jobsArray : [];
-
-      // Extract unique locations and job types for autocomplete
-      const locations = [...new Set(allJobsData
-        .map(job => job.location)
-        .filter(Boolean)
-      )].sort();
-
-      const jobTypes = [...new Set(allJobsData
-        .map(job => job.job_title)
-        .filter(Boolean)
-      )].sort();
-
-      setAvailableLocations(locations);
-      setAvailableJobTypes(jobTypes);
-      setAllJobs(allJobsData);
-
-      // CLIENT-SIDE FILTERING
-      let filteredJobs = allJobsData;
-
-      // Filter by search keyword
-      if (querySearch) {
-        const searchLower = querySearch.toLowerCase();
-        filteredJobs = filteredJobs.filter(job => 
-          job.job_title?.toLowerCase().includes(searchLower) ||
-          job.company_name?.toLowerCase().includes(searchLower) ||
-          job.description?.toLowerCase().includes(searchLower) ||
-          job.skills_required?.some(skill => skill.toLowerCase().includes(searchLower))
-        );
-      }
-
-      // Filter by location
-      if (queryLocation) {
-        const locationLower = queryLocation.toLowerCase();
-        filteredJobs = filteredJobs.filter(job => 
-          job.location?.toLowerCase().includes(locationLower)
-        );
-      }
-
-      // Filter by job type - FLEXIBLE MATCHING
-      if (filters.jobType) {
-        filteredJobs = filteredJobs.filter(job => {
-          if (!job.employment_type) return true;
-          
-          const jobType = job.employment_type.toLowerCase().trim();
-          const filterType = filters.jobType.toLowerCase().trim();
-          
-          const normalizeType = (type) => type.replace(/[-\s]/g, '');
-          
-          return normalizeType(jobType) === normalizeType(filterType) ||
-                 jobType.includes(filterType) ||
-                 filterType.includes(jobType);
-        });
-      }
-
-      // Filter by category - FLEXIBLE MATCHING
-      if (filters.category) {
-        filteredJobs = filteredJobs.filter(job => {
-          if (!job.category) return true;
-          
-          const jobCategory = job.category.toLowerCase().trim();
-          const filterCategory = filters.category.toLowerCase().trim();
-          
-          return jobCategory.includes(filterCategory) || 
-                 filterCategory.includes(jobCategory);
-        });
-      }
-
-      // Filter by skills - VERY LENIENT MATCHING
-      if (filters.skills.length > 0) {
-        filteredJobs = filteredJobs.filter(job => {
-          if (!job.skills_required || job.skills_required.length === 0) return true;
-          
-          return filters.skills.some(filterSkill => {
-            const filterSkillLower = filterSkill.toLowerCase().trim();
-            
-            return job.skills_required.some(jobSkill => {
-              const jobSkillLower = jobSkill.toLowerCase().trim();
-              
-              return jobSkillLower.includes(filterSkillLower) ||
-                     filterSkillLower.includes(jobSkillLower) ||
-                     jobSkillLower.replace(/[.\-\s]/g, '') === filterSkillLower.replace(/[.\-\s]/g, '');
-            });
-          });
-        });
-      }
-
-      // Filter by salary range - FIXED LOGIC
-      if (filters.salaryRange) {
-        filteredJobs = filteredJobs.filter(job => {
-          if (!job.salary_range) return false;
-          
-          const [minStr, maxStr] = filters.salaryRange.split('-');
-          const filterMin = parseFloat(minStr) * 100000;
-          const filterMax = maxStr ? (maxStr.includes('+') ? Infinity : parseFloat(maxStr) * 100000) : Infinity;
-
-          let jobSalaryMin = 0;
-          let jobSalaryMax = 0;
-
-          if (typeof job.salary_range === 'object') {
-            jobSalaryMin = parseFloat(job.salary_range.min) || 0;
-            jobSalaryMax = parseFloat(job.salary_range.max) || jobSalaryMin;
-          } else if (typeof job.salary_range === 'string') {
-            const matches = job.salary_range.match(/(\d+\.?\d*)/g);
-            if (matches && matches.length >= 2) {
-              jobSalaryMin = parseFloat(matches[0]);
-              jobSalaryMax = parseFloat(matches[1]);
-              
-              if (jobSalaryMax < 1000) {
-                jobSalaryMin *= 100000;
-                jobSalaryMax *= 100000;
-              }
-            } else if (matches && matches.length === 1) {
-              jobSalaryMax = parseFloat(matches[0]);
-              if (jobSalaryMax < 1000) {
-                jobSalaryMax *= 100000;
-              }
-              jobSalaryMin = jobSalaryMax;
-            }
-          } else if (typeof job.salary_range === 'number') {
-            jobSalaryMax = job.salary_range;
-            jobSalaryMin = jobSalaryMax;
-          }
-
-          return (jobSalaryMax >= filterMin && jobSalaryMin <= filterMax) ||
-                 (jobSalaryMin >= filterMin && jobSalaryMin <= filterMax);
-        });
-      }
-
-      // Filter by experience level - FLEXIBLE MATCHING
-      if (filters.experienceLevel) {
-        filteredJobs = filteredJobs.filter(job => {
-          if (!job.experience_level) return true;
-          
-          const jobExpLevel = job.experience_level.toLowerCase().trim();
-          const filterExpLevel = filters.experienceLevel.toLowerCase().trim();
-          
-          return jobExpLevel.includes(filterExpLevel) || 
-                 filterExpLevel.includes(jobExpLevel) ||
-                 jobExpLevel.replace(/[-\s]/g, '') === filterExpLevel.replace(/[-\s]/g, '');
-        });
-      }
-
-      // Sort jobs: premium first, then by date
-      filteredJobs.sort((a, b) => {
-        if ((a.is_premium || false) && !(b.is_premium || false)) return -1;
-        if (!(a.is_premium || false) && (b.is_premium || false)) return 1;
-        const dateA = new Date(a.created_at || a.posted_date || 0);
-        const dateB = new Date(b.created_at || b.posted_date || 0);
-        return dateB - dateA;
+      Object.keys(searchParams).forEach(key => {
+        if (searchParams[key] === undefined || searchParams[key] === "" || searchParams[key] === null) {
+          delete searchParams[key];
+        }
       });
 
-      // CLIENT-SIDE PAGINATION
-      const totalCount = filteredJobs.length;
-      const calculatedTotalPages = Math.max(1, Math.ceil(totalCount / jobsPerPage));
-      
-      const startIndex = (currentPage - 1) * jobsPerPage;
-      const endIndex = startIndex + jobsPerPage;
-      const paginatedJobs = filteredJobs.slice(startIndex, endIndex);
+      const queryString = new URLSearchParams(searchParams).toString();
+      const response = await fetch(`${apiUrl}?${queryString}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      setJobs(paginatedJobs);
-      setTotalJobs(totalCount);
-      setTotalPages(calculatedTotalPages);
-    } else {
-      throw new Error(jobsData.message || 'Failed to fetch jobs');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const jobsData = await response.json();
+
+      if (jobsData.jobs || Array.isArray(jobsData)) {
+        let jobsArray = jobsData.jobs || jobsData.data || jobsData;
+        let allJobsData = Array.isArray(jobsArray) ? jobsArray : [];
+
+        const locations = [...new Set(allJobsData.map(job => job.location).filter(Boolean))].sort();
+        const jobTypes = [...new Set(allJobsData.map(job => job.job_title).filter(Boolean))].sort();
+
+        setAvailableLocations(locations);
+        setAvailableJobTypes(jobTypes);
+        setAllJobs(allJobsData);
+
+        let filteredJobs = allJobsData;
+
+        if (querySearch) {
+          const searchLower = querySearch.toLowerCase();
+          filteredJobs = filteredJobs.filter(job => 
+            job.job_title?.toLowerCase().includes(searchLower) ||
+            job.company_name?.toLowerCase().includes(searchLower) ||
+            job.description?.toLowerCase().includes(searchLower) ||
+            job.skills_required?.some(skill => skill.toLowerCase().includes(searchLower))
+          );
+        }
+
+        if (queryLocation) {
+          const locationLower = queryLocation.toLowerCase();
+          filteredJobs = filteredJobs.filter(job => 
+            job.location?.toLowerCase().includes(locationLower)
+          );
+        }
+
+        if (filters.jobType) {
+          filteredJobs = filteredJobs.filter(job => {
+            if (!job.employment_type) return true;
+            const jobType = job.employment_type.toLowerCase().trim();
+            const filterType = filters.jobType.toLowerCase().trim();
+            const normalizeType = (type) => type.replace(/[-\s]/g, '');
+            return normalizeType(jobType) === normalizeType(filterType) ||
+                   jobType.includes(filterType) ||
+                   filterType.includes(jobType);
+          });
+        }
+
+        if (filters.category) {
+          filteredJobs = filteredJobs.filter(job => {
+            if (!job.category) return true;
+            const jobCategory = job.category.toLowerCase().trim();
+            const filterCategory = filters.category.toLowerCase().trim();
+            return jobCategory.includes(filterCategory) || filterCategory.includes(jobCategory);
+          });
+        }
+
+        if (filters.skills.length > 0) {
+          filteredJobs = filteredJobs.filter(job => {
+            if (!job.skills_required || job.skills_required.length === 0) return true;
+            return filters.skills.some(filterSkill => {
+              const filterSkillLower = filterSkill.toLowerCase().trim();
+              return job.skills_required.some(jobSkill => {
+                const jobSkillLower = jobSkill.toLowerCase().trim();
+                return jobSkillLower.includes(filterSkillLower) ||
+                       filterSkillLower.includes(jobSkillLower) ||
+                       jobSkillLower.replace(/[.\-\s]/g, '') === filterSkillLower.replace(/[.\-\s]/g, '');
+              });
+            });
+          });
+        }
+
+        if (filters.salaryRange) {
+          filteredJobs = filteredJobs.filter(job => {
+            if (!job.salary_range) return false;
+            const [minStr, maxStr] = filters.salaryRange.split('-');
+            const filterMin = parseFloat(minStr) * 100000;
+            const filterMax = maxStr ? (maxStr.includes('+') ? Infinity : parseFloat(maxStr) * 100000) : Infinity;
+
+            let jobSalaryMin = 0;
+            let jobSalaryMax = 0;
+
+            if (typeof job.salary_range === 'object') {
+              jobSalaryMin = parseFloat(job.salary_range.min) || 0;
+              jobSalaryMax = parseFloat(job.salary_range.max) || jobSalaryMin;
+            } else if (typeof job.salary_range === 'string') {
+              const matches = job.salary_range.match(/(\d+\.?\d*)/g);
+              if (matches && matches.length >= 2) {
+                jobSalaryMin = parseFloat(matches[0]);
+                jobSalaryMax = parseFloat(matches[1]);
+                if (jobSalaryMax < 1000) {
+                  jobSalaryMin *= 100000;
+                  jobSalaryMax *= 100000;
+                }
+              } else if (matches && matches.length === 1) {
+                jobSalaryMax = parseFloat(matches[0]);
+                if (jobSalaryMax < 1000) {
+                  jobSalaryMax *= 100000;
+                }
+                jobSalaryMin = jobSalaryMax;
+              }
+            } else if (typeof job.salary_range === 'number') {
+              jobSalaryMax = job.salary_range;
+              jobSalaryMin = jobSalaryMax;
+            }
+
+            return (jobSalaryMax >= filterMin && jobSalaryMin <= filterMax) ||
+                   (jobSalaryMin >= filterMin && jobSalaryMin <= filterMax);
+          });
+        }
+
+        if (filters.experienceLevel) {
+          filteredJobs = filteredJobs.filter(job => {
+            if (!job.experience_level) return true;
+            const jobExpLevel = job.experience_level.toLowerCase().trim();
+            const filterExpLevel = filters.experienceLevel.toLowerCase().trim();
+            return jobExpLevel.includes(filterExpLevel) || 
+                   filterExpLevel.includes(jobExpLevel) ||
+                   jobExpLevel.replace(/[-\s]/g, '') === filterExpLevel.replace(/[-\s]/g, '');
+          });
+        }
+
+        filteredJobs.sort((a, b) => {
+          if ((a.is_premium || false) && !(b.is_premium || false)) return -1;
+          if (!(a.is_premium || false) && (b.is_premium || false)) return 1;
+          const dateA = new Date(a.created_at || a.posted_date || 0);
+          const dateB = new Date(b.created_at || b.posted_date || 0);
+          return dateB - dateA;
+        });
+
+        const totalCount = filteredJobs.length;
+        const calculatedTotalPages = Math.max(1, Math.ceil(totalCount / jobsPerPage));
+        const startIndex = (currentPage - 1) * jobsPerPage;
+        const endIndex = startIndex + jobsPerPage;
+        const paginatedJobs = filteredJobs.slice(startIndex, endIndex);
+
+        setJobs(paginatedJobs);
+        setTotalJobs(totalCount);
+        setTotalPages(calculatedTotalPages);
+      } else {
+        throw new Error(jobsData.message || 'Failed to fetch jobs');
+      }
+    } catch (err) {
+      console.error('Error fetching jobs:', err);
+      showError(err, 'Failed to fetch jobs. Please try again later.');
+      setError('Failed to fetch jobs. Please try again later.');
+      setJobs([]);
+      setTotalJobs(0);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error('Error fetching jobs:', err);
-    showError(err, 'Failed to fetch jobs. Please try again later.');
-    setError('Failed to fetch jobs. Please try again later.');
-    setJobs([]);
-    setTotalJobs(0);
-    setTotalPages(1);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleSkillToggle = (skill) => {
     setFilters(prev => ({
@@ -439,13 +352,11 @@ const fetchJobs = async () => {
 
   const toggleBookmark = async (jobId) => {
     if (!isAuthenticated || !user) {
-      // Show login prompt or redirect to login
       alert('Please log in to bookmark jobs.');
       navigate('/candidate/login');
       return;
     }
 
-    setBookmarkLoading(true);
     try {
       const userId = user.user_id || user.id;
       if (!userId) {
@@ -454,31 +365,20 @@ const fetchJobs = async () => {
         return;
       }
 
-      const isCurrentlyBookmarked = bookmarkedJobs.has(jobId);
-
-      // For now, we'll use the bookmark API which seems to be idempotent
-      // If the job is already bookmarked, calling it again should unbookmark
-      await candidateExternalService.bookmarkJob({
-        user_id: userId,
-        job_id: jobId
-      });
-
-      // Update local state
-      setBookmarkedJobs(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(jobId)) {
-          newSet.delete(jobId);
-        } else {
-          newSet.add(jobId);
-        }
-        return newSet;
-      });
-
+      const newBookmarked = new Set(bookmarkedJobs);
+      if (newBookmarked.has(jobId)) {
+        newBookmarked.delete(jobId);
+      } else {
+        newBookmarked.add(jobId);
+        await candidateExternalService.bookmarkJob({ 
+          user_id: userId, 
+          job_id: jobId 
+        });
+      }
+      setBookmarkedJobs(newBookmarked);
     } catch (error) {
-      console.error('Error toggling bookmark:', error);
-      alert('Failed to update bookmark. Please try again.');
-    } finally {
-      setBookmarkLoading(false);
+      console.error('Error bookmarking job:', error);
+      alert('Failed to bookmark job. Please try again.');
     }
   };
 
@@ -509,18 +409,19 @@ const fetchJobs = async () => {
     return name.split(' ').map(word => word[0]).join('').toUpperCase().substring(0, 2);
   };
 
+  // COMPACT Filter Content
   const FilterContent = () => (
-    <div className="space-y-8">
-      {/* Job Type */}
+    <div className="space-y-5">
+      {/* Job Type - Compact */}
       <div>
-        <h3 className={`${textPrimary} font-semibold mb-3 text-base flex items-center gap-2`}>
-          <Filter className="w-4 h-4 text-blue-600" /> Job Type
+        <h3 className={`${textPrimary} font-semibold mb-2 text-sm flex items-center gap-1.5`}>
+          <Filter className="w-3.5 h-3.5 text-blue-600" /> Job Type
         </h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           {["Full Time", "Part Time", "Contractual", "Intern", "Freelance", "Night Shift"].map((type) => (
             <label
               key={type}
-              className={`flex items-center gap-2 text-sm rounded-lg px-3 py-2 border transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 text-xs rounded-md px-2 py-1.5 border transition-all cursor-pointer ${
                 filters.jobType === type
                   ? "bg-blue-50 border-blue-500 text-blue-700"
                   : `${borderColor} hover:bg-opacity-50`
@@ -532,7 +433,7 @@ const fetchJobs = async () => {
                 value={type}
                 checked={filters.jobType === type}
                 onChange={(e) => handleFilterChange("jobType", e.target.value)}
-                className="accent-blue-600"
+                className="accent-blue-600 w-3 h-3"
               />
               <span className={filters.jobType === type ? "text-blue-700" : textPrimary}>{type}</span>
             </label>
@@ -540,18 +441,18 @@ const fetchJobs = async () => {
         </div>
       </div>
 
-      {/* Category */}
+      {/* Category - Compact */}
       <div>
-        <h3 className={`${textPrimary} font-semibold mb-3 text-base flex items-center gap-2`}>
-          <Bookmark className="w-4 h-4 text-blue-600" /> Category
+        <h3 className={`${textPrimary} font-semibold mb-2 text-sm flex items-center gap-1.5`}>
+          <Bookmark className="w-3.5 h-3.5 text-blue-600" /> Category
         </h3>
         <div className="relative">
           <select
-            className={`w-full appearance-none border ${inputBorder} rounded-lg py-2 px-3 text-sm ${inputBg} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition`}
+            className={`w-full appearance-none border ${inputBorder} rounded-md py-1.5 px-2.5 text-xs ${inputBg} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition`}
             value={filters.category}
             onChange={(e) => handleFilterChange("category", e.target.value)}
           >
-            <option value="">All Categories</option>
+           <option value="">All Categories</option>
                   <option value="Accounting">Accounting</option>
                   <option value="Accounting, Data Entry">Accounting, Data Entry</option>
                   <option value="Accounts & Finance">Accounts & Finance</option>
@@ -648,20 +549,20 @@ const fetchJobs = async () => {
                   <option value="Workshop">Workshop</option>
                   <option value="kpo">kpo</option>
           </select>
-          <ChevronDown className={`absolute right-3 top-2.5 w-4 h-4 ${textSecondary} pointer-events-none`} />
+          <ChevronDown className={`absolute right-2 top-1.5 w-3.5 h-3.5 ${textSecondary} pointer-events-none`} />
         </div>
       </div>
 
-      {/* Experience Level */}
+      {/* Experience Level - Compact */}
       <div>
-        <h3 className={`${textPrimary} font-semibold mb-3 text-base flex items-center gap-2`}>
-          <Briefcase className="w-4 h-4 text-blue-600" /> Experience Level
+        <h3 className={`${textPrimary} font-semibold mb-2 text-sm flex items-center gap-1.5`}>
+          <Briefcase className="w-3.5 h-3.5 text-blue-600" /> Experience Level
         </h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           {["Fresher", "Entry Level", "Mid Level", "Senior Level", "Expert"].map((level) => (
             <label
               key={level}
-              className={`flex items-center gap-2 text-sm rounded-lg px-3 py-2 border transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 text-xs rounded-md px-2 py-1.5 border transition-all cursor-pointer ${
                 filters.experienceLevel === level
                   ? "bg-blue-50 border-blue-500 text-blue-700"
                   : `${borderColor} hover:bg-opacity-50`
@@ -673,7 +574,7 @@ const fetchJobs = async () => {
                 value={level}
                 checked={filters.experienceLevel === level}
                 onChange={(e) => handleFilterChange("experienceLevel", e.target.value)}
-                className="accent-blue-600"
+                className="accent-blue-600 w-3 h-3"
               />
               <span className={filters.experienceLevel === level ? "text-blue-700" : textPrimary}>{level}</span>
             </label>
@@ -681,17 +582,17 @@ const fetchJobs = async () => {
         </div>
       </div>
 
-      {/* Popular Skills */}
+      {/* Skills - Compact */}
       <div>
-        <h3 className={`${textPrimary} font-semibold mb-3 text-base flex items-center gap-2`}>
-          <Filter className="w-4 h-4 text-blue-600" /> Skills
+        <h3 className={`${textPrimary} font-semibold mb-2 text-sm flex items-center gap-1.5`}>
+          <Filter className="w-3.5 h-3.5 text-blue-600" /> Skills
         </h3>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {["JavaScript", "React", "Node.js", "Python", "Java", "SQL", "Excel", "Accounting", "Sales", "Marketing"].map((skill) => (
             <button
               key={skill}
               onClick={() => handleSkillToggle(skill)}
-              className={`text-xs px-3 py-1.5 rounded-full transition-all ${
+              className={`text-xs px-2 py-1 rounded-full transition-all ${
                 filters.skills.includes(skill)
                   ? "bg-blue-600 text-white"
                   : `${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'} hover:bg-blue-100 hover:text-blue-700`
@@ -703,14 +604,14 @@ const fetchJobs = async () => {
         </div>
       </div>
 
-      {/* Salary Range */}
+      {/* Salary Range - Compact */}
       <div>
-        <h3 className={`${textPrimary} font-semibold mb-3 text-base flex items-center gap-2`}>
-          <Briefcase className="w-4 h-4 text-blue-600" /> Salary Range
+        <h3 className={`${textPrimary} font-semibold mb-2 text-sm flex items-center gap-1.5`}>
+          <DollarSign className="w-3.5 h-3.5 text-blue-600" /> Salary Range
         </h3>
         <div className="relative">
           <select
-            className={`w-full appearance-none border ${inputBorder} rounded-lg py-2 px-3 text-sm ${inputBg} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition`}
+            className={`w-full appearance-none border ${inputBorder} rounded-md py-1.5 px-2.5 text-xs ${inputBg} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition`}
             value={filters.salaryRange}
             onChange={(e) => handleFilterChange("salaryRange", e.target.value)}
           >
@@ -722,21 +623,21 @@ const fetchJobs = async () => {
             <option value="10-15">₹10L - ₹15L</option>
             <option value="15+">₹15L+</option>
           </select>
-          <ChevronDown className={`absolute right-3 top-2.5 w-4 h-4 ${textSecondary} pointer-events-none`} />
+          <ChevronDown className={`absolute right-2 top-1.5 w-3.5 h-3.5 ${textSecondary} pointer-events-none`} />
         </div>
       </div>
 
-      {/* Apply / Clear Buttons */}
-      <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+      {/* Action Buttons - Compact */}
+      <div className="flex justify-between items-center pt-3 border-t border-gray-200">
         <button
           onClick={clearFilters}
-          className="text-sm font-semibold text-red-600 hover:text-red-700 transition"
+          className="text-xs font-semibold text-red-600 hover:text-red-700 transition"
         >
           Clear All
         </button>
         <button
           onClick={() => setMobileFilterOpen(false)}
-          className="bg-blue-600 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-blue-700 transition"
+          className="bg-blue-600 text-white px-4 py-1.5 rounded-full text-xs font-medium hover:bg-blue-700 transition"
         >
           Apply Filters
         </button>
@@ -745,23 +646,23 @@ const fetchJobs = async () => {
   );
 
   return (
-    <div className={`min-h-screen ${bgPrimary} transition-colors duration-300 `}>
-     {user?<CandidateNavbar/>: <HomeNav/>}
+    <div className={`min-h-screen ${bgPrimary} transition-colors duration-300`}>
+      {user ? <CandidateNavbar /> : <HomeNav />}
       
-      {/* Search Section */}
+      {/* Search Section - COMPACT */}
       <div className={`${isDark ? 'bg-gradient-to-r from-gray-800 to-gray-700' : 'bg-gray-50'} lg:mt-20 border-b ${borderColor}`}>
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className={`${bgSecondary} rounded-lg shadow-md p-4`}>
-            {/* Desktop Layout */}
-            <div className="hidden md:flex gap-3 items-center">
-              {/* Job Title Search with Autocomplete */}
+        <div className="max-w-6xl mx-auto px-4 py-4">
+          <div className={`${bgSecondary} rounded-lg shadow-md p-3`}>
+            {/* Desktop Layout - COMPACT */}
+            <div className="hidden md:flex gap-2 items-center">
+              {/* Job Title Search */}
               <div className="flex-1 relative" ref={searchRef}>
-                <div className={`flex items-center gap-2 px-4 py-3 border ${inputBorder} rounded-lg ${inputBg}`}>
-                  <Search className="w-5 h-5 text-gray-400" />
+                <div className={`flex items-center gap-2 px-3 py-2 border ${inputBorder} rounded-md ${inputBg}`}>
+                  <Search className="w-4 h-4 text-gray-400" />
                   <input
                     type="text"
                     placeholder="Job Title, Keyword"
-                    className={`flex-1 outline-none bg-transparent ${textPrimary}`}
+                    className={`flex-1 outline-none bg-transparent ${textPrimary} text-sm`}
                     value={querySearch}
                     onChange={(e) => {
                       const newSearch = e.target.value;
@@ -779,18 +680,17 @@ const fetchJobs = async () => {
                   />
                 </div>
                 
-                {/* Job Type Autocomplete Dropdown */}
+                {/* Autocomplete Dropdown - COMPACT */}
                 {showSearchDropdown && filteredJobTypes.length > 0 && (
-                  <div className={`absolute top-full left-0 right-0 mt-2 ${bgSecondary} border ${borderColor} rounded-lg shadow-xl max-h-60 overflow-y-auto z-50`}>
+                  <div className={`absolute top-full left-0 right-0 mt-1 ${bgSecondary} border ${borderColor} rounded-md shadow-xl max-h-56 overflow-y-auto z-50`}>
                     {filteredJobTypes.map((jobType, index) => (
                       <button
                         key={index}
-                        className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors ${textPrimary} text-sm border-b ${borderColor} last:border-b-0`}
-                       onMouseDown={() => handleSearchSelect(jobType)}
-                        
+                        className={`w-full text-left px-3 py-2 hover:bg-blue-50 transition-colors ${textPrimary} text-xs border-b ${borderColor} last:border-b-0`}
+                        onMouseDown={() => handleSearchSelect(jobType)}
                       >
-                        <div className="flex items-center gap-2">
-                          <Briefcase className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                        <div className="flex items-center gap-1.5">
+                          <Briefcase className="w-3 h-3 text-blue-600 flex-shrink-0" />
                           <span className="truncate">{jobType}</span>
                         </div>
                       </button>
@@ -799,14 +699,14 @@ const fetchJobs = async () => {
                 )}
               </div>
 
-              {/* Location Search with Autocomplete */}
+              {/* Location Search */}
               <div className="flex-1 relative" ref={locationRef}>
-                <div className={`flex items-center gap-2 px-4 py-3 border ${inputBorder} rounded-lg ${inputBg}`}>
-                  <MapPin className="w-5 h-5 text-gray-400" />
+                <div className={`flex items-center gap-2 px-3 py-2 border ${inputBorder} rounded-md ${inputBg}`}>
+                  <MapPin className="w-4 h-4 text-gray-400" />
                   <input
                     type="text"
                     placeholder="Enter Location"
-                    className={`flex-1 outline-none bg-transparent ${textPrimary}`}
+                    className={`flex-1 outline-none bg-transparent ${textPrimary} text-sm`}
                     value={queryLocation}
                     onChange={(e) => {
                       const newLocation = e.target.value;
@@ -821,21 +721,20 @@ const fetchJobs = async () => {
                       setCurrentPage(1);
                     }}
                     onFocus={() => queryLocation.trim() && setShowLocationDropdown(true)}
-                    
                   />
                 </div>
                 
-                {/* Location Autocomplete Dropdown */}
+                {/* Location Dropdown - COMPACT */}
                 {showLocationDropdown && filteredLocations.length > 0 && (
-                  <div className={`absolute top-full left-0 right-0 mt-2 ${bgSecondary} border ${borderColor} rounded-lg shadow-xl max-h-60 overflow-y-auto z-50`}>
+                  <div className={`absolute top-full left-0 right-0 mt-1 ${bgSecondary} border ${borderColor} rounded-md shadow-xl max-h-56 overflow-y-auto z-50`}>
                     {filteredLocations.map((location, index) => (
                       <button
                         key={index}
-                        className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors ${textPrimary} text-sm border-b ${borderColor} last:border-b-0`}
-                       onMouseDown={() => handleLocationSelect(location)}
+                        className={`w-full text-left px-3 py-2 hover:bg-blue-50 transition-colors ${textPrimary} text-xs border-b ${borderColor} last:border-b-0`}
+                        onMouseDown={() => handleLocationSelect(location)}
                       >
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="w-3 h-3 text-blue-600 flex-shrink-0" />
                           <span className="truncate">{location}</span>
                         </div>
                       </button>
@@ -845,7 +744,7 @@ const fetchJobs = async () => {
               </div>
 
               <button 
-                className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-semibold text-sm"
                 onClick={() => {
                   setCurrentPage(1);
                   fetchJobs();
@@ -855,26 +754,22 @@ const fetchJobs = async () => {
               </button>
             </div>
 
-            {/* Mobile Layout */}
-            <div className="md:hidden space-y-3">
-              {/* Mobile Job Search with Autocomplete */}
+            {/* Mobile Layout - COMPACT */}
+            <div className="md:hidden space-y-2">
               <div className="relative" ref={searchRef}>
-                <div className={`flex items-center gap-2 px-4 py-3 border ${inputBorder} rounded-lg ${inputBg}`}>
-                  <Search className="w-5 h-5 text-gray-400" />
+                <div className={`flex items-center gap-2 px-3 py-2 border ${inputBorder} rounded-md ${inputBg}`}>
+                  <Search className="w-4 h-4 text-gray-400" />
                   <input
                     type="text"
                     placeholder="Job Title, Keyword"
-                    className={`flex-1 outline-none bg-transparent ${textPrimary}`}
+                    className={`flex-1 outline-none bg-transparent ${textPrimary} text-sm`}
                     value={querySearch}
                     onChange={(e) => {
                       const newSearch = e.target.value;
                       setQuerySearch(newSearch);
                       const params = new URLSearchParams(locationHook.search);
-                      if (newSearch) {
-                        params.set('search', newSearch);
-                      } else {
-                        params.delete('search');
-                      }
+                      if (newSearch) params.set('search', newSearch);
+                      else params.delete('search');
                       navigate({ search: params.toString() });
                       setCurrentPage(1);
                     }}
@@ -882,17 +777,16 @@ const fetchJobs = async () => {
                   />
                 </div>
                 
-                {/* Mobile Job Type Dropdown */}
                 {showSearchDropdown && filteredJobTypes.length > 0 && (
-                  <div className={`absolute top-full left-0 right-0 mt-2 ${bgSecondary} border ${borderColor} rounded-lg shadow-xl max-h-48 overflow-y-auto z-50`}>
+                  <div className={`absolute top-full left-0 right-0 mt-1 ${bgSecondary} border ${borderColor} rounded-md shadow-xl max-h-44 overflow-y-auto z-50`}>
                     {filteredJobTypes.map((jobType, index) => (
                       <button
                         key={index}
-                        className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors ${textPrimary} text-sm border-b ${borderColor}`}
+                        className={`w-full text-left px-3 py-2 hover:bg-blue-50 transition-colors ${textPrimary} text-xs border-b ${borderColor}`}
                         onClick={() => handleSearchSelect(jobType)}
                       >
-                        <div className="flex items-center gap-2">
-                          <Briefcase className="w-4 h-4 text-blue-600" />
+                        <div className="flex items-center gap-1.5">
+                          <Briefcase className="w-3 h-3 text-blue-600" />
                           <span className="truncate">{jobType}</span>
                         </div>
                       </button>
@@ -902,24 +796,20 @@ const fetchJobs = async () => {
               </div>
 
               <div className="flex gap-2">
-                {/* Mobile Location Search with Autocomplete */}
                 <div className="flex-1 relative" ref={locationRef}>
-                  <div className={`flex items-center gap-2 px-4 py-3 border ${inputBorder} rounded-lg ${inputBg}`}>
-                    <MapPin className="w-5 h-5 text-gray-400" />
+                  <div className={`flex items-center gap-2 px-3 py-2 border ${inputBorder} rounded-md ${inputBg}`}>
+                    <MapPin className="w-4 h-4 text-gray-400" />
                     <input
                       type="text"
                       placeholder="Location"
-                      className={`flex-1 outline-none bg-transparent ${textPrimary}`}
+                      className={`flex-1 outline-none bg-transparent ${textPrimary} text-sm`}
                       value={queryLocation}
                       onChange={(e) => {
                         const newLocation = e.target.value;
                         setQueryLocation(newLocation);
                         const params = new URLSearchParams(locationHook.search);
-                        if (newLocation) {
-                          params.set('location', newLocation);
-                        } else {
-                          params.delete('location');
-                        }
+                        if (newLocation) params.set('location', newLocation);
+                        else params.delete('location');
                         navigate({ search: params.toString() });
                         setCurrentPage(1);
                       }}
@@ -927,17 +817,16 @@ const fetchJobs = async () => {
                     />
                   </div>
                   
-                  {/* Mobile Location Dropdown */}
                   {showLocationDropdown && filteredLocations.length > 0 && (
-                    <div className={`absolute top-full left-0 right-0 mt-2 ${bgSecondary} border ${borderColor} rounded-lg shadow-xl max-h-48 overflow-y-auto z-50`}>
+                    <div className={`absolute top-full left-0 right-0 mt-1 ${bgSecondary} border ${borderColor} rounded-md shadow-xl max-h-44 overflow-y-auto z-50`}>
                       {filteredLocations.map((location, index) => (
                         <button
                           key={index}
-                          className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors ${textPrimary} text-sm border-b ${borderColor}`}
+                          className={`w-full text-left px-3 py-2 hover:bg-blue-50 transition-colors ${textPrimary} text-xs border-b ${borderColor}`}
                           onClick={() => handleLocationSelect(location)}
                         >
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-blue-600" />
+                          <div className="flex items-center gap-1.5">
+                            <MapPin className="w-3 h-3 text-blue-600" />
                             <span className="truncate">{location}</span>
                           </div>
                         </button>
@@ -947,16 +836,16 @@ const fetchJobs = async () => {
                 </div>
 
                 <button
-                  className={`flex items-center gap-2 px-4 py-3 border ${inputBorder} rounded-lg hover:bg-opacity-50 ${textPrimary} whitespace-nowrap`}
+                  className={`flex items-center gap-1.5 px-3 py-2 border ${inputBorder} rounded-md hover:bg-opacity-50 ${textPrimary} whitespace-nowrap`}
                   onClick={() => setMobileFilterOpen(!mobileFilterOpen)}
                 >
-                  <Filter className="w-4 h-4" />
-                  <span className="text-sm">Filter</span>
+                  <Filter className="w-3.5 h-3.5" />
+                  <span className="text-xs">Filter</span>
                 </button>
               </div>
 
               <button 
-                className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+                className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-semibold text-sm"
                 onClick={() => {
                   setCurrentPage(1);
                   fetchJobs();
@@ -966,13 +855,13 @@ const fetchJobs = async () => {
               </button>
             </div>
 
-            {/* Popular Tags */}
-            <div className="mt-4 flex items-center gap-2 flex-wrap">
-              <span className={`text-sm ${textSecondary} font-semibold`}>Popular Tag:</span>
-              {["#Back office Job", "#SalesJobs", "Business Development", "Computer - Knowledge", "Accounting"].map((tag, index) => (
+            {/* Popular Tags - COMPACT */}
+            <div className="mt-3 flex items-center gap-1.5 flex-wrap">
+              <span className={`text-xs ${textSecondary} font-semibold`}>Popular:</span>
+              {["#Back office", "#Sales", "Business Dev", "Computer", "Accounting"].map((tag, index) => (
                 <span
                   key={index}
-                  className="text-xs px-3 py-1 bg-blue-50 text-blue-600 rounded-full cursor-pointer hover:bg-blue-100"
+                  className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full cursor-pointer hover:bg-blue-100"
                 >
                   {tag}
                 </span>
@@ -982,176 +871,170 @@ const fetchJobs = async () => {
         </div>
       </div>
 
-      {/* Mobile Filter Drawer */}
+      {/* Mobile Filter Drawer - COMPACT */}
       {mobileFilterOpen && (
         <div className="md:hidden fixed inset-0 z-50 bg-black bg-opacity-50">
-          <div className={`absolute bottom-0 left-0 right-0 ${bgSecondary} rounded-t-3xl max-h-[85vh] overflow-y-auto`}>
-            <div className={`sticky top-0 ${bgSecondary} border-b ${borderColor} px-4 py-4 flex items-center justify-between`}>
-              <h2 className={`text-lg font-semibold ${textPrimary}`}>Filter jobs</h2>
+          <div className={`absolute bottom-0 left-0 right-0 ${bgSecondary} rounded-t-2xl max-h-[80vh] overflow-y-auto`}>
+            <div className={`sticky top-0 ${bgSecondary} border-b ${borderColor} px-4 py-3 flex items-center justify-between`}>
+              <h2 className={`text-base font-semibold ${textPrimary}`}>Filter jobs</h2>
               <button
                 onClick={clearFilters}
-                className="text-blue-600 text-sm font-semibold"
+                className="text-blue-600 text-xs font-semibold"
               >
                 Clear all
               </button>
             </div>
-            <div className="px-4 py-4">
+            <div className="px-4 py-3">
               <FilterContent />
             </div>
           </div>
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex gap-6">
-          {/* Sidebar Filters - Desktop Only */}
-          <div className="hidden md:block w-80 flex-shrink-0">
-            <div className={`${bgSecondary} rounded-lg shadow-sm p-6 sticky top-24 border ${borderColor}`}>
-              <div className="flex justify-between items-center mb-6">
-                <h2 className={`text-lg font-semibold ${textPrimary}`}>All Filters</h2>
+      <div className="max-w-6xl mx-auto px-4 py-4">
+        <div className="flex gap-4">
+          {/* Sidebar Filters - Desktop - COMPACT */}
+          <div className="hidden md:block w-64 flex-shrink-0">
+            <div className={`${bgSecondary} rounded-lg shadow-sm p-4 sticky top-20 border ${borderColor}`}>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className={`text-base font-semibold ${textPrimary}`}>All Filters</h2>
               </div>
               <FilterContent />
             </div>
           </div>
 
-          {/* Main Content */}
+          {/* Main Content - COMPACT */}
           <div className="flex-1">
-            <div className="max-w-6xl mx-auto">
-              {/* Header */}
-              <div className="mb-6">
-                <h2 className={`text-3xl font-bold ${textPrimary} mb-2`}>Featured Jobs</h2>
-                <div className={`text-sm ${textSecondary}`}>
+            <div className="max-w-5xl mx-auto">
+              {/* Header - COMPACT */}
+              <div className="mb-4">
+                <h2 className={`text-2xl font-bold ${textPrimary} mb-1`}>Featured Jobs</h2>
+                <div className={`text-xs ${textSecondary}`}>
                   Showing {Math.min((currentPage - 1) * jobsPerPage + 1, totalJobs)} - {Math.min(currentPage * jobsPerPage, totalJobs)} of {totalJobs} jobs
                 </div>
               </div>
 
-              {/* Jobs List */}
-              <div className="space-y-4 mb-6">
+              {/* Jobs List - COMPACT */}
+              <div className="space-y-3 mb-4">
                 {loading && (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-                    <p className={textSecondary}>Loading jobs...</p>
+                  <div className="flex flex-col items-center justify-center py-10">
+                    <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+                    <p className={`${textSecondary} text-sm`}>Loading jobs...</p>
                   </div>
                 )}
 
                 {!loading && !error && jobs.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <p className={`${textSecondary} text-lg`}>No jobs found matching your criteria.</p>
+                  <div className="flex flex-col items-center justify-center py-10">
+                    <p className={`${textSecondary} text-base`}>No jobs found matching your criteria.</p>
                   </div>
                 )}
 
                 {!loading && !error && jobs.map(job => (
                   <div 
                     key={job.job_id}
-                    className={`${bgSecondary} rounded-xl shadow-sm border ${borderColor} ${hoverBorder} p-5 hover:shadow-lg transition-all duration-300 relative overflow-hidden cursor-pointer`}
+                    className={`${bgSecondary} rounded-lg shadow-sm border ${borderColor} ${hoverBorder} p-3 hover:shadow-md transition-all duration-300 relative overflow-hidden cursor-pointer`}
                     onClick={() => handleJobClick(job)}
                   >
                     
-                    {/* Header with time and bookmark */}
-                    <div className="flex items-center justify-between mb-3">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${isDark ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-700'}`}>
+                    {/* Header - COMPACT */}
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${isDark ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-700'}`}>
                         {formatDate(job.created_at)}
                       </span>
-                       {/* Apply Button */}
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleJobClick(job);
-                      }}
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg transition-all duration-300 hover:shadow-lg text-sm"
-                    >
-                      Apply Now
-                    </button>
-                     
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleJobClick(job);
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-1.5 rounded-md transition-all duration-300 hover:shadow-md text-xs"
+                      >
+                        Apply Now
+                      </button>
                     </div>
 
-                    {/* Company Logo and Title */}
-                    <div className="flex items-start gap-3 mb-4">
-                      <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-md">
-                        <span className="text-white text-base font-bold">
+                    {/* Company Logo and Title - COMPACT */}
+                    <div className="flex items-start gap-2 mb-2">
+                      <div className="w-10 h-10 rounded-md bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                        <span className="text-white text-xs font-bold">
                           {getInitials(job.company_name)}
                         </span>
                       </div>
                       <div className="flex-1">
-                        <h3 className={`text-lg font-bold ${textPrimary} mb-1 hover:text-blue-600 transition-colors`}>
+                        <h3 className={`text-sm font-bold ${textPrimary} mb-0.5 hover:text-blue-600 transition-colors`}>
                           {job.job_title}
                         </h3>
-                        <p className={`text-xs ${textSecondary} font-bold flex items-center gap-1`}>
+                        <p className={`text-xs ${textSecondary} font-semibold flex items-center gap-1`}>
                           <Building2 className="w-3 h-3" />
                           {job.company_name}
                         </p>
                       </div>
                     </div>
 
-                    {/* Job Details */}
-                    <div className="flex flex-wrap items-center gap-2 text-xs mb-4">
-                      <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2.5 py-1.5 rounded-md`}>
+                    {/* Job Details - COMPACT */}
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs mb-2">
+                      <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2 py-1 rounded`}>
                         <Clock className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                        <span className={`${textSecondary} font-bold`}>{job.employment_type}</span>
+                        <span className={`${textSecondary} font-medium`}>{job.employment_type}</span>
                       </div>
-                      <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2.5 py-1.5 rounded-md`}>
+                      <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2 py-1 rounded`}>
                         <MapPin className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                        <span className={`${textSecondary} font-bold`}>{job.location}</span>
+                        <span className={`${textSecondary} font-medium`}>{job.location}</span>
                       </div>
-                      <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2.5 py-1.5 rounded-md`}>
-                        <span className="w-3 h-3 text-blue-600 flex-shrink-0 text-xs font-bold">₹</span>
-                        <span className={`${textSecondary} font-bold`}>{formatSalary(job.salary_range)}</span>
+                      <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2 py-1 rounded`}>
+                        <DollarSign className="w-3 h-3 text-blue-600 flex-shrink-0" />
+                        <span className={`${textSecondary} font-medium`}>{formatSalary(job.salary_range)}</span>
                       </div>
                       {job.experience_required && (
-                        <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2.5 py-1.5 rounded-md`}>
+                        <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2 py-1 rounded`}>
                           <Briefcase className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                          <span className={`${textSecondary} font-bold`}>
+                          <span className={`${textSecondary} font-medium`}>
                             {job.experience_required.min_years}-{job.experience_required.max_years} yrs
                           </span>
                         </div>
                       )}
                     </div>
 
-                    {/* Job Description */}
-                    <p className={`${textSecondary1} text-sm mb-4 leading-relaxed`}>
+                    {/* Job Description - COMPACT */}
+                    <p className={`${textSecondary1} text-xs mb-2 leading-relaxed`}>
                       {job.description
-                        ? job.description.length > 150
-                          ? `${job.description.substring(0, 150)}...`
+                        ? job.description.length > 120
+                          ? `${job.description.substring(0, 120)}...`
                           : job.description
                         : "No description available."}
                     </p>
 
-                    {/* Skills */}
+                    {/* Skills - COMPACT */}
                     {job.skills_required && job.skills_required.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-4">
+                      <div className="flex flex-wrap gap-1.5 mb-2">
                         {job.skills_required.slice(0, 3).map((skill, index) => (
-                          <span key={index} className="bg-blue-100 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+                          <span key={index} className="bg-blue-100 text-blue-700 text-[10px] font-semibold px-2  rounded-full">
                             {skill}
                           </span>
                         ))}
                         {job.skills_required.length > 3 && (
-                          <span className={`${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'} text-xs font-semibold px-2.5 py-1 rounded-full`}>
+                          <span className={`${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'} text-xs font-semibold px-2 py-0.5 rounded-full`}>
                             +{job.skills_required.length - 3}
                           </span>
                         )}
                       </div>
                     )}
 
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleBookmark(job.job_id);
+                      }}
+                      className={`${textSecondary} absolute bottom-2 right-3 hover:text-yellow-500 transition-colors p-1 rounded-md`}
+                    >
+                      <Bookmark 
+                        className="w-4 h-4"  
+                        fill={bookmarkedJobs.has(job.job_id) ? "currentColor" : "none"} 
+                      />
+                    </button>
                   
-
-                     <button 
-                       onClick={(e) => {
-                         e.stopPropagation();
-                         toggleBookmark(job.job_id);
-                       }}
-                       className={`${textSecondary} absolute bottom-2 right-4 hover:text-yellow-500 transition-colors p-1.5 rounded-lg`}
-                     >
-                       <Bookmark 
-                         className="w-5 h-5"  
-                         fill={bookmarkedJobs.has(job.job_id) ? "currentColor" : "none"} 
-                       />
-                     </button>
-                   
-                     
-                     
-                      {/* Premium Badge */}
+                    {/* Premium Badge - COMPACT */}
                     {!job.is_premium && (
-                      <div className="absolute top-0 left-0 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-xs font-bold px-3 py-0.5 rounded-br-lg shadow-md">
+                      <div className="absolute top-0 left-0 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-[8px] font-bold px-2  rounded-br-md shadow-sm">
                         PREMIUM
                       </div>
                     )}
@@ -1160,18 +1043,18 @@ const fetchJobs = async () => {
                 ))}
               </div>
 
-              {/* Pagination */}
+              {/* Pagination - COMPACT */}
               {!loading && totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 flex-wrap">
+                <div className="flex items-center justify-center gap-1.5 flex-wrap">
                   <button
-                    className={`px-4 py-2 ${bgSecondary} border ${borderColor} rounded-lg hover:bg-opacity-80 disabled:opacity-50 transition-colors ${textPrimary}`}
+                    className={`px-3 py-1.5 ${bgSecondary} border ${borderColor} rounded-md hover:bg-opacity-80 disabled:opacity-50 transition-colors ${textPrimary} text-xs`}
                     onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
                   >
                     Previous
                   </button>
 
-                  {/* Page Numbers */}
+                  {/* Page Numbers - COMPACT */}
                   {(() => {
                     const pages = [];
                     const maxVisiblePages = 5;
@@ -1186,7 +1069,7 @@ const fetchJobs = async () => {
                       pages.push(
                         <button
                           key={1}
-                          className={`px-4 py-2 rounded-lg transition-colors ${
+                          className={`px-3 py-1.5 rounded-md transition-colors text-xs ${
                             1 === currentPage 
                               ? 'bg-blue-600 text-white' 
                               : `${bgSecondary} border ${borderColor} hover:bg-opacity-80 ${textPrimary}`
@@ -1198,7 +1081,7 @@ const fetchJobs = async () => {
                       );
                       if (startPage > 2) {
                         pages.push(
-                          <span key="ellipsis1" className={`px-2 ${textSecondary}`}>...</span>
+                          <span key="ellipsis1" className={`px-1 ${textSecondary} text-xs`}>...</span>
                         );
                       }
                     }
@@ -1207,7 +1090,7 @@ const fetchJobs = async () => {
                       pages.push(
                         <button
                           key={i}
-                          className={`px-4 py-2 rounded-lg transition-colors ${
+                          className={`px-3 py-1.5 rounded-md transition-colors text-xs ${
                             i === currentPage 
                               ? 'bg-blue-600 text-white' 
                               : `${bgSecondary} border ${borderColor} hover:bg-opacity-80 ${textPrimary}`
@@ -1222,13 +1105,13 @@ const fetchJobs = async () => {
                     if (endPage < totalPages) {
                       if (endPage < totalPages - 1) {
                         pages.push(
-                          <span key="ellipsis2" className={`px-2 ${textSecondary}`}>...</span>
+                          <span key="ellipsis2" className={`px-1 ${textSecondary} text-xs`}>...</span>
                         );
                       }
                       pages.push(
                         <button
                           key={totalPages}
-                          className={`px-4 py-2 rounded-lg transition-colors ${
+                          className={`px-3 py-1.5 rounded-md transition-colors text-xs ${
                             totalPages === currentPage 
                               ? 'bg-blue-600 text-white' 
                               : `${bgSecondary} border ${borderColor} hover:bg-opacity-80 ${textPrimary}`
@@ -1244,7 +1127,7 @@ const fetchJobs = async () => {
                   })()}
 
                   <button
-                    className={`px-4 py-2 ${bgSecondary} border ${borderColor} rounded-lg hover:bg-opacity-80 disabled:opacity-50 transition-colors ${textPrimary}`}
+                    className={`px-3 py-1.5 ${bgSecondary} border ${borderColor} rounded-md hover:bg-opacity-80 disabled:opacity-50 transition-colors ${textPrimary} text-xs`}
                     onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
                   >
@@ -1255,27 +1138,27 @@ const fetchJobs = async () => {
             </div>
           </div>
 
-          {/* Right Sidebar - Desktop Only */}
-          <div className="hidden  lg:block w-80 flex-shrink-0">
+          {/* Right Sidebar - Desktop - COMPACT */}
+          <div className="hidden lg:block w-64 flex-shrink-0">
             <div
-              className={`sticky top-24 ${
+              className={`sticky top-20 ${
                 isDark
                   ? 'bg-gradient-to-br from-gray-800 to-gray-700 border border-gray-600'
                   : 'bg-gradient-to-br from-blue-50 to-orange-50'
-              } rounded-lg shadow-sm p-6 transition-colors duration-300`}
+              } rounded-lg shadow-sm p-4 transition-colors duration-300`}
             >
-              <div className={`${textPrimary} text-2xl mb-3`}>⚡ BigSources FASTFORWARD</div>
+              <div className={`${textPrimary} text-xl mb-2`}>⚡ BigSources FASTFORWARD</div>
 
-              <h3 className={`font-semibold mb-2 ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+              <h3 className={`font-semibold mb-1.5 text-sm ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
                 Get 3X more profile views from recruiters
               </h3>
 
-              <p className={`text-sm mb-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              <p className={`text-xs mb-3 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                 Increase your chances of callback with BigSources FastForward
               </p>
 
               <button
-                className={`text-sm font-semibold transition-colors duration-200 ${
+                className={`text-xs font-semibold transition-colors duration-200 ${
                   isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
                 }`}
               >
@@ -1285,7 +1168,7 @@ const fetchJobs = async () => {
           </div>
         </div>
       </div>
-      <Footer/>
+      <Footer />
     </div>
   );
 };

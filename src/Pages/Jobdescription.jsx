@@ -11,10 +11,8 @@ import Footer from "../Components/Footer";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 
 const JobDescription = () => {
-  // theme - now using localStorage to persist
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem('theme') === 'dark';
-  });
+  // theme
+  const [isDarkMode, setIsDarkMode] = useState(false);
 const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
   // job state
   const [isApplying, setIsApplying] = useState(false);
@@ -278,7 +276,14 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
       return;
     }
 
-    // Profile completion check removed - candidates can apply for jobs regardless of profile completeness
+    // Profile completion check - must be 100% to apply
+    const profileCompletion = calculateProfileCompletion(user);
+    if (profileCompletion < 100) {
+      alert(`Your profile is only ${profileCompletion}% complete. You must complete your profile 100% before applying for jobs. Redirecting to profile management...`);
+      navigate("/profile");
+      return;
+    }
+
     // membership check
     if (user?.membership !== "premium") {
       try {
@@ -329,7 +334,6 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
 
       const applicationData = {
         student_id: studentId,
-        student_email: user.email,
         resume_url: user.resume_url || "",
         cover_letter: user.cover_letter || "",
       };
@@ -394,57 +398,10 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
     return exp; // Return as-is if it's already a string/number
   };
 
-  const formatJobDescription = (description) => {
-    if (!description) return null;
-
-    // First, convert any existing <ul> to <ol>
-    let formatted = description.replace(/<ul/g, '<ol').replace(/<\/ul>/g, '</ol>');
-
-    // Split into lines and check for numbered lists
-    const lines = formatted.split('\n').filter(line => line.trim() !== '');
-    let hasNumberedLines = lines.some(line => /^\d+\.\s+/.test(line.trim()));
-
-    if (hasNumberedLines) {
-      // Process numbered lines and convert to proper list
-      let html = '';
-      let currentItem = '';
-      let inNumberedList = false;
-
-      lines.forEach((line, index) => {
-        const trimmed = line.trim();
-        if (/^\d+\.\s+/.test(trimmed)) {
-          // New numbered item
-          if (inNumberedList) {
-            html += `<li>${currentItem}</li>`;
-          } else {
-            html += '<ol class="list-decimal list-inside space-y-2 ml-4">';
-            inNumberedList = true;
-          }
-          currentItem = trimmed.replace(/^\d+\.\s+/, '');
-        } else if (inNumberedList) {
-          // Continuation or sub-item
-          if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
-            currentItem += '<br>• ' + trimmed.substring(1).trim();
-          } else if (trimmed.trim() !== '' && currentItem) {
-            currentItem += ' ' + trimmed;
-          }
-        }
-      });
-
-      if (inNumberedList && currentItem) {
-        html += `<li>${currentItem}</li></ol>`;
-      }
-
-      return html;
-    }
-
-    return formatted;
-  };
-
   // loading / error UI
   if (loading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? "bg-black" : "bg-gray-100"}`}>
+      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? "bg-slate-900" : "bg-gray-100"}`}>
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin mx-auto" />
           <p className="mt-4 text-gray-500">Loading job details...</p>
@@ -455,8 +412,8 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
 
   if (error) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? "bg-black" : "bg-gray-100"}`}>
-        <div className="bg-white dark:bg-black p-8 rounded-lg shadow text-center max-w-md">
+      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? "bg-slate-900" : "bg-gray-100"}`}>
+        <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow text-center max-w-md">
           <div className="text-4xl mb-4">⚠️</div>
           <h2 className="text-lg font-semibold mb-2">Error Loading Job</h2>
           <p className="text-sm text-gray-600 mb-6">{error}</p>
@@ -479,7 +436,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
 
     <>  
     {user?<CandidateNavbar/>: <HomeNav/>}
-    <div className={`${isDarkMode ? "bg-black text-white" : "bg-gray-100 text-slate-900"} lg:mt-18 min-h-screen font-sans`}>
+    <div className={`${isDarkMode ? "bg-slate-900 text-slate-100" : "bg-gray-100 text-slate-900"} lg:mt-18 min-h-screen font-sans`}>
       {/* header */}
     
 
@@ -488,13 +445,14 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
         <div className="grid  lg:grid-cols-12 gap-6">
           {/* left */}
           <main className=" space-y-6 lg:col-span-8">
-            <div className={`lg:sticky lg:top-24 bg-white ${isDarkMode ? "dark:bg-black" : ""} rounded-xl p-6 shadow`}>
+            {console.log(job.salary_range.max)}
+            <div className={`lg:sticky lg:top-24 bg-white ${isDarkMode ? "dark:bg-slate-800" : ""} rounded-xl p-6 shadow`}>
               <div className="flex justify-between items-start gap-4">
                 <div className="flex-1 min-w-0">
                   <h1 className="text-2xl font-bold mb-2">{job.job_title || job.title || "Job Title"}</h1>
 
                   <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
-                    <span className="font-semibold text-base text-black">{job.company_name || "Company"}</span>
+                    <span className="font-semibold text-base text-slate-800 dark:text-slate-100">{job.company_name || "Company"}</span>
                     {job.company_rating && <span className="text-yellow-500">⭐ {job.company_rating}</span>}
                     {job.company_reviews && <span className="text-gray-400">({job.company_reviews} Reviews)</span>}
                     {job.is_premium && (
@@ -504,7 +462,8 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
 
                   <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                     {/* <div className="flex items-center gap-1">💼 {formatExperience(job.experience_required || job.experience)}</div> */}
-                    <div className="flex items-center gap-1">💰 <span className={formatSalary(job.salary_min, job.salary_max) === "Not Disclosed" ? "text-black" : ""}>{formatSalary(job.salary_min, job.salary_max)}</span></div>
+                    <div className="flex items-center gap-1">💰 {formatSalary(job.salary_range.min,job.salary_range.max)}</div>
+                
                     <div className="flex items-center gap-1">📍 {job.location || "Remote"}</div>
                   </div>
                 </div>
@@ -573,13 +532,13 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
             </div>
 
             {/* job description */}
-            <section className={`lg:sticky lg:top-95 bg-white ${isDarkMode ? "dark:bg-black" : ""} rounded-xl p-6 shadow`}>
+            <section className={`lg:sticky lg:top-95 bg-white ${isDarkMode ? "dark:bg-slate-800" : ""} rounded-xl p-6 shadow`}>
               <h2 className="text-lg font-semibold mb-4">Job description</h2>
 
               <div className="prose max-w-none prose-sm dark:prose-invert text-gray-700">
                 {/* job.description may be HTML — render safely */}
                 {job.description ? (
-                  <div dangerouslySetInnerHTML={{ __html: formatJobDescription(job.description) }} />
+                  <div dangerouslySetInnerHTML={{ __html: job.description }} />
                 ) : (
                   <p>No description available.</p>
                 )}
