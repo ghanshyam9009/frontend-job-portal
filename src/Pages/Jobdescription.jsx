@@ -398,6 +398,172 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
     return exp; // Return as-is if it's already a string/number
   };
 
+  const parseJobDescription = (description) => {
+    if (!description) return "";
+
+    const lines = description.split('\n').filter(line => line.trim());
+    let html = '';
+    let inList = false;
+    let inSubList = false;
+
+    lines.forEach(line => {
+      const trimmedLine = line.trim();
+
+      // Section headers (numbered)
+      if (/^\d+\.\s/.test(trimmedLine)) {
+        // Close previous lists
+        if (inSubList) {
+          html += '</ul>';
+          inSubList = false;
+        }
+        if (inList) {
+          html += '</ul>';
+          inList = false;
+        }
+
+        const sectionTitle = trimmedLine.replace(/^\d+\.\s*/, '');
+        let displayTitle = sectionTitle;
+
+        // Fix common typos and standardize titles
+        if (sectionTitle.toLowerCase().includes('job profile details')) {
+          displayTitle = 'Job Profile Details';
+        } else if (sectionTitle.toLowerCase().includes('role & responsibility') || sectionTitle.toLowerCase().includes('responsibilities')) {
+          displayTitle = 'Role & Responsibilities';
+        } else if (sectionTitle.toLowerCase().includes('skills')) {
+          displayTitle = 'Required Skills';
+        } else if (sectionTitle.toLowerCase().includes('eligibility') || sectionTitle.toLowerCase().includes('criteria')) {
+          displayTitle = 'Eligibility Criteria';
+        } else if (sectionTitle.toLowerCase().includes('compensation') || sectionTitle.toLowerCase().includes('benefits')) {
+          displayTitle = 'Compensation & Benefits';
+        }
+
+        html += `<h3 class="font-semibold mb-3 mt-6 text-lg text-gray-900 dark:text-black">${displayTitle}</h3>`;
+
+        // Check if the rest of the line contains bullet points
+        const restOfLine = trimmedLine.replace(/^[^•]*/, '').trim();
+        if (restOfLine && restOfLine.startsWith('•')) {
+          html += '<ul class="list-disc list-inside space-y-1 mb-4 text-gray-900 dark:text-black">';
+          inList = true;
+          // Process the bullet points in the same line
+          const bullets = restOfLine.split('•').filter(b => b.trim());
+          bullets.forEach(bullet => {
+            const cleanBullet = bullet.trim();
+            if (cleanBullet.startsWith('Presentablility')) {
+              html += `<li>Presentability</li>`;
+            } else {
+              html += `<li>${cleanBullet}</li>`;
+            }
+          });
+        }
+      }
+      // Main bullet points
+      else if (trimmedLine.startsWith('•')) {
+        if (!inList) {
+          html += '<ul class="list-disc list-inside space-y-1 mb-4 text-gray-900 dark:text-black">';
+          inList = true;
+        }
+        if (inSubList) {
+          html += '</ul>';
+          inSubList = false;
+        }
+
+        let content = trimmedLine.substring(1).trim();
+        let hasSubItems = false;
+
+        // Fix common typos
+        if (content.startsWith('Presentablility')) {
+          content = 'Presentability';
+        }
+
+        // Check if this bullet has sub-bullets (o )
+        if (content.includes('o ')) {
+          const parts = content.split(/(?=o\s)/);
+          content = parts[0].trim();
+          if (parts.length > 1) {
+            hasSubItems = true;
+          }
+        }
+
+        html += `<li>${content}`;
+
+        if (hasSubItems) {
+          html += '<ul class="list-circle list-inside space-y-1 mt-2 ml-4">';
+          inSubList = true;
+
+          const subItems = trimmedLine.match(/o\s[^o]*/g);
+          if (subItems) {
+            subItems.forEach(subItem => {
+              const cleanSubItem = subItem.replace(/^o\s/, '').trim();
+              html += `<li>${cleanSubItem}</li>`;
+            });
+          }
+        }
+        html += '</li>';
+      }
+      // Sub bullet points (continuation)
+      else if (trimmedLine.startsWith('o ')) {
+        if (!inSubList && inList) {
+          html += '<ul class="list-circle list-inside space-y-1 mt-2 ml-4">';
+          inSubList = true;
+        }
+        const subContent = trimmedLine.substring(2).trim();
+        html += `<li>${subContent}</li>`;
+      }
+      // Location and contact info
+      else if (trimmedLine.toLowerCase().includes('location') || trimmedLine.toLowerCase().includes('contact')) {
+        if (inSubList) {
+          html += '</ul>';
+          inSubList = false;
+        }
+        if (inList) {
+          html += '</ul>';
+          inList = false;
+        }
+
+        if (trimmedLine.toLowerCase().includes('location')) {
+          const locationMatch = trimmedLine.match(/Location\s*:(.*)/i);
+          if (locationMatch) {
+            const locations = locationMatch[1].split(',').map(l => l.trim()).join(', ');
+            html += `<div class="mt-6"><h4 class="font-semibold mb-2 text-gray-900 dark:text-black">Locations</h4><p class="text-gray-900 dark:text-black">${locations}</p></div>`;
+          }
+        }
+
+        if (trimmedLine.toLowerCase().includes('contact') || trimmedLine.toLowerCase().includes('more information')) {
+          const contactMatch = trimmedLine.match(/(?:contact|more information)\s*:\s*(\d+)/i);
+          if (contactMatch) {
+            html += `<div class="mt-4"><h4 class="font-semibold mb-2 text-gray-900 dark:text-black">Contact Information</h4><p class="text-gray-900 dark:text-black">📞 ${contactMatch[1]}</p></div>`;
+          }
+        }
+      }
+      // Regular paragraphs
+      else if (trimmedLine) {
+        if (inSubList) {
+          html += '</ul>';
+          inSubList = false;
+        }
+        if (inList) {
+          html += '</ul>';
+          inList = false;
+        }
+
+        // Skip processing text that looks like it was already processed above
+        if (!trimmedLine.match(/^\d+\./) && !trimmedLine.startsWith('•') && !trimmedLine.startsWith('o ')) {
+          html += `<p class="text-gray-900 dark:text-black leading-relaxed mb-4">${trimmedLine}</p>`;
+        }
+      }
+    });
+
+    // Close any remaining lists
+    if (inSubList) {
+      html += '</ul>';
+    }
+    if (inList) {
+      html += '</ul>';
+    }
+
+    return html;
+  };
+
   // loading / error UI
   if (loading) {
     return (
@@ -434,11 +600,11 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
 
   return (
 
-    <>  
+    <>
     {user?<CandidateNavbar/>: <HomeNav/>}
     <div className={`${isDarkMode ? "bg-slate-900 text-slate-100" : "bg-gray-100 text-slate-900"} lg:mt-18 min-h-screen font-sans`}>
       {/* header */}
-    
+
 
       {/* main */}
       <div className="max-w-5xl  mx-auto px-4 py-8">
@@ -452,7 +618,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
                   <h1 className="text-2xl font-bold mb-2">{job.job_title || job.title || "Job Title"}</h1>
 
                   <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
-                    <span className="font-semibold text-base text-slate-800 dark:text-slate-100">{job.company_name || "Company"}</span>
+                    <span className="font-semibold text-base text-slate-800 dark:text-black">{job.company_name || "Company"}</span>
                     {job.company_rating && <span className="text-yellow-500">⭐ {job.company_rating}</span>}
                     {job.company_reviews && <span className="text-gray-400">({job.company_reviews} Reviews)</span>}
                     {job.is_premium && (
@@ -463,7 +629,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
                   <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                     {/* <div className="flex items-center gap-1">💼 {formatExperience(job.experience_required || job.experience)}</div> */}
                     <div className="flex items-center gap-1">💰 {formatSalary(job.salary_range.min,job.salary_range.max)}</div>
-                
+
                     <div className="flex items-center gap-1">📍 {job.location || "Remote"}</div>
                   </div>
                 </div>
@@ -515,7 +681,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
                     >
                       {isApplying ? "⏳ Applying..." : hasApplied ? "✓ Applied" : " Apply Now"}
                     </button>
-                   <button 
+                   <button
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleBookmark(job.job_id);
@@ -524,7 +690,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
                       >
                         <Bookmark className="w-5 h-5"  fill={bookmarkedJobs.has(job.job_id) ? "currentColor" : "none"} />
 
-                        
+
                       </button>
                   </>
                 )}
@@ -535,12 +701,11 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
             <section className={`lg:sticky lg:top-95 bg-white ${isDarkMode ? "dark:bg-slate-800" : ""} rounded-xl p-6 shadow`}>
               <h2 className="text-lg font-semibold mb-4">Job description</h2>
 
-              <div className="prose max-w-none prose-sm dark:prose-invert text-gray-700">
-                {/* job.description may be HTML — render safely */}
+              <div className="prose max-w-none prose-sm dark:prose-invert">
                 {job.description ? (
-                  <div dangerouslySetInnerHTML={{ __html: job.description }} />
+                  <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.description) }} />
                 ) : (
-                  <p>No description available.</p>
+                  <p className="text-gray-900 dark:text-black">No description available.</p>
                 )}
               </div>
 
