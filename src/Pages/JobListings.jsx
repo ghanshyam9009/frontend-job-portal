@@ -79,6 +79,28 @@ const JobListings = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentPage, filters, querySearch, queryLocation]);
 
+  // Load user's saved jobs
+  useEffect(() => {
+    const fetchBookmarkedJobs = async () => {
+      if (!isAuthenticated || !user) return;
+
+      try {
+        const userId = user.user_id || user.id;
+        if (!userId) return;
+
+        const data = await candidateExternalService.getBookmarkedJobs(userId);
+        const bookmarked = (data?.jobs || data?.bookmarkedJobs || []).map(job =>
+          job.job_id || job.id
+        );
+        setBookmarkedJobs(new Set(bookmarked));
+      } catch (error) {
+        console.error('Error fetching bookmarked jobs:', error);
+      }
+    };
+
+    fetchBookmarkedJobs();
+  }, [isAuthenticated, user]);
+
   useEffect(() => {
     if (queryLocation.trim()) {
       const filtered = availableLocations.filter(loc =>
@@ -162,15 +184,16 @@ const JobListings = () => {
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-      const jobsData = await response.json();
+        const jobsData = await response.json();
 
-      if (jobsData.jobs || Array.isArray(jobsData)) {
-        let jobsArray = jobsData.jobs || jobsData.data || jobsData;
-        let allJobsData = Array.isArray(jobsArray) ? jobsArray : [];
+        if (jobsData.jobs || Array.isArray(jobsData)) {
+          let jobsArray = jobsData.jobs || jobsData.data || jobsData;
+          // Filter out government jobs for the job listings page
+          let allJobsData = (Array.isArray(jobsArray) ? jobsArray : []).filter(job => job.job_type !== "GOVERNMENT");
 
         const locations = [...new Set(allJobsData.map(job => job.location).filter(Boolean))].sort();
         const jobTypes = [...new Set(allJobsData.map(job => job.job_title).filter(Boolean))].sort();
@@ -292,11 +315,36 @@ const JobListings = () => {
           return dateB - dateA;
         });
 
-        const totalCount = filteredJobs.length;
+        // Map jobs to include is_premium field (similar to HomePage.jsx)
+        const mappedJobs = filteredJobs.map((j) => ({
+          id: j.job_id || j.id,
+          job_id: j.job_id || j.id,
+          job_title: j.job_title,
+          title: j.job_title,
+          company_name: j.company_name || "",
+          company_logo: j.company_logo || j.logo || j.companyLogo || null,
+          company: j.company_name || "",
+          salary_range: j.salary_range,
+          salary: j.salary_range ?
+            (typeof j.salary_range === 'string' ?
+              j.salary_range :
+              `₹${j.salary_range.min} - ₹${j.salary_range.max}`)
+            : "Salary not specified",
+          location: j.location || "",
+          employment_type: j.employment_type || "Full-time",
+          type: j.employment_type || "Full-time",
+          is_premium: j.premium_job || j.is_premium || false,
+          created_at: j.created_at || j.posted_date,
+          posted_date: j.posted_date,
+          description: j.description || "",
+          skills_required: j.skills_required || []
+        }));
+
+        const totalCount = mappedJobs.length;
         const calculatedTotalPages = Math.max(1, Math.ceil(totalCount / jobsPerPage));
         const startIndex = (currentPage - 1) * jobsPerPage;
         const endIndex = startIndex + jobsPerPage;
-        const paginatedJobs = filteredJobs.slice(startIndex, endIndex);
+        const paginatedJobs = mappedJobs.slice(startIndex, endIndex);
 
         // Fix flickering: set data before setting loading to false
         setJobs(paginatedJobs);
@@ -368,18 +416,25 @@ const JobListings = () => {
       }
 
       const newBookmarked = new Set(bookmarkedJobs);
-      if (newBookmarked.has(jobId)) {
+      const isCurrentlyBookmarked = newBookmarked.has(jobId);
+
+      if (isCurrentlyBookmarked) {
+        // Remove bookmark from UI optimistically
         newBookmarked.delete(jobId);
+        setBookmarkedJobs(newBookmarked);
+        console.log('Job removed from bookmarks');
       } else {
-        newBookmarked.add(jobId);
-        await candidateExternalService.bookmarkJob({ 
-          user_id: userId, 
-          job_id: jobId 
+        // Add bookmark
+        await candidateExternalService.bookmarkJob({
+          user_id: userId,
+          job_id: jobId
         });
+        newBookmarked.add(jobId);
+        setBookmarkedJobs(newBookmarked);
+        console.log('Job bookmarked successfully');
       }
-      setBookmarkedJobs(newBookmarked);
     } catch (error) {
-      console.error('Error bookmarking job:', error);
+      console.error('Error toggling bookmark:', error);
       alert('Failed to bookmark job. Please try again.');
     }
   };

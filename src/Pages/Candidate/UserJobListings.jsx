@@ -59,30 +59,30 @@ const UserJobListings = () => {
       setError("");
       try {
         const data = await candidateExternalService.getAllJobs();
-        const mapped = (data?.jobs || []).map((j, idx) => ({
-          id: j.job_id || idx,
-          job_id: j.job_id || idx,
-          job_title: j.job_title,
-          title: j.job_title,
-          company_name: j.company_name || "",
-          company_logo: j.company_logo || j.logo || j.companyLogo || "",
-          company: j.company_name || "",
-          salary_range: j.salary_range,
-          salary: j.salary_range ?
-            (typeof j.salary_range === 'string' ?
-              j.salary_range :
-              `₹${j.salary_range.min} - ₹${j.salary_range.max}`)
-            : "Salary not specified",
-          location: j.location || "",
-          employment_type: j.employment_type || "Full-time",
-          type: j.employment_type || "Full-time",
-          is_premium: j.is_premium || false,
-          isPremium: j.is_premium || false,
-          created_at: j.created_at || j.posted_date,
-          posted_date: j.posted_date,
-          description: j.description || "",
-          skills_required: j.skills_required || []
-        }));
+      const mapped = (data?.jobs || []).map((j, idx) => ({
+        id: j.job_id || idx,
+        job_id: j.job_id || idx,
+        job_title: j.job_title,
+        title: j.job_title,
+        company_name: j.company_name || "",
+        company_logo: j.company_logo || j.logo || j.companyLogo || "",
+        company: j.company_name || "",
+        salary_range: j.salary_range,
+        salary: j.salary_range ?
+          (typeof j.salary_range === 'string' ?
+            j.salary_range :
+            `₹${j.salary_range.min} - ₹${j.salary_range.max}`)
+          : "Salary not specified",
+        location: j.location || "",
+        employment_type: j.employment_type || "Full-time",
+        type: j.employment_type || "Full-time",
+        is_premium: j.premium_job || j.is_premium || false,
+        isPremium: j.premium_job || j.is_premium || false,
+        created_at: j.created_at || j.posted_date,
+        posted_date: j.posted_date,
+        description: j.description || "",
+        skills_required: j.skills_required || []
+      }));
 
         // Sort: Premium jobs first, then latest jobs on top
         mapped.sort((a, b) => {
@@ -150,8 +150,8 @@ const UserJobListings = () => {
         location: j.location || "",
         employment_type: j.employment_type || "Full-time",
         type: j.employment_type || "Full-time",
-        is_premium: j.is_premium || false,
-        isPremium: j.is_premium || false,
+        is_premium: j.premium_job || j.is_premium || false,
+        isPremium: j.premium_job || j.is_premium || false,
         created_at: j.created_at || j.posted_date,
         posted_date: j.posted_date,
         description: j.description || "",

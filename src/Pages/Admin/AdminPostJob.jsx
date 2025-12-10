@@ -106,6 +106,7 @@ const AdminPostJob = () => {
         contact_email: jobData.contact_email || null,
         status: "Open", // Admin jobs are visible and open
         is_premium: jobData.is_premium,
+        job_type: "PRIVATE",
         posted_by: "admin"
       };
 

@@ -527,32 +527,9 @@ export const adminService = {
       const jobsData = await response.json();
       const allJobs = jobsData?.jobs || jobsData.data || jobsData || [];
 
-      // Filter for government jobs posted by admin
+      // Filter for government jobs based on job_type field
       const govtJobs = allJobs.filter(job =>
-        job.posted_by === 'admin' &&
-        (job.department_name?.toLowerCase().includes('government') ||
-         job.department_name?.toLowerCase().includes('commission') ||
-         job.department_name?.toLowerCase().includes('board') ||
-         job.department_name?.toLowerCase().includes('railway') ||
-         job.department_name?.toLowerCase().includes('police') ||
-         job.department_name?.toLowerCase().includes('public sector') ||
-         job.department_name?.toLowerCase().includes('psu') ||
-         job.department_name?.toLowerCase().includes('central govt') ||
-         job.department_name?.toLowerCase().includes('state govt') ||
-         job.department_name?.toLowerCase().includes('ministry') ||
-         job.department_name?.toLowerCase().includes('department') ||
-         job.category?.toLowerCase().includes('government') ||
-         job.job_title?.toLowerCase().includes('govt') ||
-         job.job_title?.toLowerCase().includes('government') ||
-         job.job_title?.toLowerCase().includes('railway') ||
-         job.job_title?.toLowerCase().includes('police') ||
-         job.job_title?.toLowerCase().includes('upsc') ||
-         job.job_title?.toLowerCase().includes('ssc') ||
-         job.job_title?.toLowerCase().includes('bank') ||
-         job.job_title?.toLowerCase().includes('defense') ||
-         job.job_title?.toLowerCase().includes('army') ||
-         job.job_title?.toLowerCase().includes('navy') ||
-         job.job_title?.toLowerCase().includes('air force'))
+        job.job_type === "GOVERNMENT"
       );
 
       return govtJobs;

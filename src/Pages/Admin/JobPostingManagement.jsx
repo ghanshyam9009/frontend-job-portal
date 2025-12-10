@@ -55,7 +55,8 @@ const JobPostingManagement = () => {
       const currentAdminId = user?.admin_id || user?.id || user?.user_id;
       const adminJobs = (jobsData?.jobs || [])
         .filter(job => job.admin_id === currentAdminId)
-        .filter(job => job.category !== 'Government')
+        .filter(job => job.job_type === 'PRIVATE') // Show only PRIVATE jobs
+        .filter(job => job.category !== 'Government')  // Extra safety filter by category
         .filter(job => job.status !== 'closed'); // Filter out closed jobs from display
 
       // Fetch application counts for admin jobs in batches to avoid overwhelming the API
@@ -216,6 +217,7 @@ const JobPostingManagement = () => {
         contact_email: formData.contact_email || null,
         status: "Open", // Admin jobs are visible and open
         is_premium: formData.is_premium,
+        job_type: "PRIVATE",
         posted_by: "admin",
         admin_id: user?.admin_id || user?.id || user?.user_id // Use actual admin ID from logged-in user
       };

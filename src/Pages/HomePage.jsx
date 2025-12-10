@@ -151,7 +151,8 @@ const Homepage = () => {
         }
 
         const data = await response.json();
-        const jobs = data.jobs || [];
+        // Filter out government jobs for the homepage
+        const jobs = (data.jobs || []).filter(job => job.job_type !== "GOVERNMENT");
 
         // Extract unique job titles
         const jobTitles = [...new Set(jobs
@@ -427,7 +428,9 @@ const Homepage = () => {
         if (!data || !data.jobs) {
           throw new Error('Invalid response format');
         }
-        const mapped = (data.jobs || []).slice(0, 7).map((j, idx) => ({
+        // Filter out government jobs for the featured jobs section
+        const nonGovJobs = (data.jobs || []).filter(job => job.job_type !== "GOVERNMENT");
+        const mapped = nonGovJobs.slice(0, 7).map((j, idx) => ({
           id: j.job_id || idx,
           job_id: j.job_id || idx,
           job_title: j.job_title,
@@ -439,7 +442,7 @@ const Homepage = () => {
           employment_type: j.employment_type || "Full-time",
           job_type: j.employment_type || "Full-time",
           company_logo: j.company_logo || j.logo || j.companyLogo || null,
-          is_premium: j.is_premium || false,
+          is_premium: j.premium_job || j.is_premium || false,
           created_at: j.created_at || j.posted_date,
           posted_date: j.posted_date,
           description: j.description,
@@ -485,7 +488,8 @@ const Homepage = () => {
           throw new Error('Invalid response format');
         }
 
-        const jobs = data.jobs || [];
+        // Filter out government jobs for job role counting
+        const jobs = (data.jobs || []).filter(job => job.job_type !== "GOVERNMENT");
 
         // Count jobs by category using keyword matching
         const roleCounts = jobRoleDefinitions.map(role => {
