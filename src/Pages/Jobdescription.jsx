@@ -239,6 +239,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
       }
 
       setJob(foundJob);
+    
 
       const related = jobsArray
         .filter((j) => (j.job_id || j.id) !== (foundJob.job_id || foundJob.id))
@@ -375,8 +376,8 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
       return "Recently";
     }
   };
-  const formatSalary = (min, max) => {
-    if (!min && !max) return "Not Disclosed";
+  const formatSalary = (min, max,salary_range) => {
+    if (!min && !max) return salary_range;
     if (min && max) return `${min} - ${max}`;
     if (min) return `${min}+`;
     return `Up to ${max}`;
@@ -462,8 +463,8 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
 
                   <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                     {/* <div className="flex items-center gap-1">💼 {formatExperience(job.experience_required || job.experience)}</div> */}
-                    <div className="flex items-center gap-1">💰 {formatSalary(job.salary_range.min,job.salary_range.max)}</div>
-                
+                    <div className="flex items-center gap-1">💰 {formatSalary(job.salary_range.min,job.salary_range.max,job.salary_range)}</div>
+                {console.log(job.salary_range)}
                     <div className="flex items-center gap-1">📍 {job.location || "Remote"}</div>
                   </div>
                 </div>
