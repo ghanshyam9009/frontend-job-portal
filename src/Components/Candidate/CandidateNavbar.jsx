@@ -281,13 +281,22 @@ const CandidateNavbar = ({ toggleSidebar }) => {
               <span>Logout</span>
             </button>
 
-            {/* Profile Avatar */}
+          {/* Profile Avatar */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={handleProfileClick}
-                className="w-10 h-10 rounded-full bg-[#2271B5] text-white flex items-center justify-center font-bold hover:bg-[#1a5a8f] transition-colors"
+              className="w-10 h-10 rounded-full bg-[#2271B5] text-white flex items-center justify-center font-bold hover:bg-[#1a5a8f] transition-colors overflow-hidden"
               >
-                {(user?.full_name || user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'C').charAt(0)?.toUpperCase() || 'C'}
+              {user?.logo ? (
+                <img
+                  src={user.logo}
+                  alt="Profile logo"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                (user?.full_name || user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'C').charAt(0)?.toUpperCase() || 'C'
+              )}
               </button>
             </div>
           </div>
@@ -340,9 +349,18 @@ const CandidateNavbar = ({ toggleSidebar }) => {
 
               {/* Profile Info */}
               <div className={`mb-6 p-4 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-[#2271B5] text-white flex items-center justify-center text-xl font-bold">
-                    {(user?.full_name || user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User').charAt(0)?.toUpperCase() || 'U'}
+              <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 rounded-full bg-[#2271B5] text-white flex items-center justify-center text-xl font-bold overflow-hidden">
+                    {user?.logo ? (
+                      <img
+                        src={user.logo}
+                        alt="Profile logo"
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      (user?.full_name || user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User').charAt(0)?.toUpperCase() || 'U'
+                    )}
                   </div>
                   <div>
                     <div className={`font-bold ${textColor}`}>

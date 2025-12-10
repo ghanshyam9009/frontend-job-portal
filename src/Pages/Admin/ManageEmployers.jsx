@@ -29,19 +29,47 @@ const ManageEmployers = () => {
     location: ""
   });
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [rejectionReason, setRejectionReason] = useState('');
   const recruitersPerPage = 10;
 
-  // Fetch recruiters data
+  // Fetch recruiters data with detailed profile information
   useEffect(() => {
     const fetchRecruiters = async () => {
       try {
         setLoading(true);
         const response = await adminService.getAllRecruiters();
-        const data = response.recruiters || [];
-        setRecruiters(data);
-        setFilteredRecruiters(data);
+        let data = response.recruiters || [];
+
+        // Fetch detailed profile information for each recruiter to get location
+        const recruitersWithDetails = await Promise.all(
+          data.map(async (recruiter) => {
+            try {
+              const profileResponse = await recruiterService.getProfile(recruiter.email, true);
+              if (profileResponse.success && profileResponse.data) {
+                // Merge the basic recruiter data with detailed profile data
+                return {
+                  ...recruiter,
+                  ...profileResponse.data,
+                  // Copy important basic fields to prevent overwriting
+                  employer_id: recruiter.employer_id,
+                  hasadminapproved: recruiter.hasadminapproved,
+                  status: recruiter.status || 'active'
+                };
+              }
+              return recruiter; // Return basic data if profile fetch fails
+            } catch (error) {
+              console.error(`Failed to fetch profile for ${recruiter.email}:`, error);
+              return recruiter; // Return basic data on error
+            }
+          })
+        );
+
+        setRecruiters(recruitersWithDetails);
+        setFilteredRecruiters(recruitersWithDetails);
       } catch (error) {
         console.error('Failed to fetch recruiters:', error);
+        setRecruiters([]);
+        setFilteredRecruiters([]);
       } finally {
         setLoading(false);
       }
@@ -122,13 +150,46 @@ const ManageEmployers = () => {
   const handleApproveRecruiter = async (recruiter) => {
     try {
       setActionLoading(recruiter.employer_id);
+
+      // Clear rejection data when re-approving
+      await recruiterService.updateProfile(recruiter.email, {
+        rejection_reason: null, // Clear previous rejection reason
+        status: 'active'
+      });
+
       await adminService.approveRecruiter(recruiter);
 
-      // Refresh the data - only update recruiters state, let useEffect handle filtering/sorting
+      // Refresh the data with detailed profile information
       const response = await adminService.getAllRecruiters();
-      setRecruiters(response.recruiters || []);
+      let data = response.recruiters || [];
 
-      setMessage({ type: 'success', text: 'Recruiter approved successfully!' });
+      // Fetch detailed profile information for each recruiter to get location
+      const recruitersWithDetails = await Promise.all(
+        data.map(async (recruiterData) => {
+          try {
+            const profileResponse = await recruiterService.getProfile(recruiterData.email, true);
+            if (profileResponse.success && profileResponse.data) {
+              // Merge the basic recruiter data with detailed profile data
+              return {
+                ...recruiterData,
+                ...profileResponse.data,
+                // Copy important basic fields to prevent overwriting
+                employer_id: recruiterData.employer_id,
+                hasadminapproved: recruiterData.hasadminapproved,
+                status: recruiterData.status || 'active'
+              };
+            }
+            return recruiterData; // Return basic data if profile fetch fails
+          } catch (error) {
+            console.error(`Failed to fetch profile for ${recruiterData.email}:`, error);
+            return recruiterData; // Return basic data on error
+          }
+        })
+      );
+
+      setRecruiters(recruitersWithDetails);
+
+      setMessage({ type: 'success', text: `Recruiter ${recruiter.status === 'rejected' ? 're-' : ''}approved successfully!` });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } catch (error) {
       console.error('Failed to approve recruiter:', error);
@@ -226,12 +287,47 @@ const ManageEmployers = () => {
   // Handle edit form submission
   const handleEditSubmit = async () => {
     try {
-      const { email, ...updatedData } = editFormData;
-      await recruiterService.updateProfile(selectedRecruiter.email, updatedData);
+      // Transform admin form fields to backend expected format
+      const transformedData = {
+        company_name: editFormData.companyName || '',
+        full_name: editFormData.contactPerson || '',
+        phone_number: editFormData.phone || '',
+        industry: editFormData.industry || '',
+        company_size: editFormData.companySize || '',
+        location: editFormData.location || ''
+      };
 
-      // Refresh the data - only update recruiters state, let useEffect handle filtering/sorting
+      await recruiterService.updateProfile(selectedRecruiter.email, transformedData);
+
+      // Refresh the data with detailed profile information
       const response = await adminService.getAllRecruiters();
-      setRecruiters(response.recruiters || []);
+      let data = response.recruiters || [];
+
+      // Fetch detailed profile information for each recruiter to get location
+      const recruitersWithDetails = await Promise.all(
+        data.map(async (recruiterData) => {
+          try {
+            const profileResponse = await recruiterService.getProfile(recruiterData.email, true);
+            if (profileResponse.success && profileResponse.data) {
+              // Merge the basic recruiter data with detailed profile data
+              return {
+                ...recruiterData,
+                ...profileResponse.data,
+                // Copy important basic fields to prevent overwriting
+                employer_id: recruiterData.employer_id,
+                hasadminapproved: recruiterData.hasadminapproved,
+                status: recruiterData.status || 'active'
+              };
+            }
+            return recruiterData; // Return basic data if profile fetch fails
+          } catch (error) {
+            console.error(`Failed to fetch profile for ${recruiterData.email}:`, error);
+            return recruiterData; // Return basic data on error
+          }
+        })
+      );
+
+      setRecruiters(recruitersWithDetails);
 
       setShowEditModal(false);
       setSelectedRecruiter(null);
@@ -253,15 +349,56 @@ const ManageEmployers = () => {
 
   // Handle reject confirmation
   const handleRejectConfirm = async () => {
+    if (!rejectionReason.trim()) {
+      setMessage({ type: 'error', text: 'Please enter a rejection reason.' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      return;
+    }
+
     try {
+      // Update rejection reason in recruiter's profile
+      await recruiterService.updateProfile(selectedRecruiter.email, {
+        rejection_reason: rejectionReason.trim(),
+        status: 'rejected',
+        hasadminapproved: false
+      });
+
+      // Then call reject recruiter API
       await adminService.rejectRecruiter(selectedRecruiter);
 
-      // Refresh the data - only update recruiters state, let useEffect handle filtering/sorting
+      // Refresh the data with detailed profile information
       const response = await adminService.getAllRecruiters();
-      setRecruiters(response.recruiters || []);
+      let data = response.recruiters || [];
+
+      // Fetch detailed profile information for each recruiter to get location
+      const recruitersWithDetails = await Promise.all(
+        data.map(async (recruiterData) => {
+          try {
+            const profileResponse = await recruiterService.getProfile(recruiterData.email, true);
+            if (profileResponse.success && profileResponse.data) {
+              // Merge the basic recruiter data with detailed profile data
+              return {
+                ...recruiterData,
+                ...profileResponse.data,
+                // Copy important basic fields to prevent overwriting
+                employer_id: recruiterData.employer_id,
+                hasadminapproved: recruiterData.hasadminapproved,
+                status: recruiterData.status || 'active'
+              };
+            }
+            return recruiterData; // Return basic data if profile fetch fails
+          } catch (error) {
+            console.error(`Failed to fetch profile for ${recruiterData.email}:`, error);
+            return recruiterData; // Return basic data on error
+          }
+        })
+      );
+
+      setRecruiters(recruitersWithDetails);
 
       setShowRejectModal(false);
       setSelectedRecruiter(null);
+      setRejectionReason('');
 
       setMessage({ type: 'success', text: 'Recruiter rejected successfully!' });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
@@ -299,7 +436,8 @@ const ManageEmployers = () => {
         recruiter.company_size || '',
         recruiter.location || '',
         recruiter.status || 'active',
-        recruiter.hasadminapproved ? 'Approved' : 'Pending',
+        recruiter.hasadminapproved ? 'Approved' :
+        (recruiter.status === 'rejected' || recruiter.status === 'inactive') ? 'Rejected' : 'Pending',
         formatDate(recruiter)
       ]);
 
@@ -475,8 +613,12 @@ const ManageEmployers = () => {
                 </td>
                 <td>{recruiter.company_size || 'N/A'}</td>
                 <td>
-                  <span className={`${styles.approvalBadge} ${recruiter.hasadminapproved ? styles.approved : styles.pending}`}>
-                    {recruiter.hasadminapproved ? 'Approved' : 'Pending'}
+                  <span className={`${styles.approvalBadge} ${
+                    recruiter.hasadminapproved ? styles.approved :
+                    (recruiter.status === 'rejected' || recruiter.status === 'inactive') ? styles.rejected : styles.pending
+                  }`}>
+                    {recruiter.hasadminapproved ? 'Approved' :
+                     (recruiter.status === 'rejected' || recruiter.status === 'inactive') ? 'Rejected' : 'Pending'}
                   </span>
                 </td>
                 <td className={styles.dateCell}>{formatDate(recruiter)}</td>
@@ -808,7 +950,8 @@ const ManageEmployers = () => {
                 </div>
                 <div className={styles.formGroup}>
                   <label>Approval</label>
-                  <p>{selectedRecruiter.hasadminapproved ? 'Approved' : 'Pending'}</p>
+                  <p>{selectedRecruiter.hasadminapproved ? 'Approved' :
+                      (selectedRecruiter.status === 'rejected' || selectedRecruiter.status === 'inactive') ? 'Rejected' : 'Pending'}</p>
                 </div>
               </div>
               <div className={styles.formGroup}>
@@ -818,7 +961,7 @@ const ManageEmployers = () => {
             </div>
             <div className={styles.modalActions}>
               {/* Left side buttons - Approve/Reject */}
-              {!selectedRecruiter.hasadminapproved && !isEditing && (
+              {(!selectedRecruiter.hasadminapproved || selectedRecruiter.status === 'rejected') && !isEditing && (
                 <div className={styles.modalActionsLeft}>
                   <button
                     className={`${styles.actionBtn} ${styles.approveBtn}`}
@@ -831,15 +974,28 @@ const ManageEmployers = () => {
                   >
                     {actionLoading === selectedRecruiter.employer_id ? 'Approving...' : 'Approve Recruiter'}
                   </button>
-                  <button
-                    className={`${styles.actionBtn} ${styles.rejectBtn}`}
-                    onClick={() => {
-                      handleRejectRecruiter(selectedRecruiter);
-                      setShowViewModal(false);
-                    }}
-                  >
-                    Reject Recruiter
-                  </button>
+                  {selectedRecruiter.hasadminapproved && (
+                    <button
+                      className={`${styles.actionBtn} ${styles.rejectBtn}`}
+                      onClick={() => {
+                        handleRejectRecruiter(selectedRecruiter);
+                        setShowViewModal(false);
+                      }}
+                    >
+                      Reject Recruiter
+                    </button>
+                  )}
+                  {!selectedRecruiter.hasadminapproved && selectedRecruiter.status === 'rejected' && (
+                    <button
+                      className={`${styles.actionBtn} ${styles.rejectBtn}`}
+                      onClick={() => {
+                        handleRejectRecruiter(selectedRecruiter);
+                        setShowViewModal(false);
+                      }}
+                    >
+                      Update Rejection
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -869,12 +1025,47 @@ const ManageEmployers = () => {
                       className={styles.submitBtn}
                       onClick={async () => {
                         try {
-                          const { email, ...updatedData } = editFormData;
-                          await recruiterService.updateProfile(selectedRecruiter.email, updatedData);
+                          // Transform admin form fields to backend expected format
+                          const transformedData = {
+                            company_name: editFormData.companyName || '',
+                            full_name: editFormData.contactPerson || '',
+                            phone_number: editFormData.phone || '',
+                            industry: editFormData.industry || '',
+                            company_size: editFormData.companySize || '',
+                            location: editFormData.location || ''
+                          };
 
-                          // Refresh the data
+                          await recruiterService.updateProfile(selectedRecruiter.email, transformedData);
+
+                          // Refresh the data with detailed profile information
                           const response = await adminService.getAllRecruiters();
-                          setRecruiters(response.recruiters || []);
+                          let data = response.recruiters || [];
+
+                          // Fetch detailed profile information for each recruiter to get location
+                          const recruitersWithDetails = await Promise.all(
+                            data.map(async (recruiterData) => {
+                              try {
+                                const profileResponse = await recruiterService.getProfile(recruiterData.email, true);
+                                if (profileResponse.success && profileResponse.data) {
+                                  // Merge the basic recruiter data with detailed profile data
+                                  return {
+                                    ...recruiterData,
+                                    ...profileResponse.data,
+                                    // Copy important basic fields to prevent overwriting
+                                    employer_id: recruiterData.employer_id,
+                                    hasadminapproved: recruiterData.hasadminapproved,
+                                    status: recruiterData.status || 'active'
+                                  };
+                                }
+                                return recruiterData; // Return basic data if profile fetch fails
+                              } catch (error) {
+                                console.error(`Failed to fetch profile for ${recruiterData.email}:`, error);
+                                return recruiterData; // Return basic data on error
+                              }
+                            })
+                          );
+
+                          setRecruiters(recruitersWithDetails);
 
                           setIsEditing(false);
                           setMessage({ type: 'success', text: 'Recruiter updated successfully!' });
@@ -921,6 +1112,17 @@ const ManageEmployers = () => {
                 <p><strong>Contact Person:</strong> {selectedRecruiter.full_name}</p>
                 <p><strong>Email:</strong> {selectedRecruiter.email}</p>
               </div>
+              <div className={styles.formGroup}>
+                <label>Rejection Reason *</label>
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  className={styles.formInput}
+                  rows="4"
+                  placeholder="Enter the reason for rejection..."
+                  required
+                />
+              </div>
               <p>This action will mark the recruiter as rejected and they will not be able to log in.</p>
             </div>
             <div className={styles.modalActions}>
@@ -929,6 +1131,7 @@ const ManageEmployers = () => {
                 onClick={() => {
                   setShowRejectModal(false);
                   setSelectedRecruiter(null);
+                  setRejectionReason('');
                 }}
               >
                 Cancel
@@ -936,6 +1139,7 @@ const ManageEmployers = () => {
               <button
                 className={styles.rejectBtn}
                 onClick={handleRejectConfirm}
+                disabled={!rejectionReason.trim()}
               >
                 Reject Recruiter
               </button>

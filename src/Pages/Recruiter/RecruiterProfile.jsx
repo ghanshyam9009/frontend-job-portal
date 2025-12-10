@@ -19,7 +19,8 @@ const RecruiterProfile = () => {
     company_size: '',
     founded_year: '',
     description: '',
-    location: ''
+    location: '',
+    logo: ''
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -45,7 +46,8 @@ const RecruiterProfile = () => {
                 company_size: employerData.company_size || '',
                 founded_year: employerData.founded_year || '',
                 description: employerData.description || '',
-                location: employerData.location || user.location || ''
+                location: employerData.location || user.location || '',
+                logo: employerData.logo || user.logo || ''
             };
             setFormData(profileData);
             const isComplete = checkProfileComplete(profileData);
@@ -66,6 +68,17 @@ const RecruiterProfile = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+  };
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData(prev => ({ ...prev, logo: reader.result }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e) => {
@@ -135,7 +148,14 @@ const RecruiterProfile = () => {
   const renderProfileView = () => (
     <div className={styles.profileView}>
         <div className={styles.profileHeader}>
-            <h1>Company Profile</h1>
+            <div className={styles.profileTitleGroup}>
+              {formData.logo && (
+                <div className={styles.logoWrapper}>
+                  <img src={formData.logo} alt="Company logo" className={styles.logoImage} />
+                </div>
+              )}
+              <h1>Company Profile</h1>
+            </div>
             <button onClick={() => setIsEditMode(true)} className={styles.editButton}><Edit size={16} /> Edit Profile</button>
         </div>
         <div className={styles.profileGrid}>
@@ -169,6 +189,15 @@ const RecruiterProfile = () => {
         <div className={styles.formGroup}><label>Contact Person *</label><input type="text" name="full_name" value={formData.full_name} onChange={handleInputChange} required /></div>
         <div className={styles.formGroup}><label>Phone Number *</label><input type="text" name="phone_number" value={formData.phone_number} onChange={handleInputChange} required /></div>
         <div className={styles.formGroup}><label>Website</label><input type="text" name="company_website" value={formData.company_website} onChange={handleInputChange} /></div>
+          <div className={styles.formGroup}>
+            <label>Company Logo</label>
+            {formData.logo && (
+              <div className={styles.logoPreview}>
+                <img src={formData.logo} alt="Company logo preview" className={styles.logoImage} />
+              </div>
+            )}
+            <input type="file" accept="image/*" onChange={handleLogoUpload} />
+          </div>
         <div className={styles.formGroup}><label>Industry *</label><input type="text" name="industry" value={formData.industry} onChange={handleInputChange} required /></div>
         <div className={styles.formGroup}><label>Company Size *</label>
             <select name="company_size" value={formData.company_size} onChange={handleInputChange} required>

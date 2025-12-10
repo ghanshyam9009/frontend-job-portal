@@ -23,7 +23,8 @@ const CompanyProfile = () => {
     industry: '',
     company_size: '',
     description: '',
-    founded_year: ''
+    founded_year: '',
+    location: ''
   });
   
   const [loading, setLoading] = useState(true);
@@ -56,8 +57,17 @@ const CompanyProfile = () => {
       .join(' ');
   };
 
+  // KYC status determination - must be defined before useMemo that depends on it
+  const normalizedKycStatus = (kycStatus.status || '').toLowerCase();
+  const isKycVerified = ['verified', 'approved', 'completed', 'success', 'accepted'].includes(normalizedKycStatus);
+  const isKycSubmitted = ['submitted', 'in_review', 'under_review', 'pending_verification', 'submitted', 'in_review'].includes(normalizedKycStatus);
+  const hasKycDocumentSubmitted = isKycSubmitted && (kycData.documentFile || kycStatus.documentUrl);
+
+  // If user has submitted KYC document, consider KYC as contributing to completion
+  const isKycEffective = isKycVerified || hasKycDocumentSubmitted;
+
   // Calculate profile completion percentage in real-time
-  const profileCompletion = useMemo(() => {
+  const profileCompletionPercent = useMemo(() => {
     const dataForCalculation = {
       company_name: profileData.company_name,
       email: profileData.email,
@@ -89,6 +99,26 @@ const CompanyProfile = () => {
     return completion;
   }, [profileData]);
 
+  // Calculate overall completion (70% profile + 30% KYC)
+  const profileCompletion = useMemo(() => {
+    const profileWeight = 70; // 70% weight for profile completion
+    const kycWeight = 30; // 30% weight for KYC completion
+    const kycScore = isKycEffective ? kycWeight : 0;  // Use isKycEffective instead of isKycVerified
+
+    const totalCompletion = Math.round((profileCompletionPercent * profileWeight / 100) + kycScore);
+
+    console.log('Overall completion calculation:', {
+      profileCompletionPercent,
+      profileWeighted: profileCompletionPercent * profileWeight / 100,
+      kycScore,
+      isKycEffective,
+      hasKycDocumentSubmitted,
+      totalCompletion
+    });
+
+    return totalCompletion;
+  }, [profileCompletionPercent, isKycEffective]);
+
   const missingFields = useMemo(() => {
     const dataForCalculation = {
       company_name: profileData.company_name,
@@ -101,9 +131,6 @@ const CompanyProfile = () => {
     return getMissingRequiredFields(dataForCalculation);
   }, [profileData]);
 
-  const normalizedKycStatus = (kycStatus.status || '').toLowerCase();
-  const isKycVerified = ['verified', 'approved', 'completed', 'success'].includes(normalizedKycStatus);
-  const isKycSubmitted = ['submitted', 'in_review', 'under_review', 'pending_verification'].includes(normalizedKycStatus);
   const isProfileComplete = profileCompletion === 100;
   const stepDefinitions = [
     {
@@ -145,7 +172,8 @@ const CompanyProfile = () => {
               industry: data.industry || '',
               company_size: data.company_size || '',
               description: data.description || '',
-              founded_year: data.founded_year || ''
+              founded_year: data.founded_year || '',
+              location: data.location || ''
             });
             setKycStatus({
               status: data.kyc_status || '',
@@ -218,76 +246,10 @@ const CompanyProfile = () => {
     setSuccess(false);
 
     try {
-      // Validate required fields first
-      if (!profileData.company_name?.trim()) {
-        setError('Company name is required');
-        setLoading(false);
-        return;
-      }
-      if (!profileData.phone?.trim()) {
-        setError('Phone number is required');
-        setLoading(false);
-        return;
-      }
-      if (!profileData.industry?.trim()) {
-        setError('Industry is required');
-        setLoading(false);
-        return;
-      }
-      if (!profileData.company_size?.trim()) {
-        setError('Company size is required');
-        setLoading(false);
-        return;
-      }
-      if (!profileData.description?.trim()) {
-        setError('Company description is required');
-        setLoading(false);
-        return;
-      }
+      // Use the new validation function
+      const cleanProfileData = validateProfileData(profileData);
 
-      // Prepare clean payload for API - match Postman format exactly
-      // Based on Postman payload structure, send all fields that have values
-      const cleanProfileData = {
-        // Required fields - always include
-        company_name: profileData.company_name.trim(),
-        phone_number: profileData.phone.trim(),
-        industry: profileData.industry.trim(),
-        company_size: profileData.company_size.trim(),
-        description: profileData.description.trim(),
-      };
-      
-      // Optional fields - only include if they have actual values (not empty)
-      // Match Postman format where only fields with values are sent
-      if (profileData.address?.trim()) {
-        cleanProfileData.address = profileData.address.trim();
-      }
-      if (profileData.city?.trim()) {
-        cleanProfileData.city = profileData.city.trim();
-      }
-      if (profileData.state?.trim()) {
-        cleanProfileData.state = profileData.state.trim();
-      }
-      if (profileData.country?.trim()) {
-        cleanProfileData.country = profileData.country.trim();
-      }
-      if (profileData.postal_code?.trim()) {
-        cleanProfileData.postal_code = profileData.postal_code.trim();
-      }
-      if (profileData.website?.trim()) {
-        cleanProfileData.company_website = profileData.website.trim();
-      }
-      
-      // Handle founded_year - must be a number if provided
-      if (profileData.founded_year) {
-        const year = parseInt(profileData.founded_year);
-        if (!isNaN(year) && year >= 1900 && year <= new Date().getFullYear()) {
-          cleanProfileData.founded_year = year; // Send as number, not string
-        }
-      }
-
-      // Debug what data is being sent - clean payload
       console.log('Clean profile data being sent:', cleanProfileData);
-      console.log('Email:', user?.email);
 
       // Use the recruiterService.updateProfile method
       const response = await recruiterService.updateProfile(user?.email, cleanProfileData);
@@ -341,6 +303,7 @@ const CompanyProfile = () => {
             company_size: updatedData.company_size ?? prev.company_size,
             description: updatedData.description ?? prev.description,
             founded_year: updatedData.founded_year ?? prev.founded_year,
+            location: updatedData.location ?? prev.location,
           }));
 
           console.log('Updated data from response:', updatedData);
@@ -390,6 +353,43 @@ const CompanyProfile = () => {
     }));
   };
 
+  const validateProfileData = (data) => {
+    const trimmed = {};
+
+    // Required fields validation
+    if (!data.company_name?.trim()) throw new Error('Company name is required');
+    if (!data.phone?.trim()) throw new Error('Phone number is required');
+    if (!data.industry?.trim()) throw new Error('Industry is required');
+    if (!data.company_size?.trim()) throw new Error('Company size is required');
+    if (!data.description?.trim()) throw new Error('Company description is required');
+
+    // Build clean payload - required fields
+    trimmed.company_name = data.company_name.trim();
+    trimmed.phone_number = data.phone.trim();
+    trimmed.industry = data.industry.trim();
+    trimmed.company_size = data.company_size.trim();
+    trimmed.description = data.description.trim();
+
+    // Optional fields - only include if they have values (to match backend expectations)
+    if (data.address?.trim()) trimmed.address = data.address.trim();
+    if (data.city?.trim()) trimmed.city = data.city.trim();
+    if (data.state?.trim()) trimmed.state = data.state.trim();
+    if (data.country?.trim()) trimmed.country = data.country.trim();
+    if (data.postal_code?.trim()) trimmed.postal_code = data.postal_code.trim();
+    if (data.location?.trim()) trimmed.location = data.location.trim();
+    if (data.website?.trim()) trimmed.company_website = data.website.trim();
+    if (data.founded_year) {
+      const year = parseInt(data.founded_year);
+      if (!isNaN(year) && year >= 1900 && year <= new Date().getFullYear()) {
+        trimmed.founded_year = year;
+      }
+    }
+
+    return trimmed;
+  };
+
+
+
   const handleKycSubmit = async (e) => {
     e.preventDefault();
     setKycError(null);
@@ -427,7 +427,6 @@ const CompanyProfile = () => {
         const updatedData = response.data?.profile || response.data || response;
         setKycSuccess(response.message || 'KYC details submitted successfully. We will notify you once verification is complete.');
         setKycStatus(prev => ({
-          ...prev,
           status: updatedData?.kyc_status || prev.status || 'submitted',
           documentUrl: updatedData?.kycDocUrl || updatedData?.kyc_document_url || prev.documentUrl,
           updatedAt: updatedData?.kyc_updated_at || new Date().toISOString(),
@@ -519,32 +518,16 @@ const CompanyProfile = () => {
             </div>
           </div>
 
-          {/* Address */}
+          {/* Location */}
           <div className={styles.profileSection}>
             <h2 className={styles.sectionTitle}>
               <MapPin size={20} />
-              Address
+              Location
             </h2>
             <div className={styles.profileGrid}>
               <div className={`${styles.profileField} ${styles.fullWidth}`}>
-                <label>Street Address</label>
-                <p>{profileData.address || 'Not provided'}</p>
-              </div>
-              <div className={styles.profileField}>
-                <label>City</label>
-                <p>{profileData.city || 'Not provided'}</p>
-              </div>
-              <div className={styles.profileField}>
-                <label>State</label>
-                <p>{profileData.state || 'Not provided'}</p>
-              </div>
-              <div className={styles.profileField}>
-                <label>Country</label>
-                <p>{profileData.country || 'Not provided'}</p>
-              </div>
-              <div className={styles.profileField}>
-                <label>Postal Code</label>
-                <p>{profileData.postal_code || 'Not provided'}</p>
+                <label>Location</label>
+                <p>{profileData.location || 'Not provided'}</p>
               </div>
             </div>
           </div>
@@ -608,6 +591,74 @@ const CompanyProfile = () => {
   return (
     <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
       <main className={styles.main}>
+        {/* Admin Approval/Rejection Messages */}
+        {profileData && (
+          <>
+            {profileData.hasadminapproved === false && profileData.status === 'rejected' && (
+              <div style={{
+                backgroundColor: '#fee2e2',
+                color: '#991b1b',
+                padding: '1.5rem',
+                borderRadius: '8px',
+                border: '1px solid #fecaca',
+                marginBottom: '1.5rem'
+              }}>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem' }}>Application Rejected</h3>
+                <p style={{ margin: '0 0 0.5rem 0' }}>
+                  Unfortunately, your application has been rejected by our admin team.
+                </p>
+                {profileData.rejection_reason && (
+                  <div style={{
+                    backgroundColor: '#fef2f2',
+                    padding: '1rem',
+                    borderRadius: '6px',
+                    marginTop: '1rem',
+                    border: '1px solid #fee2e2'
+                  }}>
+                    <strong>Reason for rejection:</strong><br />
+                    {profileData.rejection_reason}
+                  </div>
+                )}
+                <p style={{ margin: '1rem 0 0 0', fontSize: '0.9rem' }}>
+                  You may reapply after addressing the issues mentioned above. Please contact support if you need further assistance.
+                </p>
+              </div>
+            )}
+
+            {profileData.hasadminapproved === false && profileData.status !== 'rejected' && (
+              <div style={{
+                backgroundColor: '#fef3c7',
+                color: '#92400e',
+                padding: '1.5rem',
+                borderRadius: '8px',
+                border: '1px solid #fde68a',
+                marginBottom: '1.5rem'
+              }}>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem' }}>Application Under Review</h3>
+                <p style={{ margin: 0 }}>
+                  Your application is currently being reviewed by our admin team. We will notify you once a decision is made.
+                </p>
+              </div>
+            )}
+
+            {profileData.hasadminapproved === true && (
+              <div style={{
+                backgroundColor: '#d1fae5',
+                color: '#065f46',
+                padding: '1.5rem',
+                borderRadius: '8px',
+                border: '1px solid #a7f3d0',
+                marginBottom: '1.5rem'
+              }}>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem' }}>Application Approved</h3>
+                <p style={{ margin: 0 }}>
+                  Congratulations! Your application has been approved by our admin team. You can now post jobs and access all hiring features.
+                </p>
+              </div>
+            )}
+          </>
+        )}
+
         {/* Render Profile View when complete and not editing */}
         {renderProfileView()}
 
@@ -779,52 +830,16 @@ const CompanyProfile = () => {
             </div>
 
             <div className={styles.formSection}>
-              <h2>Address Information</h2>
+              <h2>Location Information</h2>
               <div className={styles.formGrid}>
                 <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
-                  <label>Address</label>
+                  <label>Location</label>
                   <input
                     type="text"
-                    name="address"
-                    value={profileData.address}
+                    name="location"
+                    value={profileData.location}
                     onChange={handleInputChange}
-                    placeholder="Street address"
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label>City</label>
-                  <input
-                    type="text"
-                    name="city"
-                    value={profileData.city}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label>State</label>
-                  <input
-                    type="text"
-                    name="state"
-                    value={profileData.state}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Country</label>
-                  <input
-                    type="text"
-                    name="country"
-                    value={profileData.country}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Postal Code</label>
-                  <input
-                    type="text"
-                    name="postal_code"
-                    value={profileData.postal_code}
-                    onChange={handleInputChange}
+                    placeholder="Full location (e.g., Mumbai, Maharashtra, India)"
                   />
                 </div>
               </div>
@@ -913,7 +928,8 @@ const CompanyProfile = () => {
                     onChange={handleKycInputChange}
                   >
                     <option value="GST">GST Certificate</option>
-                    <option value="PAN">PAN Card</option>
+                    <option value="PAN">PAN Card (self Issue)</option>
+                    <option value="EMPLOYEE_ID">Employee ID</option>
                     <option value="MSME">MSME Registration</option>
                     <option value="INCORPORATION">Certificate of Incorporation</option>
                     <option value="OTHER">Other Government Issued Document</option>

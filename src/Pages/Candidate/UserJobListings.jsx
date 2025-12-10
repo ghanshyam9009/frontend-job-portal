@@ -7,6 +7,8 @@ import { candidateExternalService } from "../../services";
 import { candidateService } from "../../services/candidateService";
 import { Briefcase, Crown } from "lucide-react";
 import HomeNav from "../../Components/HomeNav";
+import { Loader, ErrorBox, SkeletonJobCard, JobCard } from "../../Components/Shared";
+import { toast } from "react-toastify";
 
 const UserJobListings = () => {
   const navigate = useNavigate();
@@ -23,30 +25,63 @@ const UserJobListings = () => {
   };
 
   const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filters, setFilters] = useState({ keyword: "", location: "", employment_type: "" });
   const [isPremium, setIsPremium] = useState(false);
+  const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
+
+  // Fetch bookmarked jobs on mount
+  useEffect(() => {
+    const fetchBookmarkedJobs = async () => {
+      if (!user) return;
+      
+      try {
+        const userId = user.user_id || user.id;
+        if (!userId) return;
+
+        const data = await candidateExternalService.getBookmarkedJobs(userId);
+        const bookmarked = (data?.jobs || data?.bookmarkedJobs || []).map(job => 
+          job.job_id || job.id
+        );
+        setBookmarkedJobs(new Set(bookmarked));
+      } catch (error) {
+        console.error('Error fetching bookmarked jobs:', error);
+      }
+    };
+
+    fetchBookmarkedJobs();
+  }, [user]);
 
   useEffect(() => {
     const fetchJobs = async () => {
+      setLoading(true);
+      setError("");
       try {
-        setLoading(true);
-        setError("");
         const data = await candidateExternalService.getAllJobs();
         const mapped = (data?.jobs || []).map((j, idx) => ({
           id: j.job_id || idx,
+          job_id: j.job_id || idx,
+          job_title: j.job_title,
           title: j.job_title,
+          company_name: j.company_name || "",
+          company_logo: j.company_logo || j.logo || j.companyLogo || "",
           company: j.company_name || "",
+          salary_range: j.salary_range,
           salary: j.salary_range ?
             (typeof j.salary_range === 'string' ?
-              `₹${j.salary_range}` :
-              `₹${j.salary_range.min} - ₹${j.salary_range.max} / ${j.employment_type ? 'year' : ''}`)
-            : "",
+              j.salary_range :
+              `₹${j.salary_range.min} - ₹${j.salary_range.max}`)
+            : "Salary not specified",
           location: j.location || "",
+          employment_type: j.employment_type || "Full-time",
           type: j.employment_type || "Full-time",
-          isPremium: j.is_premium || false, // Use actual premium status
-          created_at: j.created_at
+          is_premium: j.is_premium || false,
+          isPremium: j.is_premium || false,
+          created_at: j.created_at || j.posted_date,
+          posted_date: j.posted_date,
+          description: j.description || "",
+          skills_required: j.skills_required || []
         }));
 
         // Sort: Premium jobs first, then latest jobs on top
@@ -58,10 +93,11 @@ const UserJobListings = () => {
           return dateB - dateA;
         });
 
+        // Fix flickering: set data before setting loading to false
         setJobs(mapped);
+        setLoading(false);
       } catch (e) {
         setError(typeof e === 'string' ? e : e?.message || 'Failed to load jobs');
-      } finally {
         setLoading(false);
       }
     };
@@ -88,9 +124,9 @@ const UserJobListings = () => {
   };
 
   const handleSearch = async () => {
+    setLoading(true);
+    setError("");
     try {
-      setLoading(true);
-      setError("");
       const params = {
         keyword: filters.keyword || undefined,
         location: filters.location || undefined,
@@ -99,17 +135,27 @@ const UserJobListings = () => {
       const data = await candidateExternalService.getFilteredJobs(params);
       const mapped = (data?.jobs || []).map((j, idx) => ({
         id: j.job_id || idx,
+        job_id: j.job_id || idx,
+        job_title: j.job_title,
         title: j.job_title,
+        company_name: j.company_name || "",
+        company_logo: j.company_logo || j.logo || j.companyLogo || "",
         company: j.company_name || "",
+        salary_range: j.salary_range,
         salary: j.salary_range ?
           (typeof j.salary_range === 'string' ?
-            `₹${j.salary_range}` :
-            `₹${j.salary_range.min} - ₹${j.salary_range.max} / ${j.employment_type ? 'year' : ''}`)
-          : "",
+            j.salary_range :
+            `₹${j.salary_range.min} - ₹${j.salary_range.max}`)
+          : "Salary not specified",
         location: j.location || "",
+        employment_type: j.employment_type || "Full-time",
         type: j.employment_type || "Full-time",
-        isPremium: j.is_premium || false, // Use actual premium status
-        created_at: j.created_at
+        is_premium: j.is_premium || false,
+        isPremium: j.is_premium || false,
+        created_at: j.created_at || j.posted_date,
+        posted_date: j.posted_date,
+        description: j.description || "",
+        skills_required: j.skills_required || []
       }));
 
       // Sort: Premium jobs first, then latest jobs on top
@@ -121,10 +167,11 @@ const UserJobListings = () => {
         return dateB - dateA;
       });
 
+      // Fix flickering: set data before setting loading to false
       setJobs(mapped);
+      setLoading(false);
     } catch (e) {
       setError(typeof e === 'string' ? e : e?.message || 'Failed to filter jobs');
-    } finally {
       setLoading(false);
     }
   };
@@ -135,18 +182,42 @@ const UserJobListings = () => {
     });
   };
 
-  const handleSaveJob = async (job) => {
+  const toggleBookmark = async (jobId) => {
+    if (!user) {
+      toast.error('Please log in to bookmark jobs.');
+      navigate('/candidate/login');
+      return;
+    }
+
     try {
-      if (!user?.user_id && !user?.id) {
-        alert('Please log in to save jobs.');
+      const userId = user.user_id || user.id;
+      if (!userId) {
+        toast.error('User ID not found. Please log in again.');
         navigate('/candidate/login');
         return;
       }
-      const userId = user.user_id || user.id;
-      await candidateExternalService.bookmarkJob({ user_id: userId, job_id: job.id });
-      alert('Job saved');
-    } catch (e) {
-      alert('Failed to save job');
+
+      const newBookmarked = new Set(bookmarkedJobs);
+      const isCurrentlyBookmarked = newBookmarked.has(jobId);
+      
+      if (isCurrentlyBookmarked) {
+        // Remove bookmark
+        newBookmarked.delete(jobId);
+        setBookmarkedJobs(newBookmarked);
+        toast.success('Job removed from bookmarks');
+      } else {
+        // Add bookmark
+        await candidateExternalService.bookmarkJob({ 
+          user_id: userId, 
+          job_id: jobId 
+        });
+        newBookmarked.add(jobId);
+        setBookmarkedJobs(newBookmarked);
+        toast.success('Job bookmarked successfully');
+      }
+    } catch (error) {
+      console.error('Error bookmarking job:', error);
+      toast.error('Failed to bookmark job. Please try again.');
     }
   };
 
@@ -194,38 +265,38 @@ const UserJobListings = () => {
           </div>
           
           <div className={styles.jobsGrid}>
-            {loading && <div className={styles.emptyState}><h3>Loading jobs…</h3></div>}
-            {error && <div className={styles.emptyState}><h3>{error}</h3></div>}
-            {isPremium && (
+            {loading && <SkeletonJobCard count={6} />}
+            
+            {!loading && error && (
+              <ErrorBox 
+                error={error} 
+                onRetry={() => window.location.reload()}
+                title="Failed to load jobs"
+              />
+            )}
+
+            {!loading && !error && isPremium && (
               <div className={styles.premiumMessage}>
                 <span className={styles.premiumIcon}><Crown size={20} /></span>
                 <p>You are a premium member! Enjoy enhanced features and priority access to jobs.</p>
               </div>
             )}
-            {jobs.map(job => (
-              <div key={job.id} className={styles.jobCard}>
-                <div className={styles.jobCardHeader}>
-                  <div className={styles.jobIcon}><Briefcase size={20} /></div>
-                  <div className={styles.jobType}>{job.type}</div>
-                  {job.isPremium && <div className={styles.premiumBadge}>Premium</div>}
-                </div>
-                <h3 className={styles.jobTitle}>{job.title}</h3>
-                <p className={styles.jobCompany}>{job.company}</p>
-                <p className={styles.jobSalary}>{job.salary}</p>
-                <p className={styles.jobLocation}>{job.location}</p>
-                <button 
-                  className={styles.viewBtn}
-                  onClick={() => handleJobClick(job)}
-                >
-                  View Details
-                </button>
-                <button 
-                  className={styles.applyBtn}
-                  onClick={() => handleSaveJob(job)}
-                >
-                  Save Job
-                </button>
+
+            {!loading && !error && jobs.length === 0 && (
+              <div className={styles.emptyState}>
+                <h3>No jobs found</h3>
+                <p>Try adjusting your search filters.</p>
               </div>
+            )}
+
+            {!loading && !error && jobs.map(job => (
+              <JobCard
+                key={job.id || job.job_id}
+                job={job}
+                onBookmark={toggleBookmark}
+                isBookmarked={bookmarkedJobs.has(job.job_id || job.id)}
+                isDark={darkMode}
+              />
             ))}
           </div>
         </section>

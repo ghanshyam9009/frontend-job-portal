@@ -159,14 +159,19 @@ const CandidateLogin = () => {
           const errorMessage = extractErrorMessage(rawError) || result.error?.message || '';
           const normalizedMessage = errorMessage.toLowerCase();
           const isDuplicateEmail =
-            normalizedMessage.includes('already') &&
-            (normalizedMessage.includes('email') ||
-             normalizedMessage.includes('student') ||
-             normalizedMessage.includes('registered') ||
-             normalizedMessage.includes('exist'));
+            (normalizedMessage.includes('already') && normalizedMessage.includes('registered')) ||
+            (normalizedMessage.includes('already') && normalizedMessage.includes('exist')) ||
+            (normalizedMessage.includes('duplicate') && normalizedMessage.includes('email')) ||
+            (normalizedMessage.includes('duplicate') && normalizedMessage.includes('user')) ||
+            (normalizedMessage.includes('duplicate') && normalizedMessage.includes('account')) ||
+            (normalizedMessage.includes('email') && normalizedMessage.includes('taken')) ||
+            (normalizedMessage.includes('email') && normalizedMessage.includes('in use')) ||
+            normalizedMessage.includes('user already exists') ||
+            normalizedMessage.includes('email already exists') ||
+            normalizedMessage.includes('account already exists');
 
           if (isDuplicateEmail) {
-            setError("This email address is already registered. Please use a different email or try logging in.");
+            setError("This user is already registered. Please use a different email or try logging in.");
           } else {
             setError(errorMessage || "Registration failed. Please try again.");
           }

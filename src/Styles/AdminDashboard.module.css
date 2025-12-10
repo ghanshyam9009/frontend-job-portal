@@ -826,6 +826,11 @@
   color: #991b1b;
 }
 
+.rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 /* Skills Container */
 .skillsContainer {
   display: flex;

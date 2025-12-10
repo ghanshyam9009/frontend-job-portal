@@ -12,6 +12,7 @@ import { showError } from "../utils/errorHandler";
 import { candidateExternalService } from "../services/candidateExternalService";
 import { candidateService } from "../services/candidateService";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
+import { Loader, ErrorBox, SkeletonJobCard, JobCard } from "../Components/Shared";
 
 const JobListings = () => {
   const { theme } = useTheme();
@@ -297,9 +298,11 @@ const JobListings = () => {
         const endIndex = startIndex + jobsPerPage;
         const paginatedJobs = filteredJobs.slice(startIndex, endIndex);
 
+        // Fix flickering: set data before setting loading to false
         setJobs(paginatedJobs);
         setTotalJobs(totalCount);
         setTotalPages(calculatedTotalPages);
+        setLoading(false);
       } else {
         throw new Error(jobsData.message || 'Failed to fetch jobs');
       }
@@ -310,7 +313,6 @@ const JobListings = () => {
       setJobs([]);
       setTotalJobs(0);
       setTotalPages(1);
-    } finally {
       setLoading(false);
     }
   };
@@ -382,32 +384,6 @@ const JobListings = () => {
     }
   };
 
-  const formatSalary = (salaryRange) => {
-    if (!salaryRange) return "Salary not specified";
-    if (typeof salaryRange === 'string') return salaryRange;
-    if (salaryRange.min && salaryRange.max) {
-      return `₹${salaryRange.min} - ₹${salaryRange.max}`;
-    }
-    return "Salary not specified";
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 1) return "1 day ago";
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
-    return date.toLocaleDateString();
-  };
-
-  const getInitials = (name) => {
-    if (!name) return "?";
-    return name.split(' ').map(word => word[0]).join('').toUpperCase().substring(0, 2);
-  };
 
   // COMPACT Filter Content
   const FilterContent = () => (
@@ -916,11 +892,14 @@ const JobListings = () => {
 
               {/* Jobs List - COMPACT */}
               <div className="space-y-3 mb-4">
-                {loading && (
-                  <div className="flex flex-col items-center justify-center py-10">
-                    <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
-                    <p className={`${textSecondary} text-sm`}>Loading jobs...</p>
-                  </div>
+                {loading && <SkeletonJobCard count={5} />}
+
+                {!loading && error && (
+                  <ErrorBox 
+                    error={error} 
+                    onRetry={fetchJobs}
+                    title="Failed to load jobs"
+                  />
                 )}
 
                 {!loading && !error && jobs.length === 0 && (
@@ -930,116 +909,13 @@ const JobListings = () => {
                 )}
 
                 {!loading && !error && jobs.map(job => (
-                  <div 
+                  <JobCard
                     key={job.job_id}
-                    className={`${bgSecondary} rounded-lg shadow-sm border ${borderColor} ${hoverBorder} p-3 hover:shadow-md transition-all duration-300 relative overflow-hidden cursor-pointer`}
-                    onClick={() => handleJobClick(job)}
-                  >
-                    
-                    {/* Header - COMPACT */}
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${isDark ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-700'}`}>
-                        {formatDate(job.created_at)}
-                      </span>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleJobClick(job);
-                        }}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-1.5 rounded-md transition-all duration-300 hover:shadow-md text-xs"
-                      >
-                        Apply Now
-                      </button>
-                    </div>
-
-                    {/* Company Logo and Title - COMPACT */}
-                    <div className="flex items-start gap-2 mb-2">
-                      <div className="w-10 h-10 rounded-md bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-                        <span className="text-white text-xs font-bold">
-                          {getInitials(job.company_name)}
-                        </span>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className={`text-sm font-bold ${textPrimary} mb-0.5 hover:text-blue-600 transition-colors`}>
-                          {job.job_title}
-                        </h3>
-                        <p className={`text-xs ${textSecondary} font-semibold flex items-center gap-1`}>
-                          <Building2 className="w-3 h-3" />
-                          {job.company_name}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Job Details - COMPACT */}
-                    <div className="flex flex-wrap items-center gap-1.5 text-xs mb-2">
-                      <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2 py-1 rounded`}>
-                        <Clock className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                        <span className={`${textSecondary} font-medium`}>{job.employment_type}</span>
-                      </div>
-                      <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2 py-1 rounded`}>
-                        <MapPin className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                        <span className={`${textSecondary} font-medium`}>{job.location}</span>
-                      </div>
-                      <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2 py-1 rounded`}>
-                        <DollarSign className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                        <span className={`${textSecondary} font-medium`}>{formatSalary(job.salary_range)}</span>
-                      </div>
-                      {job.experience_required && (
-                        <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2 py-1 rounded`}>
-                          <Briefcase className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                          <span className={`${textSecondary} font-medium`}>
-                            {job.experience_required.min_years}-{job.experience_required.max_years} yrs
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Job Description - COMPACT */}
-                    <p className={`${textSecondary1} text-xs mb-2 leading-relaxed`}>
-                      {job.description
-                        ? job.description.length > 120
-                          ? `${job.description.substring(0, 120)}...`
-                          : job.description
-                        : "No description available."}
-                    </p>
-
-                    {/* Skills - COMPACT */}
-                    {job.skills_required && job.skills_required.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-2">
-                        {job.skills_required.slice(0, 3).map((skill, index) => (
-                          <span key={index} className="bg-blue-100 text-blue-700 text-[10px] font-semibold px-2  rounded-full">
-                            {skill}
-                          </span>
-                        ))}
-                        {job.skills_required.length > 3 && (
-                          <span className={`${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'} text-xs font-semibold px-2 py-0.5 rounded-full`}>
-                            +{job.skills_required.length - 3}
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleBookmark(job.job_id);
-                      }}
-                      className={`${textSecondary} absolute bottom-2 right-3 hover:text-yellow-500 transition-colors p-1 rounded-md`}
-                    >
-                      <Bookmark 
-                        className="w-4 h-4"  
-                        fill={bookmarkedJobs.has(job.job_id) ? "currentColor" : "none"} 
-                      />
-                    </button>
-                  
-                    {/* Premium Badge - COMPACT */}
-                    {!job.is_premium && (
-                      <div className="absolute top-0 left-0 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-[8px] font-bold px-2  rounded-br-md shadow-sm">
-                        PREMIUM
-                      </div>
-                    )}
-
-                  </div>
+                    job={job}
+                    onBookmark={toggleBookmark}
+                    isBookmarked={bookmarkedJobs.has(job.job_id)}
+                    isDark={isDark}
+                  />
                 ))}
               </div>
 

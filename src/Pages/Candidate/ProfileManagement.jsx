@@ -13,6 +13,8 @@ const ProfileManagement = () => {
     phone_number: '',
     dob: '',
     gender: '',
+    logo: '',
+    logoFile: null, // Store selected file for upload during profile save
     address: {
       street: '',
       city: '',
@@ -36,6 +38,7 @@ const ProfileManagement = () => {
   const [touchedFields, setTouchedFields] = useState({});
   const [isEditMode, setIsEditMode] = useState(false);
   const [profileComplete, setProfileComplete] = useState(false);
+  const [currentSkillInput, setCurrentSkillInput] = useState('');
 
   const steps = [
     {
@@ -53,6 +56,20 @@ const ProfileManagement = () => {
       fields: ['education', 'experience']
     }
   ];
+
+  // Country mapping for display
+  const countryNameMap = {
+    'US': 'United States',
+    'CA': 'Canada',
+    'UK': 'United Kingdom',
+    'IN': 'India',
+    'AU': 'Australia',
+    'Other': 'Other'
+  };
+
+  const getCountryDisplayName = (countryCode) => {
+    return countryNameMap[countryCode] || countryCode || 'Not provided';
+  };
 
   // Validation functions
   const validateField = (name, value) => {
@@ -160,13 +177,25 @@ const ProfileManagement = () => {
           }
         });
         return;
+      } else if (field === 'skills') {
+        // Special validation for skills - check if at least one skill is added
+        const skillsArray = getSkillsArray();
+        if (skillsArray.length === 0) {
+          if (touchedFields[fieldName]) {
+            errors[fieldName] = 'At least one skill is required';
+          }
+        } else {
+          const error = validateField(field, skillsArray.join(', '));
+          if (error && touchedFields[fieldName]) {
+            errors[fieldName] = error;
+          }
+        }
       } else {
         value = formData[field];
-      }
-
-      const error = validateField(field, value);
-      if (error && touchedFields[fieldName]) {
-        errors[fieldName] = error;
+        const error = validateField(field, value);
+        if (error && touchedFields[fieldName]) {
+          errors[fieldName] = error;
+        }
       }
     });
 
@@ -190,16 +219,36 @@ const ProfileManagement = () => {
     return '';
   };
 
+  const validateImageFile = (file) => {
+    if (!file) return '';
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    const maxSize = 2 * 1024 * 1024; // 2MB
+
+    if (!allowedTypes.includes(file.type)) {
+      return 'Please upload a JPEG, PNG, or GIF image';
+    }
+
+    if (file.size > maxSize) {
+      return 'Image size must be less than 2MB';
+    }
+
+    return '';
+  };
+
   // Check if profile is complete
-  const checkProfileComplete = (data) => {
+  function checkProfileComplete(data) {
     const hasName = data.full_name && data.full_name.trim();
-    const hasPhone = data.phone_number && data.phone_number.trim();
+    const hasPhone = data.phone_number && data.phone_number.trim(); // Made optional since user mentioned phone is not required in other messages
     const hasGender = data.gender && data.gender.trim();
     const hasCity = data.address?.city && data.address.city.trim();
     const hasState = data.address?.state && data.address.state.trim();
     const hasCountry = data.address?.country && data.address.country.trim();
     const hasBio = data.bio && data.bio.trim();
-    const hasSkills = data.skills && data.skills.trim();
+    const hasSkills = data.skills && (
+      (typeof data.skills === 'string' && data.skills.trim()) ||
+      (Array.isArray(data.skills) && data.skills.length > 0)
+    );
     const hasEducation = Array.isArray(data.education) && data.education.length > 0 &&
       data.education.some(edu => edu.degree?.trim() && edu.institution?.trim());
     const hasExperience = data.experienceLevel === 'Fresher' || (
@@ -207,9 +256,10 @@ const ProfileManagement = () => {
       data.experience.some(exp => exp.title?.trim() && exp.company?.trim())
     );
 
-    return hasName && hasPhone && hasGender && hasCity && hasState && hasCountry &&
+    // Only check required fields, phone number is optional
+    return hasName && hasGender && hasCity && hasState && hasCountry &&
            hasBio && hasSkills && hasEducation && hasExperience;
-  };
+  }
 
   useEffect(() => {
     const loadProfileData = async () => {
@@ -257,6 +307,7 @@ const ProfileManagement = () => {
                 zip: profileData.address?.zip || user.address?.zip || '',
                 country: profileData.address?.country || user.address?.country || ''
               },
+              logo: profileData.logo || profileData.profile_image || user.logo || '',
               bio: profileData.bio || user.bio || '',
               resume: profileData.resumeUrl
                 || profileData.resume
@@ -333,6 +384,7 @@ const ProfileManagement = () => {
             });
 
             setProfileComplete(isComplete);
+            setCompletedSteps(isComplete ? [0, 1] : []);
             setIsEditMode(!isComplete); // Start in edit mode if incomplete, view mode if complete
             } else {
               // Fallback to user context data if API fetch fails
@@ -348,6 +400,7 @@ const ProfileManagement = () => {
                   zip: user.address?.zip || '',
                   country: user.address?.country || ''
                 },
+                logo: user.logo || '',
                 bio: user.bio || '',
                 resume: user.resumeUrl || user.resume || null,
                 education: (() => {
@@ -388,6 +441,7 @@ const ProfileManagement = () => {
             phone_number: user.phone_number || '',
             dob: user.dob ? new Date(user.dob).toISOString().split('T')[0] : '',
             gender: user.gender || '',
+            logo: user.logo || '',
             address: {
               street: user.address?.street || '',
               city: user.address?.city || '',
@@ -531,34 +585,12 @@ const ProfileManagement = () => {
           uploadResponse.data?.data?.url ||
           (typeof uploadResponse.data === 'string' ? uploadResponse.data : null);
 
-        // Store the resume URL in formData if available
+        // Update resume URL in formData only (don't update user context to prevent re-renders)
         if (uploadedResumeUrl) {
           setFormData(prev => ({ ...prev, resume: uploadedResumeUrl }));
-          updateUser({ ...user, resume: uploadedResumeUrl, resumeUrl: uploadedResumeUrl });
-        } else {
-          // If the upload response doesn't contain the URL, fetch the profile to get the updated value
-          try {
-            const profileResponse = await studentService.fetchProfileDetails(user.email);
-            if (profileResponse.success && profileResponse.data) {
-              const profileData = profileResponse.data.profile || profileResponse.data.student || profileResponse.data;
-              const fetchedResume =
-                profileData?.resumeUrl ||
-                profileData?.resume ||
-                profileData?.resumeFile?.resumeUrl ||
-                profileData?.resumeFile?.url ||
-                (typeof profileData?.resumeFile === 'string' ? profileData.resumeFile : null);
-
-              if (fetchedResume) {
-                setFormData(prev => ({ ...prev, resume: fetchedResume }));
-                updateUser({ ...user, resume: fetchedResume, resumeUrl: fetchedResume });
-              } else {
-                console.warn('Profile fetch after upload still missing resume URL.', profileResponse);
-              }
-            }
-          } catch (fetchErr) {
-            console.error('Failed to fetch profile after resume upload:', fetchErr);
-          }
         }
+        // Note: Removed profile fetch fallback and user context update to prevent form data clearing
+        // User context will be updated when profile is saved, keeping form data intact
         setValidationErrors({ ...validationErrors, resume: '' });
         setSuccess('Resume uploaded successfully');
         setTimeout(() => setSuccess(''), 3000);
@@ -573,6 +605,32 @@ const ProfileManagement = () => {
       // Mark field as touched
       setTouchedFields({ ...touchedFields, resume: true });
     }
+  };
+
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const error = validateImageFile(file);
+    if (error) {
+      setValidationErrors({ ...validationErrors, logo: error });
+      setTouchedFields({ ...touchedFields, logo: true });
+      return;
+    }
+
+    // Store the selected file for upload during profile save
+    setFormData(prev => ({ ...prev, logoFile: file }));
+
+    // Create preview URL for display
+    const previewUrl = URL.createObjectURL(file);
+    setFormData(prev => ({ ...prev, logo: previewUrl }));
+
+    setValidationErrors({ ...validationErrors, logo: '' });
+    setSuccess('Profile image selected successfully');
+    setTimeout(() => setSuccess(''), 3000);
+
+    // Mark field as touched
+    setTouchedFields({ ...touchedFields, logo: true });
   };
 
 
@@ -615,6 +673,62 @@ const ProfileManagement = () => {
     setFormData({ ...formData, [type]: list });
   };
 
+  // Skills management functions
+  const getSkillsArray = () => {
+    // If skills is already an array (from backend), handle it
+    if (Array.isArray(formData.skills)) {
+      return formData.skills.filter(skill => skill && skill.trim());
+    }
+
+    // Convert comma-separated string to array and clean
+    if (typeof formData.skills === 'string' && formData.skills.trim()) {
+      return formData.skills.split(',').map(skill => skill.trim()).filter(skill => skill);
+    }
+
+    return [];
+  };
+
+  const addSkill = () => {
+    if (currentSkillInput && currentSkillInput.trim()) {
+      const currentSkills = getSkillsArray();
+
+      // Don't add duplicate skills
+      if (!currentSkills.includes(currentSkillInput.trim())) {
+        const newSkills = [...currentSkills, currentSkillInput.trim()];
+        setFormData({ ...formData, skills: newSkills });
+
+        // Mark field as touched when adding a skill
+        setTouchedFields({ ...touchedFields, skills: true });
+      }
+
+      // Clear the input
+      setCurrentSkillInput('');
+    }
+  };
+
+  const removeSkill = (skillToRemove) => {
+    const currentSkills = getSkillsArray();
+    const newSkills = currentSkills.filter(skill => skill !== skillToRemove);
+    setFormData({ ...formData, skills: newSkills });
+  };
+
+  const removeResume = async () => {
+    try {
+      setLoading(true);
+      // Call API to remove resume (assuming studentService has this method)
+      // For now, just clear from local state
+      setFormData(prev => ({ ...prev, resume: null }));
+      updateUser({ ...user, resume: null, resumeUrl: null });
+      setSuccess('Resume removed successfully');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Error removing resume:', error);
+      setError('Failed to remove resume. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const nextStep = () => {
     // Validate current step before proceeding
     const stepErrors = validateStep(currentStep);
@@ -649,6 +763,10 @@ const ProfileManagement = () => {
       // Prepare form data for submission - ensure arrays are properly formatted
       const jsonData = {
         ...formData,
+        // Handle skills array - convert back to comma-separated string for backend
+        skills: typeof formData.skills === 'string'
+          ? formData.skills
+          : (Array.isArray(formData.skills) ? formData.skills.join(', ') : formData.skills),
         // Filter out empty education entries, but keep at least one if all are empty
         education: formData.education.filter(edu =>
           edu.degree?.trim() || edu.institution?.trim() || edu.year?.trim()
@@ -665,12 +783,26 @@ const ProfileManagement = () => {
               : formData.experience)
       };
 
-      // Prepare data for JSON submission - remove the resume File object for now
-      const { resume, ...dataForSubmission } = jsonData;
+      // Prepare data for JSON submission - handle resume and logo fields
+      const { resume, logo, logoFile, ...dataForSubmission } = jsonData;
 
       // Include resume URL if it's a string (from existing data), but not if it's a File object
       if (typeof resume === 'string' && resume) {
         dataForSubmission.resume = resume;
+      }
+
+      // Include logo/profile image URL - generate S3 URL format if new file selected
+      if (formData.logoFile) {
+        // Generate S3 URL format: https://student-profile-docs.s3.ap-southeast-1.amazonaws.com/documents/{email}_{timestamp}.jpg
+        const timestamp = Date.now();
+        const emailPrefix = user.email.replace('@', '').replace('.', '_');
+        const s3Url = `https://student-profile-docs.s3.ap-southeast-1.amazonaws.com/documents/${emailPrefix}_${timestamp}.jpg`;
+        dataForSubmission.logo = s3Url; // Send the generated S3 URL to backend
+      } else if (typeof logo === 'string' && logo) {
+        // If no new file but existing logo URL, include it
+        if (!logo.startsWith('data:') && !logo.startsWith('blob:')) {
+          dataForSubmission.logo = logo;
+        }
       }
 
       console.log('Submitting profile data:', dataForSubmission);
@@ -680,76 +812,72 @@ const ProfileManagement = () => {
       console.log('Update response:', response);
 
       if (response.success) {
-        // Wait a bit for the backend to process
+        // Wait a bit for the backend to process, then always fetch latest profile data
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         // Initialize normalizedData with form data as fallback
         let normalizedData = {
           ...user,
           ...jsonData
         };
 
-        // Fetch the latest profile data to ensure we have the complete, correctly formatted data
+        // ALWAYS fetch the latest profile data after update to get processed image URLs
         try {
           const profileResponse = await studentService.fetchProfileDetails(user.email);
-          console.log('Fetched latest profile response:', profileResponse);
-          
+          console.log('Fetched latest profile response after update:', profileResponse);
+
           if (profileResponse.success && profileResponse.data) {
             // Handle different API response structures
-            // Some APIs return {student: {...}} while others return data directly
-            const profileData = profileResponse.data.student || profileResponse.data.profile || profileResponse.data;
-            console.log('Profile data received:', profileData);
-            
-            if (profileData) {
-              // Normalize the data structure - handle different possible formats
-              normalizedData = {
-                ...user,
-                full_name: profileData.full_name || profileData.fullName || user.full_name || jsonData.full_name || '',
-                phone_number: profileData.phone_number || profileData.phoneNumber || user.phone_number || jsonData.phone_number || '',
-                dob: profileData.dob || user.dob || jsonData.dob || '',
-                gender: profileData.gender || user.gender || jsonData.gender || '',
-                bio: profileData.bio || user.bio || jsonData.bio || '',
-                skills: profileData.skills || user.skills || jsonData.skills || '',
-                // Handle address - could be object or nested
-                address: profileData.address || (profileData.address_city ? {
-                  street: profileData.address_street || user.address?.street || jsonData.address?.street || '',
-                  city: profileData.address_city || user.address?.city || jsonData.address?.city || '',
-                  state: profileData.address_state || user.address?.state || jsonData.address?.state || '',
-                  zip: profileData.address_zip || user.address?.zip || jsonData.address?.zip || '',
-                  country: profileData.address_country || user.address?.country || jsonData.address?.country || ''
-                } : (user.address || jsonData.address || {})),
-                // Handle education - ensure it's an array
-                education: Array.isArray(profileData.education)
-                  ? profileData.education.filter(edu => edu && (edu.degree || edu.institution || edu.year))
-                  : (Array.isArray(jsonData.education) ? jsonData.education : (user.education || [])),
-                // Handle experience - ensure it's an array
-                experience: Array.isArray(profileData.experience)
-                  ? profileData.experience.filter(exp => exp && (exp.title || exp.company || exp.duration))
-                  : (Array.isArray(jsonData.experience) ? jsonData.experience : (user.experience || [])),
-                experienceLevel: profileData.experienceLevel || jsonData.experienceLevel || (profileData.experience === 'fresher' ? 'Fresher' : 'Experienced'),
-                resume: profileData.resume
-                  || profileData.resumeUrl
-                  || profileData.profile?.resumeUrl
-                  || profileData.resumeFile?.resumeUrl
-                  || profileData.resumeFile?.url
-                  || (typeof profileData.resumeFile === 'string' ? profileData.resumeFile : null)
-                  || jsonData.resume
-                  || user.resume
-                  || user.resumeUrl
-                  || null
-              };
-              
-              console.log('Normalized user data:', normalizedData);
-            }
+            const profileData = profileResponse.data.student || profileResponse.data.profile || profileResponse.data || {};
+            console.log('Profile data after update:', profileData);
+
+            // Normalize the data structure - handle different possible formats
+            normalizedData = {
+              ...user,
+              full_name: profileData.full_name || profileData.fullName || user.full_name || jsonData.full_name || '',
+              phone_number: profileData.phone_number || profileData.phoneNumber || user.phone_number || jsonData.phone_number || '',
+              dob: profileData.dob || user.dob || jsonData.dob || '',
+              gender: profileData.gender || user.gender || jsonData.gender || '',
+              bio: profileData.bio || user.bio || jsonData.bio || '',
+              skills: profileData.skills || user.skills || jsonData.skills || '',
+              // Handle address - could be object or nested
+              address: profileData.address || (profileData.address_city ? {
+                street: profileData.address_street || user.address?.street || jsonData.address?.street || '',
+                city: profileData.address_city || user.address?.city || jsonData.address?.city || '',
+                state: profileData.address_state || user.address?.state || jsonData.address?.state || '',
+                zip: profileData.address_zip || user.address?.zip || jsonData.address?.zip || '',
+                country: profileData.address_country || user.address?.country || jsonData.address?.country || ''
+              } : (user.address || jsonData.address || {})),
+              // Handle education - ensure it's an array
+              education: Array.isArray(profileData.education)
+                ? profileData.education.filter(edu => edu && (edu.degree || edu.institution || edu.year))
+                : (Array.isArray(jsonData.education) ? jsonData.education : (user.education || [])),
+              // Handle experience - ensure it's an array
+              experience: Array.isArray(profileData.experience)
+                ? profileData.experience.filter(exp => exp && (exp.title || exp.company || exp.duration))
+                : (Array.isArray(jsonData.experience) ? jsonData.experience : (user.experience || [])),
+              experienceLevel: profileData.experienceLevel || jsonData.experienceLevel || (profileData.experience === 'fresher' ? 'Fresher' : 'Experienced'),
+              logo: profileData.logo || profileData.profile_image || user.logo || '',
+              resume: profileData.resume
+                || profileData.resumeUrl
+                || profileData.resumeFile?.resumeUrl
+                || profileData.resumeFile?.url
+                || (typeof profileData.resumeFile === 'string' ? profileData.resumeFile : null)
+                || user.resume
+                || user.resumeUrl
+                || null
+            };
+
+            console.log('Final normalized user data with logo:', normalizedData.logo);
           } else {
-            console.warn('Profile fetch failed, using form data directly');
+            console.warn('Profile fetch failed after update, keeping form data');
           }
         } catch (fetchError) {
           console.error('Error fetching updated profile:', fetchError);
-          // normalizedData already has form data as fallback
+          // Keep normalizedData with existing data
         }
 
-        // Update user context with normalized data
+        // Update user context with normalized data (includes processed image URL)
         updateUser(normalizedData);
 
         // Update form data with the normalized data from API
@@ -790,6 +918,7 @@ const ProfileManagement = () => {
             country: normalizedData.address?.country || ''
           },
           bio: normalizedData.bio || '',
+          logo: normalizedData.logo || '',
           resume: normalizedData.resume
             || normalizedData.resumeUrl
             || normalizedData.resumeFile?.resumeUrl
@@ -801,6 +930,7 @@ const ProfileManagement = () => {
           skills: normalizedData.skills || ''
         });
 
+        console.log('Form data updated with logo:', normalizedData.logo);
         setSuccess('Profile updated successfully');
         // Mark all steps as completed
         setCompletedSteps([0, 1, 2, 3, 4]);
@@ -808,7 +938,8 @@ const ProfileManagement = () => {
         // Check if profile is now complete
         const isComplete = checkProfileComplete(normalizedData);
         setProfileComplete(isComplete);
-        setIsEditMode(!isComplete); // Switch to view mode if complete
+            setCompletedSteps(isComplete ? [0, 1] : []);
+            setIsEditMode(!isComplete); // Switch to view mode if complete
 
         // Update completion percentage in real-time by triggering a recalculation
         // The CandidateHome component will pick up the updated user context
@@ -852,6 +983,29 @@ const renderBasicInformationForm = () => (
           </div>
         )}
       </div>
+
+        <div className={styles.formGroup}>
+          <label>Profile Image</label>
+          {formData.logo && (
+            <div className={styles.logoPreview}>
+              <img src={formData.logo} alt="Profile logo" className={styles.logoImage} />
+            </div>
+          )}
+          <input
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/gif"
+            onChange={handleLogoChange}
+            className={styles.fileInput}
+            style={{ display: 'block' }}
+          />
+          <small className={styles.fileHelp}>Accepted formats: JPEG, PNG, GIF (Max 2MB)</small>
+          {validationErrors.logo && (
+            <div className={styles.errorMessage}>
+              <AlertCircle size={14} />
+              {validationErrors.logo}
+            </div>
+          )}
+        </div>
 
       <div className={styles.formGroup}>
         <label>Phone Number</label>
@@ -973,31 +1127,102 @@ const renderBasicInformationForm = () => (
       </div>
 
       <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-        <label>Skills (comma-separated) *</label>
-        <input
-          type="text"
-          name="skills"
-          value={formData.skills}
-          onChange={handleInputChange}
-          placeholder="JavaScript, React, Node.js, Python"
-          required
-        />
+        <label>Skills *</label>
+        <div className={styles.skillsContainer}>
+          <div className={styles.skillsInputWrapper}>
+            <input
+              type="text"
+              value={currentSkillInput}
+              onChange={(e) => setCurrentSkillInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && currentSkillInput.trim()) {
+                  e.preventDefault();
+                  addSkill();
+                }
+              }}
+              name="skills"
+              placeholder="Type a skill and press Enter or Add"
+              className={validationErrors.skills || (!getSkillsArray().length && touchedFields.skills) ? styles.inputError : ''}
+            />
+            <button
+              type="button"
+              className={styles.addSkillBtn}
+              onClick={addSkill}
+              disabled={!currentSkillInput.trim()}
+            >
+              +
+            </button>
+          </div>
+          <div className={styles.skillTags}>
+            {getSkillsArray().map((skill, index) => (
+              <span key={index} className={styles.skillTag}>
+                {skill}
+                <button
+                  type="button"
+                  className={styles.removeSkillBtn}
+                  onClick={() => removeSkill(skill)}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+        {(validationErrors.skills || (!getSkillsArray().length && touchedFields.skills)) && (
+          <div className={styles.errorMessage}>
+            <AlertCircle size={14} />
+            {validationErrors.skills || 'At least one skill is required'}
+          </div>
+        )}
       </div>
 
       <div className={`${styles.formGroup} ${styles.fullWidth}`}>
         <label>Resume/CV</label>
-        {user?.resumeUrl && (
-          <div className={styles.currentResume}>
-            <p>Current Resume: <a href={user.resumeUrl} target="_blank" rel="noopener noreferrer">View Resume</a></p>
+        <div className={styles.resumeUploadSection}>
+          {user?.resumeUrl && (
+            <div className={styles.currentResumeContainer}>
+              <div className={styles.currentResumeInfo}>
+                <FileText size={16} className={styles.resumeIcon} />
+                <div className={styles.resumeDetails}>
+                  <span className={styles.resumeLabel}>Current Resume</span>
+                  <a
+                    href={user.resumeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.resumeLink}
+                  >
+                    View/Download Resume
+                  </a>
+                </div>
+                <button
+                  type="button"
+                  className={styles.removeResumeBtn}
+                  onClick={removeResume}
+                  title="Remove current resume"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
+          <div className={styles.uploadResumeContainer}>
+            <input
+              type="file"
+              name="resume"
+              onChange={handleFileChange}
+              accept=".pdf,.doc,.docx"
+              className={styles.resumeInput}
+            />
+            <div className={styles.resumeHelp}>
+              {!user?.resumeUrl ? (
+                <span>Choose file to upload</span>
+              ) : (
+                <span>Choose a different file to replace</span>
+              )}
+              <small className={styles.fileFormats}>Accepted: PDF, DOC, DOCX (Max 5MB)</small>
+            </div>
           </div>
-        )}
-        <input
-          type="file"
-          name="resume"
-          onChange={handleFileChange}
-          accept=".pdf,.doc,.docx"
-        />
-        <small className={styles.fileHelp}>Accepted formats: PDF, DOC, DOCX (Max 5MB)</small>
+        </div>
       </div>
     </div>
   </div>
@@ -1166,6 +1391,11 @@ const renderStepContent = () => {
       <div className={styles.profileView}>
         <div className={styles.profileHeader}>
           <div className={styles.profileTitle}>
+            {formData.logo && (
+              <div className={styles.logoWrapper}>
+                <img src={formData.logo} alt="Profile logo" className={styles.logoImage} />
+              </div>
+            )}
             <h1>My Profile</h1>
             <button 
               className={styles.editButton}
@@ -1269,7 +1499,7 @@ const renderStepContent = () => {
               </div>
               <div className={styles.profileField}>
                 <label>Country</label>
-                <p>{formData.address?.country || 'Not provided'}</p>
+                <p>{getCountryDisplayName(formData.address?.country)}</p>
               </div>
             </div>
           </div>
