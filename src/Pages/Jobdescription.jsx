@@ -276,10 +276,9 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
       return;
     }
 
-    // Profile completion check - must be 100% to apply
-    const profileCompletion = calculateProfileCompletion(user);
-    if (profileCompletion < 100) {
-      alert(`Your profile is only ${profileCompletion}% complete. You must complete your profile 100% before applying for jobs. Redirecting to profile management...`);
+    // Resume check - must have resume to apply
+    if (!user.resume || user.resume.trim() === "") {
+      alert("You must upload a resume before applying for jobs. Redirecting to profile management...");
       navigate("/profile");
       return;
     }
@@ -334,6 +333,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
 
       const applicationData = {
         student_id: studentId,
+        student_email: user.email || "",
         resume_url: user.resume_url || "",
         cover_letter: user.cover_letter || "",
       };
@@ -652,6 +652,9 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
                 )}
                 {applicationError && (
                   <div className="bg-red-100 text-red-800 px-3 py-2 rounded">{applicationError}</div>
+                )}
+                {hasApplied && !applicationError && (
+                  <div className="bg-blue-100 text-blue-800 px-3 py-2 rounded">You have already applied for this job</div>
                 )}
               </div>
 
