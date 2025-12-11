@@ -177,7 +177,9 @@ const UserJobListings = () => {
   };
 
   const handleJobClick = (job) => {
-    navigate(`/job/${job.title.toLowerCase().replace(/\s+/g, '-')}`, {
+    // Use job ID for consistent URLs
+    const jobId = job.id || job.job_id;
+    navigate(`/job/${jobId}`, {
       state: { job }
     });
   };
@@ -202,14 +204,20 @@ const UserJobListings = () => {
       
       if (isCurrentlyBookmarked) {
         // Remove bookmark
+        await candidateExternalService.bookmarkJob({
+          user_id: userId,
+          job_id: jobId,
+          action: 0
+        });
         newBookmarked.delete(jobId);
         setBookmarkedJobs(newBookmarked);
         toast.success('Job removed from bookmarks');
       } else {
         // Add bookmark
-        await candidateExternalService.bookmarkJob({ 
-          user_id: userId, 
-          job_id: jobId 
+        await candidateExternalService.bookmarkJob({
+          user_id: userId,
+          job_id: jobId,
+          action: 1
         });
         newBookmarked.add(jobId);
         setBookmarkedJobs(newBookmarked);

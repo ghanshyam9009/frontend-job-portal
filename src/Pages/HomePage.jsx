@@ -449,14 +449,21 @@ const Homepage = () => {
           skills_required: j.skills_required || []
         }));
 
-        // Sort: Premium jobs first, then by latest date
+        // Sort: Latest jobs first, then premium jobs
         const sortedJobs = mapped.sort((a, b) => {
-          if (a.is_premium && !b.is_premium) return -1;
-          if (!a.is_premium && b.is_premium) return 1;
-          // If both premium or both not, sort by date (latest first)
+          // First sort by date (latest first)
           const dateA = new Date(a.created_at || 0);
           const dateB = new Date(b.created_at || 0);
-          return dateB - dateA;
+          const dateDiff = dateB - dateA;
+
+          // If dates are different, use date sorting
+          if (dateDiff !== 0) return dateDiff;
+
+          // If dates are the same, put premium jobs first
+          if (a.is_premium && !b.is_premium) return -1;
+          if (!a.is_premium && b.is_premium) return 1;
+
+          return 0;
         });
 
         // Fix flickering: set data before setting loading to false
@@ -560,8 +567,9 @@ const Homepage = () => {
   };
 
   const handleJobClick = (job) => {
-    const jobSlug = job.job_title?.toLowerCase().replace(/\s+/g, '-') || job.id;
-    navigate(`/job/${jobSlug}`, {
+    // Use job ID for consistent URLs
+    const jobId = job.job_id || job.id;
+    navigate(`/job/${jobId}`, {
       state: { job }
     });
   };
@@ -688,9 +696,10 @@ const Homepage = () => {
         toast.success('Job removed from bookmarks');
       } else {
         // Add bookmark
-        await candidateExternalService.bookmarkJob({ 
-          user_id: userId, 
-          job_id: jobId 
+        await candidateExternalService.bookmarkJob({
+          user_id: userId,
+          job_id: jobId,
+          action: 1
         });
         newBookmarked.add(jobId);
         setBookmarkedJobs(newBookmarked);

@@ -20,8 +20,9 @@ const JobCard = ({
   const navigate = useNavigate();
 
   const handleJobClick = () => {
-    const jobSlug = job.job_title?.toLowerCase().replace(/\s+/g, '-') || job.id || job.job_id;
-    navigate(`/job/${jobSlug}`, {
+    // Use job ID for consistent URLs
+    const jobId = job.job_id || job.id;
+    navigate(`/job/${jobId}`, {
       state: { job }
     });
   };
@@ -209,4 +210,3 @@ const JobCard = ({
 };
 
 export default JobCard;
-

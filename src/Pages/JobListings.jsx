@@ -427,7 +427,8 @@ const JobListings = () => {
         // Add bookmark
         await candidateExternalService.bookmarkJob({
           user_id: userId,
-          job_id: jobId
+          job_id: jobId,
+          action: 1
         });
         newBookmarked.add(jobId);
         setBookmarkedJobs(newBookmarked);

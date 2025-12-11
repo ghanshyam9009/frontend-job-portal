@@ -25,7 +25,8 @@ export const candidateExternalService = {
 
   // Bookmark a job for a user
   async bookmarkJob(payload) {
-    // Expecting payload to contain necessary fields like { user_id, job_id }
+    // Expecting payload to contain necessary fields like { user_id, job_id, action }
+    // action: 1 = add bookmark, 0 = remove bookmark
     const { data } = await axios.post(CANDIDATE_BOOKMARK_URL, payload);
     return data;
   },

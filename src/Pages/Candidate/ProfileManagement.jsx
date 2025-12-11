@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../Contexts/AuthContext';
 import { studentService } from '../../services/studentService';
 import { ChevronLeft, ChevronRight, Check, User, MapPin, Briefcase, GraduationCap, Award, AlertCircle, Edit, Mail, Phone, Calendar, Globe, FileText } from 'lucide-react';
@@ -8,6 +8,15 @@ const ProfileManagement = () => {
   const { user, updateUser } = useAuth();
   const todayForDateInput = new Date().toISOString().split("T")[0];
   const [currentStep, setCurrentStep] = useState(0);
+
+  // Helper function to get user initials
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    const nameParts = name.trim().split(' ').filter(part => part.length > 0);
+    if (nameParts.length === 0) return 'U';
+    if (nameParts.length === 1) return nameParts[0].charAt(0).toUpperCase();
+    return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
+  };
   const [formData, setFormData] = useState({
     full_name: '',
     phone_number: '',
@@ -39,6 +48,7 @@ const ProfileManagement = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [profileComplete, setProfileComplete] = useState(false);
   const [currentSkillInput, setCurrentSkillInput] = useState('');
+  const logoInputRef = useRef(null);
 
   const steps = [
     {
@@ -986,19 +996,29 @@ const renderBasicInformationForm = () => (
 
         <div className={styles.formGroup}>
           <label>Profile Image</label>
-          {formData.logo && (
-            <div className={styles.logoPreview}>
-              <img src={formData.logo} alt="Profile logo" className={styles.logoImage} />
-            </div>
-          )}
+          <div
+            className={styles.logoPreview}
+            onClick={() => logoInputRef.current?.click()}
+            style={{ cursor: 'pointer' }}
+            title="Click to upload profile image"
+          >
+            {formData.logo ? (
+              <img src={formData.logo} alt="Profile" className={styles.logoImage} />
+            ) : (
+              <div className={styles.logoInitials}>
+                {getInitials(formData.full_name || user?.full_name)}
+              </div>
+            )}
+          </div>
           <input
+            ref={logoInputRef}
             type="file"
             accept="image/jpeg,image/jpg,image/png,image/gif"
             onChange={handleLogoChange}
             className={styles.fileInput}
-            style={{ display: 'block' }}
+            style={{ display: 'none' }}
           />
-          <small className={styles.fileHelp}>Accepted formats: JPEG, PNG, GIF (Max 2MB)</small>
+          <small className={styles.fileHelp}>Click on the image to upload. Accepted formats: JPEG, PNG, GIF (Max 2MB)</small>
           {validationErrors.logo && (
             <div className={styles.errorMessage}>
               <AlertCircle size={14} />
@@ -1391,11 +1411,15 @@ const renderStepContent = () => {
       <div className={styles.profileView}>
         <div className={styles.profileHeader}>
           <div className={styles.profileTitle}>
-            {formData.logo && (
-              <div className={styles.logoWrapper}>
-                <img src={formData.logo} alt="Profile logo" className={styles.logoImage} />
-              </div>
-            )}
+            <div className={styles.logoWrapper}>
+              {formData.logo ? (
+                <img src={formData.logo} alt="Profile" className={styles.logoImage} />
+              ) : (
+                <div className={styles.logoInitials}>
+                  {getInitials(formData.full_name || user?.full_name)}
+                </div>
+              )}
+            </div>
             <h1>My Profile</h1>
             <button 
               className={styles.editButton}

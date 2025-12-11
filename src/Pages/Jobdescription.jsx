@@ -126,18 +126,13 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
     return Math.min(100, Math.round(totalCompleted));
   };
 
-  const extractJobIdFromSlug = (slugStr) => {
-    if (!slugStr) return null;
-    const match = slugStr.match(/-(\d+)$/);
-    return match ? match[1] : slugStr;
-  };
  const toggleBookmark = async (jobId) => {
      if (!isAuthenticated || !user) {
        alert('Please log in to bookmark jobs.');
        navigate('/candidate/login');
        return;
      }
- 
+
      try {
        const userId = user.user_id || user.id;
        if (!userId) {
@@ -145,15 +140,22 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
          navigate('/candidate/login');
          return;
        }
- 
+
        const newBookmarked = new Set(bookmarkedJobs);
        if (newBookmarked.has(jobId)) {
+         // Remove bookmark
          newBookmarked.delete(jobId);
+         await candidateExternalService.removeBookmark({
+           user_id: userId,
+           job_id: jobId
+         });
        } else {
+         // Add bookmark
          newBookmarked.add(jobId);
-         await candidateExternalService.bookmarkJob({ 
-           user_id: userId, 
-           job_id: jobId 
+         await candidateExternalService.bookmarkJob({
+           user_id: userId,
+           job_id: jobId,
+           action: 1
          });
        }
        setBookmarkedJobs(newBookmarked);
@@ -162,8 +164,9 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
        alert('Failed to bookmark job. Please try again.');
      }
    };
- 
-  const jobId = extractJobIdFromSlug(slug);
+
+  // Since we're now using job IDs directly in the URL, slug is the job ID
+  const jobId = slug;
 
   // fetch job details
   useEffect(() => {
@@ -792,11 +795,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
                 <div
                   key={idx}
                   onClick={() =>
-                    navigate(
-                      `/candidate/jobs/${((relJob.job_title || relJob.title) || "")
-                        .toLowerCase()
-                        .replace(/\s+/g, "-")}-${relJob.job_id || relJob.id}`
-                    )
+                    navigate(`/job/${relJob.job_id || relJob.id}`)
                   }
                   className={`group cursor-pointer p-4 rounded-xl transition-all duration-300 border ${
                     isDarkMode 
