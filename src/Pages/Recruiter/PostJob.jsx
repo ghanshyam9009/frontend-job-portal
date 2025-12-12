@@ -5,8 +5,20 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import { jobService } from "../../services/jobService";
 import { recruiterService } from "../../services/recruiterService";
 import { calculateRecruiterProfileCompletion, isProfileComplete } from "../../utils/recruiterProfileUtils";
-import { Check, AlertTriangle, Building } from "lucide-react";
-import styles from "../../Styles/RecruiterDashboard.module.css";
+import { 
+  Check, 
+  AlertTriangle, 
+  Building, 
+  Briefcase, 
+  MapPin, 
+  DollarSign, 
+  Clock, 
+  FileText, 
+  Users, 
+  Award,
+  X,
+  Plus
+} from "lucide-react";
 
 const PostJob = () => {
   const navigate = useNavigate();
@@ -181,284 +193,379 @@ const PostJob = () => {
     }
   };
 
-  return (
-    <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
-      <main className={styles.main}>
-        <section className={styles.jobPostingSection}>
-          <div className={styles.sectionHeader}>
-            <h1>Post New Job</h1>
-          </div>
+  const isDark = theme === 'dark';
+  const bgColor = isDark ? 'bg-gray-900' : 'bg-gray-50';
+  const cardBg = isDark ? 'bg-gray-800' : 'bg-white';
+  const textColor = isDark ? 'text-white' : 'text-gray-900';
+  const textSecondary = isDark ? 'text-gray-400' : 'text-gray-600';
+  const borderColor = isDark ? 'border-gray-700' : 'border-gray-200';
+  const inputBg = isDark ? 'bg-gray-700' : 'bg-white';
+  const inputBorder = isDark ? 'border-gray-600' : 'border-gray-300';
 
-          {/* Restriction Notice */}
-          {!canPostJob && restrictionReason && (
-            <div className={styles.restrictionNotice}>
-              <div className={styles.restrictionContent}>
-                <AlertTriangle size={24} className={styles.restrictionIcon} />
-                <div className={styles.restrictionText}>
-                  <h3>Job Posting Restricted</h3>
-                  <p>{restrictionReason}</p>
-                  <button
-                    className={styles.completeProfileBtn}
-                    onClick={() => navigate('/company-profile')}
-                  >
-                    <Building size={16} />
-                    Complete Profile & KYC
-                  </button>
-                </div>
+  return (
+    <div className={`min-h-screen ${bgColor} pt-20 lg:pt-24 px-4 sm:px-6 lg:px-8 pb-8`}>
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-blue-500/10 rounded-lg">
+              <Briefcase className="text-blue-500" size={24} />
+            </div>
+            <h1 className={`text-2xl lg:text-3xl font-bold ${textColor}`}>Post New Job</h1>
+          </div>
+          <p className={`${textSecondary} text-sm`}>Fill in the details below to create a new job posting</p>
+        </div>
+
+        {/* Restriction Notice */}
+        {!canPostJob && restrictionReason && (
+          <div className={`${cardBg} border-2 border-yellow-500 rounded-lg p-5 mb-6`}>
+            <div className="flex items-start gap-4">
+              <AlertTriangle className="text-yellow-500 flex-shrink-0" size={24} />
+              <div className="flex-1">
+                <h3 className={`font-bold ${textColor} mb-2`}>Job Posting Restricted</h3>
+                <p className={`${textSecondary} text-sm mb-3`}>{restrictionReason}</p>
+                <button
+                  onClick={() => navigate('/company-profile')}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#2271B5] text-white rounded-md hover:bg-[#1a5a8f] transition-colors text-sm font-medium"
+                >
+                  <Building size={16} />
+                  Complete Profile & KYC
+                </button>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          <form onSubmit={handleSubmit} className={styles.jobForm} style={{ opacity: canPostJob ? 1 : 0.5, pointerEvents: canPostJob ? 'auto' : 'none' }}>
-            <div className={styles.formSection}>
-              <h2>Basic Information</h2>
-              <div className={styles.formGrid}>
-                <div className={styles.formGroup}>
-                  <label>Job Title *</label>
-                  <input
-                    type="text"
-                    value={jobData.job_title}
-                    onChange={(e) => handleInputChange("job_title", e.target.value)}
-                    placeholder="e.g., Senior Frontend Developer"
-                    required
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Company Name *</label>
-                  <input
-                    type="text"
-                    value={jobData.company_name}
-                    onChange={(e) => handleInputChange("company_name", e.target.value)}
-                    placeholder="Your company name"
-                    required
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Location *</label>
+        {/* Form */}
+        <form 
+          onSubmit={handleSubmit} 
+          className={`space-y-6 ${!canPostJob ? 'opacity-50 pointer-events-none' : ''}`}
+        >
+          {/* Basic Information */}
+          <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-5`}>
+            <div className="flex items-center gap-2 mb-4">
+              <FileText className="text-blue-500" size={20} />
+              <h2 className={`text-lg font-bold ${textColor}`}>Basic Information</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Job Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={jobData.job_title}
+                  onChange={(e) => handleInputChange("job_title", e.target.value)}
+                  placeholder="e.g., Senior Frontend Developer"
+                  required
+                  className={`w-full px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Company Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={jobData.company_name}
+                  onChange={(e) => handleInputChange("company_name", e.target.value)}
+                  placeholder="Your company name"
+                  required
+                  className={`w-full px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Location <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <MapPin className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${textSecondary}`} size={16} />
                   <input
                     type="text"
                     value={jobData.location}
                     onChange={(e) => handleInputChange('location', e.target.value)}
                     placeholder="e.g., San Francisco, CA or Remote"
                     required
+                    className={`w-full pl-10 pr-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
                   />
                 </div>
-                <div className={styles.formGroup}>
-                  <label>Employment Type *</label>
-                  <select
-                    value={jobData.employment_type}
-                    onChange={(e) =>
-                      handleInputChange("employment_type", e.target.value)
-                    }
-                    required
-                  >
-                    <option value="Full-Time">Full-time</option>
-                    <option value="Part-Time">Part-time</option>
-                    <option value="Contract">Contract</option>
-                    <option value="Internship">Internship</option>
-                  </select>
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Work Mode *</label>
-                  <select
-                    value={jobData.work_mode}
-                    onChange={(e) => handleInputChange("work_mode", e.target.value)}
-                    required
-                  >
-                    <option value="On-site">On-site</option>
-                    <option value="Remote">Remote</option>
-                    <option value="Hybrid">Hybrid</option>
-                  </select>
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Salary Range</label>
-                  <div className={styles.salaryInputs}>
-                    <select
-                      value={jobData.salary_range.currency}
-                      onChange={(e) =>
-                        handleInputChange("salary_range.currency", e.target.value)
-                      }
-                    >
-                      <option value="INR">INR (₹)</option>
-                      <option value="USD">USD ($)</option>
-                      <option value="EUR">EUR (€)</option>
-                      <option value="GBP">GBP (£)</option>
-                    </select>
-                    <input
-                      type="number"
-                      value={jobData.salary_range.min}
-                      onChange={(e) =>
-                        handleInputChange("salary_range.min", e.target.value)
-                      }
-                      placeholder="Min"
-                    />
-                    <span>-</span>
-                    <input
-                      type="number"
-                      value={jobData.salary_range.max}
-                      onChange={(e) =>
-                        handleInputChange("salary_range.max", e.target.value)
-                      }
-                      placeholder="Max"
-                    />
-                  </div>
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Experience Required (Years)</label>
-                  <div className={styles.salaryInputs}>
-                    <input
-                      type="number"
-                      value={jobData.experience_required.min_years}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "experience_required.min_years",
-                          e.target.value
-                        )
-                      }
-                      placeholder="Min"
-                    />
-                    <span>-</span>
-                    <input
-                      type="number"
-                      value={jobData.experience_required.max_years}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "experience_required.max_years",
-                          e.target.value
-                        )
-                      }
-                      placeholder="Max"
-                    />
-                  </div>
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Application Deadline</label>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Employment Type <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={jobData.employment_type}
+                  onChange={(e) => handleInputChange("employment_type", e.target.value)}
+                  required
+                  className={`w-full px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                >
+                  <option value="Full-Time">Full-time</option>
+                  <option value="Part-Time">Part-time</option>
+                  <option value="Contract">Contract</option>
+                  <option value="Internship">Internship</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Work Mode <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={jobData.work_mode}
+                  onChange={(e) => handleInputChange("work_mode", e.target.value)}
+                  required
+                  className={`w-full px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                >
+                  <option value="On-site">On-site</option>
+                  <option value="Remote">Remote</option>
+                  <option value="Hybrid">Hybrid</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Application Deadline
+                </label>
+                <div className="relative">
+                  <Clock className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${textSecondary}`} size={16} />
                   <input
                     type="date"
-                    value={jobData.applicationDeadline}
-                    onChange={(e) => handleInputChange('applicationDeadline', e.target.value)}
+                    value={jobData.application_deadline}
+                    onChange={(e) => handleInputChange('application_deadline', e.target.value)}
+                    className={`w-full pl-10 pr-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  />
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Salary Range
+                </label>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={jobData.salary_range.currency}
+                    onChange={(e) => handleInputChange("salary_range.currency", e.target.value)}
+                    className={`px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  >
+                    <option value="INR">INR (₹)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="GBP">GBP (£)</option>
+                  </select>
+                  <input
+                    type="number"
+                    value={jobData.salary_range.min}
+                    onChange={(e) => handleInputChange("salary_range.min", e.target.value)}
+                    placeholder="Min"
+                    className={`flex-1 px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  />
+                  <span className={textSecondary}>-</span>
+                  <input
+                    type="number"
+                    value={jobData.salary_range.max}
+                    onChange={(e) => handleInputChange("salary_range.max", e.target.value)}
+                    placeholder="Max"
+                    className={`flex-1 px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  />
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Experience Required (Years)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={jobData.experience_required.min_years}
+                    onChange={(e) => handleInputChange("experience_required.min_years", e.target.value)}
+                    placeholder="Min"
+                    className={`flex-1 px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  />
+                  <span className={textSecondary}>-</span>
+                  <input
+                    type="number"
+                    value={jobData.experience_required.max_years}
+                    onChange={(e) => handleInputChange("experience_required.max_years", e.target.value)}
+                    placeholder="Max"
+                    className={`flex-1 px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
                   />
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className={styles.formSection}>
-              <h2>Job Details</h2>
-              <div className={styles.formGroup}>
-                <label>Description *</label>
+          {/* Job Details */}
+          <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-5`}>
+            <div className="flex items-center gap-2 mb-4">
+              <FileText className="text-purple-500" size={20} />
+              <h2 className={`text-lg font-bold ${textColor}`}>Job Details</h2>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Job Description <span className="text-red-500">*</span>
+                </label>
                 <textarea
                   value={jobData.description}
                   onChange={(e) => handleInputChange("description", e.target.value)}
                   placeholder="Provide a detailed job description..."
                   rows={6}
                   required
+                  className={`w-full px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none`}
                 />
               </div>
-              <div className={styles.formGrid}>
-                <div className={styles.formGroup}>
-                  <label>Responsibilities *</label>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                    Responsibilities <span className="text-red-500">*</span>
+                  </label>
                   <textarea
                     value={jobData.responsibilities}
-                    onChange={(e) =>
-                      handleInputChange("responsibilities", e.target.value)
-                    }
-                    placeholder="List the key responsibilities (one per line)..."
-                    rows={4}
+                    onChange={(e) => handleInputChange("responsibilities", e.target.value)}
+                    placeholder="List key responsibilities (one per line)..."
+                    rows={6}
                     required
+                    className={`w-full px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none`}
                   />
                 </div>
-                <div className={styles.formGroup}>
-                  <label>Qualifications *</label>
+
+                <div>
+                  <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                    Qualifications <span className="text-red-500">*</span>
+                  </label>
                   <textarea
                     value={jobData.qualifications}
-                    onChange={(e) =>
-                      handleInputChange("qualifications", e.target.value)
-                    }
-                    placeholder="List the required qualifications (one per line)..."
-                    rows={4}
+                    onChange={(e) => handleInputChange("qualifications", e.target.value)}
+                    placeholder="List required qualifications (one per line)..."
+                    rows={6}
                     required
+                    className={`w-full px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none`}
                   />
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className={styles.formSection}>
-              <h2>Skills</h2>
-              <div className={styles.skillsSection}>
-                <div className={styles.skillInput}>
-                  <input
-                    type="text"
-                    value={newSkill}
-                    onChange={(e) => setNewSkill(e.target.value)}
-                    placeholder="Add a required skill and press Enter"
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddSkill();
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddSkill}
-                    className={styles.addSkillBtn}
+          {/* Skills */}
+          <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-5`}>
+            <div className="flex items-center gap-2 mb-4">
+              <Award className="text-green-500" size={20} />
+              <h2 className={`text-lg font-bold ${textColor}`}>Required Skills</h2>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newSkill}
+                  onChange={(e) => setNewSkill(e.target.value)}
+                  placeholder="Add a required skill and press Enter"
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddSkill();
+                    }
+                  }}
+                  className={`flex-1 px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddSkill}
+                  className="px-4 py-2 bg-[#2271B5] text-white rounded-md hover:bg-[#1a5a8f] transition-colors text-sm font-medium flex items-center gap-2"
+                >
+                  <Plus size={16} />
+                  Add
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {jobData.skills_required.map((skill, index) => (
+                  <span 
+                    key={index} 
+                    className={`inline-flex items-center gap-2 px-3 py-1.5 ${isDark ? 'bg-blue-900/30' : 'bg-blue-100'} text-blue-600 dark:text-blue-400 rounded-full text-sm font-medium`}
                   >
-                    Add Skill
-                  </button>
-                </div>
-                <div className={styles.skillsList}>
-                  {jobData.skills_required.map((skill, index) => (
-                    <span key={index} className={styles.skillTag}>
-                      {skill}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSkill(skill)}
-                        className={styles.removeSkillBtn}
-                      >
-                        &times;
-                      </button>
-                    </span>
-                  ))}
-                </div>
+                    {skill}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSkill(skill)}
+                      className="hover:text-blue-800 dark:hover:text-blue-200"
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                ))}
               </div>
             </div>
+          </div>
 
-            <div className={styles.formActions}>
-              <button type="button" onClick={handleSaveDraft} className={styles.draftBtn}>
-                Save as Draft
-              </button>
-              <button type="submit" className={styles.submitBtn} disabled={loading}>
-                {loading ? "Posting..." : "Post Job"}
-              </button>
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-100 dark:bg-red-900/30 border border-red-400 text-red-700 dark:text-red-400 px-4 py-3 rounded-md text-sm">
+              {error}
             </div>
-            {error && <p className={styles.errorText}>{error}</p>}
-          </form>
-        </section>
-      </main>
+          )}
+
+          {/* Form Actions */}
+          <div className="flex gap-3 justify-end">
+            <button 
+              type="button" 
+              onClick={handleSaveDraft}
+              className={`px-6 py-2.5 border ${borderColor} ${textColor} rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium text-sm`}
+            >
+              Save as Draft
+            </button>
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="px-6 py-2.5 bg-[#2271B5] text-white rounded-md hover:bg-[#1a5a8f] transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "Posting..." : "Post Job"}
+            </button>
+          </div>
+        </form>
+      </div>
 
       {/* Success Modal */}
       {showSuccessModal && (
-        <div className={styles.modalOverlay} onClick={handleOverlayClick}>
-          <div className={styles.modalContent}>
-            <div className={styles.modalHeader}>
-              <h2>Success!</h2>
+        <div 
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={handleOverlayClick}
+        >
+          <div className={`${cardBg} rounded-lg shadow-2xl max-w-md w-full`}>
+            <div className={`flex items-center justify-between p-5 border-b ${borderColor}`}>
+              <h2 className={`text-xl font-bold ${textColor}`}>Success!</h2>
               <button 
-                className={styles.closeButton}
                 onClick={handleCloseSuccessModal}
+                className={`${textSecondary} hover:${textColor} transition-colors`}
               >
-                ×
+                <X size={24} />
               </button>
             </div>
-            <div className={styles.modalBody}>
-              <div className={styles.successIcon}><Check size={24} /></div>
-              <p className={styles.successMessage}>
-                Job posted successfully! It will be reviewed by an admin.
+            
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="text-green-600 dark:text-green-400" size={32} />
+              </div>
+              <p className={`text-lg ${textColor} mb-2`}>
+                Job posted successfully!
+              </p>
+              <p className={`${textSecondary} text-sm`}>
+                It will be reviewed by an admin and published soon.
               </p>
             </div>
-            <div className={styles.modalFooter}>
+            
+            <div className={`p-4 border-t ${borderColor}`}>
               <button 
-                className={styles.okButton}
                 onClick={handleCloseSuccessModal}
+                className="w-full px-4 py-2.5 bg-[#2271B5] text-white rounded-md hover:bg-[#1a5a8f] transition-colors font-medium"
               >
                 OK
               </button>

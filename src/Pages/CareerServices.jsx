@@ -1,10 +1,4 @@
-import React, { useState } from "react";
-import styles from "./CareerServices.module.css";
-import HomeNav from "../Components/HomeNav";
-import Footer from "../Components/Footer";
-import { CheckCircle, Star, Clock, Users, Award, TrendingUp, ArrowRight } from 'lucide-react';
-import { useTheme } from "../Contexts/ThemeContext";
-
+ 
 const CareerServices = () => {
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState('overview');

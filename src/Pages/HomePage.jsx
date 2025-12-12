@@ -44,6 +44,7 @@ import axisBanner from "../assets/axis-banner.jpg";
 import axisBanner1 from "../assets/carrericici.webp";
 import bannerSmall from "../assets/banner-small.png";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
+import RecruiterNavbar from "../Components/Recruiter/RecruiterNavbar";
 
 // job role card
 function JobRoleCard({ title, image, link, isDark }) {
@@ -735,7 +736,7 @@ const Homepage = () => {
 
   return (
     <> {/* Navigation */}
-      {user ? <CandidateNavbar /> : <HomeNav />}
+      {user? (user.industry ?<RecruiterNavbar/>: <CandidateNavbar />) : <HomeNav />}
     <div className="">
      
 
@@ -1082,7 +1083,7 @@ const Homepage = () => {
       </div>
 
       {/* Featured Jobs and Demo Form */}
-      <div className={`min-h-screen ${bgColor} transition-colors duration-300`}>
+      <div className={` ${bgColor} transition-colors duration-300`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
             
