@@ -167,25 +167,6 @@ const JobCard = ({
         </p>
       )}
 
-      {/* Skills */}
-      {job.skills_required && job.skills_required.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-2">
-          {job.skills_required.slice(0, 3).map((skill, index) => (
-            <span
-              key={index}
-              className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-[10px] font-semibold px-2 py-0.5 rounded-full"
-            >
-              {skill}
-            </span>
-          ))}
-          {job.skills_required.length > 3 && (
-            <span className={`${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'} text-xs font-semibold px-2 py-0.5 rounded-full`}>
-              +{job.skills_required.length - 3}
-            </span>
-          )}
-        </div>
-      )}
-
       {/* Bookmark Button */}
       {showBookmark && (
         <button

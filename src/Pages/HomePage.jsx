@@ -412,8 +412,8 @@ const Homepage = () => {
       setFeaturedJobsLoading(true);
       setFeaturedJobsError(null);
       try {
-        // Fetch only approved jobs
-        const response = await fetch('https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs?status=approved&limit=7', {
+        // Fetch only approved jobs - get enough to sort properly
+        const response = await fetch('https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs?status=approved&limit=100', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -430,7 +430,17 @@ const Homepage = () => {
         }
         // Filter out government jobs for the featured jobs section
         const nonGovJobs = (data.jobs || []).filter(job => job.job_type !== "GOVERNMENT");
-        const mapped = nonGovJobs.slice(0, 7).map((j, idx) => ({
+
+        // Sort: Premium jobs first, then latest jobs - same as JobListings.jsx
+        const sortedNonGovJobs = nonGovJobs.sort((a, b) => {
+          if ((a.premium_job || a.is_premium || false) && !(b.premium_job || b.is_premium || false)) return -1;
+          if (!(a.premium_job || a.is_premium || false) && (b.premium_job || b.is_premium || false)) return 1;
+          const dateA = new Date(a.created_at || a.posted_date || 0);
+          const dateB = new Date(b.created_at || b.posted_date || 0);
+          return dateB - dateA;
+        });
+
+        const mapped = sortedNonGovJobs.slice(0, 7).map((j, idx) => ({
           id: j.job_id || idx,
           job_id: j.job_id || idx,
           job_title: j.job_title,
@@ -449,22 +459,8 @@ const Homepage = () => {
           skills_required: j.skills_required || []
         }));
 
-        // Sort: Latest jobs first, then premium jobs
-        const sortedJobs = mapped.sort((a, b) => {
-          // First sort by date (latest first)
-          const dateA = new Date(a.created_at || 0);
-          const dateB = new Date(b.created_at || 0);
-          const dateDiff = dateB - dateA;
-
-          // If dates are different, use date sorting
-          if (dateDiff !== 0) return dateDiff;
-
-          // If dates are the same, put premium jobs first
-          if (a.is_premium && !b.is_premium) return -1;
-          if (!a.is_premium && b.is_premium) return 1;
-
-          return 0;
-        });
+        // Jobs are already sorted, no need to sort again
+        const sortedJobs = mapped;
 
         // Fix flickering: set data before setting loading to false
         setFeaturedJobs(sortedJobs);

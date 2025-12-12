@@ -744,11 +744,11 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
               )}
 
               {/* skills */}
-              {job.skills?.length > 0 && (
+              {job.skills_required?.length > 0 && (
                 <div className="mt-6">
                   <h3 className="font-semibold mb-2">Required Skills</h3>
                   <div className="flex flex-wrap gap-2">
-                    {job.skills.map((s, idx) => (
+                    {job.skills_required.map((s, idx) => (
                       <span key={idx} className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
                         {s}
                       </span>
