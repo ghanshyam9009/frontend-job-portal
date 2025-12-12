@@ -534,12 +534,12 @@ const CompanyProfile = () => {
           </button>
         </div>
 
-        <div className={styles.profileSections}>
+        <div className="space-y-6">
           {/* Company Logo */}
           {profileData.company_logo && (
-            <div className={styles.profileSection}>
-              <h2 className={styles.sectionTitle}>
-                <Building size={20} />
+            <div className="mb-6">
+              <h2 className={`text-lg font-semibold ${textColor} mb-3 flex items-center gap-2`}>
+                <Building size={20} className="text-[#2271B5]" />
                 Company Logo
               </h2>
               <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem' }}>
@@ -617,15 +617,15 @@ const CompanyProfile = () => {
           </div>
 
           {/* Location */}
-          <div className={styles.profileSection}>
-            <h2 className={styles.sectionTitle}>
-              <MapPin size={20} />
+          <div className="mb-6">
+            <h2 className={`text-lg font-semibold ${textColor} mb-3 flex items-center gap-2`}>
+              <MapPin size={20} className="text-[#2271B5]" />
               Location
             </h2>
-            <div className={styles.profileGrid}>
-              <div className={`${styles.profileField} ${styles.fullWidth}`}>
-                <label>Location</label>
-                <p>{profileData.location || 'Not provided'}</p>
+            <div className="grid grid-cols-1 gap-4">
+              <div className="w-full">
+                <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>Location</label>
+                <p className={`text-sm ${textColor} mt-1`}>{profileData.location || 'Not provided'}</p>
               </div>
             </div>
           </div>
@@ -683,8 +683,8 @@ const CompanyProfile = () => {
   }
 
   return (
-    <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
-      <main className={styles.main}>
+    <div className={`min-h-screen ${bgColor} pt-20 lg:pt-24 px-4 sm:px-6 lg:px-8`}>
+      <main className="max-w-7xl mx-auto">
         {/* Admin Approval/Rejection Messages */}
         {profileData && (
           <>
@@ -757,23 +757,27 @@ const CompanyProfile = () => {
         {renderProfileView()}
 
         {(isEditMode || !isProfileComplete) && (
-          <section className={styles.companyProfileSection}>
-          <div className={styles.stepIndicator}>
-            <div className={styles.stepProgress}>
+          <section className="space-y-6">
+          <div className="mb-6">
+            <div className={`w-full h-2 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full overflow-hidden`}>
               <div
-                className={styles.progressBar}
+                className="h-full bg-[#2271B5] transition-all duration-300"
                 style={{ width: `${stepProgress}%` }}
               />
             </div>
-            <div className={styles.steps}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               {stepDefinitions.map((step, index) => {
                 const previousStepsComplete = index === 0 || stepDefinitions.slice(0, index).every(prevStep => prevStep.complete);
                 const isActive = step.complete || previousStepsComplete;
                 return (
-                  <div key={step.number} className={`${styles.step} ${isActive ? styles.active : ''}`}>
-                    <div className={styles.stepNumber}>{step.number}</div>
-                    <div className={styles.stepLabel}>{step.label}</div>
-                    <div className={styles.stepPercentage}>{step.statusText}</div>
+                  <div key={step.number} className={`flex items-center gap-3 p-3 rounded-lg border ${borderColor} ${isActive ? (isDark ? 'bg-gray-700/50' : 'bg-blue-50') : ''}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm ${step.complete ? 'bg-green-500 text-white' : isActive ? 'bg-[#2271B5] text-white' : isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-500'}`}>
+                      {step.complete ? <CheckCircle size={16} /> : step.number}
+                    </div>
+                    <div className="flex-1">
+                      <div className={`text-sm font-medium ${textColor}`}>{step.label}</div>
+                      <div className={`text-xs ${textSecondary}`}>{step.statusText}</div>
+                    </div>
                   </div>
                 );
               })}
@@ -834,59 +838,26 @@ const CompanyProfile = () => {
             )}
           </div>
 
-          {error && (
-            <div className={styles.errorText} style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#fee', border: '1px solid #fcc', borderRadius: '4px' }}>
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div className={styles.successMessage} style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#efe', border: '1px solid #cfc', borderRadius: '4px' }}>
-              Profile updated successfully!
-            </div>
-          )}
-
-          <form onSubmit={handleProfileUpdate} className={styles.profileForm}>
-            <div className={styles.formSection}>
-              <h2>Company Logo</h2>
-              <div className={styles.formGroup}>
-                <label>Company Logo</label>
+          <form onSubmit={handleProfileUpdate} className="space-y-6">
+            <div className={`${cardBg} rounded-lg p-6 border ${borderColor}`}>
+              <h2 className={`text-lg font-semibold ${textColor} mb-4`}>Company Logo</h2>
+              <div className="mb-4">
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>Company Logo</label>
                 <div
-                  className={styles.logoPreview}
+                  className={`cursor-pointer w-32 h-32 border-2 border-dashed ${borderColor} rounded-lg flex items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-gray-50'} mb-2`}
                   onClick={() => logoInputRef.current?.click()}
-                  style={{
-                    cursor: 'pointer',
-                    width: '120px',
-                    height: '120px',
-                    border: '2px dashed #ccc',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: theme === 'dark' ? '#2a2a2a' : '#f8f9fa',
-                    marginBottom: '0.5rem'
-                  }}
                   title="Click to upload company logo"
                 >
                   {profileData.company_logo ? (
                     <img
                       src={profileData.company_logo}
                       alt="Company Logo"
-                      style={{
-                        maxWidth: '100%',
-                        maxHeight: '100%',
-                        borderRadius: '4px',
-                        objectFit: 'contain'
-                      }}
+                      className="max-w-full max-h-full rounded object-contain"
                     />
                   ) : (
-                    <div style={{
-                      textAlign: 'center',
-                      color: theme === 'dark' ? '#ccc' : '#666',
-                      fontSize: '0.9rem'
-                    }}>
-                      <Building size={32} style={{ marginBottom: '0.5rem' }} />
-                      <div>Click to upload logo</div>
+                    <div className={`text-center ${textSecondary}`}>
+                      <Building size={32} className="mb-2 mx-auto" />
+                      <div className="text-sm">Click to upload logo</div>
                     </div>
                   )}
                 </div>
@@ -895,63 +866,67 @@ const CompanyProfile = () => {
                   type="file"
                   accept="image/jpeg,image/jpg,image/png,image/gif"
                   onChange={handleLogoChange}
-                  className={styles.fileInput}
-                  style={{ display: 'none' }}
+                  className="hidden"
                 />
-                <small className={styles.fileHelp}>Click on the area above to upload. Accepted formats: JPEG, PNG, GIF (Max 2MB)</small>
+                <small className={`text-xs ${textSecondary}`}>Click on the area above to upload. Accepted formats: JPEG, PNG, GIF (Max 2MB)</small>
               </div>
             </div>
 
-            <div className={styles.formSection}>
-              <h2>Company Information</h2>
-              <div className={styles.formGrid}>
-                <div className={styles.formGroup}>
-                  <label>Company Name *</label>
+            <div className={`${cardBg} rounded-lg p-6 border ${borderColor}`}>
+              <h2 className={`text-lg font-semibold ${textColor} mb-4`}>Company Information</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className={`block text-sm font-medium ${textColor} mb-2`}>Company Name *</label>
                   <input
                     type="text"
                     name="company_name"
                     value={profileData.company_name}
                     onChange={handleInputChange}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-md ${isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'} focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
                     required
                   />
                 </div>
-                <div className={styles.formGroup}>
-                  <label>Phone Number *</label>
+                <div>
+                  <label className={`block text-sm font-medium ${textColor} mb-2`}>Phone Number *</label>
                   <input
                     type="tel"
                     name="phone"
                     value={profileData.phone}
                     onChange={handleInputChange}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-md ${isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'} focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
                     required
                   />
                 </div>
-                <div className={styles.formGroup}>
-                  <label>Website</label>
+                <div>
+                  <label className={`block text-sm font-medium ${textColor} mb-2`}>Website</label>
                   <input
                     type="url"
                     name="website"
                     value={profileData.website}
                     onChange={handleInputChange}
                     placeholder="https://example.com"
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-md ${isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'} focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
                   />
                 </div>
-                <div className={styles.formGroup}>
-                  <label>Industry *</label>
+                <div>
+                  <label className={`block text-sm font-medium ${textColor} mb-2`}>Industry *</label>
                   <input
                     type="text"
                     name="industry"
                     value={profileData.industry}
                     onChange={handleInputChange}
                     placeholder="e.g., Technology, Healthcare, Finance"
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-md ${isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'} focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
                     required
                   />
                 </div>
-                <div className={styles.formGroup}>
-                  <label>Company Size *</label>
+                <div>
+                  <label className={`block text-sm font-medium ${textColor} mb-2`}>Company Size *</label>
                   <select
                     name="company_size"
                     value={profileData.company_size}
                     onChange={handleInputChange}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-md ${isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'} focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
                     required
                   >
                     <option value="">Select company size</option>
@@ -962,58 +937,21 @@ const CompanyProfile = () => {
                     <option value="500+">500+ employees</option>
                   </select>
                 </div>
-                <div className={`w-full h-2 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full overflow-hidden`}>
-                  <div
-                    className="h-full bg-[#2271B5] transition-all duration-300"
-                    style={{ width: `${stepProgress}%` }}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                {stepDefinitions.map((step, index) => {
-                  const previousStepsComplete = index === 0 || stepDefinitions.slice(0, index).every(prevStep => prevStep.complete);
-                  const isActive = step.complete || previousStepsComplete;
-                  return (
-                    <div
-                      key={step.number}
-                      className={`flex items-center gap-3 p-3 rounded-lg border ${borderColor} ${
-                        isActive ? (isDark ? 'bg-gray-700/50' : 'bg-blue-50') : ''
-                      }`}
-                    >
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm ${
-                          step.complete
-                            ? 'bg-green-500 text-white'
-                            : isActive
-                            ? 'bg-[#2271B5] text-white'
-                            : isDark
-                            ? 'bg-gray-700 text-gray-400'
-                            : 'bg-gray-200 text-gray-500'
-                        }`}
-                      >
-                        {step.complete ? <CheckCircle size={16} /> : step.number}
-                      </div>
-                      <div className="flex-1">
-                        <p className={`text-sm font-medium ${textColor}`}>{step.label}</p>
-                        <p className={`text-xs ${textSecondary}`}>{step.statusText}</p>
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
             </div>
 
-            <div className={styles.formSection}>
-              <h2>Location Information</h2>
-              <div className={styles.formGrid}>
-                <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
-                  <label>Location</label>
+            <div className={`${cardBg} rounded-lg p-6 border ${borderColor}`}>
+              <h2 className={`text-lg font-semibold ${textColor} mb-4`}>Location Information</h2>
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className={`block text-sm font-medium ${textColor} mb-2`}>Location</label>
                   <input
                     type="text"
                     name="location"
                     value={profileData.location}
                     onChange={handleInputChange}
                     placeholder="Full location (e.g., Mumbai, Maharashtra, India)"
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-md ${isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'} focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
                   />
                 </div>
               </div>
@@ -1062,159 +1000,14 @@ const CompanyProfile = () => {
               </div>
             )}
 
-            {/* Profile Form */}
-            <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} overflow-hidden mb-6`}>
-              <div className={`p-5 border-b ${borderColor}`}>
-                <h2 className={`text-lg font-bold ${textColor} mb-1`}>Company Information</h2>
-                <p className={`text-sm ${textSecondary}`}>Enter your company details</p>
-              </div>
-
-              <form onSubmit={handleProfileUpdate} className="p-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <label className={`block text-sm font-medium ${textColor} mb-1`}>
-                      Company Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="company_name"
-                      value={profileData.company_name}
-                      onChange={handleInputChange}
-                      required
-                      className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
-                        isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
-                      } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
-                    />
-                  </div>
-
-            <form onSubmit={handleKycSubmit} className={styles.profileForm}>
-              <div className={styles.formGrid}>
-                <div className={styles.formGroup}>
-                  <label>Document Type</label>
-                  <select
-                    name="documentType"
-                    value={kycData.documentType}
-                    onChange={handleKycInputChange}
-                  >
-                    <option value="GST">GST Certificate</option>
-                    <option value="PAN">PAN Card (self Issue)</option>
-                    <option value="EMPLOYEE_ID">Employee ID</option>
-                    <option value="MSME">MSME Registration</option>
-                    <option value="INCORPORATION">Certificate of Incorporation</option>
-                    <option value="ID_CARD">ID Card</option>
-                    <option value="OFFER_LETTER">Offer Letter</option>
-                    <option value="FSSAI_LICENSE">FSSAI License</option>
-                    <option value="OTHER">Other Government Issued Document</option>
-                  </select>
-                </div>
-
-                <div className="mb-6">
-                  <h3 className={`text-base font-semibold ${textColor} mb-3`}>Address Information</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2">
-                      <label className={`block text-sm font-medium ${textColor} mb-1`}>
-                        Street Address
-                      </label>
-                      <input
-                        type="text"
-                        name="address"
-                        value={profileData.address}
-                        onChange={handleInputChange}
-                        placeholder="Street address"
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
-                          isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
-                        } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className={`block text-sm font-medium ${textColor} mb-1`}>
-                        City
-                      </label>
-                      <input
-                        type="text"
-                        name="city"
-                        value={profileData.city}
-                        onChange={handleInputChange}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
-                          isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
-                        } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className={`block text-sm font-medium ${textColor} mb-1`}>
-                        State
-                      </label>
-                      <input
-                        type="text"
-                        name="state"
-                        value={profileData.state}
-                        onChange={handleInputChange}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
-                          isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
-                        } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className={`block text-sm font-medium ${textColor} mb-1`}>
-                        Country
-                      </label>
-                      <input
-                        type="text"
-                        name="country"
-                        value={profileData.country}
-                        onChange={handleInputChange}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
-                          isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
-                        } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className={`block text-sm font-medium ${textColor} mb-1`}>
-                        Postal Code
-                      </label>
-                      <input
-                        type="text"
-                        name="postal_code"
-                        value={profileData.postal_code}
-                        onChange={handleInputChange}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
-                          isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
-                        } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mb-6">
-                  <label className={`block text-sm font-medium ${textColor} mb-1`}>
-                    Company Description <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    name="description"
-                    value={profileData.description}
-                    onChange={handleInputChange}
-                    rows="5"
-                    placeholder="Tell us about your company..."
-                    required
-                    className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
-                      isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
-                    } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full md:w-auto px-6 py-2.5 bg-[#2271B5] text-white font-medium rounded-md hover:bg-[#1a5a8f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Updating...' : 'Update Profile'}
-                </button>
-              </form>
-            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full md:w-auto px-6 py-2.5 bg-[#2271B5] text-white font-medium rounded-md hover:bg-[#1a5a8f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Updating...' : 'Update Profile'}
+            </button>
+          </form>
 
             {/* KYC Verification */}
             <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} overflow-hidden`}>
@@ -1387,9 +1180,9 @@ const CompanyProfile = () => {
                 </form>
               </div>
             </div>
-          </>
+          </section>
         )}
-      </div>
+      </main>
 
       {/* Success Modal */}
       {showSuccessModal && (
