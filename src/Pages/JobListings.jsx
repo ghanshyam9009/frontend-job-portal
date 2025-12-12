@@ -12,6 +12,7 @@ import { showError } from "../utils/errorHandler";
 import { candidateExternalService } from "../services/candidateExternalService";
 import { candidateService } from "../services/candidateService";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
+import { Loader, ErrorBox, SkeletonJobCard, JobCard } from "../Components/Shared";
 
 const JobListings = () => {
   const { theme } = useTheme();
@@ -77,6 +78,28 @@ const JobListings = () => {
     fetchJobs();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentPage, filters, querySearch, queryLocation]);
+
+  // Load user's saved jobs
+  useEffect(() => {
+    const fetchBookmarkedJobs = async () => {
+      if (!isAuthenticated || !user) return;
+
+      try {
+        const userId = user.user_id || user.id;
+        if (!userId) return;
+
+        const data = await candidateExternalService.getBookmarkedJobs(userId);
+        const bookmarked = (data?.jobs || data?.bookmarkedJobs || []).map(job =>
+          job.job_id || job.id
+        );
+        setBookmarkedJobs(new Set(bookmarked));
+      } catch (error) {
+        console.error('Error fetching bookmarked jobs:', error);
+      }
+    };
+
+    fetchBookmarkedJobs();
+  }, [isAuthenticated, user]);
 
   useEffect(() => {
     if (queryLocation.trim()) {
@@ -161,15 +184,16 @@ const JobListings = () => {
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-      const jobsData = await response.json();
+        const jobsData = await response.json();
 
-      if (jobsData.jobs || Array.isArray(jobsData)) {
-        let jobsArray = jobsData.jobs || jobsData.data || jobsData;
-        let allJobsData = Array.isArray(jobsArray) ? jobsArray : [];
+        if (jobsData.jobs || Array.isArray(jobsData)) {
+          let jobsArray = jobsData.jobs || jobsData.data || jobsData;
+          // Filter out government jobs for the job listings page
+          let allJobsData = (Array.isArray(jobsArray) ? jobsArray : []).filter(job => job.job_type !== "GOVERNMENT");
 
         const locations = [...new Set(allJobsData.map(job => job.location).filter(Boolean))].sort();
         const jobTypes = [...new Set(allJobsData.map(job => job.job_title).filter(Boolean))].sort();
@@ -291,15 +315,42 @@ const JobListings = () => {
           return dateB - dateA;
         });
 
-        const totalCount = filteredJobs.length;
+        // Map jobs to include is_premium field (similar to HomePage.jsx)
+        const mappedJobs = filteredJobs.map((j) => ({
+          id: j.job_id || j.id,
+          job_id: j.job_id || j.id,
+          job_title: j.job_title,
+          title: j.job_title,
+          company_name: j.company_name || "",
+          company_logo: j.company_logo || j.logo || j.companyLogo || null,
+          company: j.company_name || "",
+          salary_range: j.salary_range,
+          salary: j.salary_range ?
+            (typeof j.salary_range === 'string' ?
+              j.salary_range :
+              `₹${j.salary_range.min} - ₹${j.salary_range.max}`)
+            : "Salary not specified",
+          location: j.location || "",
+          employment_type: j.employment_type || "Full-time",
+          type: j.employment_type || "Full-time",
+          is_premium: j.premium_job || j.is_premium || false,
+          created_at: j.created_at || j.posted_date,
+          posted_date: j.posted_date,
+          description: j.description || "",
+          skills_required: j.skills_required || []
+        }));
+
+        const totalCount = mappedJobs.length;
         const calculatedTotalPages = Math.max(1, Math.ceil(totalCount / jobsPerPage));
         const startIndex = (currentPage - 1) * jobsPerPage;
         const endIndex = startIndex + jobsPerPage;
-        const paginatedJobs = filteredJobs.slice(startIndex, endIndex);
+        const paginatedJobs = mappedJobs.slice(startIndex, endIndex);
 
+        // Fix flickering: set data before setting loading to false
         setJobs(paginatedJobs);
         setTotalJobs(totalCount);
         setTotalPages(calculatedTotalPages);
+        setLoading(false);
       } else {
         throw new Error(jobsData.message || 'Failed to fetch jobs');
       }
@@ -310,7 +361,6 @@ const JobListings = () => {
       setJobs([]);
       setTotalJobs(0);
       setTotalPages(1);
-    } finally {
       setLoading(false);
     }
   };
@@ -366,48 +416,30 @@ const JobListings = () => {
       }
 
       const newBookmarked = new Set(bookmarkedJobs);
-      if (newBookmarked.has(jobId)) {
+      const isCurrentlyBookmarked = newBookmarked.has(jobId);
+
+      if (isCurrentlyBookmarked) {
+        // Remove bookmark from UI optimistically
         newBookmarked.delete(jobId);
+        setBookmarkedJobs(newBookmarked);
+        console.log('Job removed from bookmarks');
       } else {
-        newBookmarked.add(jobId);
-        await candidateExternalService.bookmarkJob({ 
-          user_id: userId, 
-          job_id: jobId 
+        // Add bookmark
+        await candidateExternalService.bookmarkJob({
+          user_id: userId,
+          job_id: jobId,
+          action: 1
         });
+        newBookmarked.add(jobId);
+        setBookmarkedJobs(newBookmarked);
+        console.log('Job bookmarked successfully');
       }
-      setBookmarkedJobs(newBookmarked);
     } catch (error) {
-      console.error('Error bookmarking job:', error);
+      console.error('Error toggling bookmark:', error);
       alert('Failed to bookmark job. Please try again.');
     }
   };
 
-  const formatSalary = (salaryRange) => {
-    if (!salaryRange) return "Salary not specified";
-    if (typeof salaryRange === 'string') return salaryRange;
-    if (salaryRange.min && salaryRange.max) {
-      return `₹${salaryRange.min} - ₹${salaryRange.max}`;
-    }
-    return "Salary not specified";
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 1) return "1 day ago";
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
-    return date.toLocaleDateString();
-  };
-
-  const getInitials = (name) => {
-    if (!name) return "?";
-    return name.split(' ').map(word => word[0]).join('').toUpperCase().substring(0, 2);
-  };
 
   // COMPACT Filter Content
   const FilterContent = () => (
@@ -917,11 +949,14 @@ const JobListings = () => {
 
               {/* Jobs List - COMPACT */}
               <div className="space-y-3 mb-4">
-                {loading && (
-                  <div className="flex flex-col items-center justify-center py-10">
-                    <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
-                    <p className={`${textSecondary} text-sm`}>Loading jobs...</p>
-                  </div>
+                {loading && <SkeletonJobCard count={5} />}
+
+                {!loading && error && (
+                  <ErrorBox 
+                    error={error} 
+                    onRetry={fetchJobs}
+                    title="Failed to load jobs"
+                  />
                 )}
 
                 {!loading && !error && jobs.length === 0 && (
@@ -931,116 +966,13 @@ const JobListings = () => {
                 )}
 
                 {!loading && !error && jobs.map(job => (
-                  <div 
+                  <JobCard
                     key={job.job_id}
-                    className={`${bgSecondary} rounded-lg shadow-sm border ${borderColor} ${hoverBorder} p-3 hover:shadow-md transition-all duration-300 relative overflow-hidden cursor-pointer`}
-                    onClick={() => handleJobClick(job)}
-                  >
-                    
-                    {/* Header - COMPACT */}
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${isDark ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-700'}`}>
-                        {formatDate(job.created_at)}
-                      </span>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleJobClick(job);
-                        }}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-1.5 rounded-md transition-all duration-300 hover:shadow-md text-xs"
-                      >
-                        Apply Now
-                      </button>
-                    </div>
-
-                    {/* Company Logo and Title - COMPACT */}
-                    <div className="flex items-start gap-2 mb-2">
-                      <div className="w-10 h-10 rounded-md bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-                        <span className="text-white text-xs font-bold">
-                          {getInitials(job.company_name)}
-                        </span>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className={`text-sm font-bold ${textPrimary} mb-0.5 hover:text-blue-600 transition-colors`}>
-                          {job.job_title}
-                        </h3>
-                        <p className={`text-xs ${textSecondary} font-semibold flex items-center gap-1`}>
-                          <Building2 className="w-3 h-3" />
-                          {job.company_name}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Job Details - COMPACT */}
-                    <div className="flex flex-wrap items-center gap-1.5 text-xs mb-2">
-                      <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2 py-1 rounded`}>
-                        <Clock className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                        <span className={`${textSecondary} font-medium`}>{job.employment_type}</span>
-                      </div>
-                      <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2 py-1 rounded`}>
-                        <MapPin className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                        <span className={`${textSecondary} font-medium`}>{job.location}</span>
-                      </div>
-                      <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2 py-1 rounded`}>
-                        <DollarSign className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                        <span className={`${textSecondary} font-medium`}>{formatSalary(job.salary_range)}</span>
-                      </div>
-                      {job.experience_required && (
-                        <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2 py-1 rounded`}>
-                          <Briefcase className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                          <span className={`${textSecondary} font-medium`}>
-                            {job.experience_required.min_years}-{job.experience_required.max_years} yrs
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Job Description - COMPACT */}
-                    <p className={`${textSecondary1} text-xs mb-2 leading-relaxed`}>
-                      {job.description
-                        ? job.description.length > 120
-                          ? `${job.description.substring(0, 120)}...`
-                          : job.description
-                        : "No description available."}
-                    </p>
-
-                    {/* Skills - COMPACT */}
-                    {job.skills_required && job.skills_required.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-2">
-                        {job.skills_required.slice(0, 3).map((skill, index) => (
-                          <span key={index} className="bg-blue-100 text-blue-700 text-[10px] font-semibold px-2  rounded-full">
-                            {skill}
-                          </span>
-                        ))}
-                        {job.skills_required.length > 3 && (
-                          <span className={`${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'} text-xs font-semibold px-2 py-0.5 rounded-full`}>
-                            +{job.skills_required.length - 3}
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleBookmark(job.job_id);
-                      }}
-                      className={`${textSecondary} absolute bottom-2 right-3 hover:text-yellow-500 transition-colors p-1 rounded-md`}
-                    >
-                      <Bookmark 
-                        className="w-4 h-4"  
-                        fill={bookmarkedJobs.has(job.job_id) ? "currentColor" : "none"} 
-                      />
-                    </button>
-                  
-                    {/* Premium Badge - COMPACT */}
-                    {!job.is_premium && (
-                      <div className="absolute top-0 left-0 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-[8px] font-bold px-2  rounded-br-md shadow-sm">
-                        PREMIUM
-                      </div>
-                    )}
-
-                  </div>
+                    job={job}
+                    onBookmark={toggleBookmark}
+                    isBookmarked={bookmarkedJobs.has(job.job_id)}
+                    isDark={isDark}
+                  />
                 ))}
               </div>
               {console.log(jobs)}

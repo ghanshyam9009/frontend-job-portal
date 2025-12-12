@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../../Contexts/AuthContext';
 import { useTheme } from '../../Contexts/ThemeContext';
+import { useNavigate } from 'react-router-dom';
 import { recruiterService } from '../../services/recruiterService';
 import { calculateRecruiterProfileCompletion, getMissingRequiredFields } from '../../utils/recruiterProfileUtils';
 import { TrendingUp, CheckCircle, AlertCircle, Shield, Edit, MapPin, Briefcase, Globe, Calendar, FileText, Building, Phone, Mail, Hash, Award, XCircle } from 'lucide-react';
@@ -22,7 +23,10 @@ const CompanyProfile = () => {
     industry: '',
     company_size: '',
     description: '',
-    founded_year: ''
+    founded_year: '',
+    location: '',
+    company_logo: '',
+    companyLogoFile: null // Store selected file for upload during profile save
   });
   
   const [loading, setLoading] = useState(true);
@@ -44,8 +48,10 @@ const CompanyProfile = () => {
   const [kycLoading, setKycLoading] = useState(false);
   const [kycError, setKycError] = useState(null);
   const [kycSuccess, setKycSuccess] = useState('');
-  const [isEditMode, setIsEditMode] = useState(true);
+  const [showKycReviewModal, setShowKycReviewModal] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(true); // Start in edit mode if profile incomplete
   const [detailedData, setDetailedData] = useState(null);
+  const logoInputRef = useRef(null);
 
   const formatKycStatusLabel = (status = '') => {
     if (!status) return 'Pending';
@@ -55,7 +61,17 @@ const CompanyProfile = () => {
       .join(' ');
   };
 
-  const profileCompletion = useMemo(() => {
+  // KYC status determination - must be defined before useMemo that depends on it
+  const normalizedKycStatus = (kycStatus.status || '').toLowerCase();
+  const isKycVerified = ['verified', 'approved', 'completed', 'success', 'accepted'].includes(normalizedKycStatus);
+  const isKycSubmitted = ['submitted', 'in_review', 'under_review', 'pending_verification', 'submitted', 'in_review'].includes(normalizedKycStatus);
+  const hasKycDocumentSubmitted = isKycSubmitted && (kycData.documentFile || kycStatus.documentUrl);
+
+  // If user has submitted KYC document, consider KYC as contributing to completion
+  const isKycEffective = isKycVerified || hasKycDocumentSubmitted;
+
+  // Calculate profile completion percentage in real-time
+  const profileCompletionPercent = useMemo(() => {
     const dataForCalculation = {
       company_name: profileData.company_name,
       email: profileData.email,
@@ -76,6 +92,26 @@ const CompanyProfile = () => {
     return completion;
   }, [profileData]);
 
+  // Calculate overall completion (70% profile + 30% KYC)
+  const profileCompletion = useMemo(() => {
+    const profileWeight = 70; // 70% weight for profile completion
+    const kycWeight = 30; // 30% weight for KYC completion
+    const kycScore = isKycEffective ? kycWeight : 0;  // Use isKycEffective instead of isKycVerified
+
+    const totalCompletion = Math.round((profileCompletionPercent * profileWeight / 100) + kycScore);
+
+    console.log('Overall completion calculation:', {
+      profileCompletionPercent,
+      profileWeighted: profileCompletionPercent * profileWeight / 100,
+      kycScore,
+      isKycEffective,
+      hasKycDocumentSubmitted,
+      totalCompletion
+    });
+
+    return totalCompletion;
+  }, [profileCompletionPercent, isKycEffective]);
+
   const missingFields = useMemo(() => {
     const dataForCalculation = {
       company_name: profileData.company_name,
@@ -88,9 +124,6 @@ const CompanyProfile = () => {
     return getMissingRequiredFields(dataForCalculation);
   }, [profileData]);
 
-  const normalizedKycStatus = (kycStatus.status || '').toLowerCase();
-  const isKycVerified = ['verified', 'approved', 'completed', 'success'].includes(normalizedKycStatus);
-  const isKycSubmitted = ['submitted', 'in_review', 'under_review', 'pending_verification'].includes(normalizedKycStatus);
   const isProfileComplete = profileCompletion === 100;
   
   const stepDefinitions = [
@@ -132,7 +165,9 @@ const CompanyProfile = () => {
               industry: data.industry || '',
               company_size: data.company_size || '',
               description: data.description || '',
-              founded_year: data.founded_year || ''
+              founded_year: data.founded_year || '',
+              location: data.location || '',
+              company_logo: data.company_logo || data.logo || ''
             });
             setKycStatus({
               status: data.kyc_status || '',
@@ -184,6 +219,21 @@ const CompanyProfile = () => {
     }
   }, [isProfileComplete]);
 
+  // Handle automatic logout when KYC review modal is shown
+  useEffect(() => {
+    if (showKycReviewModal) {
+      // Show the modal for 3 seconds, then logout
+      const timer = setTimeout(() => {
+        // Clear local storage and redirect to login
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        window.location.href = '/recruiter/login';
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [showKycReviewModal]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setProfileData(prev => ({
@@ -199,66 +249,26 @@ const CompanyProfile = () => {
     setSuccess(false);
 
     try {
-      if (!profileData.company_name?.trim()) {
-        setError('Company name is required');
-        setLoading(false);
-        return;
-      }
-      if (!profileData.phone?.trim()) {
-        setError('Phone number is required');
-        setLoading(false);
-        return;
-      }
-      if (!profileData.industry?.trim()) {
-        setError('Industry is required');
-        setLoading(false);
-        return;
-      }
-      if (!profileData.company_size?.trim()) {
-        setError('Company size is required');
-        setLoading(false);
-        return;
-      }
-      if (!profileData.description?.trim()) {
-        setError('Company description is required');
-        setLoading(false);
-        return;
-      }
+      // Use the new validation function
+      const cleanProfileData = validateProfileData(profileData);
 
-      const cleanProfileData = {
-        company_name: profileData.company_name.trim(),
-        phone_number: profileData.phone.trim(),
-        industry: profileData.industry.trim(),
-        company_size: profileData.company_size.trim(),
-        description: profileData.description.trim(),
-      };
-      
-      if (profileData.address?.trim()) {
-        cleanProfileData.address = profileData.address.trim();
-      }
-      if (profileData.city?.trim()) {
-        cleanProfileData.city = profileData.city.trim();
-      }
-      if (profileData.state?.trim()) {
-        cleanProfileData.state = profileData.state.trim();
-      }
-      if (profileData.country?.trim()) {
-        cleanProfileData.country = profileData.country.trim();
-      }
-      if (profileData.postal_code?.trim()) {
-        cleanProfileData.postal_code = profileData.postal_code.trim();
-      }
-      if (profileData.website?.trim()) {
-        cleanProfileData.company_website = profileData.website.trim();
-      }
-      
-      if (profileData.founded_year) {
-        const year = parseInt(profileData.founded_year);
-        if (!isNaN(year) && year >= 1900 && year <= new Date().getFullYear()) {
-          cleanProfileData.founded_year = year;
+      // Handle logo URL - generate S3 URL format if new file selected
+      if (profileData.companyLogoFile) {
+        // Generate S3 URL format: https://student-profile-docs.s3.ap-southeast-1.amazonaws.com/documents/{email}_{timestamp}.jpg
+        const timestamp = Date.now();
+        const emailPrefix = user.email.replace('@', '').replace('.', '_');
+        const s3Url = `https://student-profile-docs.s3.ap-southeast-1.amazonaws.com/documents/${emailPrefix}_${timestamp}.jpg`;
+        cleanProfileData.company_logo = s3Url; // Send the generated S3 URL to backend
+      } else if (typeof profileData.company_logo === 'string' && profileData.company_logo) {
+        // If no new file but existing logo URL, include it
+        if (!profileData.company_logo.startsWith('data:') && !profileData.company_logo.startsWith('blob:')) {
+          cleanProfileData.company_logo = profileData.company_logo;
         }
       }
 
+      console.log('Clean profile data being sent:', cleanProfileData);
+
+      // Use the recruiterService.updateProfile method
       const response = await recruiterService.updateProfile(user?.email, cleanProfileData);
 
       if (response && response.success) {
@@ -302,6 +312,7 @@ const CompanyProfile = () => {
             company_size: updatedData.company_size ?? prev.company_size,
             description: updatedData.description ?? prev.description,
             founded_year: updatedData.founded_year ?? prev.founded_year,
+            location: updatedData.location ?? prev.location,
           }));
         }
       } else {
@@ -346,6 +357,82 @@ const CompanyProfile = () => {
     }));
   };
 
+  const validateImageFile = (file) => {
+    if (!file) return '';
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    const maxSize = 2 * 1024 * 1024; // 2MB
+
+    if (!allowedTypes.includes(file.type)) {
+      return 'Please upload a JPEG, PNG, or GIF image';
+    }
+
+    if (file.size > maxSize) {
+      return 'Image size must be less than 2MB';
+    }
+
+    return '';
+  };
+
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const error = validateImageFile(file);
+    if (error) {
+      setError(error);
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
+    // Store the selected file for upload during profile save
+    setProfileData(prev => ({ ...prev, companyLogoFile: file }));
+
+    // Create preview URL for display
+    const previewUrl = URL.createObjectURL(file);
+    setProfileData(prev => ({ ...prev, company_logo: previewUrl }));
+
+    setSuccess('Company logo selected successfully');
+    setTimeout(() => setSuccess(''), 3000);
+  };
+
+  const validateProfileData = (data) => {
+    const trimmed = {};
+
+    // Required fields validation
+    if (!data.company_name?.trim()) throw new Error('Company name is required');
+    if (!data.phone?.trim()) throw new Error('Phone number is required');
+    if (!data.industry?.trim()) throw new Error('Industry is required');
+    if (!data.company_size?.trim()) throw new Error('Company size is required');
+    if (!data.description?.trim()) throw new Error('Company description is required');
+
+    // Build clean payload - required fields
+    trimmed.company_name = data.company_name.trim();
+    trimmed.phone_number = data.phone.trim();
+    trimmed.industry = data.industry.trim();
+    trimmed.company_size = data.company_size.trim();
+    trimmed.description = data.description.trim();
+
+    // Optional fields - only include if they have values (to match backend expectations)
+    if (data.address?.trim()) trimmed.address = data.address.trim();
+    if (data.city?.trim()) trimmed.city = data.city.trim();
+    if (data.state?.trim()) trimmed.state = data.state.trim();
+    if (data.country?.trim()) trimmed.country = data.country.trim();
+    if (data.postal_code?.trim()) trimmed.postal_code = data.postal_code.trim();
+    if (data.location?.trim()) trimmed.location = data.location.trim();
+    if (data.website?.trim()) trimmed.company_website = data.website.trim();
+    if (data.founded_year) {
+      const year = parseInt(data.founded_year);
+      if (!isNaN(year) && year >= 1900 && year <= new Date().getFullYear()) {
+        trimmed.founded_year = year;
+      }
+    }
+
+    return trimmed;
+  };
+
+
+
   const handleKycSubmit = async (e) => {
     e.preventDefault();
     setKycError(null);
@@ -366,6 +453,9 @@ const CompanyProfile = () => {
       return;
     }
 
+    // Check if this is the first KYC submission
+    const isFirstKycSubmission = !kycStatus.documentUrl && (!kycStatus.status || kycStatus.status === '');
+
     try {
       setKycLoading(true);
       const formData = new FormData();
@@ -381,18 +471,28 @@ const CompanyProfile = () => {
 
       if (response?.success) {
         const updatedData = response.data?.profile || response.data || response;
-        setKycSuccess(response.message || 'KYC details submitted successfully. We will notify you once verification is complete.');
+
+        // Update KYC status
         setKycStatus(prev => ({
-          ...prev,
           status: updatedData?.kyc_status || prev.status || 'submitted',
           documentUrl: updatedData?.kycDocUrl || updatedData?.kyc_document_url || prev.documentUrl,
           updatedAt: updatedData?.kyc_updated_at || new Date().toISOString(),
           reviewerNote: updatedData?.kyc_notes || updatedData?.kyc_remark || prev.reviewerNote
         }));
+
+        // Clear the uploaded file
         setKycData(prev => ({
           ...prev,
           documentFile: null
         }));
+
+        // If this is the first KYC submission, show the review modal and logout
+        if (isFirstKycSubmission) {
+          setShowKycReviewModal(true);
+        } else {
+          // For subsequent submissions, show regular success message
+          setKycSuccess(response.message || 'KYC details submitted successfully. We will notify you once verification is complete.');
+        }
       } else {
         setKycError(response?.error || 'Failed to submit KYC details. Please try again.');
       }
@@ -434,7 +534,30 @@ const CompanyProfile = () => {
           </button>
         </div>
 
-        <div className="p-5 space-y-6">
+        <div className={styles.profileSections}>
+          {/* Company Logo */}
+          {profileData.company_logo && (
+            <div className={styles.profileSection}>
+              <h2 className={styles.sectionTitle}>
+                <Building size={20} />
+                Company Logo
+              </h2>
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem' }}>
+                <img
+                  src={profileData.company_logo}
+                  alt="Company Logo"
+                  style={{
+                    maxWidth: '200px',
+                    maxHeight: '120px',
+                    borderRadius: '8px',
+                    objectFit: 'contain',
+                    border: '1px solid #e5e7eb'
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Company Information */}
           <div>
             <h3 className={`text-base font-semibold ${textColor} mb-3 flex items-center gap-2`}>
@@ -493,32 +616,16 @@ const CompanyProfile = () => {
             </div>
           </div>
 
-          {/* Address */}
-          <div>
-            <h3 className={`text-base font-semibold ${textColor} mb-3 flex items-center gap-2`}>
-              <MapPin size={18} className="text-[#2271B5]" />
-              Address
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>Street Address</label>
-                <p className={`text-sm ${textColor} mt-1`}>{profileData.address || 'Not provided'}</p>
-              </div>
-              <div>
-                <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>City</label>
-                <p className={`text-sm ${textColor} mt-1`}>{profileData.city || 'Not provided'}</p>
-              </div>
-              <div>
-                <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>State</label>
-                <p className={`text-sm ${textColor} mt-1`}>{profileData.state || 'Not provided'}</p>
-              </div>
-              <div>
-                <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>Country</label>
-                <p className={`text-sm ${textColor} mt-1`}>{profileData.country || 'Not provided'}</p>
-              </div>
-              <div>
-                <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>Postal Code</label>
-                <p className={`text-sm ${textColor} mt-1`}>{profileData.postal_code || 'Not provided'}</p>
+          {/* Location */}
+          <div className={styles.profileSection}>
+            <h2 className={styles.sectionTitle}>
+              <MapPin size={20} />
+              Location
+            </h2>
+            <div className={styles.profileGrid}>
+              <div className={`${styles.profileField} ${styles.fullWidth}`}>
+                <label>Location</label>
+                <p>{profileData.location || 'Not provided'}</p>
               </div>
             </div>
           </div>
@@ -576,30 +683,284 @@ const CompanyProfile = () => {
   }
 
   return (
-    <div className={`min-h-screen ${bgColor} pt-20 lg:pt-24 px-4 sm:px-6 lg:px-8 pb-8`}>
-      <div className="max-w-7xl mx-auto">
-        {/* Page Header */}
-        <div className="mb-6">
-          <h1 className={`text-2xl lg:text-3xl font-bold ${textColor} mb-1`}>
-            {isEditMode || !isProfileComplete ? 'Complete Your Profile' : 'Company Profile'}
-          </h1>
-          <p className={`text-sm ${textSecondary}`}>
-            {isEditMode || !isProfileComplete 
-              ? 'Fill in your company details to enable job posting and candidate outreach'
-              : 'Manage your company information and verification status'}
-          </p>
-        </div>
+    <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
+      <main className={styles.main}>
+        {/* Admin Approval/Rejection Messages */}
+        {profileData && (
+          <>
+            {profileData.hasadminapproved === false && profileData.status === 'rejected' && (
+              <div style={{
+                backgroundColor: '#fee2e2',
+                color: '#991b1b',
+                padding: '1.5rem',
+                borderRadius: '8px',
+                border: '1px solid #fecaca',
+                marginBottom: '1.5rem'
+              }}>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem' }}>Application Rejected</h3>
+                <p style={{ margin: '0 0 0.5rem 0' }}>
+                  Unfortunately, your application has been rejected by our admin team.
+                </p>
+                {profileData.rejection_reason && (
+                  <div style={{
+                    backgroundColor: '#fef2f2',
+                    padding: '1rem',
+                    borderRadius: '6px',
+                    marginTop: '1rem',
+                    border: '1px solid #fee2e2'
+                  }}>
+                    <strong>Reason for rejection:</strong><br />
+                    {profileData.rejection_reason}
+                  </div>
+                )}
+                <p style={{ margin: '1rem 0 0 0', fontSize: '0.9rem' }}>
+                  You may reapply after addressing the issues mentioned above. Please contact support if you need further assistance.
+                </p>
+              </div>
+            )}
 
+            {profileData.hasadminapproved === false && profileData.status !== 'rejected' && (
+              <div style={{
+                backgroundColor: '#fef3c7',
+                color: '#92400e',
+                padding: '1.5rem',
+                borderRadius: '8px',
+                border: '1px solid #fde68a',
+                marginBottom: '1.5rem'
+              }}>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem' }}>Application Under Review</h3>
+                <p style={{ margin: 0 }}>
+                  Your application is currently being reviewed by our admin team. We will notify you once a decision is made.
+                </p>
+              </div>
+            )}
+
+            {profileData.hasadminapproved === true && (
+              <div style={{
+                backgroundColor: '#d1fae5',
+                color: '#065f46',
+                padding: '1.5rem',
+                borderRadius: '8px',
+                border: '1px solid #a7f3d0',
+                marginBottom: '1.5rem'
+              }}>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem' }}>Application Approved</h3>
+                <p style={{ margin: 0 }}>
+                  Congratulations! Your application has been approved by our admin team. You can now post jobs and access all hiring features.
+                </p>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Render Profile View when complete and not editing */}
         {renderProfileView()}
 
         {(isEditMode || !isProfileComplete) && (
-          <>
-            {/* Step Progress */}
-            <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-5 mb-6`}>
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`text-sm font-medium ${textColor}`}>Setup Progress</span>
-                  <span className={`text-sm font-bold ${textColor}`}>{Math.round(stepProgress)}%</span>
+          <section className={styles.companyProfileSection}>
+          <div className={styles.stepIndicator}>
+            <div className={styles.stepProgress}>
+              <div
+                className={styles.progressBar}
+                style={{ width: `${stepProgress}%` }}
+              />
+            </div>
+            <div className={styles.steps}>
+              {stepDefinitions.map((step, index) => {
+                const previousStepsComplete = index === 0 || stepDefinitions.slice(0, index).every(prevStep => prevStep.complete);
+                const isActive = step.complete || previousStepsComplete;
+                return (
+                  <div key={step.number} className={`${styles.step} ${isActive ? styles.active : ''}`}>
+                    <div className={styles.stepNumber}>{step.number}</div>
+                    <div className={styles.stepLabel}>{step.label}</div>
+                    <div className={styles.stepPercentage}>{step.statusText}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Profile Completion Card */}
+          <div style={{
+            marginBottom: '2rem',
+            padding: '1.5rem',
+            backgroundColor: theme === 'dark' ? '#2a2a2a' : '#f8f9fa',
+            borderRadius: '8px',
+            border: `2px solid ${profileCompletion === 100 ? '#28a745' : profileCompletion >= 70 ? '#ffc107' : '#dc3545'}`,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {profileCompletion === 100 ? (
+                  <CheckCircle size={24} color="#28a745" />
+                ) : (
+                  <TrendingUp size={24} color={profileCompletion >= 70 ? '#ffc107' : '#dc3545'} />
+                )}
+                <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Profile Completion</h3>
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: profileCompletion === 100 ? '#28a745' : profileCompletion >= 70 ? '#ffc107' : '#dc3545' }}>
+                {profileCompletion}%
+              </div>
+            </div>
+            <div style={{ width: '100%', height: '12px', backgroundColor: theme === 'dark' ? '#1a1a1a' : '#e9ecef', borderRadius: '6px', overflow: 'hidden' }}>
+              <div
+                style={{
+                  width: `${profileCompletion}%`,
+                  height: '100%',
+                  backgroundColor: profileCompletion === 100 ? '#28a745' : profileCompletion >= 70 ? '#ffc107' : '#dc3545',
+                  transition: 'width 0.3s ease',
+                }}
+              />
+            </div>
+            {profileCompletion < 100 && (
+              <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: theme === 'dark' ? '#ccc' : '#666' }}>
+                {missingFields.length > 0 && (
+                  <div>
+                    <AlertCircle size={16} style={{ display: 'inline', marginRight: '0.5rem', verticalAlign: 'middle' }} />
+                    <strong>Missing required fields:</strong> {missingFields.join(', ')}
+                  </div>
+                )}
+                <p style={{ marginTop: '0.5rem', marginBottom: 0 }}>
+                  {profileCompletion === 100 
+                    ? '✅ Your profile is complete! You can now post jobs.'
+                    : `Complete ${100 - profileCompletion}% more to enable job posting.`}
+                </p>
+              </div>
+            )}
+            {profileCompletion === 100 && (
+              <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#28a745' }}>
+                <CheckCircle size={16} style={{ display: 'inline', marginRight: '0.5rem', verticalAlign: 'middle' }} />
+                <strong>Profile Complete!</strong> You can now post jobs.
+              </div>
+            )}
+          </div>
+
+          {error && (
+            <div className={styles.errorText} style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#fee', border: '1px solid #fcc', borderRadius: '4px' }}>
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div className={styles.successMessage} style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#efe', border: '1px solid #cfc', borderRadius: '4px' }}>
+              Profile updated successfully!
+            </div>
+          )}
+
+          <form onSubmit={handleProfileUpdate} className={styles.profileForm}>
+            <div className={styles.formSection}>
+              <h2>Company Logo</h2>
+              <div className={styles.formGroup}>
+                <label>Company Logo</label>
+                <div
+                  className={styles.logoPreview}
+                  onClick={() => logoInputRef.current?.click()}
+                  style={{
+                    cursor: 'pointer',
+                    width: '120px',
+                    height: '120px',
+                    border: '2px dashed #ccc',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: theme === 'dark' ? '#2a2a2a' : '#f8f9fa',
+                    marginBottom: '0.5rem'
+                  }}
+                  title="Click to upload company logo"
+                >
+                  {profileData.company_logo ? (
+                    <img
+                      src={profileData.company_logo}
+                      alt="Company Logo"
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        borderRadius: '4px',
+                        objectFit: 'contain'
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      textAlign: 'center',
+                      color: theme === 'dark' ? '#ccc' : '#666',
+                      fontSize: '0.9rem'
+                    }}>
+                      <Building size={32} style={{ marginBottom: '0.5rem' }} />
+                      <div>Click to upload logo</div>
+                    </div>
+                  )}
+                </div>
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/gif"
+                  onChange={handleLogoChange}
+                  className={styles.fileInput}
+                  style={{ display: 'none' }}
+                />
+                <small className={styles.fileHelp}>Click on the area above to upload. Accepted formats: JPEG, PNG, GIF (Max 2MB)</small>
+              </div>
+            </div>
+
+            <div className={styles.formSection}>
+              <h2>Company Information</h2>
+              <div className={styles.formGrid}>
+                <div className={styles.formGroup}>
+                  <label>Company Name *</label>
+                  <input
+                    type="text"
+                    name="company_name"
+                    value={profileData.company_name}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Phone Number *</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={profileData.phone}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Website</label>
+                  <input
+                    type="url"
+                    name="website"
+                    value={profileData.website}
+                    onChange={handleInputChange}
+                    placeholder="https://example.com"
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Industry *</label>
+                  <input
+                    type="text"
+                    name="industry"
+                    value={profileData.industry}
+                    onChange={handleInputChange}
+                    placeholder="e.g., Technology, Healthcare, Finance"
+                    required
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Company Size *</label>
+                  <select
+                    name="company_size"
+                    value={profileData.company_size}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="">Select company size</option>
+                    <option value="1-10">1-10 employees</option>
+                    <option value="11-50">11-50 employees</option>
+                    <option value="51-200">51-200 employees</option>
+                    <option value="201-500">201-500 employees</option>
+                    <option value="500+">500+ employees</option>
+                  </select>
                 </div>
                 <div className={`w-full h-2 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full overflow-hidden`}>
                   <div
@@ -642,23 +1003,18 @@ const CompanyProfile = () => {
               </div>
             </div>
 
-            {/* Profile Completion Card */}
-            <div className={`${cardBg} rounded-lg shadow-sm border-2 ${
-              profileCompletion === 100 ? 'border-green-500' : profileCompletion >= 70 ? 'border-yellow-500' : 'border-red-500'
-            } p-5 mb-6`}>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  {profileCompletion === 100 ? (
-                    <CheckCircle size={24} className="text-green-500" />
-                  ) : (
-                    <TrendingUp size={24} className={profileCompletion >= 70 ? 'text-yellow-500' : 'text-red-500'} />
-                  )}
-                  <h3 className={`text-lg font-bold ${textColor}`}>Profile Completion</h3>
-                </div>
-                <div className={`text-2xl font-bold ${
-                  profileCompletion === 100 ? 'text-green-500' : profileCompletion >= 70 ? 'text-yellow-500' : 'text-red-500'
-                }`}>
-                  {profileCompletion}%
+            <div className={styles.formSection}>
+              <h2>Location Information</h2>
+              <div className={styles.formGrid}>
+                <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
+                  <label>Location</label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={profileData.location}
+                    onChange={handleInputChange}
+                    placeholder="Full location (e.g., Mumbai, Maharashtra, India)"
+                  />
                 </div>
               </div>
               <div className={`w-full h-3 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full overflow-hidden mb-3`}>
@@ -731,94 +1087,25 @@ const CompanyProfile = () => {
                     />
                   </div>
 
-                  <div>
-                    <label className={`block text-sm font-medium ${textColor} mb-1`}>
-                      Phone Number <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={profileData.phone}
-                      onChange={handleInputChange}
-                      required
-                      className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
-                        isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
-                      } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className={`block text-sm font-medium ${textColor} mb-1`}>
-                      Website
-                    </label>
-                    <input
-                      type="url"
-                      name="website"
-                      value={profileData.website}
-                      onChange={handleInputChange}
-                      placeholder="https://example.com"
-                      className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
-                        isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
-                      } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className={`block text-sm font-medium ${textColor} mb-1`}>
-                      Industry <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="industry"
-                      value={profileData.industry}
-                      onChange={handleInputChange}
-                      placeholder="e.g., Technology, Healthcare, Finance"
-                      required
-                      className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
-                        isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
-                      } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className={`block text-sm font-medium ${textColor} mb-1`}>
-                      Company Size <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      name="company_size"
-                      value={profileData.company_size}
-                      onChange={handleInputChange}
-                      required
-                      className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
-                        isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
-                      } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
-                    >
-                      <option value="">Select company size</option>
-                      <option value="1-10">1-10 employees</option>
-                      <option value="11-50">11-50 employees</option>
-                      <option value="51-200">51-200 employees</option>
-                      <option value="201-500">201-500 employees</option>
-                      <option value="500+">500+ employees</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className={`block text-sm font-medium ${textColor} mb-1`}>
-                      Founded Year
-                    </label>
-                    <input
-                      type="number"
-                      name="founded_year"
-                      value={profileData.founded_year}
-                      onChange={handleInputChange}
-                      placeholder="e.g., 2020"
-                      min="1900"
-                      max={new Date().getFullYear()}
-                      className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
-                        isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
-                      } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
-                    />
-                  </div>
+            <form onSubmit={handleKycSubmit} className={styles.profileForm}>
+              <div className={styles.formGrid}>
+                <div className={styles.formGroup}>
+                  <label>Document Type</label>
+                  <select
+                    name="documentType"
+                    value={kycData.documentType}
+                    onChange={handleKycInputChange}
+                  >
+                    <option value="GST">GST Certificate</option>
+                    <option value="PAN">PAN Card (self Issue)</option>
+                    <option value="EMPLOYEE_ID">Employee ID</option>
+                    <option value="MSME">MSME Registration</option>
+                    <option value="INCORPORATION">Certificate of Incorporation</option>
+                    <option value="ID_CARD">ID Card</option>
+                    <option value="OFFER_LETTER">Offer Letter</option>
+                    <option value="FSSAI_LICENSE">FSSAI License</option>
+                    <option value="OTHER">Other Government Issued Document</option>
+                  </select>
                 </div>
 
                 <div className="mb-6">
@@ -1130,6 +1417,92 @@ const CompanyProfile = () => {
               OK
             </button>
           </div>
+        </div>
+      )}
+
+      {/* KYC Review Modal */}
+      {showKycReviewModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2000
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              padding: '2.5rem',
+              borderRadius: '12px',
+              maxWidth: '500px',
+              width: '90%',
+              textAlign: 'center',
+              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)'
+            }}
+          >
+            <div style={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+              backgroundColor: '#10b981',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1.5rem',
+              color: 'white',
+              fontSize: '24px'
+            }}>
+              <Shield size={32} />
+            </div>
+            <h2 style={{ marginTop: 0, color: '#1f2937', fontSize: '1.5rem' }}>KYC Document Submitted</h2>
+            <p style={{
+              margin: '1rem 0 1.5rem',
+              color: '#6b7280',
+              fontSize: '1.1rem',
+              lineHeight: '1.6'
+            }}>
+              Your KYC document is under review. After approval, you can post jobs and access all hiring features.
+            </p>
+            <p style={{
+              margin: '0 0 1rem',
+              color: '#9ca3af',
+              fontSize: '0.9rem'
+            }}>
+              You will be automatically logged out in a few seconds...
+            </p>
+            <div style={{
+              width: '100%',
+              height: '4px',
+              backgroundColor: '#e5e7eb',
+              borderRadius: '2px',
+              overflow: 'hidden'
+            }}>
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  backgroundColor: '#10b981',
+                  animation: 'shrink 3s linear forwards'
+                }}
+              />
+            </div>
+          </div>
+
+          <style>
+            {`
+              @keyframes shrink {
+                from { width: 100%; }
+                to { width: 0%; }
+              }
+            `}
+          </style>
         </div>
       )}
     </div>

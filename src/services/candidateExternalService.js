@@ -6,6 +6,7 @@ const CANDIDATE_JOBS_URL = import.meta.env.VITE_CANDIDATE_JOBS_URL || 'https://s
 const CANDIDATE_FILTERED_URL = import.meta.env.VITE_CANDIDATE_FILTERED_URL || 'https://1aiwecu37g.execute-api.ap-southeast-1.amazonaws.com/default/getallfilteredjobs';
 const CANDIDATE_BOOKMARK_URL = import.meta.env.VITE_CANDIDATE_BOOKMARK_URL || 'https://jslq70120m.execute-api.ap-southeast-1.amazonaws.com/default/bookmarkjobs';
 const CANDIDATE_GET_BOOKMARKS_URL = import.meta.env.VITE_CANDIDATE_GET_BOOKMARKS_URL || 'https://tojxfozsk2.execute-api.ap-southeast-1.amazonaws.com/default/getbookmarkedjobs';
+const CANDIDATE_REMOVE_BOOKMARK_URL = import.meta.env.VITE_CANDIDATE_REMOVE_BOOKMARK_URL || 'https://jslq70120m.execute-api.ap-southeast-1.amazonaws.com/default/bookmarkjobs';
 const CANDIDATE_APPLIED_URL = import.meta.env.VITE_CANDIDATE_APPLIED_URL || 'https://798vt2a100.execute-api.ap-southeast-1.amazonaws.com/default/getappliedjobs';
 const CANDIDATE_STATUS_URL = import.meta.env.VITE_CANDIDATE_STATUS_URL || 'https://87lubscaj2.execute-api.ap-southeast-1.amazonaws.com/default/getjobstatus';
 
@@ -24,8 +25,18 @@ export const candidateExternalService = {
 
   // Bookmark a job for a user
   async bookmarkJob(payload) {
-    // Expecting payload to contain necessary fields like { user_id, job_id }
+    // Expecting payload to contain necessary fields like { user_id, job_id, action }
+    // action: 1 = add bookmark, 0 = remove bookmark
     const { data } = await axios.post(CANDIDATE_BOOKMARK_URL, payload);
+    return data;
+  },
+
+  // Remove bookmark from a job for a user
+  async removeBookmark(payload) {
+    // Expecting payload to contain necessary fields like { user_id, job_id }
+    const { data } = await axios.delete(CANDIDATE_REMOVE_BOOKMARK_URL, {
+      data: payload // Send user_id and job_id in request body for DELETE request
+    });
     return data;
   },
 

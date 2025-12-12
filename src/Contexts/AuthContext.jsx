@@ -32,6 +32,14 @@ export const AuthProvider = ({ children }) => {
             const profile = await recruiterService.getProfile(currentUser.email);
             if (profile?.success && profile?.data) {
               const employerData = profile.data.employer || profile.data;
+
+              // Check if recruiter account is rejected
+              if (employerData.hasadminapproved === false && employerData.status === 'rejected') {
+                console.log('Recruiter account rejected - logging out');
+                logout();
+                return;
+              }
+
               setIsRecruiterApproved(employerData.hasadminapproved === true);
             }
           } catch (error) {

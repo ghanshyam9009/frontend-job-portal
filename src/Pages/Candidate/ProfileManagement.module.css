@@ -339,6 +339,47 @@
   color: #9ca3af;
 }
 
+.fileInput {
+  margin-top: 0.5rem;
+  padding: 0.875rem;
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  background-color: #f9fafb;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #6b7280;
+  width: 100%;
+}
+
+.dark .fileInput {
+  border-color: #4b5563;
+  background-color: #1f2937;
+  color: #9ca3af;
+}
+
+.fileInput:hover {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+}
+
+.dark .fileInput:hover {
+  border-color: #60a5fa;
+  background-color: #1e3a8a;
+}
+
+.fileInput:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.dark .fileInput:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+}
+
 /* Dynamic Section for Education/Experience */
 .dynamicSection {
   margin-top: 2rem;
@@ -732,6 +773,153 @@
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-5px); }
   75% { transform: translateX(5px); }
+}
+
+/* Upload Image Container */
+.uploadImageContainer {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+/* Profile Image Preview Styles */
+.logoPreview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  background-color: #f9fafb;
+  transition: border-color 0.2s, background-color 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.dark .logoPreview {
+  border-color: #4b5563;
+  background-color: #1f2937;
+}
+
+.logoPreview:hover {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+}
+
+.dark .logoPreview:hover {
+  border-color: #60a5fa;
+  background-color: #1e3a8a;
+}
+
+/* Upload Overlay */
+.uploadOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.7);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 10px;
+}
+
+.logoPreview:hover .uploadOverlay {
+  opacity: 1;
+}
+
+.uploadIcon {
+  font-size: 3rem;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.uploadText {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.logoImage {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease;
+}
+
+.dark .logoImage {
+  border-color: #374151;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.logoImage:hover {
+  transform: scale(1.05);
+}
+
+.logoInitials {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-transform: uppercase;
+  border: 3px solid #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease, background 0.3s ease;
+  cursor: default;
+}
+
+.dark .logoInitials {
+  background: linear-gradient(135deg, #60a5fa, #2563eb);
+  border-color: #374151;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.logoInitials:hover {
+  transform: scale(1.05);
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+}
+
+.dark .logoInitials:hover {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+/* Profile Logo Wrapper in Profile View */
+.logoWrapper {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logoWrapper img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid #ffffff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dark .logoWrapper img {
+  border-color: #374151;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
 }
 
 /* Profile View Styles */

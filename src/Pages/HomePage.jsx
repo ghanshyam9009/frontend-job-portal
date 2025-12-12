@@ -13,6 +13,8 @@ import topHiringStyles from "../Styles/TopHiringCompanies.module.css";
 import HomeNav from "../Components/HomeNav";
 import { candidateExternalService } from "../services"; 
 import { demoService } from "../services/demoService";
+import { Loader, ErrorBox, SkeletonJobCard, JobCard } from "../Components/Shared";
+import { toast } from "react-toastify";
 import logo2 from "../assets/logo2.png";
 import video from "../assets/Untitled design.mp4";
 import video1 from "../assets/hero-video.mp4";
@@ -66,6 +68,7 @@ function JobRoleCard({ title, image, link, isDark }) {
           src={image} 
           alt={title}
           className={`w-8 h-8 object-contain ${imageBrightness}`}
+          loading="lazy"
         />
       </div>
       <div className="text-center">
@@ -149,7 +152,8 @@ const Homepage = () => {
         }
 
         const data = await response.json();
-        const jobs = data.jobs || [];
+        // Filter out government jobs for the homepage
+        const jobs = (data.jobs || []).filter(job => job.job_type !== "GOVERNMENT");
 
         // Extract unique job titles
         const jobTitles = [...new Set(jobs
@@ -258,6 +262,8 @@ const Homepage = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [featuredJobs, setFeaturedJobs] = useState([]);
+  const [featuredJobsLoading, setFeaturedJobsLoading] = useState(true);
+  const [featuredJobsError, setFeaturedJobsError] = useState(null);
   const [demoData, setDemoData] = useState({ fullName: "", email: "", message: "", userType: "candidate" });
   const [demoLoading, setDemoLoading] = useState(false);
   const [demoError, setDemoError] = useState(null);
@@ -404,9 +410,11 @@ const Homepage = () => {
 
   useEffect(() => {
     const fetchFeaturedJobs = async () => {
+      setFeaturedJobsLoading(true);
+      setFeaturedJobsError(null);
       try {
-        // Fetch only approved jobs
-        const response = await fetch('https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs?status=approved&limit=7', {
+        // Fetch only approved jobs - get enough to sort properly
+        const response = await fetch('https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs?status=approved&limit=100', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -421,32 +429,45 @@ const Homepage = () => {
         if (!data || !data.jobs) {
           throw new Error('Invalid response format');
         }
-        const mapped = (data.jobs || []).slice(0, 7).map((j, idx) => ({
-          id: j.job_id || idx,
-          title: j.job_title,
-          company_name: j.company_name || "",
-          location: j.location || "",
-          salary: formatSalary(j.salary_range),
-          job_type: j.employment_type || "Full-time",
-          company_logo: null,
-          is_premium: j.is_premium || false,
-          created_at: j.created_at || j.posted_date,
-          description: j.description
-        }));
+        // Filter out government jobs for the featured jobs section
+        const nonGovJobs = (data.jobs || []).filter(job => job.job_type !== "GOVERNMENT");
 
-        // Sort: Premium jobs first, then by latest date
-        const sortedJobs = mapped.sort((a, b) => {
-          if (a.is_premium && !b.is_premium) return -1;
-          if (!a.is_premium && b.is_premium) return 1;
-          // If both premium or both not, sort by date (latest first)
-          const dateA = new Date(a.created_at || 0);
-          const dateB = new Date(b.created_at || 0);
+        // Sort by latest jobs only (most recent first)
+        const sortedNonGovJobs = nonGovJobs.sort((a, b) => {
+          const dateA = new Date(a.created_at || a.posted_date || 0);
+          const dateB = new Date(b.created_at || b.posted_date || 0);
           return dateB - dateA;
         });
 
+        const mapped = sortedNonGovJobs.slice(0, 7).map((j, idx) => ({
+          id: j.job_id || idx,
+          job_id: j.job_id || idx,
+          job_title: j.job_title,
+          title: j.job_title,
+          company_name: j.company_name || "",
+          location: j.location || "",
+          salary_range: j.salary_range,
+          salary: formatSalary(j.salary_range),
+          employment_type: j.employment_type || "Full-time",
+          job_type: j.employment_type || "Full-time",
+          company_logo: j.company_logo || j.logo || j.companyLogo || null,
+          is_premium: j.premium_job || j.is_premium || false,
+          created_at: j.created_at || j.posted_date,
+          posted_date: j.posted_date,
+          description: j.description,
+          skills_required: j.skills_required || []
+        }));
+
+        // Jobs are already sorted, no need to sort again
+        const sortedJobs = mapped;
+
+        // Fix flickering: set data before setting loading to false
         setFeaturedJobs(sortedJobs);
+        setFeaturedJobsLoading(false);
       } catch (error) {
         console.error("Failed to fetch featured jobs:", error);
+        setFeaturedJobsError(error.message || 'Failed to load featured jobs');
+        setFeaturedJobsLoading(false);
       }
     };
 
@@ -469,7 +490,8 @@ const Homepage = () => {
           throw new Error('Invalid response format');
         }
 
-        const jobs = data.jobs || [];
+        // Filter out government jobs for job role counting
+        const jobs = (data.jobs || []).filter(job => job.job_type !== "GOVERNMENT");
 
         // Count jobs by category using keyword matching
         const roleCounts = jobRoleDefinitions.map(role => {
@@ -540,8 +562,9 @@ const Homepage = () => {
   };
 
   const handleJobClick = (job) => {
-    const jobSlug = job.job_title?.toLowerCase().replace(/\s+/g, '-') || job.id;
-    navigate(`/job/${jobSlug}`, {
+    // Use job ID for consistent URLs
+    const jobId = job.job_id || job.id;
+    navigate(`/job/${jobId}`, {
       state: { job }
     });
   };
@@ -618,60 +641,71 @@ const Homepage = () => {
   }, []);
 
   const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
-    const toggleBookmark = async (jobId) => {
-      if (!isAuthenticated || !user) {
-        alert('Please log in to bookmark jobs.');
+
+  // Fetch bookmarked jobs on mount if user is authenticated
+  useEffect(() => {
+    const fetchBookmarkedJobs = async () => {
+      if (!isAuthenticated || !user) return;
+      
+      try {
+        const userId = user.user_id || user.id;
+        if (!userId) return;
+
+        const data = await candidateExternalService.getBookmarkedJobs(userId);
+        const bookmarked = (data?.jobs || data?.bookmarkedJobs || []).map(job => 
+          job.job_id || job.id
+        );
+        setBookmarkedJobs(new Set(bookmarked));
+      } catch (error) {
+        console.error('Error fetching bookmarked jobs:', error);
+        // Don't show error to user, just silently fail
+      }
+    };
+
+    fetchBookmarkedJobs();
+  }, [isAuthenticated, user]);
+  
+  const toggleBookmark = async (jobId) => {
+    if (!isAuthenticated || !user) {
+      toast.error('Please log in to bookmark jobs.');
+      navigate('/candidate/login');
+      return;
+    }
+
+    try {
+      const userId = user.user_id || user.id;
+      if (!userId) {
+        toast.error('User ID not found. Please log in again.');
         navigate('/candidate/login');
         return;
       }
-  
-      try {
-        const userId = user.user_id || user.id;
-        if (!userId) {
-          alert('User ID not found. Please log in again.');
-          navigate('/candidate/login');
-          return;
-        }
-  
-        const newBookmarked = new Set(bookmarkedJobs);
-        if (newBookmarked.has(jobId)) {
-          newBookmarked.delete(jobId);
-        } else {
-          newBookmarked.add(jobId);
-          await candidateExternalService.bookmarkJob({ 
-            user_id: userId, 
-            job_id: jobId 
-          });
-        }
+
+      const newBookmarked = new Set(bookmarkedJobs);
+      const isCurrentlyBookmarked = newBookmarked.has(jobId);
+      
+      if (isCurrentlyBookmarked) {
+        // Remove bookmark
+        newBookmarked.delete(jobId);
+        // Note: API might not support unbookmark, but we'll update UI optimistically
         setBookmarkedJobs(newBookmarked);
-      } catch (error) {
-        console.error('Error bookmarking job:', error);
-        alert('Failed to bookmark job. Please try again.');
+        toast.success('Job removed from bookmarks');
+      } else {
+        // Add bookmark
+        await candidateExternalService.bookmarkJob({
+          user_id: userId,
+          job_id: jobId,
+          action: 1
+        });
+        newBookmarked.add(jobId);
+        setBookmarkedJobs(newBookmarked);
+        toast.success('Job bookmarked successfully');
       }
-    };
-  // Calculate time ago from created_at
-  const getTimeAgo = (dateString) => {
-    const now = new Date();
-    const created = new Date(dateString);
-    const diffInMs = now - created;
-    const diffInMins = Math.floor(diffInMs / (1000 * 60));
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-    if (diffInMins < 60) return `${diffInMins} min ago`;
-    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
-    return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    } catch (error) {
+      console.error('Error bookmarking job:', error);
+      toast.error('Failed to bookmark job. Please try again.');
+    }
   };
 
-  // Generate company initials for fallback logo
-  const getInitials = (name) => {
-    return name
-      .split(' ')
-      .map(word => word[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
 
   const steps = [
     {
@@ -1035,6 +1069,7 @@ const Homepage = () => {
                       src={company.logo}
                       alt={`${company.name} logo`}
                       className="object-contain max-h-12"
+                      loading="lazy"
                       onError={(e) => {
                         e.target.src = `https://ui-avatars.com/api/?name=${company.name}&background=2563eb&color=fff&`;
                       }}
@@ -1071,95 +1106,24 @@ const Homepage = () => {
 
                 {/* Jobs List */}
                 <div className="space-y-3 max-h-[1000px] overflow-y-auto pr-2">
-                  {featuredJobs.slice(0, 5).map(job => (
-                    <div 
-                      key={job.job_id}
-                      className={`${bgSecondary} rounded-lg shadow-sm border ${borderColor} ${hoverBorder} p-3 hover:shadow-md transition-all duration-300 relative overflow-hidden cursor-pointer`}
-                      onClick={() => handleJobClick(job)}
-                    >
-                      
-                      {/* Header with time and bookmark */}
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${isDark ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-700'}`}>
-                          {getTimeAgo(job.created_at)}
-                        </span>
-                        {/* Apply Button */}
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleJobClick(job);
-                          }}
-                          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-1.5 rounded-md transition-all duration-300 hover:shadow-md text-xs"
-                        >
-                          Apply Now
-                        </button>
-                      </div>
+                  {featuredJobsLoading && <SkeletonJobCard count={5} />}
+                  
+                  {!featuredJobsLoading && featuredJobsError && (
+                    <ErrorBox 
+                      error={featuredJobsError} 
+                      onRetry={() => window.location.reload()}
+                      title="Failed to load jobs"
+                    />
+                  )}
 
-                      {/* Company Logo and Title */}
-                      <div className="flex items-start gap-2 mb-3">
-                        <div className="w-10 h-10 rounded-md bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-                          <span className="text-white text-sm font-bold">
-                            {getInitials(job.company_name)}
-                          </span>
-                        </div>
-                        <div className="flex-1">
-                          <h3 className={`text-sm font-bold ${textPrimary} mb-1 hover:text-blue-600 transition-colors`}>
-                            {job.title}
-                          </h3>
-                          <p className={`text-xs ${textSecondary} font-bold flex items-center gap-1`}>
-                            <Building2 className="w-3 h-3" />
-                            {job.company_name}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Job Details */}
-                      <div className="flex flex-wrap items-center gap-1 text-xs mb-3">
-                        <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2 py-1 rounded-md`}>
-                          <Clock className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                          <span className={`${textSecondary} font-bold`}>{job.job_type}</span>
-                        </div>
-                        <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2 py-1 rounded-md`}>
-                          <MapPin className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                          <span className={`${textSecondary} font-bold`}>{job.location}</span>
-                        </div>
-                        <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2 py-1 rounded-md`}>
-                          <DollarSign className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                          <span className={`${textSecondary} font-bold`}>{job.salary}</span>
-                        </div>
-                      </div>
-
-                      {/* Job Description */}
-                      <p className={`${textSecondary1} text-xs mb-3 leading-relaxed`}>
-                        {job.description
-                          ? job.description.length > 120
-                            ? `${job.description.substring(0, 120)}...`
-                            : job.description
-                          : "No description available."}
-                      </p>
-
-                      {/* Bookmark Button */}
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleBookmark(job.id);
-                        }}
-                        className={`${textSecondary} absolute bottom-2 right-3 hover:text-yellow-500 transition-colors p-1 rounded-md`}
-                      >
-                        {/* {console.log(job.id)} */}
-                        <Bookmark 
-                          className="w-4 h-4"  
-                          fill={bookmarkedJobs.has(job.id) ? "currentColor" : "none"} 
-                        />
-                      </button>
-
-                      {/* Premium Badge */}
-                      {!job.is_premium && (
-                        <div className="absolute top-0 left-0 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-[8px] font-bold px-2  rounded-br-md shadow-sm">
-                          PREMIUM
-                        </div>
-                      )}
-                    </div>
+                  {!featuredJobsLoading && !featuredJobsError && featuredJobs.slice(0, 5).map(job => (
+                    <JobCard
+                      key={job.job_id || job.id}
+                      job={job}
+                      onBookmark={toggleBookmark}
+                      isBookmarked={bookmarkedJobs.has(job.job_id || job.id)}
+                      isDark={isDark}
+                    />
                   ))}
                 </div>
                <div className="flex justify-center py-4">
@@ -1295,6 +1259,7 @@ const Homepage = () => {
                       src={axisBanner1} 
                       alt="Axis Bank Banner" 
                       className="w-full h-auto object-cover rounded-xl"
+                      loading="lazy"
                     />
                    
                   </div>
@@ -1546,6 +1511,7 @@ const Homepage = () => {
                     alt={search.title} 
                     style={{ width: '80px', height: '80px' }}
                     className="object-cover rounded-md flex-shrink-0"
+                    loading="lazy"
                   />
                 </div>
               ))}
@@ -1564,6 +1530,7 @@ const Homepage = () => {
                 src={axisBanner} 
                 alt="Axis Bank Banner" 
                 className="w-full h-auto object-cover"
+                loading="lazy"
               />
             </div>
           </div>
@@ -1587,6 +1554,7 @@ const Homepage = () => {
                         src={company.logo} 
                         alt={company.name}
                         className="w-10 h-10 object-contain"
+                        loading="lazy"
                         onError={(e) => {
                           e.target.src = `https://ui-avatars.com/api/?name=${company.name}&background=2563eb&color=fff&size=40`;
                         }}

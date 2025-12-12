@@ -8,6 +8,7 @@ import HomeNav from "../Components/HomeNav";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import Footer from "../Components/Footer";
 import { candidateExternalService } from "../services";
+import { Loader, ErrorBox, SkeletonJobCard, JobCard } from "../Components/Shared";
 
 const GovernmentJobs = () => {
   const { theme } = useTheme();
@@ -20,46 +21,28 @@ const GovernmentJobs = () => {
   const [locationFilter, setLocationFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
 
+  const [error, setError] = useState(null);
+
   // Fetch government jobs data
   useEffect(() => {
     const fetchJobs = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        setLoading(true);
         const jobsData = await candidateExternalService.getAllJobs();
-        // Filter for government jobs posted by admin
+        // Filter for government jobs based on job_type field
         const govtJobs = (jobsData?.jobs || []).filter(job =>
-          job.posted_by === 'admin' &&
-          (job.department_name?.toLowerCase().includes('government') ||
-           job.department_name?.toLowerCase().includes('commission') ||
-           job.department_name?.toLowerCase().includes('board') ||
-           job.department_name?.toLowerCase().includes('railway') ||
-           job.department_name?.toLowerCase().includes('police') ||
-           job.department_name?.toLowerCase().includes('public sector') ||
-           job.department_name?.toLowerCase().includes('psu') ||
-           job.department_name?.toLowerCase().includes('central govt') ||
-           job.department_name?.toLowerCase().includes('state govt') ||
-           job.department_name?.toLowerCase().includes('ministry') ||
-           job.department_name?.toLowerCase().includes('department') ||
-           job.category?.toLowerCase().includes('government') ||
-           job.job_title?.toLowerCase().includes('govt') ||
-           job.job_title?.toLowerCase().includes('government') ||
-           job.job_title?.toLowerCase().includes('railway') ||
-           job.job_title?.toLowerCase().includes('police') ||
-           job.job_title?.toLowerCase().includes('upsc') ||
-           job.job_title?.toLowerCase().includes('ssc') ||
-           job.job_title?.toLowerCase().includes('bank') ||
-           job.job_title?.toLowerCase().includes('defense') ||
-           job.job_title?.toLowerCase().includes('army') ||
-           job.job_title?.toLowerCase().includes('navy') ||
-           job.job_title?.toLowerCase().includes('air force'))
+          job.job_type === "GOVERNMENT"
         );
+        // Fix flickering: set data before setting loading to false
         setJobs(govtJobs);
         setFilteredJobs(govtJobs);
+        setLoading(false);
       } catch (error) {
         console.error('Failed to fetch government jobs:', error);
+        setError(error.message || 'Failed to load government jobs');
         setJobs([]);
         setFilteredJobs([]);
-      } finally {
         setLoading(false);
       }
     };
@@ -138,38 +121,39 @@ const GovernmentJobs = () => {
     return diffDays > 0 ? diffDays : 0;
   };
 
-  if (loading) {
-    return (
-      <div className={`${styles.pageContainer} ${theme === 'dark' ? styles.dark : ''}`}>
-        {isAuthenticated ? <CandidateNavbar /> : <HomeNav />}
-        <div>Loading...</div>
-      </div>
-    );
-  }
+  const isDark = theme === 'dark';
 
   return (
-    <div className={`${styles.pageContainer} ${theme === 'dark' ? styles.dark : ''}`}>
+    <div className={`${styles.pageContainer} ${isDark ? styles.dark : ''}`}>
       {isAuthenticated ? <CandidateNavbar /> : <HomeNav />}
       <h1 className={styles.title}>Government Jobs</h1>
       <div className={styles.jobList}>
-        {filteredJobs.length === 0 ? (
+        {loading && <SkeletonJobCard count={5} />}
+        
+        {!loading && error && (
+          <ErrorBox 
+            error={error} 
+            onRetry={() => window.location.reload()}
+            title="Failed to load government jobs"
+          />
+        )}
+
+        {!loading && !error && filteredJobs.length === 0 && (
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>🏛️</div>
             <h3>No government jobs found</h3>
             <p>No government jobs match your current filters.</p>
           </div>
-        ) : (
-          filteredJobs.map((job) => (
-            <div key={job.id || job.job_id} className={styles.jobCard} onClick={() => handleJobClick(job)}>
-              <h2 className={styles.jobTitle}>{job.job_title || 'N/A'}</h2>
-              <p className={styles.department}>{job.department_name || 'N/A'}</p>
-              <div className={styles.details}>
-                <p className={styles.location}>{job.location || 'N/A'}</p>
-                <button className={styles.applyButton} onClick={(e) => handleApply(e, job)}>Apply Now</button>
-              </div>
-            </div>
-          ))
         )}
+
+        {!loading && !error && filteredJobs.map((job) => (
+          <JobCard
+            key={job.id || job.job_id}
+            job={job}
+            isDark={isDark}
+            showBookmark={false}
+          />
+        ))}
       </div>
       <Footer />
     </div>

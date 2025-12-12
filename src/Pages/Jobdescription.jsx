@@ -128,45 +128,47 @@ const JobDescription = () => {
     return Math.min(100, Math.round(totalCompleted));
   };
 
-  const extractJobIdFromSlug = (slugStr) => {
-    if (!slugStr) return null;
-    const match = slugStr.match(/-(\d+)$/);
-    return match ? match[1] : slugStr;
-  };
+ const toggleBookmark = async (jobId) => {
+     if (!isAuthenticated || !user) {
+       alert('Please log in to bookmark jobs.');
+       navigate('/candidate/login');
+       return;
+     }
 
-  const toggleBookmark = async (jobId) => {
-    if (!isAuthenticated || !user) {
-      alert('Please log in to bookmark jobs.');
-      navigate('/candidate/login');
-      return;
-    }
+     try {
+       const userId = user.user_id || user.id;
+       if (!userId) {
+         alert('User ID not found. Please log in again.');
+         navigate('/candidate/login');
+         return;
+       }
 
-    try {
-      const userId = user.user_id || user.id;
-      if (!userId) {
-        alert('User ID not found. Please log in again.');
-        navigate('/candidate/login');
-        return;
-      }
+       const newBookmarked = new Set(bookmarkedJobs);
+       if (newBookmarked.has(jobId)) {
+         // Remove bookmark
+         newBookmarked.delete(jobId);
+         await candidateExternalService.removeBookmark({
+           user_id: userId,
+           job_id: jobId
+         });
+       } else {
+         // Add bookmark
+         newBookmarked.add(jobId);
+         await candidateExternalService.bookmarkJob({
+           user_id: userId,
+           job_id: jobId,
+           action: 1
+         });
+       }
+       setBookmarkedJobs(newBookmarked);
+     } catch (error) {
+       console.error('Error bookmarking job:', error);
+       alert('Failed to bookmark job. Please try again.');
+     }
+   };
 
-      const newBookmarked = new Set(bookmarkedJobs);
-      if (newBookmarked.has(jobId)) {
-        newBookmarked.delete(jobId);
-      } else {
-        newBookmarked.add(jobId);
-        await candidateExternalService.bookmarkJob({ 
-          user_id: userId, 
-          job_id: jobId 
-        });
-      }
-      setBookmarkedJobs(newBookmarked);
-    } catch (error) {
-      console.error('Error bookmarking job:', error);
-      alert('Failed to bookmark job. Please try again.');
-    }
-  };
-
-  const jobId = extractJobIdFromSlug(slug);
+  // Since we're now using job IDs directly in the URL, slug is the job ID
+  const jobId = slug;
 
   useEffect(() => {
     fetchJobDetails();
@@ -274,9 +276,9 @@ const JobDescription = () => {
       return;
     }
 
-    const profileCompletion = calculateProfileCompletion(user);
-    if (profileCompletion < 100) {
-      alert(`Your profile is only ${profileCompletion}% complete. You must complete your profile 100% before applying for jobs. Redirecting to profile management...`);
+    // Resume check - must have resume to apply
+    if (!user.resume || user.resume.trim() === "") {
+      alert("You must upload a resume before applying for jobs. Redirecting to profile management...");
       navigate("/profile");
       return;
     }
@@ -329,6 +331,7 @@ const JobDescription = () => {
 
       const applicationData = {
         student_id: studentId,
+        student_email: user.email || "",
         resume_url: user.resume_url || "",
         cover_letter: user.cover_letter || "",
       };
@@ -369,9 +372,47 @@ const JobDescription = () => {
       return "Recently";
     }
   };
+  const getSalaryDisplay = (job) => {
+    // Check for various possible salary field patterns
+    const possibleFields = [
+      // Handle object salary fields (e.g., {min, max, currency})
+      job.salary && typeof job.salary === 'object' && job.salary.min && job.salary.max ?
+        `${job.salary.min} - ${job.salary.max}` :
+        (job.salary && typeof job.salary === 'object' && job.salary.min ? `${job.salary.min}+` : null),
 
-  const formatSalary = (min, max, salary_range) => {
-    if (!min && !max) return salary_range;
+      // Handle string/object salary_range
+      job.salary_range && typeof job.salary_range === 'object' && job.salary_range.min && job.salary_range.max ?
+        `${job.salary_range.min} - ${job.salary_range.max}` :
+        (job.salary_range && typeof job.salary_range !== 'object' ? job.salary_range : null),
+
+      // Min/max combinations
+      job.salary_min && job.salary_max ? `${job.salary_min} - ${job.salary_max}` : null,
+      job.min_salary && job.max_salary ? `${job.min_salary} - ${job.max_salary}` : null,
+
+      // Range object with min/max
+      job.salary_range?.min && job.salary_range?.max ? `${job.salary_range.min} - ${job.salary_range.max}` : null,
+
+      // Single values with prefixes
+      job.salary_min ? `${job.salary_min}+` : null,
+      job.min_salary ? `${job.min_salary}+` : null,
+      job.salary_range?.min ? `${job.salary_range.min}+` : null,
+
+      // Single values with "up to"
+      job.salary_max ? `Up to ${job.salary_max}` : null,
+      job.max_salary ? `Up to ${job.max_salary}` : null,
+      job.salary_range?.max ? `Up to ${job.salary_range.max}` : null,
+
+      // Handle object salary fields single values
+      job.salary && typeof job.salary === 'object' && job.salary.max ? `Up to ${job.salary.max}` : null,
+    ];
+
+    // Return the first available salary information
+    const salaryInfo = possibleFields.find(field => field !== null && field !== undefined && field !== '');
+    return salaryInfo || "Not Disclosed";
+  };
+
+  const formatSalary = (min, max) => {
+    if (!min && !max) return "Not Disclosed";
     if (min && max) return `${min} - ${max}`;
     if (min) return `${min}+`;
     return `Up to ${max}`;
@@ -392,6 +433,28 @@ const JobDescription = () => {
     return exp;
   };
 
+  const parseJobDescription = (description) => {
+    if (!description) return "";
+
+    // Simple parsing - just convert line breaks to paragraphs
+    return description
+      .split('\n')
+      .filter(line => line.trim())
+      .map(line => {
+        // Remove bullet points from the beginning of lines
+        const cleanLine = line.trim().replace(/^•\s*/, '');
+        return `<p class="text-gray-900 dark:text-black leading-relaxed mb-4">${cleanLine}</p>`;
+      })
+      .join('');
+  };
+
+  // Helper function to clean bullet points from any string
+  const cleanBulletPoints = (text) => {
+    if (!text) return text;
+    return text.replace(/^•\s*/gm, '').replace(/\n•\s*/g, '\n');
+  };
+
+  // loading / error UI
   if (loading) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? "bg-slate-900" : "bg-gray-100"}`}>
@@ -426,50 +489,37 @@ const JobDescription = () => {
   }
 
   return (
-    <>  
-      {user ? (user.industry ? <RecruiterNavbar /> : <CandidateNavbar />) : <HomeNav />}
-      <div className={`${isDarkMode ? "bg-slate-900 text-slate-100" : "bg-gray-100 text-slate-900"} lg:mt-18 mt-18 min-h-screen font-sans pt-4 sm:pt-6 lg:pt-8`}>
-        <div className="max-w-5xl mx-auto px-3 sm:px-4 lg:px-6 pb-6 sm:pb-8">
-          <div className="grid lg:grid-cols-12 gap-4 sm:gap-6">
-            {/* Main Content */}
-            <main className="space-y-4 sm:space-y-6 lg:col-span-8">
-              {/* Job Header Card */}
-              <div className={`bg-white ${isDarkMode ? "dark:bg-slate-800" : ""} rounded-xl p-4 sm:p-6 shadow`}>
-                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                  <div className="flex-1 min-w-0 w-full">
-                    <h1 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 break-words">
-                      {job.job_title || job.title || "Job Title"}
-                    </h1>
 
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-600 mb-3">
-                      <span className="font-semibold text-sm sm:text-base text-slate-800 dark:text-slate-100">
-                        {job.company_name || "Company"}
-                      </span>
-                      {job.company_rating && (
-                        <span className="text-yellow-500 whitespace-nowrap">⭐ {job.company_rating}</span>
-                      )}
-                      {job.company_reviews && (
-                        <span className="text-gray-400 whitespace-nowrap">({job.company_reviews} Reviews)</span>
-                      )}
-                      {job.is_premium && (
-                        <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">Premium</span>
-                      )}
-                    </div>
+    <>
+    {user?<CandidateNavbar/>: <HomeNav/>}
+    <div className={`${isDarkMode ? "bg-slate-900 text-slate-100" : "bg-gray-100 text-slate-900"} lg:mt-18 min-h-screen font-sans`}>
+      {/* header */}
 
-                    <div className="flex flex-wrap gap-3 sm:gap-4 text-xs sm:text-sm text-gray-600">
-                      <div className="flex items-center gap-1 whitespace-nowrap">
-                        💰 {formatSalary(job.salary_range?.min, job.salary_range?.max, job.salary_range)}
-                      </div>
-                      <div className="flex items-center gap-1 whitespace-nowrap">
-                        📍 {job.location || "Remote"}
-                      </div>
-                    </div>
+
+      {/* main */}
+      <div className="max-w-5xl  mx-auto px-4 py-8">
+        <div className="grid  lg:grid-cols-12 gap-6">
+          {/* left */}
+          <main className=" space-y-6 lg:col-span-8">
+            <div className={`lg:sticky lg:top-24 bg-white ${isDarkMode ? "dark:bg-slate-800" : ""} rounded-xl p-6 shadow`}>
+              <div className="flex justify-between items-start gap-4">
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-2xl font-bold mb-2">{job.job_title || job.title || "Job Title"}</h1>
+
+                  <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
+                    <span className="font-semibold text-base text-slate-800 dark:text-black">{job.company_name || "Company"}</span>
+                    {job.company_rating && <span className="text-yellow-500">⭐ {job.company_rating}</span>}
+                    {job.company_reviews && <span className="text-gray-400">({job.company_reviews} Reviews)</span>}
+                    {job.is_premium && (
+                      <span className="ml-2 bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Premium</span>
+                    )}
                   </div>
 
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg p-2 flex items-center justify-center bg-blue-50 flex-shrink-0">
-                    <span className="text-2xl sm:text-3xl font-bold text-blue-600">
-                      {(job.company_name || "C")[0].toUpperCase()}
-                    </span>
+                  <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                    {/* <div className="flex items-center gap-1">💼 {formatExperience(job.experience_required || job.experience)}</div> */}
+                    <div className="flex items-center gap-1">💰 {getSalaryDisplay(job)}</div>
+
+                    <div className="flex items-center gap-1">📍 {job.location || "Remote"}</div>
                   </div>
                 </div>
 
@@ -481,142 +531,160 @@ const JobDescription = () => {
                   <div className="whitespace-nowrap">📊 {job.applicants || "0"} Applicants</div>
                 </div>
 
-                {/* Alerts */}
-                <div className="mt-4 space-y-2">
-                  {applicationSuccess && (
-                    <div className="bg-green-100 text-green-800 px-3 py-2 rounded text-xs sm:text-sm">
-                      {applicationSuccess}
-                    </div>
-                  )}
-                  {applicationError && (
-                    <div className="bg-red-100 text-red-800 px-3 py-2 rounded text-xs sm:text-sm">
-                      {applicationError}
-                    </div>
-                  )}
-                </div>
+              {/* alerts */}
+              <div className="mt-4 space-y-2">
+                {applicationSuccess && (
+                  <div className="bg-green-100 text-green-800 px-3 py-2 rounded">{applicationSuccess}</div>
+                )}
+                {applicationError && (
+                  <div className="bg-red-100 text-red-800 px-3 py-2 rounded">{applicationError}</div>
+                )}
+                {hasApplied && !applicationError && !applicationSuccess && (
+                  <div className="bg-blue-100 text-blue-800 px-3 py-2 rounded">You have already applied for this job</div>
+                )}
+              </div>
 
-                {/* Action Buttons */}
-                <div className="mt-4 flex flex-col sm:flex-row gap-3">
-                  {!isAuthenticated ? (
-                    <>
-                      <button
-                        onClick={() => navigate("/candidate/register")}
-                        className="flex-1 border border-blue-500 text-blue-500 px-4 py-2.5 sm:py-2 rounded-full hover:bg-blue-50 text-sm sm:text-base"
-                      >
-                        Register to apply
-                      </button>
-                      <button
-                        onClick={() => navigate("/candidate/login")}
-                        className="flex-1 bg-blue-600 text-white px-4 py-2.5 sm:py-2 rounded-full hover:bg-blue-700 text-sm sm:text-base"
-                      >
-                        Login to apply
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={handleApplyClick}
-                        disabled={hasApplied || isApplying}
-                        className={`flex-1 px-4 py-2.5 sm:py-2 rounded-full text-white text-sm sm:text-base ${
-                          hasApplied ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
-                        }`}
-                      >
-                        {isApplying ? "⏳ Applying..." : hasApplied ? "✓ Applied" : "Apply Now"}
-                      </button>
-                      <button 
+              {/* action */}
+              <div className="mt-4 flex gap-3">
+                {!isAuthenticated ? (
+                  <>
+                    <button
+                      onClick={() => navigate("/candidate/register")}
+                      className="flex-1 border border-blue-500 text-blue-500 px-4 py-2 rounded-full hover:bg-blue-50"
+                    >
+                      Register to apply
+                    </button>
+                    <button
+                      onClick={() => navigate("/candidate/login")}
+                      className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700"
+                    >
+                      Login to apply
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleApplyClick}
+                      disabled={hasApplied || isApplying}
+                      className={`flex-1 px-4 py-2 rounded-full text-white ${hasApplied ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
+                    >
+                      {isApplying ? "⏳ Applying..." : hasApplied ? "✓ Applied" : " Apply Now"}
+                    </button>
+                   <button
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleBookmark(job.job_id);
                         }}
                         className={`${textSecondary} hover:text-yellow-500 transition-colors p-2.5 sm:p-1.5 rounded-lg border ${isDarkMode ? 'border-slate-600' : 'border-gray-300'} sm:border-0`}
                       >
-                        <Bookmark 
-                          className="w-5 h-5" 
-                          fill={bookmarkedJobs.has(job.job_id) ? "currentColor" : "none"} 
-                        />
+                        <Bookmark className="w-5 h-5"  fill={bookmarkedJobs.has(job.job_id) ? "currentColor" : "none"} />
+
+
                       </button>
-                    </>
-                  )}
-                </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* job description */}
+            <section className={`lg:sticky lg:top-95 bg-white ${isDarkMode ? "dark:bg-slate-800" : ""} rounded-xl p-6 shadow`}>
+              <h2 className="text-lg font-semibold mb-4">Job description</h2>
+
+              <div className="prose max-w-none prose-sm dark:prose-invert">
+                {job.description ? (
+                  <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.description) }} />
+                ) : (
+                  <p className="text-gray-900 dark:text-black">No description available.</p>
+                )}
               </div>
 
-              {/* Job Description Section */}
-              <section className={`bg-white ${isDarkMode ? "dark:bg-slate-800" : ""} rounded-xl p-4 sm:p-6 shadow`}>
-                <h2 className="text-base sm:text-lg font-semibold mb-4">Job description</h2>
-
-                <div className="prose max-w-none prose-sm dark:prose-invert text-gray-700 text-sm sm:text-base">
-                  {job.description ? (
-                    <div dangerouslySetInnerHTML={{ __html: job.description }} />
-                  ) : (
-                    <p>No description available.</p>
-                  )}
+              {/* responsibilities */}
+              {(job.responsibilities?.length > 0 || job.responsibilities_string) && (
+                <div className="mt-6">
+                  <h3 className="font-semibold mb-2">Key Responsibilities</h3>
+                  <div className="text-gray-900 dark:text-black leading-relaxed space-y-2">
+                    {job.responsibilities?.length > 0 ? (
+                      job.responsibilities.map((r, i) => <p key={i}>{cleanBulletPoints(r)}</p>)
+                    ) : (
+                      <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.responsibilities_string) }} />
+                    )}
+                  </div>
                 </div>
+              )}
 
-                {/* Responsibilities */}
-                {(job.responsibilities?.length > 0 || job.responsibilities_string) && (
-                  <div className="mt-6">
-                    <h3 className="font-semibold mb-2 text-sm sm:text-base">Key Responsibilities</h3>
-                    <ul className="list-disc list-inside text-gray-700 space-y-2 text-sm sm:text-base">
-                      {job.responsibilities?.length > 0 ? (
-                        job.responsibilities.map((r, i) => <li key={i}>{r}</li>)
-                      ) : (
-                        <div dangerouslySetInnerHTML={{ __html: job.responsibilities_string }} />
-                      )}
-                    </ul>
+              {/* requirements */}
+              {(job.requirements?.length > 0 || job.requirements_string) && (
+                <div className="mt-6">
+                  <h3 className="font-semibold mb-2">Requirements</h3>
+                  <div className="text-gray-900 dark:text-black leading-relaxed space-y-2">
+                    {job.requirements?.length > 0 ? (
+                      job.requirements.map((r, i) => <p key={i}>{cleanBulletPoints(r)}</p>)
+                    ) : (
+                      <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.requirements_string) }} />
+                    )}
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Requirements */}
-                {(job.requirements?.length > 0 || job.requirements_string) && (
-                  <div className="mt-6">
-                    <h3 className="font-semibold mb-2 text-sm sm:text-base">Requirements</h3>
-                    <ul className="list-disc list-inside text-gray-700 space-y-2 text-sm sm:text-base">
-                      {job.requirements?.length > 0 ? (
-                        job.requirements.map((r, i) => <li key={i}>{r}</li>)
-                      ) : (
-                        <div dangerouslySetInnerHTML={{ __html: job.requirements_string }} />
-                      )}
-                    </ul>
+              {/* skills */}
+              {job.skills_required?.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="font-semibold mb-2">Required Skills</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {job.skills_required.map((s, idx) => (
+                      <span key={idx} className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
+                        {s}
+                      </span>
+                    ))}
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Skills */}
-                {job.skills?.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="font-semibold mb-2 text-sm sm:text-base">Required Skills</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {job.skills.map((s, idx) => (
-                        <span 
-                          key={idx} 
-                          className="bg-blue-50 text-blue-700 px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm"
-                        >
-                          {s}
-                        </span>
-                      ))}
-                    </div>
+              {/* benefits */}
+              {(job.benefits?.length > 0 || job.benefits_string) && (
+                <div className="mt-6">
+                  <h3 className="font-semibold mb-2">Benefits & Perks</h3>
+                  <div className="text-gray-900 dark:text-black leading-relaxed space-y-2">
+                    {job.benefits?.length > 0 ? (
+                      job.benefits.map((b, i) => <p key={i}>{cleanBulletPoints(b)}</p>)
+                    ) : (
+                      <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.benefits_string) }} />
+                    )}
                   </div>
-                )}
+                </div>
+              )}
+            </section>
+          </main>
+<aside className=" lg:col-span-4">
+        <div className={`${isDarkMode ? 'bg-slate-800' : 'bg-white'} rounded-2xl shadow-lg border ${isDarkMode ? 'border-slate-700' : 'border-gray-100'} overflow-hidden`}>
+          
+          {/* Header with gradient */}
+          <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 backdrop-blur-sm p-2 rounded-xl">
+                <TrendingUp className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-xl">Top Opportunities</h3>
+                <p className="text-white/80 text-sm">From leading companies</p>
+              </div>
+            </div>
+          </div>
 
-                {/* Benefits */}
-                {(job.benefits?.length > 0 || job.benefits_string) && (
-                  <div className="mt-6">
-                    <h3 className="font-semibold mb-2 text-sm sm:text-base">Benefits & Perks</h3>
-                    <ul className="list-disc list-inside text-gray-700 space-y-2 text-sm sm:text-base">
-                      {job.benefits?.length > 0 ? (
-                        job.benefits.map((b, i) => <li key={i}>{b}</li>)
-                      ) : (
-                        <div dangerouslySetInnerHTML={{ __html: job.benefits_string }} />
-                      )}
-                    </ul>
-                  </div>
-                )}
-              </section>
-
-              {/* Mobile Related Jobs Section (collapsed by default) */}
-              <div className="lg:hidden">
-                <button
-                  onClick={() => setShowRelatedJobs(!showRelatedJobs)}
-                  className={`w-full ${isDarkMode ? 'bg-slate-800' : 'bg-white'} rounded-2xl shadow-lg border ${isDarkMode ? 'border-slate-700' : 'border-gray-100'} p-4 flex items-center justify-between`}
+          {/* Job List */}
+          <div className="p-4 space-y-3">
+            {relatedJobs.length > 0 ? (
+              relatedJobs.map((relJob, idx) => (
+                <div
+                  key={idx}
+                  onClick={() =>
+                    navigate(`/job/${relJob.job_id || relJob.id}`)
+                  }
+                  className={`group cursor-pointer p-4 rounded-xl transition-all duration-300 border ${
+                    isDarkMode 
+                      ? 'bg-slate-700/50 border-slate-600 hover:bg-slate-700 hover:border-indigo-500' 
+                      : 'bg-gray-50 border-gray-200 hover:bg-white hover:border-indigo-300 hover:shadow-md'
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     <div className="bg-gradient-to-r from-indigo-500 to-purple-500 p-2 rounded-xl">

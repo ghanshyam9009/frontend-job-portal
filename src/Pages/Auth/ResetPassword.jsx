@@ -38,19 +38,72 @@ const ResetPassword = () => {
     setFormData({ ...formData, [name]: value });
   };
 
+  const extractErrorMessage = (errorObj) => {
+    const normalize = (value) => {
+      if (!value) return "";
+      if (typeof value === "string") return value;
+      if (Array.isArray(value)) {
+        return value
+          .map((item) => normalize(item))
+          .filter(Boolean)
+          .join(" ");
+      }
+      if (typeof value === "object") {
+        return Object.values(value || {})
+          .map((item) => normalize(item))
+          .filter(Boolean)
+          .join(" ");
+      }
+      return "";
+    };
+
+    if (!errorObj) return "";
+    if (typeof errorObj === "string") return errorObj;
+
+    return (
+      normalize(errorObj.message) ||
+      normalize(errorObj.details) ||
+      normalize(errorObj.error) ||
+      normalize(errorObj?.error?.message) ||
+      normalize(errorObj?.response?.data?.message) ||
+      normalize(errorObj?.response?.data?.error) ||
+      ""
+    );
+  };
+
   const handleSendOtp = async () => {
     if (!formData.email) {
       setError('Please enter your email address.');
       return;
     }
-    try {
-      await studentService.sendOtp({ email: formData.email, role: 'student' });
+    const result = await studentService.sendOtp({ email: formData.email, role: 'student' });
+
+    if (result.success) {
       setStep('verify-otp');
       setSuccess('OTP sent to your email address.');
       setError('');
       setTimer(60); // 60 seconds timer
-    } catch (err) {
-      setError('Failed to send OTP. Please try again.');
+    } else {
+      console.error('Send OTP error:', result.error);
+      const rawError = result.error?.raw || result.error;
+      const errorMessage = extractErrorMessage(rawError) || 'Failed to send OTP. Please try again.';
+      const normalizedMessage = errorMessage.toLowerCase();
+      const isEmailNotFound =
+        normalizedMessage.includes('not found') ||
+        normalizedMessage.includes('not exist') ||
+        normalizedMessage.includes('not registered') ||
+        normalizedMessage.includes('does not exist') ||
+        normalizedMessage.includes('no account') ||
+        normalizedMessage.includes('email not found') ||
+        normalizedMessage.includes('candidate not found') ||
+        normalizedMessage.includes('invalid email') ||
+        normalizedMessage.includes('user not found');
+
+      if (isEmailNotFound) {
+        setError("This email address is not registered or does not exist. Please check your email or register first.");
+      } else {
+        setError(errorMessage);
+      }
     }
   };
 
@@ -59,12 +112,13 @@ const ResetPassword = () => {
       setError('Please enter the OTP.');
       return;
     }
-    try {
-      await studentService.verifyOtp({ email: formData.email, otp: formData.otp, role: 'student' });
+    const result = await studentService.verifyOtp({ email: formData.email, otp: formData.otp, role: 'student' });
+
+    if (result.success) {
       setStep('reset-password');
       setSuccess('OTP verified successfully.');
       setError('');
-    } catch (err) {
+    } else {
       setError('Invalid OTP. Please try again.');
     }
   };
@@ -79,24 +133,21 @@ const ResetPassword = () => {
       return;
     }
 
-    try {
-      const response = await studentService.resetPassword({
-        email: formData.email,
-        otp: formData.otp,
-        newPassword: formData.password,
-        role: 'student'
-      });
-      if (response.success) {
-        setSuccess('Password has been reset successfully. You can now log in with your new password.');
-        // Redirect to login page after 3 seconds
-        setTimeout(() => {
-          navigate('/candidate/login');
-        }, 3000);
-      } else {
-        setError(response.message || 'Failed to reset password');
-      }
-    } catch (err) {
-      setError('An error occurred while resetting the password');
+    const response = await studentService.resetPassword({
+      email: formData.email,
+      otp: formData.otp,
+      newPassword: formData.password,
+      role: 'student'
+    });
+
+    if (response.success) {
+      setSuccess('Password has been reset successfully. You can now log in with your new password.');
+      // Redirect to login page after 3 seconds
+      setTimeout(() => {
+        navigate('/candidate/login');
+      }, 3000);
+    } else {
+      setError(response.message || 'Failed to reset password');
     }
   };
 

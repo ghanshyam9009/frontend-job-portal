@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { FaFacebook, FaTwitter, FaLinkedin, FaEnvelope, FaMapMarkerAlt, FaPhone, FaClock, FaPaperPlane } from "react-icons/fa";
+import { validateForm } from "../utils/errorHandler";
+import { toast } from "react-toastify";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import HomeNav from "../Components/HomeNav";
 import Footer from "../Components/Footer";
@@ -18,26 +20,123 @@ const ContactUs = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   const handleInputChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+    
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors({
+        ...errors,
+        [name]: ''
+      });
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched({
+      ...touched,
+      [name]: true
+    });
+    
+    // Validate on blur
+    validateField(name, formData[name]);
+  };
+
+  const validateField = (name, value) => {
+    const fieldErrors = {};
+    
+    if (name === 'name' && (!value || value.trim() === '')) {
+      fieldErrors.name = 'Name is required';
+    } else if (name === 'name' && value.length < 2) {
+      fieldErrors.name = 'Name must be at least 2 characters';
+    }
+    
+    if (name === 'email') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!value || value.trim() === '') {
+        fieldErrors.email = 'Email is required';
+      } else if (!emailRegex.test(value)) {
+        fieldErrors.email = 'Please enter a valid email address';
+      }
+    }
+    
+    if (name === 'subject' && (!value || value.trim() === '')) {
+      fieldErrors.subject = 'Subject is required';
+    }
+    
+    if (name === 'message' && (!value || value.trim() === '')) {
+      fieldErrors.message = 'Message is required';
+    } else if (name === 'message' && value.length < 10) {
+      fieldErrors.message = 'Message must be at least 10 characters';
+    }
+    
+    if (name === 'phone' && value && value.trim() !== '') {
+      const phoneRegex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/;
+      if (!phoneRegex.test(value.replace(/\s/g, ''))) {
+        fieldErrors.phone = 'Please enter a valid phone number';
+      }
+    }
+    
+    setErrors(prev => ({ ...prev, ...fieldErrors }));
+    return Object.keys(fieldErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
     
-    setTimeout(() => {
+    // Mark all fields as touched
+    const allTouched = {
+      name: true,
+      email: true,
+      subject: true,
+      message: true
+    };
+    setTouched(allTouched);
+    
+    // Validate all required fields
+    const validationRules = {
+      name: { required: true, minLength: 2, label: 'Name' },
+      email: { required: true, type: 'email', label: 'Email' },
+      subject: { required: true, label: 'Subject' },
+      message: { required: true, minLength: 10, label: 'Message' }
+    };
+    
+    const validationErrors = validateForm(formData, validationRules);
+    
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      toast.error('Please fix the errors in the form');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setErrors({});
+    
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
       console.log("Form submitted:", formData);
       setSubmitStatus('success');
+      toast.success('Message sent successfully! We\'ll get back to you soon.');
       setFormData({ name: "", email: "", message: "", userType: "candidate", phone: "", subject: "" });
-      setIsSubmitting(false);
+      setTouched({});
       
       setTimeout(() => setSubmitStatus(null), 5000);
-    }, 1500);
+    } catch (error) {
+      toast.error('Failed to send message. Please try again.');
+      setSubmitStatus('error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isDark = theme === 'dark';
@@ -126,13 +225,19 @@ const ContactUs = () => {
                       name="name"
                       value={formData.name}
                       onChange={handleInputChange}
+                      onBlur={handleBlur}
                       placeholder="John Doe"
-                      className={`w-full px-3 py-2 text-sm rounded-lg border ${
-                        isDark 
-                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
-                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500'
-                      } focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-all`}
+                      className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                        errors.name && touched.name
+                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                          : isDark 
+                            ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20' 
+                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
+                      } focus:outline-none focus:ring-1`}
                     />
+                    {errors.name && touched.name && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.name}</p>
+                    )}
                   </div>
 
                   <div>
@@ -145,13 +250,19 @@ const ContactUs = () => {
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
+                      onBlur={handleBlur}
                       placeholder="john@example.com"
-                      className={`w-full px-3 py-2 text-sm rounded-lg border ${
-                        isDark 
-                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
-                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500'
-                      } focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-all`}
+                      className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                        errors.email && touched.email
+                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                          : isDark 
+                            ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20' 
+                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
+                      } focus:outline-none focus:ring-1`}
                     />
+                    {errors.email && touched.email && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.email}</p>
+                    )}
                   </div>
                 </div>
 
@@ -167,13 +278,19 @@ const ContactUs = () => {
                       name="phone"
                       value={formData.phone}
                       onChange={handleInputChange}
+                      onBlur={handleBlur}
                       placeholder="+91 98765 43210"
-                      className={`w-full px-3 py-2 text-sm rounded-lg border ${
-                        isDark 
-                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
-                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500'
-                      } focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-all`}
+                      className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                        errors.phone && touched.phone
+                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                          : isDark 
+                            ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20' 
+                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
+                      } focus:outline-none focus:ring-1`}
                     />
+                    {errors.phone && touched.phone && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.phone}</p>
+                    )}
                   </div>
 
                   <div>
@@ -186,13 +303,19 @@ const ContactUs = () => {
                       name="subject"
                       value={formData.subject}
                       onChange={handleInputChange}
+                      onBlur={handleBlur}
                       placeholder="How can we help?"
-                      className={`w-full px-3 py-2 text-sm rounded-lg border ${
-                        isDark 
-                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
-                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500'
-                      } focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-all`}
+                      className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                        errors.subject && touched.subject
+                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                          : isDark 
+                            ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20' 
+                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
+                      } focus:outline-none focus:ring-1`}
                     />
+                    {errors.subject && touched.subject && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.subject}</p>
+                    )}
                   </div>
                 </div>
 
@@ -206,14 +329,20 @@ const ContactUs = () => {
                     name="message"
                     value={formData.message}
                     onChange={handleInputChange}
+                    onBlur={handleBlur}
                     placeholder="Tell us more about your inquiry..."
                     rows="4"
-                    className={`w-full px-3 py-2 text-sm rounded-lg border ${
-                      isDark 
-                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
-                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500'
-                    } focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-all resize-none`}
+                    className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                      errors.message && touched.message
+                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                        : isDark 
+                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20' 
+                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
+                    } focus:outline-none focus:ring-1 resize-none`}
                   ></textarea>
+                  {errors.message && touched.message && (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.message}</p>
+                  )}
                 </div>
 
                 {/* Submit Button */}

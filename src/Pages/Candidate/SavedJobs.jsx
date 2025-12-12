@@ -5,6 +5,7 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
 import styles from "./SavedJobs.module.css";
 import { candidateExternalService } from "../../services";
+import { toast } from "react-toastify";
 import { Briefcase, Star, X } from "lucide-react";
 
 const SavedJobs = () => {
@@ -26,16 +27,33 @@ const SavedJobs = () => {
         // Handle both array and single object responses
         const jobsArray = data?.bookmarked_jobs || data?.jobs || [];
         const normalizedJobs = Array.isArray(jobsArray) ? jobsArray : [jobsArray];
-        const mapped = normalizedJobs.map((j, idx) => ({
-          id: j.job_id || idx,
-          title: j.job_title,
-          company: j.company_name || "",
-          salary: j.salary_range ? `₹${j.salary_range.min} - ₹${j.salary_range.max}` : "",
-          location: j.location || "",
-          type: j.employment_type || "",
-          savedDate: j.saved_at ? j.saved_at.split('T')[0] : '',
-          status: (j.status || 'Active')
-        }));
+        const mapped = normalizedJobs.map((j, idx) => {
+          // Handle salary display in different formats
+          let salaryDisplay = "";
+          if (j.salary_range) {
+            if (typeof j.salary_range === 'string') {
+              salaryDisplay = j.salary_range;
+            } else if (typeof j.salary_range === 'object' && j.salary_range.min && j.salary_range.max) {
+              salaryDisplay = `₹${j.salary_range.min} - ₹${j.salary_range.max}`;
+            } else {
+              salaryDisplay = "Salary not specified";
+            }
+          } else {
+            salaryDisplay = "Salary not specified";
+          }
+
+          return {
+            id: j.job_id || j.id || idx,
+            title: j.job_title,
+            company: j.company_name || "",
+            salary: salaryDisplay,
+            location: j.location || "",
+            type: j.employment_type || "",
+            savedDate: j.saved_at ? j.saved_at.split('T')[0] : '',
+            status: (j.status || 'Active'),
+            salary_field: j.salary_range // Keep original salary data for future use
+          };
+        });
         setSavedJobs(mapped);
       } catch (e) {
         setError(typeof e === 'string' ? e : e?.message || 'Failed to load saved jobs');
@@ -52,8 +70,32 @@ const SavedJobs = () => {
     });
   };
 
-  const handleRemoveSaved = (jobId) => {
-    setSavedJobs(prev => prev.filter(job => job.id !== jobId));
+  const handleRemoveSaved = async (jobId) => {
+    if (!user) {
+      toast.error('Please log in to remove bookmarks.');
+      return;
+    }
+
+    try {
+      const userId = user.user_id || user.id;
+      if (!userId) {
+        toast.error('User ID not found. Please log in again.');
+        return;
+      }
+
+      // Call API to remove bookmark from backend
+      await candidateExternalService.removeBookmark({
+        user_id: userId,
+        job_ids: [jobId] // API expects job_ids array
+      });
+
+      // Remove from local state only after successful API call
+      setSavedJobs(prev => prev.filter(job => job.id !== jobId));
+      toast.success('Job removed from bookmarks');
+    } catch (error) {
+      console.error('Error removing bookmark:', error);
+      toast.error('Failed to remove bookmark. Please try again.');
+    }
   };
 
   const handleApplyNow = (job) => {

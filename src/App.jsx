@@ -1,5 +1,7 @@
 import React from 'react'
 import { Toaster } from "react-hot-toast";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './Contexts/AuthContext'
 import { SidebarProvider } from './Contexts/SidebarContext'
@@ -68,6 +70,18 @@ function App() {
       <SidebarProvider>
         <BrowserRouter>
         <Toaster />
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+        />
           <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/jobs" element={<JobListings/>} />
