@@ -431,10 +431,8 @@ const Homepage = () => {
         // Filter out government jobs for the featured jobs section
         const nonGovJobs = (data.jobs || []).filter(job => job.job_type !== "GOVERNMENT");
 
-        // Sort: Premium jobs first, then latest jobs - same as JobListings.jsx
+        // Sort by latest jobs only (most recent first)
         const sortedNonGovJobs = nonGovJobs.sort((a, b) => {
-          if ((a.premium_job || a.is_premium || false) && !(b.premium_job || b.is_premium || false)) return -1;
-          if (!(a.premium_job || a.is_premium || false) && (b.premium_job || b.is_premium || false)) return 1;
           const dateA = new Date(a.created_at || a.posted_date || 0);
           const dateB = new Date(b.created_at || b.posted_date || 0);
           return dateB - dateA;

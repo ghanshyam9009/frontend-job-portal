@@ -775,6 +775,13 @@
   75% { transform: translateX(5px); }
 }
 
+/* Upload Image Container */
+.uploadImageContainer {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
 /* Profile Image Preview Styles */
 .logoPreview {
   display: flex;
@@ -786,6 +793,8 @@
   border-radius: 12px;
   background-color: #f9fafb;
   transition: border-color 0.2s, background-color 0.2s;
+  position: relative;
+  overflow: hidden;
 }
 
 .dark .logoPreview {
@@ -801,6 +810,43 @@
 .dark .logoPreview:hover {
   border-color: #60a5fa;
   background-color: #1e3a8a;
+}
+
+/* Upload Overlay */
+.uploadOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.7);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 10px;
+}
+
+.logoPreview:hover .uploadOverlay {
+  opacity: 1;
+}
+
+.uploadIcon {
+  font-size: 3rem;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.uploadText {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .logoImage {

@@ -996,19 +996,25 @@ const renderBasicInformationForm = () => (
 
         <div className={styles.formGroup}>
           <label>Profile Image</label>
-          <div
-            className={styles.logoPreview}
-            onClick={() => logoInputRef.current?.click()}
-            style={{ cursor: 'pointer' }}
-            title="Click to upload profile image"
-          >
-            {formData.logo ? (
-              <img src={formData.logo} alt="Profile" className={styles.logoImage} />
-            ) : (
-              <div className={styles.logoInitials}>
-                {getInitials(formData.full_name || user?.full_name)}
+          <div className={styles.uploadImageContainer}>
+            <div
+              className={styles.logoPreview}
+              onClick={() => logoInputRef.current?.click()}
+              style={{ cursor: 'pointer' }}
+              title="Click to upload profile image"
+            >
+              {formData.logo ? (
+                <img src={formData.logo} alt="Profile" className={styles.logoImage} />
+              ) : (
+                <div className={styles.logoInitials}>
+                  {getInitials(formData.full_name || user?.full_name)}
+                </div>
+              )}
+              <div className={styles.uploadOverlay}>
+                <div className={styles.uploadIcon}>+</div>
+                <div className={styles.uploadText}>Upload Image</div>
               </div>
-            )}
+            </div>
           </div>
           <input
             ref={logoInputRef}

@@ -378,6 +378,45 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
       return "Recently";
     }
   };
+  const getSalaryDisplay = (job) => {
+    // Check for various possible salary field patterns
+    const possibleFields = [
+      // Handle object salary fields (e.g., {min, max, currency})
+      job.salary && typeof job.salary === 'object' && job.salary.min && job.salary.max ?
+        `${job.salary.min} - ${job.salary.max}` :
+        (job.salary && typeof job.salary === 'object' && job.salary.min ? `${job.salary.min}+` : null),
+
+      // Handle string/object salary_range
+      job.salary_range && typeof job.salary_range === 'object' && job.salary_range.min && job.salary_range.max ?
+        `${job.salary_range.min} - ${job.salary_range.max}` :
+        (job.salary_range && typeof job.salary_range !== 'object' ? job.salary_range : null),
+
+      // Min/max combinations
+      job.salary_min && job.salary_max ? `${job.salary_min} - ${job.salary_max}` : null,
+      job.min_salary && job.max_salary ? `${job.min_salary} - ${job.max_salary}` : null,
+
+      // Range object with min/max
+      job.salary_range?.min && job.salary_range?.max ? `${job.salary_range.min} - ${job.salary_range.max}` : null,
+
+      // Single values with prefixes
+      job.salary_min ? `${job.salary_min}+` : null,
+      job.min_salary ? `${job.min_salary}+` : null,
+      job.salary_range?.min ? `${job.salary_range.min}+` : null,
+
+      // Single values with "up to"
+      job.salary_max ? `Up to ${job.salary_max}` : null,
+      job.max_salary ? `Up to ${job.max_salary}` : null,
+      job.salary_range?.max ? `Up to ${job.salary_range.max}` : null,
+
+      // Handle object salary fields single values
+      job.salary && typeof job.salary === 'object' && job.salary.max ? `Up to ${job.salary.max}` : null,
+    ];
+
+    // Return the first available salary information
+    const salaryInfo = possibleFields.find(field => field !== null && field !== undefined && field !== '');
+    return salaryInfo || "Not Disclosed";
+  };
+
   const formatSalary = (min, max) => {
     if (!min && !max) return "Not Disclosed";
     if (min && max) return `${min} - ${max}`;
@@ -404,167 +443,22 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
   const parseJobDescription = (description) => {
     if (!description) return "";
 
-    const lines = description.split('\n').filter(line => line.trim());
-    let html = '';
-    let inList = false;
-    let inSubList = false;
+    // Simple parsing - just convert line breaks to paragraphs
+    return description
+      .split('\n')
+      .filter(line => line.trim())
+      .map(line => {
+        // Remove bullet points from the beginning of lines
+        const cleanLine = line.trim().replace(/^•\s*/, '');
+        return `<p class="text-gray-900 dark:text-black leading-relaxed mb-4">${cleanLine}</p>`;
+      })
+      .join('');
+  };
 
-    lines.forEach(line => {
-      const trimmedLine = line.trim();
-
-      // Section headers (numbered)
-      if (/^\d+\.\s/.test(trimmedLine)) {
-        // Close previous lists
-        if (inSubList) {
-          html += '</ul>';
-          inSubList = false;
-        }
-        if (inList) {
-          html += '</ul>';
-          inList = false;
-        }
-
-        const sectionTitle = trimmedLine.replace(/^\d+\.\s*/, '');
-        let displayTitle = sectionTitle;
-
-        // Fix common typos and standardize titles
-        if (sectionTitle.toLowerCase().includes('job profile details')) {
-          displayTitle = 'Job Profile Details';
-        } else if (sectionTitle.toLowerCase().includes('role & responsibility') || sectionTitle.toLowerCase().includes('responsibilities')) {
-          displayTitle = 'Role & Responsibilities';
-        } else if (sectionTitle.toLowerCase().includes('skills')) {
-          displayTitle = 'Required Skills';
-        } else if (sectionTitle.toLowerCase().includes('eligibility') || sectionTitle.toLowerCase().includes('criteria')) {
-          displayTitle = 'Eligibility Criteria';
-        } else if (sectionTitle.toLowerCase().includes('compensation') || sectionTitle.toLowerCase().includes('benefits')) {
-          displayTitle = 'Compensation & Benefits';
-        }
-
-        html += `<h3 class="font-semibold mb-3 mt-6 text-lg text-gray-900 dark:text-black">${displayTitle}</h3>`;
-
-        // Check if the rest of the line contains bullet points
-        const restOfLine = trimmedLine.replace(/^[^•]*/, '').trim();
-        if (restOfLine && restOfLine.startsWith('•')) {
-          html += '<ul class="list-disc list-inside space-y-1 mb-4 text-gray-900 dark:text-black">';
-          inList = true;
-          // Process the bullet points in the same line
-          const bullets = restOfLine.split('•').filter(b => b.trim());
-          bullets.forEach(bullet => {
-            const cleanBullet = bullet.trim();
-            if (cleanBullet.startsWith('Presentablility')) {
-              html += `<li>Presentability</li>`;
-            } else {
-              html += `<li>${cleanBullet}</li>`;
-            }
-          });
-        }
-      }
-      // Main bullet points
-      else if (trimmedLine.startsWith('•')) {
-        if (!inList) {
-          html += '<ul class="list-disc list-inside space-y-1 mb-4 text-gray-900 dark:text-black">';
-          inList = true;
-        }
-        if (inSubList) {
-          html += '</ul>';
-          inSubList = false;
-        }
-
-        let content = trimmedLine.substring(1).trim();
-        let hasSubItems = false;
-
-        // Fix common typos
-        if (content.startsWith('Presentablility')) {
-          content = 'Presentability';
-        }
-
-        // Check if this bullet has sub-bullets (o )
-        if (content.includes('o ')) {
-          const parts = content.split(/(?=o\s)/);
-          content = parts[0].trim();
-          if (parts.length > 1) {
-            hasSubItems = true;
-          }
-        }
-
-        html += `<li>${content}`;
-
-        if (hasSubItems) {
-          html += '<ul class="list-circle list-inside space-y-1 mt-2 ml-4">';
-          inSubList = true;
-
-          const subItems = trimmedLine.match(/o\s[^o]*/g);
-          if (subItems) {
-            subItems.forEach(subItem => {
-              const cleanSubItem = subItem.replace(/^o\s/, '').trim();
-              html += `<li>${cleanSubItem}</li>`;
-            });
-          }
-        }
-        html += '</li>';
-      }
-      // Sub bullet points (continuation)
-      else if (trimmedLine.startsWith('o ')) {
-        if (!inSubList && inList) {
-          html += '<ul class="list-circle list-inside space-y-1 mt-2 ml-4">';
-          inSubList = true;
-        }
-        const subContent = trimmedLine.substring(2).trim();
-        html += `<li>${subContent}</li>`;
-      }
-      // Location and contact info
-      else if (trimmedLine.toLowerCase().includes('location') || trimmedLine.toLowerCase().includes('contact')) {
-        if (inSubList) {
-          html += '</ul>';
-          inSubList = false;
-        }
-        if (inList) {
-          html += '</ul>';
-          inList = false;
-        }
-
-        if (trimmedLine.toLowerCase().includes('location')) {
-          const locationMatch = trimmedLine.match(/Location\s*:(.*)/i);
-          if (locationMatch) {
-            const locations = locationMatch[1].split(',').map(l => l.trim()).join(', ');
-            html += `<div class="mt-6"><h4 class="font-semibold mb-2 text-gray-900 dark:text-black">Locations</h4><p class="text-gray-900 dark:text-black">${locations}</p></div>`;
-          }
-        }
-
-        if (trimmedLine.toLowerCase().includes('contact') || trimmedLine.toLowerCase().includes('more information')) {
-          const contactMatch = trimmedLine.match(/(?:contact|more information)\s*:\s*(\d+)/i);
-          if (contactMatch) {
-            html += `<div class="mt-4"><h4 class="font-semibold mb-2 text-gray-900 dark:text-black">Contact Information</h4><p class="text-gray-900 dark:text-black">📞 ${contactMatch[1]}</p></div>`;
-          }
-        }
-      }
-      // Regular paragraphs
-      else if (trimmedLine) {
-        if (inSubList) {
-          html += '</ul>';
-          inSubList = false;
-        }
-        if (inList) {
-          html += '</ul>';
-          inList = false;
-        }
-
-        // Skip processing text that looks like it was already processed above
-        if (!trimmedLine.match(/^\d+\./) && !trimmedLine.startsWith('•') && !trimmedLine.startsWith('o ')) {
-          html += `<p class="text-gray-900 dark:text-black leading-relaxed mb-4">${trimmedLine}</p>`;
-        }
-      }
-    });
-
-    // Close any remaining lists
-    if (inSubList) {
-      html += '</ul>';
-    }
-    if (inList) {
-      html += '</ul>';
-    }
-
-    return html;
+  // Helper function to clean bullet points from any string
+  const cleanBulletPoints = (text) => {
+    if (!text) return text;
+    return text.replace(/^•\s*/gm, '').replace(/\n•\s*/g, '\n');
   };
 
   // loading / error UI
@@ -614,7 +508,6 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
         <div className="grid  lg:grid-cols-12 gap-6">
           {/* left */}
           <main className=" space-y-6 lg:col-span-8">
-            {console.log(job.salary_range.max)}
             <div className={`lg:sticky lg:top-24 bg-white ${isDarkMode ? "dark:bg-slate-800" : ""} rounded-xl p-6 shadow`}>
               <div className="flex justify-between items-start gap-4">
                 <div className="flex-1 min-w-0">
@@ -631,7 +524,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
 
                   <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                     {/* <div className="flex items-center gap-1">💼 {formatExperience(job.experience_required || job.experience)}</div> */}
-                    <div className="flex items-center gap-1">💰 {formatSalary(job.salary_range.min,job.salary_range.max)}</div>
+                    <div className="flex items-center gap-1">💰 {getSalaryDisplay(job)}</div>
 
                     <div className="flex items-center gap-1">📍 {job.location || "Remote"}</div>
                   </div>
@@ -656,7 +549,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
                 {applicationError && (
                   <div className="bg-red-100 text-red-800 px-3 py-2 rounded">{applicationError}</div>
                 )}
-                {hasApplied && !applicationError && (
+                {hasApplied && !applicationError && !applicationSuccess && (
                   <div className="bg-blue-100 text-blue-800 px-3 py-2 rounded">You have already applied for this job</div>
                 )}
               </div>
@@ -719,13 +612,13 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
               {(job.responsibilities?.length > 0 || job.responsibilities_string) && (
                 <div className="mt-6">
                   <h3 className="font-semibold mb-2">Key Responsibilities</h3>
-                  <ul className="list-disc list-inside text-gray-700 space-y-2">
+                  <div className="text-gray-900 dark:text-black leading-relaxed space-y-2">
                     {job.responsibilities?.length > 0 ? (
-                      job.responsibilities.map((r, i) => <li key={i}>{r}</li>)
+                      job.responsibilities.map((r, i) => <p key={i}>{cleanBulletPoints(r)}</p>)
                     ) : (
-                      <div dangerouslySetInnerHTML={{ __html: job.responsibilities_string }} />
+                      <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.responsibilities_string) }} />
                     )}
-                  </ul>
+                  </div>
                 </div>
               )}
 
@@ -733,13 +626,13 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
               {(job.requirements?.length > 0 || job.requirements_string) && (
                 <div className="mt-6">
                   <h3 className="font-semibold mb-2">Requirements</h3>
-                  <ul className="list-disc list-inside text-gray-700 space-y-2">
+                  <div className="text-gray-900 dark:text-black leading-relaxed space-y-2">
                     {job.requirements?.length > 0 ? (
-                      job.requirements.map((r, i) => <li key={i}>{r}</li>)
+                      job.requirements.map((r, i) => <p key={i}>{cleanBulletPoints(r)}</p>)
                     ) : (
-                      <div dangerouslySetInnerHTML={{ __html: job.requirements_string }} />
+                      <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.requirements_string) }} />
                     )}
-                  </ul>
+                  </div>
                 </div>
               )}
 
@@ -761,13 +654,13 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
               {(job.benefits?.length > 0 || job.benefits_string) && (
                 <div className="mt-6">
                   <h3 className="font-semibold mb-2">Benefits & Perks</h3>
-                  <ul className="list-disc list-inside text-gray-700 space-y-2">
+                  <div className="text-gray-900 dark:text-black leading-relaxed space-y-2">
                     {job.benefits?.length > 0 ? (
-                      job.benefits.map((b, i) => <li key={i}>{b}</li>)
+                      job.benefits.map((b, i) => <p key={i}>{cleanBulletPoints(b)}</p>)
                     ) : (
-                      <div dangerouslySetInnerHTML={{ __html: job.benefits_string }} />
+                      <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.benefits_string) }} />
                     )}
-                  </ul>
+                  </div>
                 </div>
               )}
             </section>
