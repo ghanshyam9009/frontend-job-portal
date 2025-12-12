@@ -18,7 +18,7 @@ const RecruiterLayout = () => {
       <RecruiterNavbar 
         toggleSidebar={toggleSidebar} 
       />
-      <RecruiterSidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+      {/* <RecruiterSidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} /> */}
       <main className={styles.main}>
         <Outlet />
       </main>

@@ -3,8 +3,7 @@ import { useAuth } from '../../Contexts/AuthContext';
 import { useTheme } from '../../Contexts/ThemeContext';
 import { recruiterService } from '../../services/recruiterService';
 import { calculateRecruiterProfileCompletion, getMissingRequiredFields } from '../../utils/recruiterProfileUtils';
-import { TrendingUp, CheckCircle, AlertCircle, Shield, Edit, MapPin, Briefcase, Globe, Calendar, FileText, Building } from 'lucide-react';
-import styles from '../../Styles/RecruiterDashboard.module.css';
+import { TrendingUp, CheckCircle, AlertCircle, Shield, Edit, MapPin, Briefcase, Globe, Calendar, FileText, Building, Phone, Mail, Hash, Award, XCircle } from 'lucide-react';
 
 const CompanyProfile = () => {
   const { user, updateUser } = useAuth();
@@ -45,7 +44,7 @@ const CompanyProfile = () => {
   const [kycLoading, setKycLoading] = useState(false);
   const [kycError, setKycError] = useState(null);
   const [kycSuccess, setKycSuccess] = useState('');
-  const [isEditMode, setIsEditMode] = useState(true); // Start in edit mode if profile incomplete
+  const [isEditMode, setIsEditMode] = useState(true);
   const [detailedData, setDetailedData] = useState(null);
 
   const formatKycStatusLabel = (status = '') => {
@@ -56,7 +55,6 @@ const CompanyProfile = () => {
       .join(' ');
   };
 
-  // Calculate profile completion percentage in real-time
   const profileCompletion = useMemo(() => {
     const dataForCalculation = {
       company_name: profileData.company_name,
@@ -75,17 +73,6 @@ const CompanyProfile = () => {
     };
 
     const completion = calculateRecruiterProfileCompletion(dataForCalculation);
-    console.log('Profile completion calculation:', {
-      data: dataForCalculation,
-      completion: completion + '%',
-      hasCompanyName: !!(profileData.company_name && profileData.company_name.trim()),
-      hasEmail: !!(profileData.email && profileData.email.trim()),
-      hasPhone: !!(profileData.phone && profileData.phone.trim()),
-      hasIndustry: !!(profileData.industry && profileData.industry.trim()),
-      hasCompanySize: !!(profileData.company_size && profileData.company_size.trim()),
-      hasDescription: !!(profileData.description && profileData.description.trim()),
-    });
-
     return completion;
   }, [profileData]);
 
@@ -105,6 +92,7 @@ const CompanyProfile = () => {
   const isKycVerified = ['verified', 'approved', 'completed', 'success'].includes(normalizedKycStatus);
   const isKycSubmitted = ['submitted', 'in_review', 'under_review', 'pending_verification'].includes(normalizedKycStatus);
   const isProfileComplete = profileCompletion === 100;
+  
   const stepDefinitions = [
     {
       number: 1,
@@ -122,13 +110,12 @@ const CompanyProfile = () => {
   const completedSteps = stepDefinitions.filter(step => step.complete).length;
   const stepProgress = (completedSteps / stepDefinitions.length) * 100;
 
-  // Fetch profile data on component mount
   useEffect(() => {
     const fetchProfile = async () => {
       if (user?.email) {
         try {
           setLoading(true);
-          const response = await recruiterService.getProfile(user.email, true); // Force refresh
+          const response = await recruiterService.getProfile(user.email, true);
 
           if (response.success && response.data) {
             const data = response.data.employer || response.data.profile || response.data;
@@ -173,7 +160,6 @@ const CompanyProfile = () => {
     fetchProfile();
   }, [user]);
 
-  // Fetch detailed data from AWS API when profile is complete
   const fetchDetailedData = async () => {
     if (user?.email && isProfileComplete) {
       try {
@@ -186,21 +172,16 @@ const CompanyProfile = () => {
 
         const data = await response.json();
         setDetailedData(data);
-        console.log('Fetched detailed data:', data);
       } catch (err) {
         console.error('Error fetching detailed data:', err);
-        // Don't set error state here as this is optional additional data
       }
     }
   };
 
-  // Update edit mode when profile completion changes
   useEffect(() => {
     if (!isProfileComplete) {
-      setIsEditMode(true); // Force edit mode if profile is incomplete
+      setIsEditMode(true);
     }
-    // Don't automatically switch to view mode when profile becomes complete
-    // Let user decide when to view or edit
   }, [isProfileComplete]);
 
   const handleInputChange = (e) => {
@@ -218,7 +199,6 @@ const CompanyProfile = () => {
     setSuccess(false);
 
     try {
-      // Validate required fields first
       if (!profileData.company_name?.trim()) {
         setError('Company name is required');
         setLoading(false);
@@ -245,10 +225,7 @@ const CompanyProfile = () => {
         return;
       }
 
-      // Prepare clean payload for API - match Postman format exactly
-      // Based on Postman payload structure, send all fields that have values
       const cleanProfileData = {
-        // Required fields - always include
         company_name: profileData.company_name.trim(),
         phone_number: profileData.phone.trim(),
         industry: profileData.industry.trim(),
@@ -256,8 +233,6 @@ const CompanyProfile = () => {
         description: profileData.description.trim(),
       };
       
-      // Optional fields - only include if they have actual values (not empty)
-      // Match Postman format where only fields with values are sent
       if (profileData.address?.trim()) {
         cleanProfileData.address = profileData.address.trim();
       }
@@ -277,35 +252,24 @@ const CompanyProfile = () => {
         cleanProfileData.company_website = profileData.website.trim();
       }
       
-      // Handle founded_year - must be a number if provided
       if (profileData.founded_year) {
         const year = parseInt(profileData.founded_year);
         if (!isNaN(year) && year >= 1900 && year <= new Date().getFullYear()) {
-          cleanProfileData.founded_year = year; // Send as number, not string
+          cleanProfileData.founded_year = year;
         }
       }
 
-      // Debug what data is being sent - clean payload
-      console.log('Clean profile data being sent:', cleanProfileData);
-      console.log('Email:', user?.email);
-
-      // Use the recruiterService.updateProfile method
       const response = await recruiterService.updateProfile(user?.email, cleanProfileData);
 
-      // Handle both success response format and error response format
       if (response && response.success) {
-        console.log('Profile update successful:', response);
         setShowSuccessModal(true);
         setSuccess(true);
         setError(null);
-        // Clear cache after successful update
         recruiterService.clearEmployerCache(user?.email);
 
-        // Update local state with successful response data if available
         if (response.data || response.profile) {
           const updatedData = response.data?.profile || response.profile || response.data;
 
-          // Extract only profile fields to avoid overwriting critical auth fields
           const profileOnlyData = {
             company_name: updatedData?.company_name,
             phone_number: updatedData?.phone_number || updatedData?.phone,
@@ -321,11 +285,8 @@ const CompanyProfile = () => {
             founded_year: updatedData?.founded_year
           };
 
-          // Update user context with profile data only (preserve role, user_id, email, etc.)
           updateUser(profileOnlyData);
 
-          // A safer way to update state: spread previous state and override with new values
-          // Use nullish coalescing (??) to correctly handle empty strings as valid values
           setProfileData(prev => ({
             ...prev,
             company_name: updatedData.company_name ?? prev.company_name,
@@ -342,16 +303,12 @@ const CompanyProfile = () => {
             description: updatedData.description ?? prev.description,
             founded_year: updatedData.founded_year ?? prev.founded_year,
           }));
-
-          console.log('Updated data from response:', updatedData);
         }
       } else {
-        console.error('Profile update failed:', response);
         const errorMessage = response?.error || 
                             response?.message || 
                             'Failed to update profile. Please check all required fields and try again.';
         
-        // Provide more helpful error message for 500 errors
         if (response?.status === 500) {
           setError(`Server error: ${errorMessage}. Please ensure all required fields are filled correctly and try again. If the problem persists, contact support.`);
         } else {
@@ -361,7 +318,6 @@ const CompanyProfile = () => {
       }
     } catch (err) {
       console.error('Profile update error:', err);
-      // Handle API error response structure
       const errorMessage = err?.response?.data?.error || 
                           err?.error?.message || 
                           err?.error || 
@@ -449,137 +405,151 @@ const CompanyProfile = () => {
     }
   };
 
-  // Render profile view when complete and not in edit mode
+  const isDark = theme === 'dark';
+  const bgColor = isDark ? 'bg-gray-900' : 'bg-gray-50';
+  const cardBg = isDark ? 'bg-gray-800' : 'bg-white';
+  const textColor = isDark ? 'text-white' : 'text-gray-900';
+  const textSecondary = isDark ? 'text-gray-400' : 'text-gray-600';
+  const borderColor = isDark ? 'border-gray-700' : 'border-gray-200';
+
   const renderProfileView = () => {
     if (!isProfileComplete || isEditMode) return null;
 
     return (
-      <div className={styles.profileView}>
-        <div className={styles.profileHeader}>
-          <div className={styles.profileTitle}>
-            <h1>Company Profile</h1>
-            <button
-              className={styles.editButton}
-              onClick={() => {
-                setIsEditMode(true);
-                // Fetch detailed data when entering edit mode
-                fetchDetailedData();
-              }}
-            >
-              <Edit size={16} />
-              Edit Profile
-            </button>
+      <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} overflow-hidden mb-6`}>
+        <div className={`p-5 border-b ${borderColor} flex items-center justify-between`}>
+          <div>
+            <h2 className={`text-xl font-bold ${textColor} mb-1`}>Company Profile</h2>
+            <p className={`text-sm ${textSecondary}`}>View your complete company information</p>
           </div>
+          <button
+            className="px-4 py-2 bg-[#2271B5] text-white text-sm rounded-md hover:bg-[#1a5a8f] transition-colors flex items-center gap-2"
+            onClick={() => {
+              setIsEditMode(true);
+              fetchDetailedData();
+            }}
+          >
+            <Edit size={16} />
+            Edit Profile
+          </button>
         </div>
 
-        <div className={styles.profileSections}>
+        <div className="p-5 space-y-6">
           {/* Company Information */}
-          <div className={styles.profileSection}>
-            <h2 className={styles.sectionTitle}>
-              <Building size={20} />
+          <div>
+            <h3 className={`text-base font-semibold ${textColor} mb-3 flex items-center gap-2`}>
+              <Building size={18} className="text-[#2271B5]" />
               Company Information
-            </h2>
-            <div className={styles.profileGrid}>
-              <div className={styles.profileField}>
-                <label>Company Name</label>
-                <p>{profileData.company_name || 'Not provided'}</p>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>Company Name</label>
+                <p className={`text-sm ${textColor} mt-1`}>{profileData.company_name || 'Not provided'}</p>
               </div>
-              <div className={styles.profileField}>
-                <label>Email</label>
-                <p>{profileData.email || 'Not provided'}</p>
+              <div>
+                <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>Email</label>
+                <p className={`text-sm ${textColor} mt-1 flex items-center gap-1`}>
+                  <Mail size={14} />
+                  {profileData.email || 'Not provided'}
+                </p>
               </div>
-              <div className={styles.profileField}>
-                <label>Phone Number</label>
-                <p>{profileData.phone || 'Not provided'}</p>
+              <div>
+                <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>Phone Number</label>
+                <p className={`text-sm ${textColor} mt-1 flex items-center gap-1`}>
+                  <Phone size={14} />
+                  {profileData.phone || 'Not provided'}
+                </p>
               </div>
-              <div className={styles.profileField}>
-                <label>Website</label>
-                <p>
+              <div>
+                <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>Website</label>
+                <p className={`text-sm mt-1 flex items-center gap-1`}>
                   {profileData.website ? (
-                    <a href={profileData.website} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'underline' }}>
-                      {profileData.website}
-                    </a>
+                    <>
+                      <Globe size={14} className="text-[#2271B5]" />
+                      <a href={profileData.website} target="_blank" rel="noopener noreferrer" className="text-[#2271B5] hover:underline">
+                        {profileData.website}
+                      </a>
+                    </>
                   ) : (
-                    'Not provided'
+                    <span className={textColor}>Not provided</span>
                   )}
                 </p>
               </div>
-              <div className={styles.profileField}>
-                <label>Industry</label>
-                <p>{profileData.industry || 'Not provided'}</p>
+              <div>
+                <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>Industry</label>
+                <p className={`text-sm ${textColor} mt-1`}>{profileData.industry || 'Not provided'}</p>
               </div>
-              <div className={styles.profileField}>
-                <label>Company Size</label>
-                <p>{profileData.company_size || 'Not provided'}</p>
+              <div>
+                <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>Company Size</label>
+                <p className={`text-sm ${textColor} mt-1`}>{profileData.company_size || 'Not provided'}</p>
               </div>
-              <div className={styles.profileField}>
-                <label>Founded Year</label>
-                <p>{profileData.founded_year || 'Not provided'}</p>
+              <div>
+                <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>Founded Year</label>
+                <p className={`text-sm ${textColor} mt-1 flex items-center gap-1`}>
+                  <Calendar size={14} />
+                  {profileData.founded_year || 'Not provided'}
+                </p>
               </div>
             </div>
           </div>
 
           {/* Address */}
-          <div className={styles.profileSection}>
-            <h2 className={styles.sectionTitle}>
-              <MapPin size={20} />
+          <div>
+            <h3 className={`text-base font-semibold ${textColor} mb-3 flex items-center gap-2`}>
+              <MapPin size={18} className="text-[#2271B5]" />
               Address
-            </h2>
-            <div className={styles.profileGrid}>
-              <div className={`${styles.profileField} ${styles.fullWidth}`}>
-                <label>Street Address</label>
-                <p>{profileData.address || 'Not provided'}</p>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>Street Address</label>
+                <p className={`text-sm ${textColor} mt-1`}>{profileData.address || 'Not provided'}</p>
               </div>
-              <div className={styles.profileField}>
-                <label>City</label>
-                <p>{profileData.city || 'Not provided'}</p>
+              <div>
+                <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>City</label>
+                <p className={`text-sm ${textColor} mt-1`}>{profileData.city || 'Not provided'}</p>
               </div>
-              <div className={styles.profileField}>
-                <label>State</label>
-                <p>{profileData.state || 'Not provided'}</p>
+              <div>
+                <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>State</label>
+                <p className={`text-sm ${textColor} mt-1`}>{profileData.state || 'Not provided'}</p>
               </div>
-              <div className={styles.profileField}>
-                <label>Country</label>
-                <p>{profileData.country || 'Not provided'}</p>
+              <div>
+                <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>Country</label>
+                <p className={`text-sm ${textColor} mt-1`}>{profileData.country || 'Not provided'}</p>
               </div>
-              <div className={styles.profileField}>
-                <label>Postal Code</label>
-                <p>{profileData.postal_code || 'Not provided'}</p>
+              <div>
+                <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>Postal Code</label>
+                <p className={`text-sm ${textColor} mt-1`}>{profileData.postal_code || 'Not provided'}</p>
               </div>
             </div>
           </div>
 
           {/* Company Description */}
-          <div className={styles.profileSection}>
-            <h2 className={styles.sectionTitle}>
-              <Briefcase size={20} />
+          <div>
+            <h3 className={`text-base font-semibold ${textColor} mb-3 flex items-center gap-2`}>
+              <Briefcase size={18} className="text-[#2271B5]" />
               Company Description
-            </h2>
-            <div className={styles.profileGrid}>
-              <div className={`${styles.profileField} ${styles.fullWidth}`}>
-                <label>Description</label>
-                <p className={styles.descriptionText}>{profileData.description || 'Not provided'}</p>
-              </div>
-            </div>
+            </h3>
+            <p className={`text-sm ${textColor} leading-relaxed`}>{profileData.description || 'Not provided'}</p>
           </div>
 
-          {/* Additional Details from AWS API */}
+          {/* Additional Details */}
           {detailedData && (
-            <div className={styles.profileSection}>
-              <h2 className={styles.sectionTitle}>
-                <FileText size={20} />
+            <div>
+              <h3 className={`text-base font-semibold ${textColor} mb-3 flex items-center gap-2`}>
+                <FileText size={18} className="text-[#2271B5]" />
                 Additional Details
-              </h2>
-              <div className={styles.profileGrid}>
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {Object.entries(detailedData).map(([key, value]) => {
-                  // Skip common fields already displayed above
                   const skipFields = ['company_name', 'email', 'phone', 'phone_number', 'website', 'company_website', 'address', 'city', 'state', 'country', 'postal_code', 'industry', 'company_size', 'description', 'founded_year'];
                   if (skipFields.includes(key.toLowerCase()) || !value) return null;
 
                   return (
-                    <div key={key} className={styles.profileField}>
-                      <label>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</label>
-                      <p>{String(value)}</p>
+                    <div key={key}>
+                      <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>
+                        {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                      </label>
+                      <p className={`text-sm ${textColor} mt-1`}>{String(value)}</p>
                     </div>
                   );
                 })}
@@ -593,444 +563,569 @@ const CompanyProfile = () => {
 
   if (loading && !profileData.company_name) {
     return (
-      <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
-        <main className={styles.main}>
-          <div className={styles.loadingContainer}>
-            <div className={styles.loadingSpinner}></div>
-            <h2>Loading Profile...</h2>
-            <p>Fetching your company profile data</p>
+      <div className={`min-h-screen ${bgColor} pt-20 lg:pt-24 px-4 sm:px-6 lg:px-8`}>
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#2271B5]"></div>
+            <h2 className={`mt-4 text-xl font-semibold ${textColor}`}>Loading Profile...</h2>
+            <p className={`mt-2 ${textSecondary}`}>Fetching your company profile data</p>
           </div>
-        </main>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
-      <main className={styles.main}>
-        {/* Render Profile View when complete and not editing */}
+    <div className={`min-h-screen ${bgColor} pt-20 lg:pt-24 px-4 sm:px-6 lg:px-8 pb-8`}>
+      <div className="max-w-7xl mx-auto">
+        {/* Page Header */}
+        <div className="mb-6">
+          <h1 className={`text-2xl lg:text-3xl font-bold ${textColor} mb-1`}>
+            {isEditMode || !isProfileComplete ? 'Complete Your Profile' : 'Company Profile'}
+          </h1>
+          <p className={`text-sm ${textSecondary}`}>
+            {isEditMode || !isProfileComplete 
+              ? 'Fill in your company details to enable job posting and candidate outreach'
+              : 'Manage your company information and verification status'}
+          </p>
+        </div>
+
         {renderProfileView()}
 
-        {/* Render Edit Form when in edit mode or profile incomplete */}
         {(isEditMode || !isProfileComplete) && (
-          <section className={styles.companyProfileSection}>
-          <div className={styles.stepIndicator}>
-            <div className={styles.stepProgress}>
-              <div
-                className={styles.progressBar}
-                style={{ width: `${stepProgress}%` }}
-              />
-            </div>
-            <div className={styles.steps}>
-              {stepDefinitions.map((step, index) => {
-                const previousStepsComplete = index === 0 || stepDefinitions.slice(0, index).every(prevStep => prevStep.complete);
-                const isActive = step.complete || previousStepsComplete;
-                return (
-                  <div key={step.number} className={`${styles.step} ${isActive ? styles.active : ''}`}>
-                    <div className={styles.stepNumber}>{step.number}</div>
-                    <div className={styles.stepLabel}>{step.label}</div>
-                    <div className={styles.stepPercentage}>{step.statusText}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Profile Completion Card */}
-          <div style={{
-            marginBottom: '2rem',
-            padding: '1.5rem',
-            backgroundColor: theme === 'dark' ? '#2a2a2a' : '#f8f9fa',
-            borderRadius: '8px',
-            border: `2px solid ${profileCompletion === 100 ? '#28a745' : profileCompletion >= 70 ? '#ffc107' : '#dc3545'}`,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {profileCompletion === 100 ? (
-                  <CheckCircle size={24} color="#28a745" />
-                ) : (
-                  <TrendingUp size={24} color={profileCompletion >= 70 ? '#ffc107' : '#dc3545'} />
-                )}
-                <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Profile Completion</h3>
-              </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: profileCompletion === 100 ? '#28a745' : profileCompletion >= 70 ? '#ffc107' : '#dc3545' }}>
-                {profileCompletion}%
-              </div>
-            </div>
-            <div style={{ width: '100%', height: '12px', backgroundColor: theme === 'dark' ? '#1a1a1a' : '#e9ecef', borderRadius: '6px', overflow: 'hidden' }}>
-              <div
-                style={{
-                  width: `${profileCompletion}%`,
-                  height: '100%',
-                  backgroundColor: profileCompletion === 100 ? '#28a745' : profileCompletion >= 70 ? '#ffc107' : '#dc3545',
-                  transition: 'width 0.3s ease',
-                }}
-              />
-            </div>
-            {profileCompletion < 100 && (
-              <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: theme === 'dark' ? '#ccc' : '#666' }}>
-                {missingFields.length > 0 && (
-                  <div>
-                    <AlertCircle size={16} style={{ display: 'inline', marginRight: '0.5rem', verticalAlign: 'middle' }} />
-                    <strong>Missing required fields:</strong> {missingFields.join(', ')}
-                  </div>
-                )}
-                <p style={{ marginTop: '0.5rem', marginBottom: 0 }}>
-                  {profileCompletion === 100 
-                    ? '✅ Your profile is complete! You can now post jobs.'
-                    : `Complete ${100 - profileCompletion}% more to enable job posting.`}
-                </p>
-              </div>
-            )}
-            {profileCompletion === 100 && (
-              <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#28a745' }}>
-                <CheckCircle size={16} style={{ display: 'inline', marginRight: '0.5rem', verticalAlign: 'middle' }} />
-                <strong>Profile Complete!</strong> You can now post jobs.
-              </div>
-            )}
-          </div>
-
-          {error && (
-            <div className={styles.errorText} style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#fee', border: '1px solid #fcc', borderRadius: '4px' }}>
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div className={styles.successMessage} style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#efe', border: '1px solid #cfc', borderRadius: '4px' }}>
-              Profile updated successfully!
-            </div>
-          )}
-
-          <form onSubmit={handleProfileUpdate} className={styles.profileForm}>
-            <div className={styles.formSection}>
-              <h2>Company Information</h2>
-              <div className={styles.formGrid}>
-                <div className={styles.formGroup}>
-                  <label>Company Name *</label>
-                  <input
-                    type="text"
-                    name="company_name"
-                    value={profileData.company_name}
-                    onChange={handleInputChange}
-                    required
-                  />
+          <>
+            {/* Step Progress */}
+            <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-5 mb-6`}>
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-sm font-medium ${textColor}`}>Setup Progress</span>
+                  <span className={`text-sm font-bold ${textColor}`}>{Math.round(stepProgress)}%</span>
                 </div>
-                <div className={styles.formGroup}>
-                  <label>Phone Number *</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={profileData.phone}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Website</label>
-                  <input
-                    type="url"
-                    name="website"
-                    value={profileData.website}
-                    onChange={handleInputChange}
-                    placeholder="https://example.com"
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Industry *</label>
-                  <input
-                    type="text"
-                    name="industry"
-                    value={profileData.industry}
-                    onChange={handleInputChange}
-                    placeholder="e.g., Technology, Healthcare, Finance"
-                    required
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Company Size *</label>
-                  <select
-                    name="company_size"
-                    value={profileData.company_size}
-                    onChange={handleInputChange}
-                    required
-                  >
-                    <option value="">Select company size</option>
-                    <option value="1-10">1-10 employees</option>
-                    <option value="11-50">11-50 employees</option>
-                    <option value="51-200">51-200 employees</option>
-                    <option value="201-500">201-500 employees</option>
-                    <option value="500+">500+ employees</option>
-                  </select>
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Founded Year</label>
-                  <input
-                    type="number"
-                    name="founded_year"
-                    value={profileData.founded_year}
-                    onChange={handleInputChange}
-                    placeholder="e.g., 2020"
-                    min="1900"
-                    max={new Date().getFullYear()}
+                <div className={`w-full h-2 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full overflow-hidden`}>
+                  <div
+                    className="h-full bg-[#2271B5] transition-all duration-300"
+                    style={{ width: `${stepProgress}%` }}
                   />
                 </div>
               </div>
-            </div>
-
-            <div className={styles.formSection}>
-              <h2>Address Information</h2>
-              <div className={styles.formGrid}>
-                <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
-                  <label>Address</label>
-                  <input
-                    type="text"
-                    name="address"
-                    value={profileData.address}
-                    onChange={handleInputChange}
-                    placeholder="Street address"
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label>City</label>
-                  <input
-                    type="text"
-                    name="city"
-                    value={profileData.city}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label>State</label>
-                  <input
-                    type="text"
-                    name="state"
-                    value={profileData.state}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Country</label>
-                  <input
-                    type="text"
-                    name="country"
-                    value={profileData.country}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Postal Code</label>
-                  <input
-                    type="text"
-                    name="postal_code"
-                    value={profileData.postal_code}
-                    onChange={handleInputChange}
-                  />
-                </div>
+              <div className="grid grid-cols-2 gap-3">
+                {stepDefinitions.map((step, index) => {
+                  const previousStepsComplete = index === 0 || stepDefinitions.slice(0, index).every(prevStep => prevStep.complete);
+                  const isActive = step.complete || previousStepsComplete;
+                  return (
+                    <div
+                      key={step.number}
+                      className={`flex items-center gap-3 p-3 rounded-lg border ${borderColor} ${
+                        isActive ? (isDark ? 'bg-gray-700/50' : 'bg-blue-50') : ''
+                      }`}
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm ${
+                          step.complete
+                            ? 'bg-green-500 text-white'
+                            : isActive
+                            ? 'bg-[#2271B5] text-white'
+                            : isDark
+                            ? 'bg-gray-700 text-gray-400'
+                            : 'bg-gray-200 text-gray-500'
+                        }`}
+                      >
+                        {step.complete ? <CheckCircle size={16} /> : step.number}
+                      </div>
+                      <div className="flex-1">
+                        <p className={`text-sm font-medium ${textColor}`}>{step.label}</p>
+                        <p className={`text-xs ${textSecondary}`}>{step.statusText}</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            <div className={styles.formSection}>
-              <h2>Company Description</h2>
-              <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
-                <label>Description *</label>
-                <textarea
-                  name="description"
-                  value={profileData.description}
-                  onChange={handleInputChange}
-                  rows="5"
-                  placeholder="Tell us about your company..."
-                  required
+            {/* Profile Completion Card */}
+            <div className={`${cardBg} rounded-lg shadow-sm border-2 ${
+              profileCompletion === 100 ? 'border-green-500' : profileCompletion >= 70 ? 'border-yellow-500' : 'border-red-500'
+            } p-5 mb-6`}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  {profileCompletion === 100 ? (
+                    <CheckCircle size={24} className="text-green-500" />
+                  ) : (
+                    <TrendingUp size={24} className={profileCompletion >= 70 ? 'text-yellow-500' : 'text-red-500'} />
+                  )}
+                  <h3 className={`text-lg font-bold ${textColor}`}>Profile Completion</h3>
+                </div>
+                <div className={`text-2xl font-bold ${
+                  profileCompletion === 100 ? 'text-green-500' : profileCompletion >= 70 ? 'text-yellow-500' : 'text-red-500'
+                }`}>
+                  {profileCompletion}%
+                </div>
+              </div>
+              <div className={`w-full h-3 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full overflow-hidden mb-3`}>
+                <div
+                  className={`h-full transition-all duration-300 ${
+                    profileCompletion === 100 ? 'bg-green-500' : profileCompletion >= 70 ? 'bg-yellow-500' : 'bg-red-500'
+                  }`}
+                  style={{ width: `${profileCompletion}%` }}
                 />
               </div>
-            </div>
-
-            <div className={styles.formActions}>
-              <button
-                type="submit"
-                className={styles.submitBtn}
-                disabled={loading}
-              >
-                {loading ? 'Updating...' : 'Update Profile'}
-              </button>
-            </div>
-          </form>
-
-          <div className={styles.formSection}>
-            <div className={styles.kycHeader}>
-              <div>
-                <h2>KYC Verification</h2>
-                <p style={{ margin: 0, color: theme === 'dark' ? '#cbd5f5' : '#6b7280' }}>
-                  Secure your account and unlock hiring features by verifying your organization.
-                </p>
-              </div>
-              <div className={styles.kycStatus}>
-                <Shield size={20} color={isKycVerified ? '#10b981' : '#f59e0b'} />
-                <span>
-                  Status:{' '}
-                  <strong>
-                    {formatKycStatusLabel(kycStatus.status)}
-                  </strong>
-                </span>
-              </div>
-            </div>
-
-            {kycStatus.updatedAt && (
-              <p style={{ marginTop: '-8px', color: theme === 'dark' ? '#9ca3af' : '#6b7280', fontSize: '0.85rem' }}>
-                Last updated: {new Date(kycStatus.updatedAt).toLocaleString()}
-              </p>
-            )}
-
-            {(!isProfileComplete || !isKycVerified) && (
-              <div className={styles.kycNotice}>
-                <p>
-                  {isProfileComplete
-                    ? 'Upload your company KYC document (GST, PAN, Incorporation Certificate, etc.) to enable job posting and candidate outreach.'
-                    : 'Complete your company profile first. Once done, return here to submit your KYC documents.'}
-                </p>
-              </div>
-            )}
-
-            {kycError && (
-              <div className={styles.errorText} style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#fee', border: '1px solid #fcc', borderRadius: '4px' }}>
-                {kycError}
-              </div>
-            )}
-
-            {kycSuccess && (
-              <div className={styles.successMessage} style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#efe', border: '1px solid #cfc', borderRadius: '4px' }}>
-                {kycSuccess}
-              </div>
-            )}
-
-            <form onSubmit={handleKycSubmit} className={styles.profileForm}>
-              <div className={styles.formGrid}>
-                <div className={styles.formGroup}>
-                  <label>Document Type</label>
-                  <select
-                    name="documentType"
-                    value={kycData.documentType}
-                    onChange={handleKycInputChange}
-                  >
-                    <option value="GST">GST Certificate</option>
-                    <option value="PAN">PAN Card</option>
-                    <option value="MSME">MSME Registration</option>
-                    <option value="INCORPORATION">Certificate of Incorporation</option>
-                    <option value="OTHER">Other Government Issued Document</option>
-                  </select>
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Document Number *</label>
-                  <input
-                    type="text"
-                    name="documentNumber"
-                    value={kycData.documentNumber}
-                    onChange={handleKycInputChange}
-                    placeholder="Enter registration / document number"
-                    required
-                  />
-                </div>
-                <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
-                  <label>Upload Document (PDF/JPG/PNG) *</label>
-                  <input
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={handleKycFileChange}
-                    required
-                  />
-                  {kycData.documentFile && (
-                    <small style={{ display: 'block', marginTop: '0.5rem', color: theme === 'dark' ? '#d1d5db' : '#6b7280' }}>
-                      Selected file: {kycData.documentFile.name}
-                    </small>
+              {profileCompletion < 100 ? (
+                <div className={`text-sm ${textSecondary}`}>
+                  {missingFields.length > 0 && (
+                    <div className="flex items-start gap-2 mb-2">
+                      <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+                      <div>
+                        <strong className={textColor}>Missing required fields:</strong> {missingFields.join(', ')}
+                      </div>
+                    </div>
                   )}
+                  <p className={`${textColor} font-medium`}>
+                    Complete {100 - profileCompletion}% more to enable job posting.
+                  </p>
                 </div>
-                <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
-                  <label>Additional Notes (Optional)</label>
-                  <textarea
-                    name="additionalNotes"
-                    value={kycData.additionalNotes}
-                    onChange={handleKycInputChange}
-                    rows="3"
-                    placeholder="Add any clarifications for the verification team (optional)"
-                  />
+              ) : (
+                <div className="flex items-center gap-2 text-green-500 text-sm font-medium">
+                  <CheckCircle size={16} />
+                  Profile Complete! You can now post jobs.
                 </div>
-                {kycStatus.documentUrl && (
-                  <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
-                    <label>Previously Uploaded Document</label>
-                    <a
-                      href={kycStatus.documentUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ color: '#2563eb', textDecoration: 'underline' }}
-                    >
-                      View document
-                    </a>
+              )}
+            </div>
+
+            {/* Error/Success Messages */}
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-3">
+                <XCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+              </div>
+            )}
+
+            {success && (
+              <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-start gap-3">
+                <CheckCircle size={20} className="text-green-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-green-800 dark:text-green-200">Profile updated successfully!</p>
+              </div>
+            )}
+
+            {/* Profile Form */}
+            <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} overflow-hidden mb-6`}>
+              <div className={`p-5 border-b ${borderColor}`}>
+                <h2 className={`text-lg font-bold ${textColor} mb-1`}>Company Information</h2>
+                <p className={`text-sm ${textSecondary}`}>Enter your company details</p>
+              </div>
+
+              <form onSubmit={handleProfileUpdate} className="p-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className={`block text-sm font-medium ${textColor} mb-1`}>
+                      Company Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="company_name"
+                      value={profileData.company_name}
+                      onChange={handleInputChange}
+                      required
+                      className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
+                        isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
+                      } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
+                    />
                   </div>
-                )}
-                {kycStatus.reviewerNote && (
-                  <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
-                    <label>Reviewer Note</label>
-                    <div style={{ padding: '0.75rem', borderRadius: '6px', backgroundColor: '#fff7ed', border: '1px solid #fdba74', color: '#92400e' }}>
-                      {kycStatus.reviewerNote}
+
+                  <div>
+                    <label className={`block text-sm font-medium ${textColor} mb-1`}>
+                      Phone Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={profileData.phone}
+                      onChange={handleInputChange}
+                      required
+                      className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
+                        isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
+                      } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium ${textColor} mb-1`}>
+                      Website
+                    </label>
+                    <input
+                      type="url"
+                      name="website"
+                      value={profileData.website}
+                      onChange={handleInputChange}
+                      placeholder="https://example.com"
+                      className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
+                        isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
+                      } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium ${textColor} mb-1`}>
+                      Industry <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="industry"
+                      value={profileData.industry}
+                      onChange={handleInputChange}
+                      placeholder="e.g., Technology, Healthcare, Finance"
+                      required
+                      className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
+                        isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
+                      } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium ${textColor} mb-1`}>
+                      Company Size <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="company_size"
+                      value={profileData.company_size}
+                      onChange={handleInputChange}
+                      required
+                      className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
+                        isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
+                      } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
+                    >
+                      <option value="">Select company size</option>
+                      <option value="1-10">1-10 employees</option>
+                      <option value="11-50">11-50 employees</option>
+                      <option value="51-200">51-200 employees</option>
+                      <option value="201-500">201-500 employees</option>
+                      <option value="500+">500+ employees</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium ${textColor} mb-1`}>
+                      Founded Year
+                    </label>
+                    <input
+                      type="number"
+                      name="founded_year"
+                      value={profileData.founded_year}
+                      onChange={handleInputChange}
+                      placeholder="e.g., 2020"
+                      min="1900"
+                      max={new Date().getFullYear()}
+                      className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
+                        isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
+                      } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <h3 className={`text-base font-semibold ${textColor} mb-3`}>Address Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label className={`block text-sm font-medium ${textColor} mb-1`}>
+                        Street Address
+                      </label>
+                      <input
+                        type="text"
+                        name="address"
+                        value={profileData.address}
+                        onChange={handleInputChange}
+                        placeholder="Street address"
+                        className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
+                          isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
+                        } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-sm font-medium ${textColor} mb-1`}>
+                        City
+                      </label>
+                      <input
+                        type="text"
+                        name="city"
+                        value={profileData.city}
+                        onChange={handleInputChange}
+                        className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
+                          isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
+                        } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-sm font-medium ${textColor} mb-1`}>
+                        State
+                      </label>
+                      <input
+                        type="text"
+                        name="state"
+                        value={profileData.state}
+                        onChange={handleInputChange}
+                        className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
+                          isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
+                        } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-sm font-medium ${textColor} mb-1`}>
+                        Country
+                      </label>
+                      <input
+                        type="text"
+                        name="country"
+                        value={profileData.country}
+                        onChange={handleInputChange}
+                        className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
+                          isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
+                        } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-sm font-medium ${textColor} mb-1`}>
+                        Postal Code
+                      </label>
+                      <input
+                        type="text"
+                        name="postal_code"
+                        value={profileData.postal_code}
+                        onChange={handleInputChange}
+                        className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
+                          isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
+                        } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
+                      />
                     </div>
                   </div>
-                )}
-              </div>
-              <div className={styles.formActions}>
+                </div>
+
+                <div className="mb-6">
+                  <label className={`block text-sm font-medium ${textColor} mb-1`}>
+                    Company Description <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    name="description"
+                    value={profileData.description}
+                    onChange={handleInputChange}
+                    rows="5"
+                    placeholder="Tell us about your company..."
+                    required
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
+                      isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
+                    } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
+                  />
+                </div>
+
                 <button
                   type="submit"
-                  className={styles.submitBtn}
-                  disabled={kycLoading}
+                  disabled={loading}
+                  className="w-full md:w-auto px-6 py-2.5 bg-[#2271B5] text-white font-medium rounded-md hover:bg-[#1a5a8f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {kycLoading ? 'Submitting...' : 'Submit KYC for Review'}
+                  {loading ? 'Updating...' : 'Update Profile'}
                 </button>
+              </form>
+            </div>
+
+            {/* KYC Verification */}
+            <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} overflow-hidden`}>
+              <div className={`p-5 border-b ${borderColor}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h2 className={`text-lg font-bold ${textColor} mb-1`}>KYC Verification</h2>
+                    <p className={`text-sm ${textSecondary}`}>
+                      Secure your account and unlock hiring features by verifying your organization
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Shield size={20} className={isKycVerified ? 'text-green-500' : 'text-yellow-500'} />
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      isKycVerified
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                        : isKycSubmitted
+                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                    }`}>
+                      {formatKycStatusLabel(kycStatus.status)}
+                    </span>
+                  </div>
+                </div>
+                {kycStatus.updatedAt && (
+                  <p className={`text-xs ${textSecondary}`}>
+                    Last updated: {new Date(kycStatus.updatedAt).toLocaleString()}
+                  </p>
+                )}
               </div>
-            </form>
-          </div>
-        </section>
+
+              <div className="p-5">
+                {(!isProfileComplete || !isKycVerified) && (
+                  <div className={`mb-4 p-3 rounded-lg ${
+                    isDark ? 'bg-blue-900/20 border border-blue-800' : 'bg-blue-50 border border-blue-200'
+                  }`}>
+                    <p className={`text-sm ${isDark ? 'text-blue-200' : 'text-blue-800'}`}>
+                      {isProfileComplete
+                        ? 'Upload your company KYC document (GST, PAN, Incorporation Certificate, etc.) to enable job posting and candidate outreach.'
+                        : 'Complete your company profile first. Once done, return here to submit your KYC documents.'}
+                    </p>
+                  </div>
+                )}
+
+                {kycError && (
+                  <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2">
+                    <XCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-800 dark:text-red-200">{kycError}</p>
+                  </div>
+                )}
+
+                {kycSuccess && (
+                  <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-start gap-2">
+                    <CheckCircle size={16} className="text-green-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-green-800 dark:text-green-200">{kycSuccess}</p>
+                  </div>
+                )}
+
+                <form onSubmit={handleKycSubmit}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className={`block text-sm font-medium ${textColor} mb-1`}>
+                        Document Type
+                      </label>
+                      <select
+                        name="documentType"
+                        value={kycData.documentType}
+                        onChange={handleKycInputChange}
+                        className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
+                          isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
+                        } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
+                      >
+                        <option value="GST">GST Certificate</option>
+                        <option value="PAN">PAN Card</option>
+                        <option value="MSME">MSME Registration</option>
+                        <option value="INCORPORATION">Certificate of Incorporation</option>
+                        <option value="OTHER">Other Government Issued Document</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className={`block text-sm font-medium ${textColor} mb-1`}>
+                        Document Number <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="documentNumber"
+                        value={kycData.documentNumber}
+                        onChange={handleKycInputChange}
+                        placeholder="Enter registration / document number"
+                        required
+                        className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
+                          isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
+                        } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className={`block text-sm font-medium ${textColor} mb-1`}>
+                        Upload Document (PDF/JPG/PNG) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={handleKycFileChange}
+                        required
+                        className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
+                          isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
+                        } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
+                      />
+                      {kycData.documentFile && (
+                        <p className={`text-xs ${textSecondary} mt-1`}>
+                          Selected file: {kycData.documentFile.name}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className={`block text-sm font-medium ${textColor} mb-1`}>
+                        Additional Notes (Optional)
+                      </label>
+                      <textarea
+                        name="additionalNotes"
+                        value={kycData.additionalNotes}
+                        onChange={handleKycInputChange}
+                        rows="3"
+                        placeholder="Add any clarifications for the verification team (optional)"
+                        className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
+                          isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
+                        } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
+                      />
+                    </div>
+
+                    {kycStatus.documentUrl && (
+                      <div className="md:col-span-2">
+                        <label className={`block text-sm font-medium ${textColor} mb-1`}>
+                          Previously Uploaded Document
+                        </label>
+                        <a
+                          href={kycStatus.documentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#2271B5] hover:underline text-sm flex items-center gap-1"
+                        >
+                          <FileText size={14} />
+                          View document
+                        </a>
+                      </div>
+                    )}
+
+                    {kycStatus.reviewerNote && (
+                      <div className="md:col-span-2">
+                        <label className={`block text-sm font-medium ${textColor} mb-1`}>
+                          Reviewer Note
+                        </label>
+                        <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                          <p className="text-sm text-yellow-900 dark:text-yellow-200">{kycStatus.reviewerNote}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={kycLoading}
+                    className="w-full md:w-auto px-6 py-2.5 bg-[#2271B5] text-white font-medium rounded-md hover:bg-[#1a5a8f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {kycLoading ? 'Submitting...' : 'Submit KYC for Review'}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </>
         )}
-      </main>
+      </div>
 
       {/* Success Modal */}
       {showSuccessModal && (
         <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4"
           onClick={() => setShowSuccessModal(false)}
         >
           <div
-            style={{
-              backgroundColor: 'white',
-              padding: '2rem',
-              borderRadius: '8px',
-              maxWidth: '400px',
-              width: '90%'
-            }}
+            className={`${cardBg} rounded-lg shadow-xl max-w-md w-full p-6`}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 style={{ marginTop: 0 }}>Success!</h2>
-            <p>Your company profile has been updated successfully.</p>
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                <CheckCircle size={32} className="text-green-500" />
+              </div>
+            </div>
+            <h2 className={`text-xl font-bold ${textColor} text-center mb-2`}>Success!</h2>
+            <p className={`text-sm ${textSecondary} text-center mb-6`}>
+              Your company profile has been updated successfully.
+            </p>
             <button
               onClick={() => setShowSuccessModal(false)}
-              style={{
-                marginTop: '1rem',
-                padding: '0.5rem 1rem',
-                backgroundColor: '#007bff',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
+              className="w-full px-4 py-2.5 bg-[#2271B5] text-white font-medium rounded-md hover:bg-[#1a5a8f] transition-colors"
             >
               OK
             </button>

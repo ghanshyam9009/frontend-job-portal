@@ -3,10 +3,11 @@ import { FaFacebook, FaTwitter, FaLinkedin, FaEnvelope, FaMapMarkerAlt, FaPhone,
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import HomeNav from "../Components/HomeNav";
 import Footer from "../Components/Footer";
+import { useAuth } from "../Contexts/AuthContext";
 
 const ContactUs = () => {
   const [theme, setTheme] = useState('light');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -45,9 +46,9 @@ const ContactUs = () => {
     <div className={`min-h-screen ${isDark ? 'bg-gray-900' : 'bg-gray-50'} transition-colors duration-300`}>
           
     <div className="lg:h-20 h-15">
-         {isAuthenticated ? <CandidateNavbar /> : <HomeNav />}
+         {user ? <CandidateNavbar/> : <HomeNav/>}
       </div>
-
+{console.log(user)}
 
       {/* Compact Hero Section */}
       <div className={`${isDark ? 'bg-gradient-to-br from-blue-900 to-gray-800' : 'bg-gradient-to-br from-blue-600 to-blue-800'} text-white py-8`}>

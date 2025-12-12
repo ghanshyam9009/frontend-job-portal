@@ -6,14 +6,17 @@ import { applicationService } from "../services/applicationService";
 import { candidateExternalService } from "../services/candidateExternalService";
 import { studentService } from "../services/studentService";
 import HomeNav from "../Components/HomeNav";
-import { Bookmark, Briefcase, MapPin, Sparkles, TrendingUp } from "lucide-react";
+import { Bookmark, Briefcase, MapPin, Sparkles, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
 import Footer from "../Components/Footer";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
+import RecruiterNavbar from "../Components/Recruiter/RecruiterNavbar";
 
 const JobDescription = () => {
   // theme
   const [isDarkMode, setIsDarkMode] = useState(false);
-const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
+  const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
+  const [showRelatedJobs, setShowRelatedJobs] = useState(false);
+  
   // job state
   const [isApplying, setIsApplying] = useState(false);
   const [applicationError, setApplicationError] = useState("");
@@ -23,7 +26,8 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
   const [error, setError] = useState(null);
   const [hasApplied, setHasApplied] = useState(false);
   const [relatedJobs, setRelatedJobs] = useState([]);
- const textSecondary = isDarkMode ? 'text-gray-300' : 'text-gray-600';
+  const textSecondary = isDarkMode ? 'text-gray-300' : 'text-gray-600';
+  
   const { slug } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
@@ -80,7 +84,6 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
       let stepCompleted = 0;
 
       if (step.isArray) {
-        // Handle array fields (education, experience)
         const arrayData = userData[step.arrayField] || [];
         if (Array.isArray(arrayData) && arrayData.length > 0) {
           const hasValidEntry = arrayData.some(item => {
@@ -93,7 +96,6 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
           }
         }
       } else {
-        // Handle regular fields
         const totalFieldWeight = step.fields.reduce((sum, field) => sum + field.weight, 0);
         let completedFieldWeight = 0;
 
@@ -131,47 +133,46 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
     const match = slugStr.match(/-(\d+)$/);
     return match ? match[1] : slugStr;
   };
- const toggleBookmark = async (jobId) => {
-     if (!isAuthenticated || !user) {
-       alert('Please log in to bookmark jobs.');
-       navigate('/candidate/login');
-       return;
-     }
- 
-     try {
-       const userId = user.user_id || user.id;
-       if (!userId) {
-         alert('User ID not found. Please log in again.');
-         navigate('/candidate/login');
-         return;
-       }
- 
-       const newBookmarked = new Set(bookmarkedJobs);
-       if (newBookmarked.has(jobId)) {
-         newBookmarked.delete(jobId);
-       } else {
-         newBookmarked.add(jobId);
-         await candidateExternalService.bookmarkJob({ 
-           user_id: userId, 
-           job_id: jobId 
-         });
-       }
-       setBookmarkedJobs(newBookmarked);
-     } catch (error) {
-       console.error('Error bookmarking job:', error);
-       alert('Failed to bookmark job. Please try again.');
-     }
-   };
- 
+
+  const toggleBookmark = async (jobId) => {
+    if (!isAuthenticated || !user) {
+      alert('Please log in to bookmark jobs.');
+      navigate('/candidate/login');
+      return;
+    }
+
+    try {
+      const userId = user.user_id || user.id;
+      if (!userId) {
+        alert('User ID not found. Please log in again.');
+        navigate('/candidate/login');
+        return;
+      }
+
+      const newBookmarked = new Set(bookmarkedJobs);
+      if (newBookmarked.has(jobId)) {
+        newBookmarked.delete(jobId);
+      } else {
+        newBookmarked.add(jobId);
+        await candidateExternalService.bookmarkJob({ 
+          user_id: userId, 
+          job_id: jobId 
+        });
+      }
+      setBookmarkedJobs(newBookmarked);
+    } catch (error) {
+      console.error('Error bookmarking job:', error);
+      alert('Failed to bookmark job. Please try again.');
+    }
+  };
+
   const jobId = extractJobIdFromSlug(slug);
 
-  // fetch job details
   useEffect(() => {
     fetchJobDetails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
-  // check whether user already applied
   useEffect(() => {
     const checkAppliedStatus = async () => {
       if (!isAuthenticated || !user || !job) return;
@@ -215,14 +216,12 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
         throw new Error("Invalid response format");
       }
 
-      // try match by id first
       let foundJob = jobsArray.find(
         (j) =>
           (String(j.job_id || j.id) === String(jobId)) ||
           (j.job_id || j.id) === parseInt(jobId)
       );
 
-      // fallback: match by slugified title
       if (!foundJob && slug) {
         const titleSlug = slug.toLowerCase().replace(/-\d+$/, "");
         foundJob = jobsArray.find((j) =>
@@ -239,7 +238,6 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
       }
 
       setJob(foundJob);
-    
 
       const related = jobsArray
         .filter((j) => (j.job_id || j.id) !== (foundJob.job_id || foundJob.id))
@@ -252,7 +250,8 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
       setLoading(false);
     }
   };
-   const getCompanyColor = (index) => {
+
+  const getCompanyColor = (index) => {
     const colors = [
       'bg-gradient-to-br from-blue-500 to-blue-600',
       'bg-gradient-to-br from-purple-500 to-purple-600',
@@ -263,9 +262,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
     return colors[index % colors.length];
   };
 
-
   const handleApplyClick = async () => {
-    // auth guard
     if (!isAuthenticated) {
       alert("Please login first to apply for this job");
       navigate("/candidate/login");
@@ -277,7 +274,6 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
       return;
     }
 
-    // Profile completion check - must be 100% to apply
     const profileCompletion = calculateProfileCompletion(user);
     if (profileCompletion < 100) {
       alert(`Your profile is only ${profileCompletion}% complete. You must complete your profile 100% before applying for jobs. Redirecting to profile management...`);
@@ -285,7 +281,6 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
       return;
     }
 
-    // membership check
     if (user?.membership !== "premium") {
       try {
         const registrationDate = new Date(user.created_at);
@@ -301,7 +296,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
           return;
         }
       } catch {
-        // if created_at invalid, continue (or ask user to login again)
+        // if created_at invalid, continue
       }
     }
 
@@ -312,7 +307,6 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
     try {
       let studentId = user?.user_id || user?.id || user?.student_id;
 
-      // if studentId not in user, try fetch by email
       if (!studentId && user?.email) {
         try {
           const profileResponse = await studentService.getProfile(user.email);
@@ -358,7 +352,6 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
     }
   };
 
-  // small format helpers
   const formatPostedDate = (dateString) => {
     if (!dateString) return "Recently";
     try {
@@ -376,7 +369,8 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
       return "Recently";
     }
   };
-  const formatSalary = (min, max,salary_range) => {
+
+  const formatSalary = (min, max, salary_range) => {
     if (!min && !max) return salary_range;
     if (min && max) return `${min} - ${max}`;
     if (min) return `${min}+`;
@@ -386,26 +380,24 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
   const formatExperience = (exp) => {
     if (!exp) return "Not specified";
 
-    // ADDED: Check if exp is an object with min/max keys (like {min_years: 2, max_years: 5})
     if (typeof exp === 'object' && exp !== null) {
       const min = exp.min_years || exp.min_experience;
       const max = exp.max_years || exp.max_experience;
       if (min && max) return `${min}-${max} Yrs`;
       if (min) return `${min}+ Yrs`;
       if (max) return `Up to ${max} Yrs`;
-      return "Not specified"; // Fallback if object keys are missing
+      return "Not specified";
     }
 
-    return exp; // Return as-is if it's already a string/number
+    return exp;
   };
 
-  // loading / error UI
   if (loading) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? "bg-slate-900" : "bg-gray-100"}`}>
-        <div className="text-center">
+        <div className="text-center px-4">
           <div className="w-12 h-12 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin mx-auto" />
-          <p className="mt-4 text-gray-500">Loading job details...</p>
+          <p className="mt-4 text-gray-500 text-sm">Loading job details...</p>
         </div>
       </div>
     );
@@ -413,14 +405,14 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
 
   if (error) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? "bg-slate-900" : "bg-gray-100"}`}>
-        <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow text-center max-w-md">
+      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? "bg-slate-900" : "bg-gray-100"} px-4`}>
+        <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-lg shadow text-center max-w-md w-full">
           <div className="text-4xl mb-4">⚠️</div>
-          <h2 className="text-lg font-semibold mb-2">Error Loading Job</h2>
-          <p className="text-sm text-gray-600 mb-6">{error}</p>
+          <h2 className="text-base sm:text-lg font-semibold mb-2">Error Loading Job</h2>
+          <p className="text-xs sm:text-sm text-gray-600 mb-6">{error}</p>
           <button
             onClick={fetchJobDetails}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
           >
             Try Again
           </button>
@@ -434,277 +426,401 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
   }
 
   return (
-
     <>  
-    {user?<CandidateNavbar/>: <HomeNav/>}
-    <div className={`${isDarkMode ? "bg-slate-900 text-slate-100" : "bg-gray-100 text-slate-900"} lg:mt-18 min-h-screen font-sans`}>
-      {/* header */}
-    
+      {user ? (user.industry ? <RecruiterNavbar /> : <CandidateNavbar />) : <HomeNav />}
+      <div className={`${isDarkMode ? "bg-slate-900 text-slate-100" : "bg-gray-100 text-slate-900"} lg:mt-18 mt-18 min-h-screen font-sans pt-4 sm:pt-6 lg:pt-8`}>
+        <div className="max-w-5xl mx-auto px-3 sm:px-4 lg:px-6 pb-6 sm:pb-8">
+          <div className="grid lg:grid-cols-12 gap-4 sm:gap-6">
+            {/* Main Content */}
+            <main className="space-y-4 sm:space-y-6 lg:col-span-8">
+              {/* Job Header Card */}
+              <div className={`bg-white ${isDarkMode ? "dark:bg-slate-800" : ""} rounded-xl p-4 sm:p-6 shadow`}>
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                  <div className="flex-1 min-w-0 w-full">
+                    <h1 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 break-words">
+                      {job.job_title || job.title || "Job Title"}
+                    </h1>
 
-      {/* main */}
-      <div className="max-w-5xl  mx-auto px-4 py-8">
-        <div className="grid  lg:grid-cols-12 gap-6">
-          {/* left */}
-          <main className=" space-y-6 lg:col-span-8">
-            {console.log(job.salary_range.max)}
-            <div className={`lg:sticky lg:top-24 bg-white ${isDarkMode ? "dark:bg-slate-800" : ""} rounded-xl p-6 shadow`}>
-              <div className="flex justify-between items-start gap-4">
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-2xl font-bold mb-2">{job.job_title || job.title || "Job Title"}</h1>
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-600 mb-3">
+                      <span className="font-semibold text-sm sm:text-base text-slate-800 dark:text-slate-100">
+                        {job.company_name || "Company"}
+                      </span>
+                      {job.company_rating && (
+                        <span className="text-yellow-500 whitespace-nowrap">⭐ {job.company_rating}</span>
+                      )}
+                      {job.company_reviews && (
+                        <span className="text-gray-400 whitespace-nowrap">({job.company_reviews} Reviews)</span>
+                      )}
+                      {job.is_premium && (
+                        <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">Premium</span>
+                      )}
+                    </div>
 
-                  <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
-                    <span className="font-semibold text-base text-slate-800 dark:text-slate-100">{job.company_name || "Company"}</span>
-                    {job.company_rating && <span className="text-yellow-500">⭐ {job.company_rating}</span>}
-                    {job.company_reviews && <span className="text-gray-400">({job.company_reviews} Reviews)</span>}
-                    {job.is_premium && (
-                      <span className="ml-2 bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Premium</span>
-                    )}
+                    <div className="flex flex-wrap gap-3 sm:gap-4 text-xs sm:text-sm text-gray-600">
+                      <div className="flex items-center gap-1 whitespace-nowrap">
+                        💰 {formatSalary(job.salary_range?.min, job.salary_range?.max, job.salary_range)}
+                      </div>
+                      <div className="flex items-center gap-1 whitespace-nowrap">
+                        📍 {job.location || "Remote"}
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                    {/* <div className="flex items-center gap-1">💼 {formatExperience(job.experience_required || job.experience)}</div> */}
-                    <div className="flex items-center gap-1">💰 {formatSalary(job.salary_range.min,job.salary_range.max,job.salary_range)}</div>
-                {console.log(job.salary_range)}
-                    <div className="flex items-center gap-1">📍 {job.location || "Remote"}</div>
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg p-2 flex items-center justify-center bg-blue-50 flex-shrink-0">
+                    <span className="text-2xl sm:text-3xl font-bold text-blue-600">
+                      {(job.company_name || "C")[0].toUpperCase()}
+                    </span>
                   </div>
                 </div>
 
-                <div className="w-20 h-20 rounded-lg p-2 flex items-center justify-center bg-blue-50">
-                  <span className="text-3xl font-bold text-blue-600">{(job.company_name || "C")[0].toUpperCase()}</span>
+                <div className="mt-4 border-t pt-4 flex flex-wrap gap-3 sm:gap-6 text-xs sm:text-sm text-gray-600">
+                  <div className="whitespace-nowrap">
+                    📅 Posted: <strong className="text-gray-800">{formatPostedDate(job.created_at)}</strong>
+                  </div>
+                  <div className="whitespace-nowrap">👥 {job.openings || 1} Openings</div>
+                  <div className="whitespace-nowrap">📊 {job.applicants || "0"} Applicants</div>
                 </div>
-              </div>
 
-              <div className="mt-4 border-t pt-4 flex flex-wrap gap-6 text-sm text-gray-600">
-                <div>📅 Posted: <strong className="text-gray-800">{formatPostedDate(job.created_at)}</strong></div>
-                <div>👥 {job.openings || 1} Openings</div>
-                <div>📊 {job.applicants || "0"} Applicants</div>
-              </div>
+                {/* Alerts */}
+                <div className="mt-4 space-y-2">
+                  {applicationSuccess && (
+                    <div className="bg-green-100 text-green-800 px-3 py-2 rounded text-xs sm:text-sm">
+                      {applicationSuccess}
+                    </div>
+                  )}
+                  {applicationError && (
+                    <div className="bg-red-100 text-red-800 px-3 py-2 rounded text-xs sm:text-sm">
+                      {applicationError}
+                    </div>
+                  )}
+                </div>
 
-              {/* alerts */}
-              <div className="mt-4 space-y-2">
-                {applicationSuccess && (
-                  <div className="bg-green-100 text-green-800 px-3 py-2 rounded">{applicationSuccess}</div>
-                )}
-                {applicationError && (
-                  <div className="bg-red-100 text-red-800 px-3 py-2 rounded">{applicationError}</div>
-                )}
-              </div>
-
-              {/* action */}
-              <div className="mt-4 flex gap-3">
-                {!isAuthenticated ? (
-                  <>
-                    <button
-                      onClick={() => navigate("/candidate/register")}
-                      className="flex-1 border border-blue-500 text-blue-500 px-4 py-2 rounded-full hover:bg-blue-50"
-                    >
-                      Register to apply
-                    </button>
-                    <button
-                      onClick={() => navigate("/candidate/login")}
-                      className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700"
-                    >
-                      Login to apply
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={handleApplyClick}
-                      disabled={hasApplied || isApplying}
-                      className={`flex-1 px-4 py-2 rounded-full text-white ${hasApplied ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
-                    >
-                      {isApplying ? "⏳ Applying..." : hasApplied ? "✓ Applied" : " Apply Now"}
-                    </button>
-                   <button 
+                {/* Action Buttons */}
+                <div className="mt-4 flex flex-col sm:flex-row gap-3">
+                  {!isAuthenticated ? (
+                    <>
+                      <button
+                        onClick={() => navigate("/candidate/register")}
+                        className="flex-1 border border-blue-500 text-blue-500 px-4 py-2.5 sm:py-2 rounded-full hover:bg-blue-50 text-sm sm:text-base"
+                      >
+                        Register to apply
+                      </button>
+                      <button
+                        onClick={() => navigate("/candidate/login")}
+                        className="flex-1 bg-blue-600 text-white px-4 py-2.5 sm:py-2 rounded-full hover:bg-blue-700 text-sm sm:text-base"
+                      >
+                        Login to apply
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleApplyClick}
+                        disabled={hasApplied || isApplying}
+                        className={`flex-1 px-4 py-2.5 sm:py-2 rounded-full text-white text-sm sm:text-base ${
+                          hasApplied ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                        }`}
+                      >
+                        {isApplying ? "⏳ Applying..." : hasApplied ? "✓ Applied" : "Apply Now"}
+                      </button>
+                      <button 
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleBookmark(job.job_id);
                         }}
-                        className={`${textSecondary}  hover:text-yellow-500 transition-colors p-1.5 rounded-lg`}
+                        className={`${textSecondary} hover:text-yellow-500 transition-colors p-2.5 sm:p-1.5 rounded-lg border ${isDarkMode ? 'border-slate-600' : 'border-gray-300'} sm:border-0`}
                       >
-                        <Bookmark className="w-5 h-5"  fill={bookmarkedJobs.has(job.job_id) ? "currentColor" : "none"} />
-
-                        
+                        <Bookmark 
+                          className="w-5 h-5" 
+                          fill={bookmarkedJobs.has(job.job_id) ? "currentColor" : "none"} 
+                        />
                       </button>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* job description */}
-            <section className={`lg:sticky lg:top-95 bg-white ${isDarkMode ? "dark:bg-slate-800" : ""} rounded-xl p-6 shadow`}>
-              <h2 className="text-lg font-semibold mb-4">Job description</h2>
-
-              <div className="prose max-w-none prose-sm dark:prose-invert text-gray-700">
-                {/* job.description may be HTML — render safely */}
-                {job.description ? (
-                  <div dangerouslySetInnerHTML={{ __html: job.description }} />
-                ) : (
-                  <p>No description available.</p>
-                )}
+                    </>
+                  )}
+                </div>
               </div>
 
-              {/* responsibilities */}
-              {(job.responsibilities?.length > 0 || job.responsibilities_string) && (
-                <div className="mt-6">
-                  <h3 className="font-semibold mb-2">Key Responsibilities</h3>
-                  <ul className="list-disc list-inside text-gray-700 space-y-2">
-                    {job.responsibilities?.length > 0 ? (
-                      job.responsibilities.map((r, i) => <li key={i}>{r}</li>)
-                    ) : (
-                      <div dangerouslySetInnerHTML={{ __html: job.responsibilities_string }} />
-                    )}
-                  </ul>
-                </div>
-              )}
+              {/* Job Description Section */}
+              <section className={`bg-white ${isDarkMode ? "dark:bg-slate-800" : ""} rounded-xl p-4 sm:p-6 shadow`}>
+                <h2 className="text-base sm:text-lg font-semibold mb-4">Job description</h2>
 
-              {/* requirements */}
-              {(job.requirements?.length > 0 || job.requirements_string) && (
-                <div className="mt-6">
-                  <h3 className="font-semibold mb-2">Requirements</h3>
-                  <ul className="list-disc list-inside text-gray-700 space-y-2">
-                    {job.requirements?.length > 0 ? (
-                      job.requirements.map((r, i) => <li key={i}>{r}</li>)
-                    ) : (
-                      <div dangerouslySetInnerHTML={{ __html: job.requirements_string }} />
-                    )}
-                  </ul>
+                <div className="prose max-w-none prose-sm dark:prose-invert text-gray-700 text-sm sm:text-base">
+                  {job.description ? (
+                    <div dangerouslySetInnerHTML={{ __html: job.description }} />
+                  ) : (
+                    <p>No description available.</p>
+                  )}
                 </div>
-              )}
 
-              {/* skills */}
-              {job.skills?.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="font-semibold mb-2">Required Skills</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {job.skills.map((s, idx) => (
-                      <span key={idx} className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
-                        {s}
-                      </span>
-                    ))}
+                {/* Responsibilities */}
+                {(job.responsibilities?.length > 0 || job.responsibilities_string) && (
+                  <div className="mt-6">
+                    <h3 className="font-semibold mb-2 text-sm sm:text-base">Key Responsibilities</h3>
+                    <ul className="list-disc list-inside text-gray-700 space-y-2 text-sm sm:text-base">
+                      {job.responsibilities?.length > 0 ? (
+                        job.responsibilities.map((r, i) => <li key={i}>{r}</li>)
+                      ) : (
+                        <div dangerouslySetInnerHTML={{ __html: job.responsibilities_string }} />
+                      )}
+                    </ul>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* benefits */}
-              {(job.benefits?.length > 0 || job.benefits_string) && (
-                <div className="mt-6">
-                  <h3 className="font-semibold mb-2">Benefits & Perks</h3>
-                  <ul className="list-disc list-inside text-gray-700 space-y-2">
-                    {job.benefits?.length > 0 ? (
-                      job.benefits.map((b, i) => <li key={i}>{b}</li>)
-                    ) : (
-                      <div dangerouslySetInnerHTML={{ __html: job.benefits_string }} />
-                    )}
-                  </ul>
-                </div>
-              )}
-            </section>
-          </main>
-<aside className=" lg:col-span-4">
-        <div className={`${isDarkMode ? 'bg-slate-800' : 'bg-white'} rounded-2xl shadow-lg border ${isDarkMode ? 'border-slate-700' : 'border-gray-100'} overflow-hidden`}>
-          
-          {/* Header with gradient */}
-          <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-6">
-            <div className="flex items-center gap-3">
-              <div className="bg-white/20 backdrop-blur-sm p-2 rounded-xl">
-                <TrendingUp className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-white font-bold text-xl">Top Opportunities</h3>
-                <p className="text-white/80 text-sm">From leading companies</p>
-              </div>
-            </div>
-          </div>
+                {/* Requirements */}
+                {(job.requirements?.length > 0 || job.requirements_string) && (
+                  <div className="mt-6">
+                    <h3 className="font-semibold mb-2 text-sm sm:text-base">Requirements</h3>
+                    <ul className="list-disc list-inside text-gray-700 space-y-2 text-sm sm:text-base">
+                      {job.requirements?.length > 0 ? (
+                        job.requirements.map((r, i) => <li key={i}>{r}</li>)
+                      ) : (
+                        <div dangerouslySetInnerHTML={{ __html: job.requirements_string }} />
+                      )}
+                    </ul>
+                  </div>
+                )}
 
-          {/* Job List */}
-          <div className="p-4 space-y-3">
-            {relatedJobs.length > 0 ? (
-              relatedJobs.map((relJob, idx) => (
-                <div
-                  key={idx}
-                  onClick={() =>
-                    navigate(
-                      `/candidate/jobs/${((relJob.job_title || relJob.title) || "")
-                        .toLowerCase()
-                        .replace(/\s+/g, "-")}-${relJob.job_id || relJob.id}`
-                    )
-                  }
-                  className={`group cursor-pointer p-4 rounded-xl transition-all duration-300 border ${
-                    isDarkMode 
-                      ? 'bg-slate-700/50 border-slate-600 hover:bg-slate-700 hover:border-indigo-500' 
-                      : 'bg-gray-50 border-gray-200 hover:bg-white hover:border-indigo-300 hover:shadow-md'
-                  }`}
+                {/* Skills */}
+                {job.skills?.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="font-semibold mb-2 text-sm sm:text-base">Required Skills</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {job.skills.map((s, idx) => (
+                        <span 
+                          key={idx} 
+                          className="bg-blue-50 text-blue-700 px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm"
+                        >
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Benefits */}
+                {(job.benefits?.length > 0 || job.benefits_string) && (
+                  <div className="mt-6">
+                    <h3 className="font-semibold mb-2 text-sm sm:text-base">Benefits & Perks</h3>
+                    <ul className="list-disc list-inside text-gray-700 space-y-2 text-sm sm:text-base">
+                      {job.benefits?.length > 0 ? (
+                        job.benefits.map((b, i) => <li key={i}>{b}</li>)
+                      ) : (
+                        <div dangerouslySetInnerHTML={{ __html: job.benefits_string }} />
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </section>
+
+              {/* Mobile Related Jobs Section (collapsed by default) */}
+              <div className="lg:hidden">
+                <button
+                  onClick={() => setShowRelatedJobs(!showRelatedJobs)}
+                  className={`w-full ${isDarkMode ? 'bg-slate-800' : 'bg-white'} rounded-2xl shadow-lg border ${isDarkMode ? 'border-slate-700' : 'border-gray-100'} p-4 flex items-center justify-between`}
                 >
-                  <div className="flex items-start gap-3">
-                    {/* Company Avatar with gradient */}
-                    <div className={`flex-shrink-0 w-12 h-12 ${getCompanyColor(idx)} rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300`}>
-                      <span className="text-white font-bold text-lg">
-                        {(relJob.company_name || "C")[0].toUpperCase()}
-                      </span>
+                  <div className="flex items-center gap-3">
+                    <div className="bg-gradient-to-r from-indigo-500 to-purple-500 p-2 rounded-xl">
+                      <TrendingUp className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <h3 className={`font-bold text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        Top Opportunities
+                      </h3>
+                      <p className="text-xs text-gray-500">{relatedJobs.length} similar jobs</p>
+                    </div>
+                  </div>
+                  {showRelatedJobs ? (
+                    <ChevronUp className="w-5 h-5 text-gray-500" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-500" />
+                  )}
+                </button>
+
+                {showRelatedJobs && (
+                  <div className={`mt-4 ${isDarkMode ? 'bg-slate-800' : 'bg-white'} rounded-2xl shadow-lg border ${isDarkMode ? 'border-slate-700' : 'border-gray-100'} overflow-hidden`}>
+                    <div className="p-4 space-y-3">
+                      {relatedJobs.length > 0 ? (
+                        relatedJobs.map((relJob, idx) => (
+                          <div
+                            key={idx}
+                            onClick={() =>
+                              navigate(
+                                `/candidate/jobs/${((relJob.job_title || relJob.title) || "")
+                                  .toLowerCase()
+                                  .replace(/\s+/g, "-")}-${relJob.job_id || relJob.id}`
+                              )
+                            }
+                            className={`group cursor-pointer p-3 sm:p-4 rounded-xl transition-all duration-300 border ${
+                              isDarkMode 
+                                ? 'bg-slate-700/50 border-slate-600 hover:bg-slate-700 hover:border-indigo-500' 
+                                : 'bg-gray-50 border-gray-200 hover:bg-white hover:border-indigo-300 hover:shadow-md'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 ${getCompanyColor(idx)} rounded-xl flex items-center justify-center shadow-lg`}>
+                                <span className="text-white font-bold text-base sm:text-lg">
+                                  {(relJob.company_name || "C")[0].toUpperCase()}
+                                </span>
+                              </div>
+
+                              <div className="flex-grow min-w-0">
+                                <h4 className={`font-semibold text-xs sm:text-sm mb-1 truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                  {relJob.job_title || relJob.title || "Job Title"}
+                                </h4>
+                                <p className={`text-xs mb-2 truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                  {relJob.company_name || "Company"}
+                                </p>
+                                
+                                <div className="flex flex-wrap gap-2 mb-2">
+                                  <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-xs font-medium ${
+                                    isDarkMode 
+                                      ? 'bg-slate-600 text-slate-200' 
+                                      : 'bg-indigo-50 text-indigo-700'
+                                  }`}>
+                                    <Briefcase className="w-3 h-3" />
+                                    {formatExperience(relJob.experience_required || relJob.experience)}
+                                  </span>
+                                  <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-xs font-medium ${
+                                    isDarkMode 
+                                      ? 'bg-slate-600 text-slate-200' 
+                                      : 'bg-emerald-50 text-emerald-700'
+                                  }`}>
+                                    <MapPin className="w-3 h-3" />
+                                    {relJob.location || "Remote"}
+                                  </span>
+                                </div>
+                                
+                                <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                  {formatPostedDate(relJob.created_at)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className={`text-center py-12 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                          <p className="text-sm">No similar jobs found</p>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Job Info */}
-                    <div className="flex-grow min-w-0">
-                      <h4 className={`font-semibold text-sm mb-1 truncate ${isDarkMode ? 'text-white' : 'text-gray-900'} group-hover:text-indigo-600 transition-colors`}>
-                        {relJob.job_title || relJob.title || "Job Title"}
-                      </h4>
-                      <p className={`text-xs mb-2 truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {relJob.company_name || "Company"}
-                      </p>
-                      
-                      {/* Info Pills */}
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${
-                          isDarkMode 
-                            ? 'bg-slate-600 text-slate-200' 
-                            : 'bg-indigo-50 text-indigo-700'
-                        }`}>
-                          <Briefcase className="w-3 h-3" />
-                          {formatExperience(relJob.experience_required || relJob.experience)}
-                        </span>
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${
-                          isDarkMode 
-                            ? 'bg-slate-600 text-slate-200' 
-                            : 'bg-emerald-50 text-emerald-700'
-                        }`}>
-                          <MapPin className="w-3 h-3" />
-                          {relJob.location || "Remote"}
-                        </span>
-                      </div>
-                      
-                      <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                        {formatPostedDate(relJob.created_at)}
-                      </p>
+                    <div className="p-4 pt-2">
+                      <button
+                        onClick={() => navigate("/candidate/register")}
+                        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl py-3 text-sm transition-all duration-300 shadow-lg hover:shadow-xl"
+                      >
+                        🚀 Register to unlock all opportunities
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </main>
+
+            {/* Desktop Sidebar - Hidden on mobile */}
+            <aside className="hidden lg:block lg:col-span-4">
+              <div className={`sticky top-24 ${isDarkMode ? 'bg-slate-800' : 'bg-white'} rounded-2xl shadow-lg border ${isDarkMode ? 'border-slate-700' : 'border-gray-100'} overflow-hidden`}>
+                
+                {/* Header with gradient */}
+                <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white/20 backdrop-blur-sm p-2 rounded-xl">
+                      <TrendingUp className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-bold text-xl">Top Opportunities</h3>
+                      <p className="text-white/80 text-sm">From leading companies</p>
                     </div>
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className={`text-center py-12 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">No similar jobs found</p>
+
+                {/* Job List */}
+                <div className="p-4 space-y-3">
+                  {relatedJobs.length > 0 ? (
+                    relatedJobs.map((relJob, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() =>
+                          navigate(
+                            `/candidate/jobs/${((relJob.job_title || relJob.title) || "")
+                              .toLowerCase()
+                              .replace(/\s+/g, "-")}-${relJob.job_id || relJob.id}`
+                          )
+                        }
+                        className={`group cursor-pointer p-4 rounded-xl transition-all duration-300 border ${
+                          isDarkMode 
+                            ? 'bg-slate-700/50 border-slate-600 hover:bg-slate-700 hover:border-indigo-500' 
+                            : 'bg-gray-50 border-gray-200 hover:bg-white hover:border-indigo-300 hover:shadow-md'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          {/* Company Avatar with gradient */}
+                          <div className={`flex-shrink-0 w-12 h-12 ${getCompanyColor(idx)} rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300`}>
+                            <span className="text-white font-bold text-lg">
+                              {(relJob.company_name || "C")[0].toUpperCase()}
+                            </span>
+                          </div>
+
+                          {/* Job Info */}
+                          <div className="flex-grow min-w-0">
+                            <h4 className={`font-semibold text-sm mb-1 truncate ${isDarkMode ? 'text-white' : 'text-gray-900'} group-hover:text-indigo-600 transition-colors`}>
+                              {relJob.job_title || relJob.title || "Job Title"}
+                            </h4>
+                            <p className={`text-xs mb-2 truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              {relJob.company_name || "Company"}
+                            </p>
+                            
+                            {/* Info Pills */}
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${
+                                isDarkMode 
+                                  ? 'bg-slate-600 text-slate-200' 
+                                  : 'bg-indigo-50 text-indigo-700'
+                              }`}>
+                                <Briefcase className="w-3 h-3" />
+                                {formatExperience(relJob.experience_required || relJob.experience)}
+                              </span>
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${
+                                isDarkMode 
+                                  ? 'bg-slate-600 text-slate-200' 
+                                  : 'bg-emerald-50 text-emerald-700'
+                              }`}>
+                                <MapPin className="w-3 h-3" />
+                                {relJob.location || "Remote"}
+                              </span>
+                            </div>
+                            
+                            <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                              {formatPostedDate(relJob.created_at)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className={`text-center py-12 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm">No similar jobs found</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* CTA Button */}
+                <div className="p-4 pt-2">
+                  <button
+                    onClick={() => navigate("/candidate/register")}
+                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl py-3 text-sm transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    🚀 Register to unlock all opportunities
+                  </button>
+                </div>
               </div>
-            )}
-          </div>
-
-          {/* CTA Button */}
-          <div className="p-4 pt-2">
-            <button
-              onClick={() => navigate("/candidate/register")}
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl py-3 text-sm transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
-            >
-              🚀 Register to unlock all opportunities
-            </button>
+            </aside>
           </div>
         </div>
-      </aside>
-
-        </div>
+        <Footer />
       </div>
-    </div>
-    <Footer/>
     </>
   );
 };

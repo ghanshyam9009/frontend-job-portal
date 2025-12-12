@@ -113,7 +113,7 @@ const ShortlistCandidates = () => {
   return (
     <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
       <RecruiterNavbar toggleSidebar={toggleSidebar} darkMode={theme === 'dark'} toggleDarkMode={toggleTheme} />
-      <RecruiterSidebar darkMode={theme === 'dark'} isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
+      {/* <RecruiterSidebar darkMode={theme === 'dark'} isOpen={sidebarOpen} toggleSidebar={toggleSidebar} /> */}
       
       <main className={styles.main}>
         <section className={styles.shortlistCandidatesSection}>

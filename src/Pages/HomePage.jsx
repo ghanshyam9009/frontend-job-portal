@@ -42,6 +42,7 @@ import axisBanner from "../assets/axis-banner.jpg";
 import axisBanner1 from "../assets/carrericici.webp";
 import bannerSmall from "../assets/banner-small.png";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
+import RecruiterNavbar from "../Components/Recruiter/RecruiterNavbar";
 
 // job role card
 function JobRoleCard({ title, image, link, isDark }) {
@@ -617,19 +618,37 @@ const Homepage = () => {
   }, []);
 
   const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
-  
-  const toggleBookmark = (jobId) => {
-    setBookmarkedJobs(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(jobId)) {
-        newSet.delete(jobId);
-      } else {
-        newSet.add(jobId);
+    const toggleBookmark = async (jobId) => {
+      if (!isAuthenticated || !user) {
+        alert('Please log in to bookmark jobs.');
+        navigate('/candidate/login');
+        return;
       }
-      return newSet;
-    });
-  };
-
+  
+      try {
+        const userId = user.user_id || user.id;
+        if (!userId) {
+          alert('User ID not found. Please log in again.');
+          navigate('/candidate/login');
+          return;
+        }
+  
+        const newBookmarked = new Set(bookmarkedJobs);
+        if (newBookmarked.has(jobId)) {
+          newBookmarked.delete(jobId);
+        } else {
+          newBookmarked.add(jobId);
+          await candidateExternalService.bookmarkJob({ 
+            user_id: userId, 
+            job_id: jobId 
+          });
+        }
+        setBookmarkedJobs(newBookmarked);
+      } catch (error) {
+        console.error('Error bookmarking job:', error);
+        alert('Failed to bookmark job. Please try again.');
+      }
+    };
   // Calculate time ago from created_at
   const getTimeAgo = (dateString) => {
     const now = new Date();
@@ -683,7 +702,7 @@ const Homepage = () => {
 
   return (
     <> {/* Navigation */}
-      {user ? <CandidateNavbar /> : <HomeNav />}
+      {user? (user.industry ?<RecruiterNavbar/>: <CandidateNavbar />) : <HomeNav />}
     <div className="">
      
 
@@ -1029,7 +1048,7 @@ const Homepage = () => {
       </div>
 
       {/* Featured Jobs and Demo Form */}
-      <div className={`min-h-screen ${bgColor} transition-colors duration-300`}>
+      <div className={` ${bgColor} transition-colors duration-300`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
             
@@ -1123,13 +1142,14 @@ const Homepage = () => {
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
-                          toggleBookmark(job.job_id);
+                          toggleBookmark(job.id);
                         }}
                         className={`${textSecondary} absolute bottom-2 right-3 hover:text-yellow-500 transition-colors p-1 rounded-md`}
                       >
+                        {/* {console.log(job.id)} */}
                         <Bookmark 
                           className="w-4 h-4"  
-                          fill={bookmarkedJobs.has(job.job_id) ? "currentColor" : "none"} 
+                          fill={bookmarkedJobs.has(job.id) ? "currentColor" : "none"} 
                         />
                       </button>
 
