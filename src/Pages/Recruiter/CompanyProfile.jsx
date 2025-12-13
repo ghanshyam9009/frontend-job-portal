@@ -152,7 +152,7 @@ const CompanyProfile = () => {
 
           if (response.success && response.data) {
             const data = response.data.employer || response.data.profile || response.data;
-            setProfileData({
+            const profileData = {
               company_name: data.company_name || '',
               email: data.email || user.email || '',
               phone: data.phone_number || data.phone || '',
@@ -167,8 +167,13 @@ const CompanyProfile = () => {
               description: data.description || '',
               founded_year: data.founded_year || '',
               location: data.location || '',
-              company_logo: data.company_logo || data.logo || ''
-            });
+              company_logo: data.company_logo || data.logo || data.profile_image || ''
+            };
+
+            console.log('Loaded profile data:', profileData); // Debug log
+            console.log('Company logo URL:', profileData.company_logo); // Debug log
+
+            setProfileData(profileData);
             setKycStatus({
               status: data.kyc_status || '',
               documentUrl: data.kycDocUrl || data.kyc_document_url || '',
@@ -517,27 +522,45 @@ const CompanyProfile = () => {
 
     return (
       <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} overflow-hidden mb-6`}>
-        <div className={`p-5 border-b ${borderColor} flex items-center justify-between`}>
-          <div>
-            <h2 className={`text-xl font-bold ${textColor} mb-1`}>Company Profile</h2>
-            <p className={`text-sm ${textSecondary}`}>View your complete company information</p>
+        {/* Profile Header with Company Logo */}
+        <div className={`p-6 border-b ${borderColor}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-lg border-2 border-gray-200 dark:border-gray-700 flex items-center justify-center overflow-hidden">
+                {profileData.company_logo ? (
+                  <img
+                    src={profileData.company_logo}
+                    alt="Company Logo"
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-[#2271B5] flex items-center justify-center">
+                    <Building size={24} className="text-white" />
+                  </div>
+                )}
+              </div>
+              <div>
+                <h1 className={`text-2xl font-bold ${textColor} mb-1`}>{profileData.company_name || 'Company Profile'}</h1>
+                <p className={`text-sm ${textSecondary}`}>View your complete company information</p>
+              </div>
+            </div>
+            <button
+              className="px-4 py-2 bg-[#2271B5] text-white text-sm rounded-md hover:bg-[#1a5a8f] transition-colors flex items-center gap-2"
+              onClick={() => {
+                setIsEditMode(true);
+                fetchDetailedData();
+              }}
+            >
+              <Edit size={16} />
+              Edit Profile
+            </button>
           </div>
-          <button
-            className="px-4 py-2 bg-[#2271B5] text-white text-sm rounded-md hover:bg-[#1a5a8f] transition-colors flex items-center gap-2"
-            onClick={() => {
-              setIsEditMode(true);
-              fetchDetailedData();
-            }}
-          >
-            <Edit size={16} />
-            Edit Profile
-          </button>
         </div>
 
         <div className="space-y-6">
-          {/* Company Logo */}
+          {/* Company Logo Section (Larger Display) */}
           {profileData.company_logo && (
-            <div className="mb-6">
+            <div className="px-6 pb-6">
               <h2 className={`text-lg font-semibold ${textColor} mb-3 flex items-center gap-2`}>
                 <Building size={20} className="text-[#2271B5]" />
                 Company Logo
@@ -547,11 +570,12 @@ const CompanyProfile = () => {
                   src={profileData.company_logo}
                   alt="Company Logo"
                   style={{
-                    maxWidth: '200px',
-                    maxHeight: '120px',
-                    borderRadius: '8px',
+                    maxWidth: '300px',
+                    maxHeight: '180px',
+                    borderRadius: '12px',
                     objectFit: 'contain',
-                    border: '1px solid #e5e7eb'
+                    border: '2px solid #e5e7eb',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                   }}
                 />
               </div>
@@ -826,7 +850,7 @@ const CompanyProfile = () => {
                 <p style={{ marginTop: '0.5rem', marginBottom: 0 }}>
                   {profileCompletion === 100 
                     ? '✅ Your profile is complete! You can now post jobs.'
-                    : `Complete ${100 - profileCompletion}% more to enable job posting.`}
+                    : `Complete ${100 - profileCompletion}% more to Compite profile .`}
                 </p>
               </div>
             )}
@@ -937,6 +961,18 @@ const CompanyProfile = () => {
                     <option value="500+">500+ employees</option>
                   </select>
                 </div>
+                <div className="md:col-span-2">
+                  <label className={`block text-sm font-medium ${textColor} mb-2`}>Company Description *</label>
+                  <textarea
+                    name="description"
+                    value={profileData.description}
+                    onChange={handleInputChange}
+                    placeholder="Describe your company, its mission, values, and what makes it unique..."
+                    rows="4"
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-md ${isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'} focus:ring-2 focus:ring-[#2271B5] focus:border-transparent resize-vertical`}
+                    required
+                  />
+                </div>
               </div>
             </div>
 
@@ -973,9 +1009,7 @@ const CompanyProfile = () => {
                       </div>
                     </div>
                   )}
-                  <p className={`${textColor} font-medium`}>
-                    Complete {100 - profileCompletion}% more to enable job posting.
-                  </p>
+              
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-green-500 text-sm font-medium">
@@ -989,7 +1023,7 @@ const CompanyProfile = () => {
             {error && (
               <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-3">
                 <XCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+                <p className={`text-sm ${error === 'Company description is required' ? 'text-black dark:text-white' : 'text-red-800 dark:text-red-200'}`}>{error}</p>
               </div>
             )}
 
@@ -1081,9 +1115,13 @@ const CompanyProfile = () => {
                         } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
                       >
                         <option value="GST">GST Certificate</option>
-                        <option value="PAN">PAN Card</option>
+                        <option value="PAN">PAN Card (self Issue)</option>
+                        <option value="EMPLOYEE_ID">Employee ID</option>
                         <option value="MSME">MSME Registration</option>
                         <option value="INCORPORATION">Certificate of Incorporation</option>
+                        <option value="ID_CARD">ID Card</option>
+                        <option value="OFFER_LETTER">Offer Letter</option>
+                        <option value="FSSAI_LICENSE">FSSAI License</option>
                         <option value="OTHER">Other Government Issued Document</option>
                       </select>
                     </div>
