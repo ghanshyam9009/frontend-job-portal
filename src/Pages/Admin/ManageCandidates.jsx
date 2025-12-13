@@ -2,7 +2,7 @@
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
 import { studentService } from "../../services/studentService";
-import { Eye, Edit, Search, Users, X, Save } from "lucide-react";
+import { Eye, Edit, Search, Users, X, Save, Trash2 } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const ManageCandidates = () => {
@@ -87,6 +87,8 @@ const ManageCandidates = () => {
 
   // View Modal Functions
   const openViewModal = (candidate) => {
+    console.log('Viewing candidate:', candidate);
+    console.log('Resume data:', candidate.resume);
     setViewingCandidate(candidate);
     setIsViewModalOpen(true);
   };
@@ -161,6 +163,39 @@ const ManageCandidates = () => {
     }
   };
 
+  const handleBlockStudent = async (candidate) => {
+    if (!candidate || !candidate.email) return;
+
+    const confirmBlock = window.confirm(
+      `Are you sure you want to block ${candidate.name}? This will remove them from the system.`
+    );
+
+    if (!confirmBlock) return;
+
+    try {
+      await adminService.blockStudent(candidate.email);
+
+      // Remove the blocked student from the lists
+      const updatedCandidates = candidates.filter(c => c.email !== candidate.email);
+      setCandidates(updatedCandidates);
+      setFilteredCandidates(updatedCandidates.filter(c => {
+        if (searchTerm) {
+          return (c.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                 (c.email?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+        }
+        if (statusFilter !== "all") {
+          return c.status === statusFilter;
+        }
+        return true;
+      }));
+
+      alert(`${candidate.name} has been blocked and removed from the system.`);
+    } catch (error) {
+      console.error('Error blocking student:', error);
+      alert('Failed to block student. Please try again.');
+    }
+  };
+
   // Pagination
   const totalPages = Math.ceil(filteredCandidates.length / candidatesPerPage);
   const startIndex = (currentPage - 1) * candidatesPerPage;
@@ -207,14 +242,20 @@ const ManageCandidates = () => {
               <tr key={candidate.id}>
                 <td>
                   <div className={styles.userInfo}>
-                    <div className={styles.userAvatar}>{(candidate.name || 'U').charAt(0).toUpperCase()}</div>
+                    <div className={styles.userAvatar}>
+                      {candidate.logo ? (
+                        <img src={candidate.logo} alt={candidate.name || 'Candidate'} className={styles.candidateImage} />
+                      ) : (
+                        (candidate.name || 'U').charAt(0).toUpperCase()
+                      )}
+                    </div>
                     <span className={styles.userName}>{candidate.name}</span>
                   </div>
                 </td>
                 <td><a href={`mailto:${candidate.email}`} className={styles.emailLink}>{candidate.email}</a></td>
                 <td>{candidate.phone}</td>
                 <td className={styles.locationCell}>
-                  {typeof candidate.location === 'object' ? `${candidate.location.city || ''}, ${candidate.location.state || ''}`.trim().replace(/^,/, '') || 'N/A' : candidate.location || 'N/A'}
+                  {candidate.city || 'N/A'}
                 </td>
                 <td>{candidate.experience}</td>
                 <td>
@@ -229,6 +270,7 @@ const ManageCandidates = () => {
                   <div className={styles.actionButtons}>
                     <button className={styles.actionBtn} title="View Profile" onClick={() => openViewModal(candidate)}><Eye size={16} /></button>
                     <button className={styles.actionBtn} title="Edit" onClick={() => openEditModal(candidate)}><Edit size={16} /></button>
+                    <button className={`${styles.actionBtn} ${styles.blockBtn}`} title="Block Student" onClick={() => handleBlockStudent(candidate)}><Trash2 size={16} /></button>
                   </div>
                 </td>
               </tr>
@@ -256,19 +298,137 @@ const ManageCandidates = () => {
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
             <div className={styles.modalHeader}>
-              <h2>View Candidate</h2>
+              <h2>Candidate Profile</h2>
               <button className={styles.modalCloseBtn} onClick={closeViewModal}><X size={20} /></button>
             </div>
             <div className={styles.modalBody}>
-              <div className={styles.viewDetails}>
-                <p><strong>Name:</strong> {viewingCandidate.name}</p>
-                <p><strong>Email:</strong> {viewingCandidate.email}</p>
-                <p><strong>Phone:</strong> {viewingCandidate.phone}</p>
-                <p><strong>Location:</strong> {typeof viewingCandidate.location === 'object' ? `${viewingCandidate.location.city || ''}, ${viewingCandidate.location.state || ''}`.trim().replace(/^,/, '') || 'N/A' : viewingCandidate.location || 'N/A'}</p>
-                <p><strong>Experience:</strong> {viewingCandidate.experience}</p>
-                <p><strong>Skills:</strong> {(viewingCandidate.skills || []).join(', ')}</p>
-                <p><strong>Status:</strong> {getStatusBadge(viewingCandidate.status)}</p>
-                <p><strong>Joined:</strong> {formatDate(viewingCandidate.created_at)}</p>
+              <div className={styles.candidateProfileContainer}>
+                {/* Profile Header */}
+                <div className={styles.candidateProfileHeader}>
+                  <div className={styles.candidateProfileImage}>
+                    {viewingCandidate.logo ? (
+                      <img src={viewingCandidate.logo} alt={viewingCandidate.name || 'Candidate'} />
+                    ) : (
+                      <div className={styles.candidateInitials}>
+                        {(viewingCandidate.name || 'U').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div className={styles.candidateProfileInfo}>
+                    <h3 className={styles.candidateName}>{viewingCandidate.name}</h3>
+                    <p className={styles.candidateEmail}>{viewingCandidate.email}</p>
+                    <div className={styles.candidateStatus}>
+                      {getStatusBadge(viewingCandidate.status)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Profile Sections */}
+                <div className={styles.profileSections}>
+                  {/* Personal Information */}
+                  <div className={styles.profileSection}>
+                    <h4 className={styles.sectionTitle}>Personal Information</h4>
+                    <div className={styles.sectionGrid}>
+                      <div className={styles.infoItem}>
+                        <label>Phone</label>
+                        <span>{viewingCandidate.phone || 'Not provided'}</span>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <label>Location</label>
+                        <span>{viewingCandidate.location || 'Not provided'}</span>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <label>City</label>
+                        <span>{viewingCandidate.city || 'Not provided'}</span>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <label>Date of Birth</label>
+                        <span>{viewingCandidate.dob ? new Date(viewingCandidate.dob).toLocaleDateString() : 'Not provided'}</span>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <label>Gender</label>
+                        <span>{viewingCandidate.gender || 'Not provided'}</span>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <label>Joined Date</label>
+                        <span>{formatDate(viewingCandidate.created_at)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Professional Information */}
+                  <div className={styles.profileSection}>
+                    <h4 className={styles.sectionTitle}>Professional Information</h4>
+                    <div className={styles.sectionContent}>
+                      <div className={styles.infoItem}>
+                        <label>Experience</label>
+                        <span>{viewingCandidate.experience || 'Not specified'}</span>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <label>Skills</label>
+                        <div className={styles.skillsList}>
+                          {viewingCandidate.skills && viewingCandidate.skills.length > 0 ? (
+                            viewingCandidate.skills.map((skill, index) => (
+                              <span key={index} className={styles.skillBadge}>{skill}</span>
+                            ))
+                          ) : (
+                            <span>Not specified</span>
+                          )}
+                        </div>
+                      </div>
+                      {viewingCandidate.bio && (
+                        <div className={styles.infoItem}>
+                          <label>Bio</label>
+                          <p className={styles.bioText}>{viewingCandidate.bio}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Education */}
+                  {viewingCandidate.education && viewingCandidate.education.length > 0 && (
+                    <div className={styles.profileSection}>
+                      <h4 className={styles.sectionTitle}>Education</h4>
+                      <div className={styles.educationList}>
+                        {viewingCandidate.education.map((edu, index) => (
+                          <div key={index} className={styles.educationItem}>
+                            <h5>{edu.degree || 'Degree not specified'}</h5>
+                            <p>{edu.institution || 'Institution not specified'}</p>
+                            {edu.year && <span className={styles.year}>{edu.year}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Resume */}
+                  <div className={styles.profileSection}>
+                    <h4 className={styles.sectionTitle}>Resume</h4>
+                    <div className={styles.resumeSection}>
+                      {viewingCandidate.resume ? (
+                        <>
+                          <div className={styles.resumeInfo}>
+                            <span className={styles.resumeIcon}>📄</span>
+                            <span>Resume Available</span>
+                          </div>
+                          <a
+                            href={viewingCandidate.resume}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.resumeLink}
+                          >
+                            View Resume
+                          </a>
+                        </>
+                      ) : (
+                        <div className={styles.resumeInfo}>
+                          <span className={styles.resumeIcon}>📄</span>
+                          <span>No resume uploaded</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div className={styles.modalFooter}>

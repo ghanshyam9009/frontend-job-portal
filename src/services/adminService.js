@@ -400,17 +400,38 @@ export const adminService = {
           return 'Not specified';
         };
 
+        // Extract city from location data
+        const getCityOnly = () => {
+          const locationData = candidate.location || candidate.address;
+          if (!locationData) return 'Not specified';
+          if (typeof locationData === 'string') {
+            // If it's already a string, take first part before comma (likely the city)
+            return locationData.split(',')[0].trim() || 'Not specified';
+          }
+          if (typeof locationData === 'object') {
+            if (Array.isArray(locationData)) {
+              return locationData[0] || 'Not specified'; // First element might be city
+            }
+            // Return only the city from the object, ignore street
+            return locationData.city || 'Not specified';
+          }
+          return 'Not specified';
+        };
+
         return {
           id: candidate.candidate_id || candidate.user_id || candidate.id,
           name: candidate.full_name || candidate.name || `${candidate.first_name || ''} ${candidate.last_name || ''}`.trim() || 'Unknown',
           email: candidate.email || '',
           phone: candidate.phone_number || candidate.phone || '',
-          location: normalizeLocation(),
+          location: normalizeLocation(), // Keep full address for other uses
+          city: getCityOnly(), // Add separate city field for display
           experience: normalizeExperience(),
           skills: normalizeSkills(candidate.skills),
           status: candidate.status || 'active',
           created_at: candidate.created_at || candidate.registration_date || new Date().toISOString(),
           profile_image: candidate.profile_image || null,
+          logo: candidate.profile_image || candidate.logo || null, // Include logo field for compatibility
+          resume: candidate.resume || candidate.resumeUrl || null, // Use resume or resumeUrl directly from candidate
           bio: candidate.bio || '',
           education: candidate.education || [],
           dob: candidate.dob || null,
@@ -435,6 +456,30 @@ export const adminService = {
       return response.data;
     } catch (error) {
       console.error('Error updating candidate status:', error);
+      throw error;
+    }
+  },
+
+  async blockStudent(email) {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('https://api.bigsources.in/api/admin/block-student', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify({ email })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error blocking student:', error);
       throw error;
     }
   },
