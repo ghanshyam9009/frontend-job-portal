@@ -3,10 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
-import styles from "./SavedJobs.module.css";
 import { candidateExternalService } from "../../services";
 import { toast } from "react-toastify";
-import { Briefcase, Star, X } from "lucide-react";
+import { Briefcase, Star, X, MapPin, DollarSign, Bookmark, Eye, Send, Heart } from "lucide-react";
 
 const SavedJobs = () => {
   const navigate = useNavigate();
@@ -24,11 +23,9 @@ const SavedJobs = () => {
         setLoading(true);
         setError("");
         const data = await candidateExternalService.getBookmarkedJobs(userId);
-        // Handle both array and single object responses
         const jobsArray = data?.bookmarked_jobs || data?.jobs || [];
         const normalizedJobs = Array.isArray(jobsArray) ? jobsArray : [jobsArray];
         const mapped = normalizedJobs.map((j, idx) => {
-          // Handle salary display in different formats
           let salaryDisplay = "";
           if (j.salary_range) {
             if (typeof j.salary_range === 'string') {
@@ -51,7 +48,7 @@ const SavedJobs = () => {
             type: j.employment_type || "",
             savedDate: j.saved_at ? j.saved_at.split('T')[0] : '',
             status: (j.status || 'Active'),
-            salary_field: j.salary_range // Keep original salary data for future use
+            salary_field: j.salary_range
           };
         });
         setSavedJobs(mapped);
@@ -83,13 +80,11 @@ const SavedJobs = () => {
         return;
       }
 
-      // Call API to remove bookmark from backend
       await candidateExternalService.removeBookmark({
         user_id: userId,
-        job_ids: [jobId] // API expects job_ids array
+        job_ids: [jobId]
       });
 
-      // Remove from local state only after successful API call
       setSavedJobs(prev => prev.filter(job => job.id !== jobId));
       toast.success('Job removed from bookmarks');
     } catch (error) {
@@ -99,91 +94,152 @@ const SavedJobs = () => {
   };
 
   const handleApplyNow = (job) => {
-    // Check membership first
     if (!user?.membership || user?.membership === 'free') {
       alert("You need a premium membership to apply for jobs. Redirecting to membership plans...");
       navigate('/membership-plans');
       return;
     }
     
-    // If has membership, proceed with application
     alert(`Application submitted for ${job.title} at ${job.company}`);
-    // Here you would handle the actual application logic
   };
 
+  // Gradient styles matching the CSS
+  const gradients = [
+    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', // Purple
+    'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', // Pink
+    'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', // Blue
+    'linear-gradient(135deg, #fdc830 0%, #f37335 100%)', // Green
+    'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', // Pink-Yellow
+    'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', // Teal-Purple
+  ];
+
+  const isDark = theme === 'dark';
+
   return (
-    <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
+    <div className={`min-h-screen ${isDark ? 'bg-gray-900' : 'bg-gray-100'}  transition-colors duration-300`}>
       <CandidateNavbar darkMode={theme === 'dark'} toggleDarkMode={toggleTheme} />
-      <main className={styles.main}>
-        <section className={styles.jobsSection}>
-          <div className={styles.jobsHeader}>
-            <h2>Saved Jobs</h2>
-            <p>Your bookmarked job opportunities</p>
+      
+      <main className="px-4 sm:px-6 lg:px-8 max-w-8xl mx-auto pt-24 pb-12">
+        {/* Header */}
+        <div className="mb-8">
+          <h2 className={`text-3xl lg:text-4xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            Saved Jobs
+          </h2>
+          <p className={`text-base ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            Your bookmarked job opportunities
+          </p>
+        </div>
+
+        {/* Loading State */}
+        {loading && (
+          <div className={`text-center mx-auto  py-16 rounded-3xl ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+            <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mb-4"></div>
+            <h3 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Loading saved jobs...</h3>
           </div>
-          
-          {loading && (
-            <div className={styles.emptyState}><h3>Loading saved jobs…</h3></div>
-          )}
-          {error && (
-            <div className={styles.emptyState}><h3>{error}</h3></div>
-          )}
-          {savedJobs.length === 0 ? (
-            <div className={styles.emptyState}>
-              <div className={styles.emptyIcon}><Star size={48} /></div>
-              <h3>No saved jobs yet</h3>
-              <p>Start saving jobs you're interested in to see them here.</p>
-              <button 
-                className={styles.primaryBtn}
-                onClick={() => navigate('/userjoblistings')}
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className={`text-center py-16 rounded-3xl ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
+              <X className="text-red-600" size={32} />
+            </div>
+            <h3 className="text-xl font-semibold text-red-600 mb-2">Error</h3>
+            <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>{error}</p>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && savedJobs.length === 0 && (
+          <div className={`text-center py-16 rounded-3xl ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+            <div className="inline-flex items-center justify-center mb-6">
+              <Star size={64} className="text-purple-600" />
+            </div>
+            <h3 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              No saved jobs yet
+            </h3>
+            <p className={`mb-8 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              Start saving jobs you're interested in to see them here.
+            </p>
+            <button 
+              onClick={() => navigate('/userjoblistings')}
+              className="px-8 py-3.5 rounded-xl text-white font-semibold text-base transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+              style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+            >
+              Browse Jobs
+            </button>
+          </div>
+        )}
+
+        {/* Jobs Grid */}
+        {!loading && !error && savedJobs.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mx-auto" style={{ maxWidth: 'fit-content' }}>
+            {savedJobs.map((job, index) => (
+              <div
+                key={job.id}
+                className="rounded-2xl p-6 text-white shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl flex flex-col min-h-80"
+                style={{ background: gradients[index % gradients.length] }}
               >
-                Browse Jobs
-              </button>
-            </div>
-          ) : (
-            <div className={styles.jobsGrid}>
-              {savedJobs.map(job => (
-                <div key={job.id} className={styles.jobCard}>
-                  <div className={styles.jobCardHeader}>
-                    <div className={styles.jobIcon}><Briefcase size={20} /></div>
-                    <div className={styles.jobActions}>
-                      <button
-                        className={styles.removeBtn}
-                        onClick={() => handleRemoveSaved(job.id)}
-                        title="Remove from saved"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
+                {/* Card Header */}
+                <div className="flex justify-between items-center mb-4">
+                  <div className="bg-white/20 backdrop-blur-md rounded-xl p-2.5">
+                    <Briefcase size={20} />
                   </div>
-                  <h3 className={styles.jobTitle}>{job.title}</h3>
-                  <p className={styles.jobCompany}>{job.company}</p>
-                  <p className={styles.jobSalary}>{job.salary}</p>
-                  <p className={styles.jobLocation}>{job.location}</p>
-                  <div className={styles.jobMeta}>
-                    <span className={styles.savedDate}>Saved: {job.savedDate}</span>
-                    <span className={`${styles.jobStatus} ${styles[job.status.toLowerCase()]}`}>
-                      {job.status}
-                    </span>
-                  </div>
-                  <div className={styles.jobButtons}>
-                    <button 
-                      className={styles.viewBtn}
-                      onClick={() => handleJobClick(job)}
-                    >
-                      View Details
-                    </button>
-                    <button 
-                      className={styles.applyBtn}
-                      onClick={() => handleApplyNow(job)}
-                    >
-                      Apply Now
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => handleRemoveSaved(job.id)}
+                    className="bg-white/20 backdrop-blur-md rounded-full w-8 h-8 flex items-center justify-center hover:bg-white/30 transition-all duration-300 hover:scale-110"
+                    title="Remove from saved"
+                  >
+                    <X size={16} />
+                  </button>
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
+
+                {/* Job Info */}
+                <h3 className="text-xl font-bold mb-2 leading-tight">
+                  {job.title}
+                </h3>
+                <p className="text-sm opacity-90 mb-2 font-medium">
+                  {job.company}
+                </p>
+                <p className="text-base font-semibold mb-2 opacity-95">
+                  {job.salary}
+                </p>
+                <p className="text-sm opacity-85 mb-3">
+                  {job.location}
+                </p>
+
+                {/* Job Meta */}
+                <div className="flex justify-between items-center mt-auto pt-3 border-t border-white/20 mb-3">
+                  <span className="text-xs opacity-80">
+                    Saved: {job.savedDate}
+                  </span>
+                  <span className="text-xs px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-md font-medium">
+                    {job.status}
+                  </span>
+                </div>
+
+                {/* Job Buttons */}
+                <div className="flex gap-3 mt-2">
+                  <button
+                    onClick={() => handleJobClick(job)}
+                    className="flex-1 py-3 rounded-xl bg-white/20 backdrop-blur-md border border-white/30 font-semibold text-sm transition-all duration-300 hover:bg-white/30 hover:-translate-y-1 flex items-center justify-center gap-2"
+                  >
+                    <Eye size={16} />
+                    View
+                  </button>
+                  <button
+                    onClick={() => handleApplyNow(job)}
+                    className="flex-1 py-3 rounded-xl bg-white font-bold text-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg flex items-center justify-center gap-2"
+                    style={{ color: gradients[index % gradients.length].match(/#[a-fA-F0-9]{6}/)?.[0] || '#667eea' }}
+                  >
+                    <Send size={16} />
+                    Apply
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );
