@@ -6,17 +6,14 @@ import { applicationService } from "../services/applicationService";
 import { candidateExternalService } from "../services/candidateExternalService";
 import { studentService } from "../services/studentService";
 import HomeNav from "../Components/HomeNav";
-import { Bookmark, Briefcase, MapPin, Sparkles, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
+import { Bookmark, Briefcase, MapPin, Sparkles, TrendingUp } from "lucide-react";
 import Footer from "../Components/Footer";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
-import RecruiterNavbar from "../Components/Recruiter/RecruiterNavbar";
 
 const JobDescription = () => {
   // theme
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
-  const [showRelatedJobs, setShowRelatedJobs] = useState(false);
-  
+const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
   // job state
   const [isApplying, setIsApplying] = useState(false);
   const [applicationError, setApplicationError] = useState("");
@@ -26,8 +23,7 @@ const JobDescription = () => {
   const [error, setError] = useState(null);
   const [hasApplied, setHasApplied] = useState(false);
   const [relatedJobs, setRelatedJobs] = useState([]);
-  const textSecondary = isDarkMode ? 'text-gray-300' : 'text-gray-600';
-  
+ const textSecondary = isDarkMode ? 'text-gray-300' : 'text-gray-600';
   const { slug } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
@@ -84,6 +80,7 @@ const JobDescription = () => {
       let stepCompleted = 0;
 
       if (step.isArray) {
+        // Handle array fields (education, experience)
         const arrayData = userData[step.arrayField] || [];
         if (Array.isArray(arrayData) && arrayData.length > 0) {
           const hasValidEntry = arrayData.some(item => {
@@ -96,6 +93,7 @@ const JobDescription = () => {
           }
         }
       } else {
+        // Handle regular fields
         const totalFieldWeight = step.fields.reduce((sum, field) => sum + field.weight, 0);
         let completedFieldWeight = 0;
 
@@ -168,11 +166,13 @@ const JobDescription = () => {
 
   const jobId = extractJobIdFromSlug(slug);
 
+  // fetch job details
   useEffect(() => {
     fetchJobDetails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
+  // check whether user already applied
   useEffect(() => {
     const checkAppliedStatus = async () => {
       if (!isAuthenticated || !user || !job) return;
@@ -216,12 +216,14 @@ const JobDescription = () => {
         throw new Error("Invalid response format");
       }
 
+      // try match by id first
       let foundJob = jobsArray.find(
         (j) =>
           (String(j.job_id || j.id) === String(jobId)) ||
           (j.job_id || j.id) === parseInt(jobId)
       );
 
+      // fallback: match by slugified title
       if (!foundJob && slug) {
         const titleSlug = slug.toLowerCase().replace(/-\d+$/, "");
         foundJob = jobsArray.find((j) =>
@@ -250,8 +252,7 @@ const JobDescription = () => {
       setLoading(false);
     }
   };
-
-  const getCompanyColor = (index) => {
+   const getCompanyColor = (index) => {
     const colors = [
       'bg-gradient-to-br from-blue-500 to-blue-600',
       'bg-gradient-to-br from-purple-500 to-purple-600',
@@ -262,7 +263,9 @@ const JobDescription = () => {
     return colors[index % colors.length];
   };
 
+
   const handleApplyClick = async () => {
+    // auth guard
     if (!isAuthenticated) {
       alert("Please login first to apply for this job");
       navigate("/candidate/login");
@@ -281,6 +284,7 @@ const JobDescription = () => {
       return;
     }
 
+    // membership check
     if (user?.membership !== "premium") {
       try {
         const registrationDate = new Date(user.created_at);
@@ -296,7 +300,7 @@ const JobDescription = () => {
           return;
         }
       } catch {
-        // if created_at invalid, continue
+        // if created_at invalid, continue (or ask user to login again)
       }
     }
 
@@ -307,6 +311,7 @@ const JobDescription = () => {
     try {
       let studentId = user?.user_id || user?.id || user?.student_id;
 
+      // if studentId not in user, try fetch by email
       if (!studentId && user?.email) {
         try {
           const profileResponse = await studentService.getProfile(user.email);
@@ -352,6 +357,7 @@ const JobDescription = () => {
     }
   };
 
+  // small format helpers
   const formatPostedDate = (dateString) => {
     if (!dateString) return "Recently";
     try {
@@ -380,24 +386,25 @@ const JobDescription = () => {
   const formatExperience = (exp) => {
     if (!exp) return "Not specified";
 
+    // ADDED: Check if exp is an object with min/max keys (like {min_years: 2, max_years: 5})
     if (typeof exp === 'object' && exp !== null) {
       const min = exp.min_years || exp.min_experience;
       const max = exp.max_years || exp.max_experience;
       if (min && max) return `${min}-${max} Yrs`;
       if (min) return `${min}+ Yrs`;
       if (max) return `Up to ${max} Yrs`;
-      return "Not specified";
+      return "Not specified"; // Fallback if object keys are missing
     }
 
-    return exp;
+    return exp; // Return as-is if it's already a string/number
   };
 
   if (loading) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? "bg-slate-900" : "bg-gray-100"}`}>
-        <div className="text-center px-4">
+        <div className="text-center">
           <div className="w-12 h-12 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin mx-auto" />
-          <p className="mt-4 text-gray-500 text-sm">Loading job details...</p>
+          <p className="mt-4 text-gray-500">Loading job details...</p>
         </div>
       </div>
     );
@@ -405,14 +412,14 @@ const JobDescription = () => {
 
   if (error) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? "bg-slate-900" : "bg-gray-100"} px-4`}>
-        <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-lg shadow text-center max-w-md w-full">
+      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? "bg-slate-900" : "bg-gray-100"}`}>
+        <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow text-center max-w-md">
           <div className="text-4xl mb-4">⚠️</div>
-          <h2 className="text-base sm:text-lg font-semibold mb-2">Error Loading Job</h2>
-          <p className="text-xs sm:text-sm text-gray-600 mb-6">{error}</p>
+          <h2 className="text-lg font-semibold mb-2">Error Loading Job</h2>
+          <p className="text-sm text-gray-600 mb-6">{error}</p>
           <button
             onClick={fetchJobDetails}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
             Try Again
           </button>
@@ -473,13 +480,16 @@ const JobDescription = () => {
                   </div>
                 </div>
 
-                <div className="mt-4 border-t pt-4 flex flex-wrap gap-3 sm:gap-6 text-xs sm:text-sm text-gray-600">
-                  <div className="whitespace-nowrap">
-                    📅 Posted: <strong className="text-gray-800">{formatPostedDate(job.created_at)}</strong>
-                  </div>
-                  <div className="whitespace-nowrap">👥 {job.openings || 1} Openings</div>
-                  <div className="whitespace-nowrap">📊 {job.applicants || "0"} Applicants</div>
+                <div className="w-20 h-20 rounded-lg p-2 flex items-center justify-center bg-blue-50">
+                  <span className="text-3xl font-bold text-blue-600">{(job.company_name || "C")[0].toUpperCase()}</span>
                 </div>
+              </div>
+
+              <div className="mt-4 border-t pt-4 flex flex-wrap gap-6 text-sm text-gray-600">
+                <div>📅 Posted: <strong className="text-gray-800">{formatPostedDate(job.created_at)}</strong></div>
+                <div>👥 {job.openings || 1} Openings</div>
+                <div>📊 {job.applicants || "0"} Applicants</div>
+              </div>
 
                 {/* Alerts */}
                 <div className="mt-4 space-y-2">
@@ -528,7 +538,7 @@ const JobDescription = () => {
                           e.stopPropagation();
                           toggleBookmark(job.job_id);
                         }}
-                        className={`${textSecondary} hover:text-yellow-500 transition-colors p-2.5 sm:p-1.5 rounded-lg border ${isDarkMode ? 'border-slate-600' : 'border-gray-300'} sm:border-0`}
+                        className={`${textSecondary}  hover:text-yellow-500 transition-colors p-1.5 rounded-lg`}
                       >
                         <Bookmark 
                           className="w-5 h-5" 
@@ -618,209 +628,74 @@ const JobDescription = () => {
                   onClick={() => setShowRelatedJobs(!showRelatedJobs)}
                   className={`w-full ${isDarkMode ? 'bg-slate-800' : 'bg-white'} rounded-2xl shadow-lg border ${isDarkMode ? 'border-slate-700' : 'border-gray-100'} p-4 flex items-center justify-between`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="bg-gradient-to-r from-indigo-500 to-purple-500 p-2 rounded-xl">
-                      <TrendingUp className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="text-left">
-                      <h3 className={`font-bold text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                        Top Opportunities
-                      </h3>
-                      <p className="text-xs text-gray-500">{relatedJobs.length} similar jobs</p>
-                    </div>
-                  </div>
-                  {showRelatedJobs ? (
-                    <ChevronUp className="w-5 h-5 text-gray-500" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-500" />
-                  )}
-                </button>
-
-                {showRelatedJobs && (
-                  <div className={`mt-4 ${isDarkMode ? 'bg-slate-800' : 'bg-white'} rounded-2xl shadow-lg border ${isDarkMode ? 'border-slate-700' : 'border-gray-100'} overflow-hidden`}>
-                    <div className="p-4 space-y-3">
-                      {relatedJobs.length > 0 ? (
-                        relatedJobs.map((relJob, idx) => (
-                          <div
-                            key={idx}
-                            onClick={() =>
-                              navigate(
-                                `/candidate/jobs/${((relJob.job_title || relJob.title) || "")
-                                  .toLowerCase()
-                                  .replace(/\s+/g, "-")}-${relJob.job_id || relJob.id}`
-                              )
-                            }
-                            className={`group cursor-pointer p-3 sm:p-4 rounded-xl transition-all duration-300 border ${
-                              isDarkMode 
-                                ? 'bg-slate-700/50 border-slate-600 hover:bg-slate-700 hover:border-indigo-500' 
-                                : 'bg-gray-50 border-gray-200 hover:bg-white hover:border-indigo-300 hover:shadow-md'
-                            }`}
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className={`flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 ${getCompanyColor(idx)} rounded-xl flex items-center justify-center shadow-lg`}>
-                                <span className="text-white font-bold text-base sm:text-lg">
-                                  {(relJob.company_name || "C")[0].toUpperCase()}
-                                </span>
-                              </div>
-
-                              <div className="flex-grow min-w-0">
-                                <h4 className={`font-semibold text-xs sm:text-sm mb-1 truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                                  {relJob.job_title || relJob.title || "Job Title"}
-                                </h4>
-                                <p className={`text-xs mb-2 truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                  {relJob.company_name || "Company"}
-                                </p>
-                                
-                                <div className="flex flex-wrap gap-2 mb-2">
-                                  <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-xs font-medium ${
-                                    isDarkMode 
-                                      ? 'bg-slate-600 text-slate-200' 
-                                      : 'bg-indigo-50 text-indigo-700'
-                                  }`}>
-                                    <Briefcase className="w-3 h-3" />
-                                    {formatExperience(relJob.experience_required || relJob.experience)}
-                                  </span>
-                                  <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-xs font-medium ${
-                                    isDarkMode 
-                                      ? 'bg-slate-600 text-slate-200' 
-                                      : 'bg-emerald-50 text-emerald-700'
-                                  }`}>
-                                    <MapPin className="w-3 h-3" />
-                                    {relJob.location || "Remote"}
-                                  </span>
-                                </div>
-                                
-                                <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                                  {formatPostedDate(relJob.created_at)}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className={`text-center py-12 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                          <p className="text-sm">No similar jobs found</p>
-                        </div>
-                      )}
+                  <div className="flex items-start gap-3">
+                    {/* Company Avatar with gradient */}
+                    <div className={`flex-shrink-0 w-12 h-12 ${getCompanyColor(idx)} rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300`}>
+                      <span className="text-white font-bold text-lg">
+                        {(relJob.company_name || "C")[0].toUpperCase()}
+                      </span>
                     </div>
 
-                    <div className="p-4 pt-2">
-                      <button
-                        onClick={() => navigate("/candidate/register")}
-                        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl py-3 text-sm transition-all duration-300 shadow-lg hover:shadow-xl"
-                      >
-                        🚀 Register to unlock all opportunities
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </main>
-
-            {/* Desktop Sidebar - Hidden on mobile */}
-            <aside className="hidden lg:block lg:col-span-4">
-              <div className={`sticky top-24 ${isDarkMode ? 'bg-slate-800' : 'bg-white'} rounded-2xl shadow-lg border ${isDarkMode ? 'border-slate-700' : 'border-gray-100'} overflow-hidden`}>
-                
-                {/* Header with gradient */}
-                <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-white/20 backdrop-blur-sm p-2 rounded-xl">
-                      <TrendingUp className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-white font-bold text-xl">Top Opportunities</h3>
-                      <p className="text-white/80 text-sm">From leading companies</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Job List */}
-                <div className="p-4 space-y-3">
-                  {relatedJobs.length > 0 ? (
-                    relatedJobs.map((relJob, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() =>
-                          navigate(
-                            `/candidate/jobs/${((relJob.job_title || relJob.title) || "")
-                              .toLowerCase()
-                              .replace(/\s+/g, "-")}-${relJob.job_id || relJob.id}`
-                          )
-                        }
-                        className={`group cursor-pointer p-4 rounded-xl transition-all duration-300 border ${
+                    {/* Job Info */}
+                    <div className="flex-grow min-w-0">
+                      <h4 className={`font-semibold text-sm mb-1 truncate ${isDarkMode ? 'text-white' : 'text-gray-900'} group-hover:text-indigo-600 transition-colors`}>
+                        {relJob.job_title || relJob.title || "Job Title"}
+                      </h4>
+                      <p className={`text-xs mb-2 truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {relJob.company_name || "Company"}
+                      </p>
+                      
+                      {/* Info Pills */}
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${
                           isDarkMode 
-                            ? 'bg-slate-700/50 border-slate-600 hover:bg-slate-700 hover:border-indigo-500' 
-                            : 'bg-gray-50 border-gray-200 hover:bg-white hover:border-indigo-300 hover:shadow-md'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          {/* Company Avatar with gradient */}
-                          <div className={`flex-shrink-0 w-12 h-12 ${getCompanyColor(idx)} rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300`}>
-                            <span className="text-white font-bold text-lg">
-                              {(relJob.company_name || "C")[0].toUpperCase()}
-                            </span>
-                          </div>
-
-                          {/* Job Info */}
-                          <div className="flex-grow min-w-0">
-                            <h4 className={`font-semibold text-sm mb-1 truncate ${isDarkMode ? 'text-white' : 'text-gray-900'} group-hover:text-indigo-600 transition-colors`}>
-                              {relJob.job_title || relJob.title || "Job Title"}
-                            </h4>
-                            <p className={`text-xs mb-2 truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                              {relJob.company_name || "Company"}
-                            </p>
-                            
-                            {/* Info Pills */}
-                            <div className="flex flex-wrap gap-2 mb-2">
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${
-                                isDarkMode 
-                                  ? 'bg-slate-600 text-slate-200' 
-                                  : 'bg-indigo-50 text-indigo-700'
-                              }`}>
-                                <Briefcase className="w-3 h-3" />
-                                {formatExperience(relJob.experience_required || relJob.experience)}
-                              </span>
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${
-                                isDarkMode 
-                                  ? 'bg-slate-600 text-slate-200' 
-                                  : 'bg-emerald-50 text-emerald-700'
-                              }`}>
-                                <MapPin className="w-3 h-3" />
-                                {relJob.location || "Remote"}
-                              </span>
-                            </div>
-                            
-                            <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                              {formatPostedDate(relJob.created_at)}
-                            </p>
-                          </div>
-                        </div>
+                            ? 'bg-slate-600 text-slate-200' 
+                            : 'bg-indigo-50 text-indigo-700'
+                        }`}>
+                          <Briefcase className="w-3 h-3" />
+                          {formatExperience(relJob.experience_required || relJob.experience)}
+                        </span>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${
+                          isDarkMode 
+                            ? 'bg-slate-600 text-slate-200' 
+                            : 'bg-emerald-50 text-emerald-700'
+                        }`}>
+                          <MapPin className="w-3 h-3" />
+                          {relJob.location || "Remote"}
+                        </span>
                       </div>
-                    ))
-                  ) : (
-                    <div className={`text-center py-12 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                      <p className="text-sm">No similar jobs found</p>
+                      
+                      <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                        {formatPostedDate(relJob.created_at)}
+                      </p>
                     </div>
-                  )}
+                  </div>
                 </div>
-
-                {/* CTA Button */}
-                <div className="p-4 pt-2">
-                  <button
-                    onClick={() => navigate("/candidate/register")}
-                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl py-3 text-sm transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    🚀 Register to unlock all opportunities
-                  </button>
-                </div>
+              ))
+            ) : (
+              <div className={`text-center py-12 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p className="text-sm">No similar jobs found</p>
               </div>
-            </aside>
+            )}
+          </div>
+
+          {/* CTA Button */}
+          <div className="p-4 pt-2">
+            <button
+              onClick={() => navigate("/candidate/register")}
+              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl py-3 text-sm transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+              🚀 Register to unlock all opportunities
+            </button>
           </div>
         </div>
-        <Footer />
+      </aside>
+
+        </div>
       </div>
+    </div>
+    <Footer/>
     </>
   );
 };

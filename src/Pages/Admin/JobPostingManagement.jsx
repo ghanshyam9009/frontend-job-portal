@@ -4,7 +4,7 @@ import { useAuth } from "../../Contexts/AuthContext";
 import { adminService } from "../../services/adminService";
 import { candidateExternalService } from "../../services/candidateExternalService";
 import { recruiterExternalService } from "../../services/recruiterExternalService";
-import { Building2, Edit, Trash2, Search, RefreshCw, Eye, Users } from "lucide-react";
+import { Building2, Edit, Trash2, Search, RefreshCw, Eye, Users, Download, X, FileText, MapPin, Clock, Plus, Award } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const JobPostingManagement = () => {
@@ -33,10 +33,16 @@ const JobPostingManagement = () => {
     description: "",
     location: "",
     salary_range: "",
-    employment_type: "Full-time",
-    experience_required: "",
+    employment_type: "Full-Time",
+    work_mode: "On-site",
+    experience_required: {
+      min_years: "",
+      max_years: "",
+    },
     skills_required: [],
     category: "",
+    responsibilities: "",
+    qualifications: "",
     application_deadline: "",
     contact_email: "",
     is_premium: false
@@ -55,70 +61,26 @@ const JobPostingManagement = () => {
       const currentAdminId = user?.admin_id || user?.id || user?.user_id;
       const adminJobs = (jobsData?.jobs || [])
         .filter(job => job.admin_id === currentAdminId)
-        .filter(job => job.job_type === 'PRIVATE') // Show only PRIVATE jobs
-        .filter(job => job.category !== 'Government')  // Extra safety filter by category
+        .filter(job => job.posted_by?.toLowerCase() === 'admin') // Only show jobs posted by admin
+        .filter(job => job.job_type !== 'GOVERNMENT') // Don't show government jobs
+        .filter(job => job.posted_by?.toUpperCase() !== 'RECRUITER') // Don't show recruiter jobs
         .filter(job => job.status !== 'closed'); // Filter out closed jobs from display
 
-      // Fetch application counts for admin jobs in batches to avoid overwhelming the API
-      const BATCH_SIZE = 3; // Process 3 jobs at a time
-      const DELAY_MS = 100; // 100ms delay between batches
-      const jobsWithCounts = [];
-
-      for (let i = 0; i < adminJobs.length; i += BATCH_SIZE) {
-        const batch = adminJobs.slice(i, i + BATCH_SIZE);
-        console.log(`Fetching application counts for batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(adminJobs.length / BATCH_SIZE)} (${batch.length} jobs)`);
-
-        // Process batch concurrently
-        const batchPromises = batch.map(async (job) => {
-          try {
-            const applicantsData = await recruiterExternalService.getAllApplicants(job.job_id);
-
-            // Handle different response formats from the API
-            let applicationCount = 0;
-            if (applicantsData) {
-              if (Array.isArray(applicantsData)) {
-                applicationCount = applicantsData.length;
-              } else if (applicantsData.applications && Array.isArray(applicantsData.applications)) {
-                applicationCount = applicantsData.count || applicantsData.applications.length;
-              } else if (typeof applicantsData === 'object' && applicantsData.count !== undefined) {
-                applicationCount = applicantsData.count;
-              }
-            }
-
-            return {
-              ...job,
-              application_count: applicationCount,
-              applications: [] // Applications loaded on-demand when viewing details
-            };
-          } catch (error) {
-            console.error(`Failed to fetch applications for job ${job.job_id}:`, error.message);
-            return {
-              ...job,
-              application_count: 0,
-              applications: []
-            };
-          }
-        });
-
-        // Wait for current batch to complete
-        const batchResults = await Promise.all(batchPromises);
-        jobsWithCounts.push(...batchResults);
-
-        // Add delay between batches (except for the last batch)
-        if (i + BATCH_SIZE < adminJobs.length) {
-          console.log(`Waiting ${DELAY_MS}ms before next batch...`);
-          await new Promise(resolve => setTimeout(resolve, DELAY_MS));
-        }
-      }
+      // Add application_count as 0 initially - will be loaded on-demand
+      const jobsWithDefaultCounts = adminJobs.map(job => ({
+        ...job,
+        application_count: 0, // Will be loaded when user views applications
+        applications: [] // Applications loaded on-demand when viewing details
+      }));
 
       // Sort jobs by posted date (latest first)
-      const sortedJobs = jobsWithCounts.sort((a, b) => {
+      const sortedJobs = jobsWithDefaultCounts.sort((a, b) => {
         const dateA = new Date(a.created_at || a.posted_date || 0);
         const dateB = new Date(b.created_at || b.posted_date || 0);
         return dateB - dateA; // Descending order (newest first)
       });
 
-      console.log(`Job loading complete. Processed ${sortedJobs.length} jobs with application counts.`);
+      console.log(`Job loading complete. Loaded ${sortedJobs.length} jobs (application counts loaded on-demand).`);
 
       setJobs(sortedJobs);
       setFilteredJobs(sortedJobs);
@@ -177,10 +139,21 @@ const JobPostingManagement = () => {
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    const keys = field.split(".");
+    if (keys.length > 1) {
+      setFormData((prev) => ({
+        ...prev,
+        [keys[0]]: {
+          ...prev[keys[0]],
+          [keys[1]]: value,
+        },
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    }
   };
 
   const handleAddSkill = () => {
@@ -209,27 +182,44 @@ const JobPostingManagement = () => {
         description: formData.description,
         location: formData.location,
         employment_type: formData.employment_type,
+        work_mode: formData.work_mode,
         salary_range: formData.salary_range,
         experience_required: formData.experience_required,
         skills_required: formData.skills_required,
+        responsibilities: formData.responsibilities.split("\n"),
+        qualifications: formData.qualifications.split("\n"),
         category: formData.category || null,
         application_deadline: formData.application_deadline || null,
         contact_email: formData.contact_email || null,
         status: "Open", // Admin jobs are visible and open
         is_premium: formData.is_premium,
-        job_type: "PRIVATE",
         posted_by: "admin",
+        to_show_user: true, // Make admin jobs visible to candidates
         admin_id: user?.admin_id || user?.id || user?.user_id // Use actual admin ID from logged-in user
       };
 
+      let jobResult;
+
       if (editingJob) {
         // Update existing job
-        await adminService.updateAdminJob(editingJob.job_id || editingJob.id, jobData);
+        jobResult = await adminService.updateAdminJob(editingJob.job_id || editingJob.id, jobData);
         alert('Job updated successfully!');
       } else {
         // Create new job
-        await adminService.postJobByAdmin(jobData);
+        jobResult = await adminService.postJobByAdmin(jobData);
         alert('Job posted successfully!');
+      }
+
+      // Mark job as premium if checkbox was checked
+      if (formData.is_premium) {
+        try {
+          const jobId = editingJob ? (editingJob.job_id || editingJob.id) : jobResult.job_id;
+          await adminService.markJobPremium(jobId, true, 'job');
+          console.log('Job marked as premium successfully');
+        } catch (premiumError) {
+          console.error('Failed to mark job as premium:', premiumError);
+          alert('Job posted successfully, but failed to mark as premium. You can try again later.');
+        }
       }
 
       // Refresh jobs data
@@ -250,10 +240,16 @@ const JobPostingManagement = () => {
       description: "",
       location: "",
       salary_range: "",
-      employment_type: "Full-time",
-      experience_required: "",
+      employment_type: "Full-Time",
+      work_mode: "On-site",
+      experience_required: {
+        min_years: "",
+        max_years: "",
+      },
       skills_required: [],
       category: "",
+      responsibilities: "",
+      qualifications: "",
       application_deadline: "",
       contact_email: "",
       is_premium: false
@@ -268,13 +264,27 @@ const JobPostingManagement = () => {
       company_name: job.company_name || "",
       description: job.description || "",
       location: job.location || "",
-      salary_range: job.salary_range || "",
-      employment_type: job.employment_type || "Full-time",
-      experience_required: job.experience_required || "",
+      salary_range: job.salary_range && typeof job.salary_range === 'string'
+        ? job.salary_range
+        : job.salary_range && typeof job.salary_range === 'object'
+        ? `${job.salary_range.currency || 'INR'} ${job.salary_range.min || ''} - ${job.salary_range.max || ''}`.trim()
+        : "",
+      employment_type: job.employment_type || "Full-Time",
+      work_mode: job.work_mode || "On-site",
+      experience_required: job.experience_required || {
+        min_years: "",
+        max_years: "",
+      },
       skills_required: Array.isArray(job.skills_required)
         ? job.skills_required
         : (job.skills_required ? job.skills_required.split(", ") : []),
       category: job.category || "",
+      responsibilities: Array.isArray(job.responsibilities)
+        ? job.responsibilities.join("\n")
+        : (job.responsibilities || ""),
+      qualifications: Array.isArray(job.qualifications)
+        ? job.qualifications.join("\n")
+        : (job.qualifications || ""),
       application_deadline: job.application_deadline || "",
       contact_email: job.contact_email || "",
       is_premium: job.is_premium || false
@@ -364,15 +374,23 @@ const JobPostingManagement = () => {
         let applicationCount = 0;
 
         if (applicantsData) {
+          // Check for different possible response formats
           if (Array.isArray(applicantsData)) {
             applications = applicantsData;
             applicationCount = applicantsData.length;
           } else if (applicantsData.applications && Array.isArray(applicantsData.applications)) {
             applications = applicantsData.applications;
             applicationCount = applicantsData.count || applicantsData.applications.length;
+          } else if (applicantsData.data && Array.isArray(applicantsData.data)) {
+            applications = applicantsData.data;
+            applicationCount = applicantsData.data.length;
           } else if (typeof applicantsData === 'object' && applicantsData.count !== undefined) {
             applicationCount = applicantsData.count;
+            applications = applicantsData.applications || [];
+          } else {
+            console.log('Unexpected response format:', applicantsData);
             applications = [];
+            applicationCount = 0;
           }
         }
 
@@ -389,16 +407,21 @@ const JobPostingManagement = () => {
         }
       } catch (error) {
         console.error('Failed to fetch applications:', error);
-        alert('Failed to load applications. Please try again.');
+        alert(`Failed to load applications. Error: ${error.message}`);
         return;
       }
     }
 
     // Enrich applications with student data (similar to JobApplicationReports.jsx)
-    const enrichedApplications = await enrichApplicationsWithStudentData(job.applications, job.job_id);
+    try {
+      const enrichedApplications = await enrichApplicationsWithStudentData(job.applications, job.job_id);
 
-    // Update the job with enriched applications
-    job.applications = enrichedApplications;
+      // Update the job with enriched applications
+      job.applications = enrichedApplications;
+    } catch (enrichError) {
+      console.error('Failed to enrich applications:', enrichError);
+      // Continue with unenriched data
+    }
 
     setSelectedJobForApplications(job);
     setShowApplicationsModal(true);
@@ -525,7 +548,13 @@ const JobPostingManagement = () => {
                 </td>
                 <td>{job.company_name || 'N/A'}</td>
                 <td className={styles.locationCell}>{job.location || 'N/A'}</td>
-                <td className={styles.salaryCell}>{job.salary_range || 'N/A'}</td>
+                <td className={styles.salaryCell}>
+                  {job.salary_range && typeof job.salary_range === 'string'
+                    ? job.salary_range
+                    : job.salary_range && typeof job.salary_range === 'object'
+                    ? `${job.salary_range.currency || 'INR'} ${job.salary_range.min || '0'} - ${job.salary_range.max || '0'}`
+                    : 'N/A'}
+                </td>
                 <td>{job.employment_type || 'Full-time'}</td>
                 <td>{getStatusBadge(job.status || 'approved')}</td>
                 <td className={styles.dateCell}>
@@ -603,223 +632,348 @@ const JobPostingManagement = () => {
 
       {/* Add/Edit Modal */}
       {showAddModal && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <div className={styles.modalHeader}>
-              <h3>{editingJob ? 'Edit Job Posting' : 'Post New Job'}</h3>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className={`rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+            <div className={`flex items-center justify-between p-5 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+              <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{editingJob ? 'Edit Job Posting' : 'Post New Job'}</h2>
               <button
-                className={styles.closeBtn}
                 onClick={() => {
                   setShowAddModal(false);
                   setEditingJob(null);
                   resetForm();
                 }}
+                className={`${theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
               >
-                ×
+                <X size={24} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className={styles.modalForm}>
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label>Job Title *</label>
-                  <input
-                    type="text"
-                    value={formData.job_title}
-                    onChange={(e) => handleInputChange('job_title', e.target.value)}
-                    className={styles.formInput}
-                    required
-                  />
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Basic Information */}
+              <div className={`rounded-lg shadow-sm border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-5`}>
+                <div className="flex items-center gap-2 mb-4">
+                  <FileText className={theme === 'dark' ? 'text-blue-400' : 'text-blue-500'} size={20} />
+                  <h2 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Basic Information</h2>
                 </div>
-                <div className={styles.formGroup}>
-                  <label>Company Name *</label>
-                  <input
-                    type="text"
-                    value={formData.company_name}
-                    onChange={(e) => handleInputChange('company_name', e.target.value)}
-                    className={styles.formInput}
-                    required
-                  />
-                </div>
-              </div>
 
-              <div className={styles.formGroup}>
-                <label>Job Description *</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  className={styles.formTextarea}
-                  rows={4}
-                  required
-                />
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>
+                      Job Title <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.job_title}
+                      onChange={(e) => handleInputChange("job_title", e.target.value)}
+                      placeholder="e.g., Senior Frontend Developer"
+                      required
+                      className={`w-full px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                    />
+                  </div>
 
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label>Location *</label>
-                  <input
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                    className={styles.formInput}
-                    required
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Salary Range *</label>
-                  <input
-                    type="text"
-                    value={formData.salary_range}
-                    onChange={(e) => handleInputChange('salary_range', e.target.value)}
-                    className={styles.formInput}
-                    placeholder="₹50,000 - ₹1,00,000"
-                    required
-                  />
-                </div>
-              </div>
+                  <div>
+                    <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>
+                      Company Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.company_name}
+                      onChange={(e) => handleInputChange("company_name", e.target.value)}
+                      placeholder="Your company name"
+                      required
+                      className={`w-full px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                    />
+                  </div>
 
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label>Employment Type *</label>
-                  <select
-                    value={formData.employment_type}
-                    onChange={(e) => handleInputChange('employment_type', e.target.value)}
-                    className={styles.formSelect}
-                    required
-                  >
-                    <option value="Full-time">Full-time</option>
-                    <option value="Part-time">Part-time</option>
-                    <option value="Contract">Contract</option>
-                    <option value="Internship">Internship</option>
-                    <option value="Freelance">Freelance</option>
-                  </select>
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Experience Required</label>
-                  <select
-                    value={formData.experience_required}
-                    onChange={(e) => handleInputChange('experience_required', e.target.value)}
-                    className={styles.formSelect}
-                  >
-                    <option value="">Select experience level</option>
-                    <option value="No experience required">No experience required</option>
-                    <option value="0-1 year">0-1 year</option>
-                    <option value="1-2 years">1-2 years</option>
-                    <option value="2-3 years">2-3 years</option>
-                    <option value="3-5 years">3-5 years</option>
-                    <option value="5-7 years">5-7 years</option>
-                    <option value="7-10 years">7-10 years</option>
-                    <option value="10+ years">10+ years</option>
-                    <option value="15+ years">15+ years</option>
-                  </select>
-                </div>
-              </div>
+                  <div>
+                    <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>
+                      Location <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <MapPin className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`} size={16} />
+                      <input
+                        type="text"
+                        value={formData.location}
+                        onChange={(e) => handleInputChange('location', e.target.value)}
+                        placeholder="e.g., Mumbai, India or Remote"
+                        required
+                        className={`w-full pl-10 pr-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                      />
+                    </div>
+                  </div>
 
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label>Category</label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => handleInputChange('category', e.target.value)}
-                    className={styles.formSelect}
-                  >
-                    <option value="">Select Category</option>
-                    <option value="Technology">Technology</option>
-                    <option value="Finance">Finance</option>
-                    <option value="Healthcare">Healthcare</option>
-                    <option value="Marketing">Marketing</option>
-                    <option value="Sales">Sales</option>
-                    <option value="Engineering">Engineering</option>
-                    <option value="Design">Design</option>
-                    <option value="Education">Education</option>
-                    <option value="Operations">Operations</option>
-                  </select>
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Application Deadline</label>
-                  <input
-                    type="date"
-                    value={formData.application_deadline}
-                    onChange={(e) => handleInputChange('application_deadline', e.target.value)}
-                    className={styles.formInput}
-                  />
-                </div>
-              </div>
+                  <div>
+                    <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>
+                      Employment Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.employment_type}
+                      onChange={(e) => handleInputChange("employment_type", e.target.value)}
+                      required
+                      className={`w-full px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                    >
+                      <option value="Full-Time">Full-time</option>
+                      <option value="Part-Time">Part-time</option>
+                      <option value="Contract">Contract</option>
+                      <option value="Internship">Internship</option>
+                    </select>
+                  </div>
 
-              <div className={styles.formGroup}>
-                <label>Contact Email *</label>
-                <input
-                  type="email"
-                  value={formData.contact_email}
-                  onChange={(e) => handleInputChange('contact_email', e.target.value)}
-                  className={styles.formInput}
-                  required
-                />
-              </div>
+                  <div>
+                    <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>
+                      Work Mode <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.work_mode}
+                      onChange={(e) => handleInputChange("work_mode", e.target.value)}
+                      required
+                      className={`w-full px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                    >
+                      <option value="On-site">On-site</option>
+                      <option value="Remote">Remote</option>
+                      <option value="Hybrid">Hybrid</option>
+                    </select>
+                  </div>
 
-              {/* Skills Section */}
-              <div className={styles.formGroup}>
-                <label>Skills Required</label>
-                <div className={styles.skillInputGroup}>
-                  <input
-                    type="text"
-                    value={skillInput}
-                    onChange={(e) => setSkillInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSkill())}
-                    className={styles.skillInput}
-                    placeholder="Add a skill..."
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddSkill}
-                    className={styles.addSkillBtn}
-                  >
-                    Add Skill
-                  </button>
-                </div>
-                <div className={styles.skillsList}>
-                  {formData.skills_required.map((skill, index) => (
-                    <span key={index} className={styles.skillTag}>
-                      {skill}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSkill(skill)}
-                        className={styles.removeSkillBtn}
+                  <div>
+                    <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>
+                      Application Deadline
+                    </label>
+                    <div className="relative">
+                      <Clock className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`} size={16} />
+                      <input
+                        type="date"
+                        value={formData.application_deadline}
+                        onChange={(e) => handleInputChange('application_deadline', e.target.value)}
+                        className={`w-full pl-10 pr-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>
+                      Contact Email <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.contact_email}
+                      onChange={(e) => handleInputChange('contact_email', e.target.value)}
+                      required
+                      className={`w-full px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>
+                      Salary Range
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.salary_range}
+                      onChange={(e) => handleInputChange('salary_range', e.target.value)}
+                      placeholder="e.g., ₹5,00,000 - ₹8,00,000 per annum"
+                      className={`w-full px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>
+                      Experience Required (Years)
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <select
+                        value={formData.experience_required.min_years}
+                        onChange={(e) => handleInputChange("experience_required.min_years", e.target.value)}
+                        className={`px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
                       >
-                        ×
-                      </button>
-                    </span>
-                  ))}
+                        <option value="">Min Experience</option>
+                        <option value="0">0 years</option>
+                        <option value="1">1 year</option>
+                        <option value="2">2 years</option>
+                        <option value="3">3 years</option>
+                        <option value="4">4 years</option>
+                        <option value="5">5 years</option>
+                        <option value="6">6 years</option>
+                        <option value="7">7 years</option>
+                        <option value="8">8 years</option>
+                        <option value="9">9 years</option>
+                        <option value="10">10 years</option>
+                        <option value="12">12 years</option>
+                        <option value="15">15 years</option>
+                        <option value="20">20+ years</option>
+                      </select>
+                      <select
+                        value={formData.experience_required.max_years}
+                        onChange={(e) => handleInputChange("experience_required.max_years", e.target.value)}
+                        className={`px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                      >
+                        <option value="">Max Experience</option>
+                        <option value="1">1 year</option>
+                        <option value="2">2 years</option>
+                        <option value="3">3 years</option>
+                        <option value="4">4 years</option>
+                        <option value="5">5 years</option>
+                        <option value="6">6 years</option>
+                        <option value="7">7 years</option>
+                        <option value="8">8 years</option>
+                        <option value="9">9 years</option>
+                        <option value="10">10 years</option>
+                        <option value="12">12 years</option>
+                        <option value="15">15 years</option>
+                        <option value="20">20 years</option>
+                        <option value="25">25 years</option>
+                        <option value="30">30+ years</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Premium Job Toggle */}
+                  <div className="md:col-span-2">
+                    <label className={`flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'} text-sm font-medium`}>
+                      <input
+                        type="checkbox"
+                        checked={formData.is_premium}
+                        onChange={(e) => handleInputChange('is_premium', e.target.checked)}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                      />
+                      Mark as Premium Job (will appear first in search results)
+                    </label>
+                  </div>
                 </div>
               </div>
 
-              {/* Premium Job Toggle */}
-              <div className={styles.formGroup}>
-                <label className={styles.checkboxLabel}>
-                  <input
-                    type="checkbox"
-                    checked={formData.is_premium}
-                    onChange={(e) => handleInputChange('is_premium', e.target.checked)}
-                    className={styles.checkbox}
-                  />
-                  Mark as Premium Job (will appear first in search results)
-                </label>
+              {/* Job Details */}
+              <div className={`rounded-lg shadow-sm border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-5`}>
+                <div className="flex items-center gap-2 mb-4">
+                  <FileText className={theme === 'dark' ? 'text-purple-400' : 'text-purple-500'} size={20} />
+                  <h2 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Job Details</h2>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>
+                      Job Description <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => handleInputChange("description", e.target.value)}
+                      placeholder="Provide a detailed job description..."
+                      rows={6}
+                      required
+                      className={`w-full px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none`}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>
+                        Responsibilities <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        value={formData.responsibilities}
+                        onChange={(e) => handleInputChange("responsibilities", e.target.value)}
+                        placeholder="List key responsibilities (one per line)..."
+                        rows={6}
+                        required
+                        className={`w-full px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>
+                        Qualifications <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        value={formData.qualifications}
+                        onChange={(e) => handleInputChange("qualifications", e.target.value)}
+                        placeholder="List required qualifications (one per line)..."
+                        rows={6}
+                        required
+                        className={`w-full px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none`}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className={styles.modalActions}>
+              {/* Skills */}
+              <div className={`rounded-lg shadow-sm border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-5`}>
+                <div className="flex items-center gap-2 mb-4">
+                  <Award className={theme === 'dark' ? 'text-green-400' : 'text-green-500'} size={20} />
+                  <h2 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Required Skills</h2>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={skillInput}
+                      onChange={(e) => setSkillInput(e.target.value)}
+                      placeholder="Add a required skill and press Enter"
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddSkill();
+                        }
+                      }}
+                      className={`flex-1 px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddSkill}
+                      className="px-4 py-2 bg-[#2271B5] text-white rounded-md hover:bg-[#1a5a8f] transition-colors text-sm font-medium flex items-center gap-2"
+                    >
+                      <Plus size={16} />
+                      Add
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {formData.skills_required.map((skill, index) => (
+                      <span
+                        key={index}
+                        className={`inline-flex items-center gap-2 px-3 py-1.5 ${theme === 'dark' ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-600'} rounded-full text-sm font-medium`}
+                      >
+                        {skill}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSkill(skill)}
+                          className={`hover:${theme === 'dark' ? 'text-blue-200' : 'text-blue-800'}`}
+                        >
+                          <X size={14} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-100 dark:bg-red-900/30 border border-red-400 text-red-700 dark:text-red-400 px-4 py-3 rounded-md text-sm">
+                  {error}
+                </div>
+              )}
+
+              {/* Form Actions */}
+              <div className="flex gap-3 justify-end">
                 <button
                   type="button"
-                  className={styles.cancelBtn}
                   onClick={() => {
                     setShowAddModal(false);
                     setEditingJob(null);
                     resetForm();
                   }}
+                  className={`px-6 py-2.5 ${theme === 'dark' ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'} border rounded-md transition-colors font-medium text-sm`}
                 >
                   Cancel
                 </button>
-                <button type="submit" className={styles.saveBtn}>
-                  {editingJob ? 'Update Job' : 'Post Job'}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-6 py-2.5 bg-[#2271B5] text-white rounded-md hover:bg-[#1a5a8f] transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? "Posting..." : editingJob ? "Update Job" : "Post Job"}
                 </button>
               </div>
             </form>
@@ -1021,10 +1175,54 @@ const JobPostingManagement = () => {
               </button>
             </div>
 
+            {selectedCandidate.student_profile?.logo && (
+              <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+                <label style={{ fontWeight: 'bold', marginBottom: '10px', display: 'block' }}>Profile Logo:</label>
+                <div style={{
+                  padding: '15px',
+                  backgroundColor: theme === 'dark' ? '#444' : '#f8f9fa',
+                  borderRadius: '8px',
+                  border: `2px solid ${theme === 'dark' ? '#555' : '#e9ecef'}`,
+                  display: 'inline-block'
+                }}>
+                  <img
+                    src={selectedCandidate.student_profile.logo}
+                    alt="Candidate Profile Logo"
+                    style={{
+                      maxWidth: '120px',
+                      maxHeight: '120px',
+                      borderRadius: '6px',
+                      objectFit: 'cover',
+                      display: 'block',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                    }}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
+                  />
+                  <div style={{
+                    display: 'none',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '120px',
+                    height: '120px',
+                    backgroundColor: theme === 'dark' ? '#666' : '#dee2e6',
+                    borderRadius: '6px',
+                    color: theme === 'dark' ? '#ccc' : '#6c757d',
+                    fontSize: '12px',
+                    textAlign: 'center'
+                  }}>
+                    Logo not available
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
               <div>
                 <label style={{ fontWeight: 'bold' }}>Student Name:</label>
-                <p>{studentNames[selectedCandidate.student_id] || `Loading...`}</p>
+                <p>{selectedCandidate.student_profile?.full_name || selectedCandidate.student_profile?.name || selectedCandidate.student_name || `Student ${selectedCandidate.student_id}`}</p>
               </div>
               <div>
                 <label style={{ fontWeight: 'bold' }}>Job Title:</label>
@@ -1086,25 +1284,31 @@ const JobPostingManagement = () => {
               </div>
             )}
 
-            {selectedCandidate.resume_url && (
+            {selectedCandidate.student_profile?.resume && (
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ fontWeight: 'bold' }}>Resume:</label>
-                <div style={{ marginTop: '5px' }}>
+                <div style={{ marginTop: '10px' }}>
                   <a
-                    href={selectedCandidate.resume_url}
+                    href={selectedCandidate.student_profile.resume}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
                       backgroundColor: '#007bff',
                       color: '#fff',
                       textDecoration: 'none',
-                      padding: '8px 16px',
-                      borderRadius: '4px',
+                      padding: '10px 20px',
+                      borderRadius: '6px',
                       display: 'inline-flex',
-                      alignItems: 'center'
+                      alignItems: 'center',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      boxShadow: '0 2px 4px rgba(0,123,255,0.2)',
+                      transition: 'all 0.2s ease'
                     }}
+                    onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
+                    onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
                   >
-                    <Eye size={14} style={{ marginRight: '5px' }} />
+                    <Download size={16} style={{ marginRight: '8px' }} />
                     Download Resume
                   </a>
                 </div>

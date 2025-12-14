@@ -279,7 +279,7 @@ const ProfileManagement = () => {
           // Fetch latest profile data using the new API endpoint
           const profileResponse = await studentService.fetchProfileDetails(user.email);
           if (profileResponse.success && profileResponse.data) {
-            const profileData = profileResponse.data.profile || profileResponse.data;
+            const profileData = profileResponse.data.student || profileResponse.data.profile || profileResponse.data;
             const loadedData = {
               full_name: profileData.full_name || user.full_name || '',
               phone_number: profileData.phone_number || user.phone_number || '',
@@ -372,6 +372,7 @@ const ProfileManagement = () => {
 
             // Debug: Log profile data to help identify what's missing
             console.log('Loaded profile data:', loadedData);
+            console.log('Logo value from API:', profileData.logo);
 
             // Check if profile is complete and log the results
             const isComplete = checkProfileComplete(loadedData);
@@ -617,7 +618,7 @@ const ProfileManagement = () => {
     }
   };
 
-  const handleLogoChange = (e) => {
+  const handleLogoChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -628,19 +629,38 @@ const ProfileManagement = () => {
       return;
     }
 
-    // Store the selected file for upload during profile save
-    setFormData(prev => ({ ...prev, logoFile: file }));
+    setLoading(true);
+    try {
+      // Upload the logo file immediately using the dedicated API
+      const uploadResponse = await studentService.uploadLogoFile(user.email, file);
 
-    // Create preview URL for display
-    const previewUrl = URL.createObjectURL(file);
-    setFormData(prev => ({ ...prev, logo: previewUrl }));
+      if (uploadResponse.success) {
+        const uploadedLogoUrl =
+          uploadResponse.data?.logoUrl ||
+          uploadResponse.data?.logo ||
+          uploadResponse.data?.profile?.logoUrl ||
+          uploadResponse.data?.profile?.logo ||
+          uploadResponse.data?.logoUrl ||
+          (typeof uploadResponse.data === 'string' ? uploadResponse.data : null);
 
-    setValidationErrors({ ...validationErrors, logo: '' });
-    setSuccess('Profile image selected successfully');
-    setTimeout(() => setSuccess(''), 3000);
-
-    // Mark field as touched
-    setTouchedFields({ ...touchedFields, logo: true });
+        // Update logo URL in formData
+        if (uploadedLogoUrl) {
+          setFormData(prev => ({ ...prev, logo: uploadedLogoUrl, logoFile: null })); // Clear logoFile since it's uploaded
+        }
+        setValidationErrors({ ...validationErrors, logo: '' });
+        setSuccess('Profile image uploaded successfully');
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setValidationErrors({ ...validationErrors, logo: uploadResponse.error?.message || 'Failed to upload profile image' });
+      }
+    } catch (error) {
+      console.error('Logo upload error:', error);
+      setValidationErrors({ ...validationErrors, logo: 'Failed to upload profile image. Please try again.' });
+    } finally {
+      setLoading(false);
+      // Mark field as touched
+      setTouchedFields({ ...touchedFields, logo: true });
+    }
   };
 
 
@@ -801,18 +821,9 @@ const ProfileManagement = () => {
         dataForSubmission.resume = resume;
       }
 
-      // Include logo/profile image URL - generate S3 URL format if new file selected
-      if (formData.logoFile) {
-        // Generate S3 URL format: https://student-profile-docs.s3.ap-southeast-1.amazonaws.com/documents/{email}_{timestamp}.jpg
-        const timestamp = Date.now();
-        const emailPrefix = user.email.replace('@', '').replace('.', '_');
-        const s3Url = `https://student-profile-docs.s3.ap-southeast-1.amazonaws.com/documents/${emailPrefix}_${timestamp}.jpg`;
-        dataForSubmission.logo = s3Url; // Send the generated S3 URL to backend
-      } else if (typeof logo === 'string' && logo) {
-        // If no new file but existing logo URL, include it
-        if (!logo.startsWith('data:') && !logo.startsWith('blob:')) {
-          dataForSubmission.logo = logo;
-        }
+      // Include logo URL if it's a string and a proper URL (not blob/data URL)
+      if (typeof logo === 'string' && logo && !logo.startsWith('data:') && !logo.startsWith('blob:')) {
+        dataForSubmission.logo = logo;
       }
 
       console.log('Submitting profile data:', dataForSubmission);
@@ -1004,7 +1015,10 @@ const renderBasicInformationForm = () => (
               title="Click to upload profile image"
             >
               {formData.logo ? (
-                <img src={formData.logo} alt="Profile" className={styles.logoImage} />
+                <>
+                  {console.log('Rendering logo image:', formData.logo)}
+                  <img src={formData.logo} alt="Profile" className={styles.logoImage} />
+                </>
               ) : (
                 <div className={styles.logoInitials}>
                   {getInitials(formData.full_name || user?.full_name)}
