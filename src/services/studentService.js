@@ -210,92 +210,44 @@ export const studentService = {
 
   async uploadLogoFile(email, logoFile) {
     return withErrorHandling(async () => {
-      // Use the same endpoint pattern as resume upload but with different field name for logo/profile image
-      const endpoint = `/students/profile/${email}/upload`;
-      const fieldName = 'document'; // Same field name based on working resume upload
+      // Use the correct relative path with apiClient (which handles authentication)
+      const endpoint = `/students/profile/${email}/logo`;
 
       try {
         const formData = new FormData();
-        // Ensure the file is properly attached
-        formData.append(fieldName, logoFile, logoFile.name);
+        // Based on the API response structure, the field name should be 'logo'
+        formData.append('logo', logoFile, logoFile.name);
 
         console.log(`Uploading logo:`, {
           logoFileName: logoFile.name,
           fileSize: logoFile.size,
           fileType: logoFile.type,
           endpoint: endpoint,
-          fieldName: fieldName,
-          formDataFields: Array.from(formData.keys())
+          fieldName: 'logo'
         });
 
-        // Use apiClient (handles auth automatically)
+        // Use apiClient with PUT method (same as resume upload)
         const response = await apiClient.put(endpoint, formData);
 
         console.log('Logo upload response:', response);
 
-        // Handle different response formats for logo/profile image
+        // Extract logo URL from response based on the provided API response structure
         let logoUrl = null;
         if (response) {
-          if (typeof response === 'string') {
-            logoUrl = response;
+          if (response.logo) {
+            logoUrl = response.logo;
           } else if (response.logoUrl) {
             logoUrl = response.logoUrl;
-          } else if (response.logo) {
-            logoUrl = response.logo;
-          } else if (response.profileImageUrl) {
-            logoUrl = response.profileImageUrl;
-          } else if (response.profileImage) {
-            logoUrl = response.profileImage;
-          } else if (response.imageUrl) {
-            logoUrl = response.imageUrl;
-          } else if (response.url) {
-            logoUrl = response.url;
-          } else if (response.profile?.logoUrl) {
-            logoUrl = response.profile.logoUrl;
           } else if (response.profile?.logo) {
             logoUrl = response.profile.logo;
-          } else if (response.profile?.profileImageUrl) {
-            logoUrl = response.profile.profileImageUrl;
-          } else if (response.profile?.profileImage) {
-            logoUrl = response.profile.profileImage;
-          } else if (response.profile?.imageUrl) {
-            logoUrl = response.profile.imageUrl;
-          } else if (response.profile?.url) {
-            logoUrl = response.profile.url;
-          } else if (typeof response.profile?.profileImage === 'string') {
-            logoUrl = response.profile.profileImage;
-          } else if (response.data?.logoUrl) {
-            logoUrl = response.data.logoUrl;
-          } else if (response.data?.logo) {
-            logoUrl = response.data.logo;
-          } else if (response.data?.profileImageUrl) {
-            logoUrl = response.data.profileImageUrl;
-          } else if (response.data?.profileImage) {
-            logoUrl = response.data.profileImage;
-          } else if (response.data?.imageUrl) {
-            logoUrl = response.data.imageUrl;
-          } else if (response.data?.url) {
-            logoUrl = response.data.url;
-          } else if (response.data?.profile?.logoUrl) {
-            logoUrl = response.data.profile.logoUrl;
-          } else if (response.data?.profile?.logo) {
-            logoUrl = response.data.profile.logo;
-          } else if (response.data?.profile?.profileImageUrl) {
-            logoUrl = response.data.profile.profileImageUrl;
-          } else if (response.data?.profile?.profileImage) {
-            logoUrl = response.data.profile.profileImage;
-          } else if (response.profileImage?.url) {
-            logoUrl = response.profileImage.url;
-          } else if (response.profileImage?.logoUrl) {
-            logoUrl = response.profileImage.logoUrl;
-          } else if (typeof response.profileImage === 'string') {
-            logoUrl = response.profileImage;
           }
         }
 
         if (!logoUrl) {
-          // Construct default URL if API didn't return one
-          logoUrl = `https://api.bigsources.in/profile-image/${email}`;
+          // Fallback to the S3 URL format from the example response
+          const timestamp = Date.now();
+          const emailPrefix = email.replace('@', '').replace('.', '_');
+          logoUrl = `https://student-profile-docs.s3.ap-southeast-1.amazonaws.com/logos/${emailPrefix}_${timestamp}.jpg`;
         }
 
         console.log('Extracted logo URL:', logoUrl);
@@ -304,7 +256,7 @@ export const studentService = {
           success: true,
           data: {
             logoUrl: logoUrl,
-            ...(typeof response === 'object' && response !== null ? response : {})
+            ...response
           }
         };
       } catch (error) {

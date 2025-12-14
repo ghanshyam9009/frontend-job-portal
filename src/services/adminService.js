@@ -484,6 +484,30 @@ export const adminService = {
     }
   },
 
+  async blockRecruiter(email) {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('https://api.bigsources.in/api/admin/block-recruiter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify({ email })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error blocking recruiter:', error);
+      throw error;
+    }
+  },
+
   // Employer Management Functions
   async getEmployers() {
     try {
@@ -633,13 +657,28 @@ export const adminService = {
 
   async markJobPremium(jobId, isPremium = true, category = 'job') {
     try {
-      const response = await adminApiClient.post(API_ENDPOINTS.premium.markJobPremium, {
-        job_id: jobId,
-        is_premium: isPremium,
-        category: category
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('https://api.bigsources.in/api/premium/mark-job-premium', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify({
+          category: category,
+          is_premium: isPremium,
+          job_id: jobId
+        })
       });
-      return response;
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
     } catch (error) {
+      console.error('Error marking job as premium:', error);
       throw error;
     }
   },

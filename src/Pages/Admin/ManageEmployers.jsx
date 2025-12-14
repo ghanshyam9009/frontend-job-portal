@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
 import { recruiterService } from "../../services/recruiterService";
-import { Eye, Edit, CheckCircle, Briefcase, X, Search, Building, Download } from "lucide-react";
+import { Eye, Edit, CheckCircle, Briefcase, X, Search, Building, Download, Trash2 } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const ManageEmployers = () => {
@@ -32,7 +32,7 @@ const ManageEmployers = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const recruitersPerPage = 10;
 
-  // Fetch recruiters data with detailed profile information
+  // Fetch basic recruiters data only
   useEffect(() => {
     const fetchRecruiters = async () => {
       try {
@@ -40,32 +40,9 @@ const ManageEmployers = () => {
         const response = await adminService.getAllRecruiters();
         let data = response.recruiters || [];
 
-        // Fetch detailed profile information for each recruiter to get location
-        const recruitersWithDetails = await Promise.all(
-          data.map(async (recruiter) => {
-            try {
-              const profileResponse = await recruiterService.getProfile(recruiter.email, true);
-              if (profileResponse.success && profileResponse.data) {
-                // Merge the basic recruiter data with detailed profile data
-                return {
-                  ...recruiter,
-                  ...profileResponse.data,
-                  // Copy important basic fields to prevent overwriting
-                  employer_id: recruiter.employer_id,
-                  hasadminapproved: recruiter.hasadminapproved,
-                  status: recruiter.status || 'active'
-                };
-              }
-              return recruiter; // Return basic data if profile fetch fails
-            } catch (error) {
-              console.error(`Failed to fetch profile for ${recruiter.email}:`, error);
-              return recruiter; // Return basic data on error
-            }
-          })
-        );
-
-        setRecruiters(recruitersWithDetails);
-        setFilteredRecruiters(recruitersWithDetails);
+        // Set basic recruiter data without detailed profiles
+        setRecruiters(data);
+        setFilteredRecruiters(data);
       } catch (error) {
         console.error('Failed to fetch recruiters:', error);
         setRecruiters([]);
@@ -159,35 +136,10 @@ const ManageEmployers = () => {
 
       await adminService.approveRecruiter(recruiter);
 
-      // Refresh the data with detailed profile information
+      // Refresh basic recruiter data
       const response = await adminService.getAllRecruiters();
       let data = response.recruiters || [];
-
-      // Fetch detailed profile information for each recruiter to get location
-      const recruitersWithDetails = await Promise.all(
-        data.map(async (recruiterData) => {
-          try {
-            const profileResponse = await recruiterService.getProfile(recruiterData.email, true);
-            if (profileResponse.success && profileResponse.data) {
-              // Merge the basic recruiter data with detailed profile data
-              return {
-                ...recruiterData,
-                ...profileResponse.data,
-                // Copy important basic fields to prevent overwriting
-                employer_id: recruiterData.employer_id,
-                hasadminapproved: recruiterData.hasadminapproved,
-                status: recruiterData.status || 'active'
-              };
-            }
-            return recruiterData; // Return basic data if profile fetch fails
-          } catch (error) {
-            console.error(`Failed to fetch profile for ${recruiterData.email}:`, error);
-            return recruiterData; // Return basic data on error
-          }
-        })
-      );
-
-      setRecruiters(recruitersWithDetails);
+      setRecruiters(data);
 
       setMessage({ type: 'success', text: `Recruiter ${recruiter.status === 'rejected' ? 're-' : ''}approved successfully!` });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
@@ -299,35 +251,10 @@ const ManageEmployers = () => {
 
       await recruiterService.updateProfile(selectedRecruiter.email, transformedData);
 
-      // Refresh the data with detailed profile information
+      // Refresh basic recruiter data
       const response = await adminService.getAllRecruiters();
       let data = response.recruiters || [];
-
-      // Fetch detailed profile information for each recruiter to get location
-      const recruitersWithDetails = await Promise.all(
-        data.map(async (recruiterData) => {
-          try {
-            const profileResponse = await recruiterService.getProfile(recruiterData.email, true);
-            if (profileResponse.success && profileResponse.data) {
-              // Merge the basic recruiter data with detailed profile data
-              return {
-                ...recruiterData,
-                ...profileResponse.data,
-                // Copy important basic fields to prevent overwriting
-                employer_id: recruiterData.employer_id,
-                hasadminapproved: recruiterData.hasadminapproved,
-                status: recruiterData.status || 'active'
-              };
-            }
-            return recruiterData; // Return basic data if profile fetch fails
-          } catch (error) {
-            console.error(`Failed to fetch profile for ${recruiterData.email}:`, error);
-            return recruiterData; // Return basic data on error
-          }
-        })
-      );
-
-      setRecruiters(recruitersWithDetails);
+      setRecruiters(data);
 
       setShowEditModal(false);
       setSelectedRecruiter(null);
@@ -337,6 +264,40 @@ const ManageEmployers = () => {
     } catch (error) {
       console.error('Failed to update recruiter:', error);
       setMessage({ type: 'error', text: 'Failed to update recruiter. Please try again.' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    }
+  };
+
+  // Handle block recruiter
+  const handleBlockRecruiter = async (recruiter) => {
+    if (!recruiter || !recruiter.email) return;
+
+    const confirmBlock = window.confirm(
+      `Are you sure you want to block ${recruiter.company_name}? This will remove them from the system.`
+    );
+
+    if (!confirmBlock) return;
+
+    try {
+      // Update recruiter's profile with rejection message
+      await recruiterService.updateProfile(recruiter.email, {
+        rejection_reason: 'your application not approve',
+        status: 'blocked',
+        hasadminapproved: false
+      });
+
+      // Call block recruiter API
+      await adminService.blockRecruiter(recruiter.email);
+
+      // Remove the blocked recruiter from the lists
+      const updatedRecruiters = recruiters.filter(r => r.email !== recruiter.email);
+      setRecruiters(updatedRecruiters);
+
+      setMessage({ type: 'success', text: `${recruiter.company_name} has been blocked and removed from the system.` });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } catch (error) {
+      console.error('Error blocking recruiter:', error);
+      setMessage({ type: 'error', text: 'Failed to block recruiter. Please try again.' });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     }
   };
@@ -366,35 +327,10 @@ const ManageEmployers = () => {
       // Then call reject recruiter API
       await adminService.rejectRecruiter(selectedRecruiter);
 
-      // Refresh the data with detailed profile information
+      // Refresh basic recruiter data
       const response = await adminService.getAllRecruiters();
       let data = response.recruiters || [];
-
-      // Fetch detailed profile information for each recruiter to get location
-      const recruitersWithDetails = await Promise.all(
-        data.map(async (recruiterData) => {
-          try {
-            const profileResponse = await recruiterService.getProfile(recruiterData.email, true);
-            if (profileResponse.success && profileResponse.data) {
-              // Merge the basic recruiter data with detailed profile data
-              return {
-                ...recruiterData,
-                ...profileResponse.data,
-                // Copy important basic fields to prevent overwriting
-                employer_id: recruiterData.employer_id,
-                hasadminapproved: recruiterData.hasadminapproved,
-                status: recruiterData.status || 'active'
-              };
-            }
-            return recruiterData; // Return basic data if profile fetch fails
-          } catch (error) {
-            console.error(`Failed to fetch profile for ${recruiterData.email}:`, error);
-            return recruiterData; // Return basic data on error
-          }
-        })
-      );
-
-      setRecruiters(recruitersWithDetails);
+      setRecruiters(data);
 
       setShowRejectModal(false);
       setSelectedRecruiter(null);
@@ -594,10 +530,14 @@ const ManageEmployers = () => {
                 <td>
                   <div className={styles.userInfo}>
                     <div className={styles.userAvatar}>
-                      {recruiter.company_name?.charAt(0).toUpperCase() || recruiter.full_name?.charAt(0).toUpperCase() || 'U'}
+                      {recruiter.company_logo ? (
+                        <img src={recruiter.company_logo} alt={recruiter.company_name || 'Company'} className={styles.candidateImage} />
+                      ) : (
+                        (recruiter.company_name || 'C').charAt(0).toUpperCase()
+                      )}
                     </div>
                     <span className={styles.userName}>
-                      {recruiter.full_name || recruiter.company_name || 'N/A'}
+                      {recruiter.company_name || 'N/A'}
                     </span>
                   </div>
                 </td>
@@ -637,6 +577,13 @@ const ManageEmployers = () => {
                       onClick={() => handleEditRecruiter(recruiter)}
                     >
                       <Edit />
+                    </button>
+                    <button
+                      className={`${styles.actionBtn} ${styles.blockBtn}`}
+                      title="Block Recruiter"
+                      onClick={() => handleBlockRecruiter(recruiter)}
+                    >
+                      <Trash2 />
                     </button>
                   </div>
                 </td>
@@ -1037,35 +984,10 @@ const ManageEmployers = () => {
 
                           await recruiterService.updateProfile(selectedRecruiter.email, transformedData);
 
-                          // Refresh the data with detailed profile information
+                          // Refresh basic recruiter data
                           const response = await adminService.getAllRecruiters();
                           let data = response.recruiters || [];
-
-                          // Fetch detailed profile information for each recruiter to get location
-                          const recruitersWithDetails = await Promise.all(
-                            data.map(async (recruiterData) => {
-                              try {
-                                const profileResponse = await recruiterService.getProfile(recruiterData.email, true);
-                                if (profileResponse.success && profileResponse.data) {
-                                  // Merge the basic recruiter data with detailed profile data
-                                  return {
-                                    ...recruiterData,
-                                    ...profileResponse.data,
-                                    // Copy important basic fields to prevent overwriting
-                                    employer_id: recruiterData.employer_id,
-                                    hasadminapproved: recruiterData.hasadminapproved,
-                                    status: recruiterData.status || 'active'
-                                  };
-                                }
-                                return recruiterData; // Return basic data if profile fetch fails
-                              } catch (error) {
-                                console.error(`Failed to fetch profile for ${recruiterData.email}:`, error);
-                                return recruiterData; // Return basic data on error
-                              }
-                            })
-                          );
-
-                          setRecruiters(recruitersWithDetails);
+                          setRecruiters(data);
 
                           setIsEditing(false);
                           setMessage({ type: 'success', text: 'Recruiter updated successfully!' });

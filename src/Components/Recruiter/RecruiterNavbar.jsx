@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { recruiterExternalService } from "../../services";
+import { recruiterService } from "../../services/recruiterService";
 import { isProfileComplete } from "../../utils/recruiterProfileUtils";
 import logo1 from "../../assets/logo.png";
 import { 
@@ -59,10 +60,17 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
   // Fetch recruiter profile
   useEffect(() => {
     const fetchRecruiterProfile = async () => {
-      if (user?.employer_id || user?.id) {
+      if (user?.email) {
         try {
-          const profile = await recruiterExternalService.getRecruiterProfile(user.employer_id || user.id);
-          setRecruiterProfile(profile);
+          const response = await recruiterService.getProfile(user.email, true);
+          if (response.success && response.data) {
+            const profileData = response.data.employer || response.data.profile || response.data;
+            setRecruiterProfile(prev => ({
+              ...prev,
+              ...profileData,
+              company_logo: profileData.company_logo || profileData.logo || profileData.profile_image || prev?.company_logo
+            }));
+          }
         } catch (err) {
           console.error('Failed to fetch recruiter profile:', err);
         }
@@ -70,7 +78,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
     };
 
     fetchRecruiterProfile();
-  }, [user?.employer_id, user?.id]);
+  }, [user?.email]);
 
   // Fetch application count dynamically
   useEffect(() => {
@@ -300,9 +308,17 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={handleProfileClick}
-                className="w-10 h-10 rounded-full bg-[#2271B5] text-white flex items-center justify-center font-bold hover:bg-[#1a5a8f] transition-colors"
+                className="w-10 h-10 rounded-full bg-[#2271B5] text-white flex items-center justify-center font-bold hover:bg-[#1a5a8f] transition-colors overflow-hidden"
               >
-                {(recruiterProfile?.name || recruiterProfile?.company_name || 'R').charAt(0)?.toUpperCase()}
+                {recruiterProfile?.company_logo ? (
+                  <img
+                    src={recruiterProfile.company_logo}
+                    alt="Company Logo"
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                ) : (
+                  (recruiterProfile?.name || recruiterProfile?.company_name || 'R').charAt(0)?.toUpperCase()
+                )}
               </button>
             </div>
           </div>
@@ -356,8 +372,16 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
               {/* Profile Info */}
               <div className={`mb-6 p-4 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-[#2271B5] text-white flex items-center justify-center text-xl font-bold">
-                    {(recruiterProfile?.name || recruiterProfile?.company_name || 'R').charAt(0)?.toUpperCase()}
+                  <div className="w-12 h-12 rounded-full bg-[#2271B5] text-white flex items-center justify-center text-xl font-bold overflow-hidden">
+                    {recruiterProfile?.company_logo ? (
+                      <img
+                        src={recruiterProfile.company_logo}
+                        alt="Company Logo"
+                        className="w-full h-full object-cover rounded-full"
+                      />
+                    ) : (
+                      (recruiterProfile?.name || recruiterProfile?.company_name || 'R').charAt(0)?.toUpperCase()
+                    )}
                   </div>
                   <div>
                     <div className={`font-bold ${textColor}`}>
@@ -683,8 +707,16 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
               <div onClick={() => { navigate('/company-profile'); closeMobileMenu(); }} className={`pt-6 border-t ${borderColor}`}>
                 <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-100'} mb-4`}>
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-[#2271B5] text-white flex items-center justify-center text-xl font-bold">
-                      {(recruiterProfile?.name || recruiterProfile?.company_name || 'R').charAt(0)?.toUpperCase()}
+                    <div className="w-12 h-12 rounded-full bg-[#2271B5] text-white flex items-center justify-center text-xl font-bold overflow-hidden">
+                      {recruiterProfile?.company_logo ? (
+                        <img
+                          src={recruiterProfile.company_logo}
+                          alt="Company Logo"
+                          className="w-full h-full object-cover rounded-full"
+                        />
+                      ) : (
+                        (recruiterProfile?.name || recruiterProfile?.company_name || 'R').charAt(0)?.toUpperCase()
+                      )}
                     </div>
                     <div>
                       <div className={`font-bold ${textColor}`}>

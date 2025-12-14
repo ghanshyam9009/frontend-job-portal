@@ -48,7 +48,6 @@ const CompanyProfile = () => {
   const [kycLoading, setKycLoading] = useState(false);
   const [kycError, setKycError] = useState(null);
   const [kycSuccess, setKycSuccess] = useState('');
-  const [showKycReviewModal, setShowKycReviewModal] = useState(false);
   const [isEditMode, setIsEditMode] = useState(true); // Start in edit mode if profile incomplete
   const [detailedData, setDetailedData] = useState(null);
   const logoInputRef = useRef(null);
@@ -224,20 +223,7 @@ const CompanyProfile = () => {
     }
   }, [isProfileComplete]);
 
-  // Handle automatic logout when KYC review modal is shown
-  useEffect(() => {
-    if (showKycReviewModal) {
-      // Show the modal for 3 seconds, then logout
-      const timer = setTimeout(() => {
-        // Clear local storage and redirect to login
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-        window.location.href = '/recruiter/login';
-      }, 3000);
 
-      return () => clearTimeout(timer);
-    }
-  }, [showKycReviewModal]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -262,7 +248,7 @@ const CompanyProfile = () => {
         // Generate S3 URL format: https://student-profile-docs.s3.ap-southeast-1.amazonaws.com/documents/{email}_{timestamp}.jpg
         const timestamp = Date.now();
         const emailPrefix = user.email.replace('@', '').replace('.', '_');
-        const s3Url = `https://student-profile-docs.s3.ap-southeast-1.amazonaws.com/documents/${emailPrefix}_${timestamp}.jpg`;
+        const s3Url = `https://student-profile-docs.s3.ap-southeast-1.amazonaws.com/logos/${emailPrefix}_${timestamp}.jpg`;
         cleanProfileData.company_logo = s3Url; // Send the generated S3 URL to backend
       } else if (typeof profileData.company_logo === 'string' && profileData.company_logo) {
         // If no new file but existing logo URL, include it
@@ -491,13 +477,8 @@ const CompanyProfile = () => {
           documentFile: null
         }));
 
-        // If this is the first KYC submission, show the review modal and logout
-        if (isFirstKycSubmission) {
-          setShowKycReviewModal(true);
-        } else {
-          // For subsequent submissions, show regular success message
-          setKycSuccess(response.message || 'KYC details submitted successfully. We will notify you once verification is complete.');
-        }
+        // Show success message for all KYC submissions
+        setKycSuccess(response.message || 'KYC details submitted successfully. We will notify you once verification is complete.');
       } else {
         setKycError(response?.error || 'Failed to submit KYC details. Please try again.');
       }
@@ -722,23 +703,8 @@ const CompanyProfile = () => {
                 marginBottom: '1.5rem'
               }}>
                 <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem' }}>Application Rejected</h3>
-                <p style={{ margin: '0 0 0.5rem 0' }}>
-                  Unfortunately, your application has been rejected by our admin team.
-                </p>
-                {profileData.rejection_reason && (
-                  <div style={{
-                    backgroundColor: '#fef2f2',
-                    padding: '1rem',
-                    borderRadius: '6px',
-                    marginTop: '1rem',
-                    border: '1px solid #fee2e2'
-                  }}>
-                    <strong>Reason for rejection:</strong><br />
-                    {profileData.rejection_reason}
-                  </div>
-                )}
-                <p style={{ margin: '1rem 0 0 0', fontSize: '0.9rem' }}>
-                  You may reapply after addressing the issues mentioned above. Please contact support if you need further assistance.
+                <p style={{ margin: 0 }}>
+                  {profileData.rejection_reason || 'Your application not approve.'}
                 </p>
               </div>
             )}
@@ -770,7 +736,7 @@ const CompanyProfile = () => {
               }}>
                 <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem' }}>Application Approved</h3>
                 <p style={{ margin: 0 }}>
-                  Congratulations! Your application has been approved by our admin team. You can now post jobs and access all hiring features.
+                  Your application approve.
                 </p>
               </div>
             )}
@@ -1251,91 +1217,7 @@ const CompanyProfile = () => {
         </div>
       )}
 
-      {/* KYC Review Modal */}
-      {showKycReviewModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 2000
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: 'white',
-              padding: '2.5rem',
-              borderRadius: '12px',
-              maxWidth: '500px',
-              width: '90%',
-              textAlign: 'center',
-              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)'
-            }}
-          >
-            <div style={{
-              width: '60px',
-              height: '60px',
-              borderRadius: '50%',
-              backgroundColor: '#10b981',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 1.5rem',
-              color: 'white',
-              fontSize: '24px'
-            }}>
-              <Shield size={32} />
-            </div>
-            <h2 style={{ marginTop: 0, color: '#1f2937', fontSize: '1.5rem' }}>KYC Document Submitted</h2>
-            <p style={{
-              margin: '1rem 0 1.5rem',
-              color: '#6b7280',
-              fontSize: '1.1rem',
-              lineHeight: '1.6'
-            }}>
-              Your KYC document is under review. After approval, you can post jobs and access all hiring features.
-            </p>
-            <p style={{
-              margin: '0 0 1rem',
-              color: '#9ca3af',
-              fontSize: '0.9rem'
-            }}>
-              You will be automatically logged out in a few seconds...
-            </p>
-            <div style={{
-              width: '100%',
-              height: '4px',
-              backgroundColor: '#e5e7eb',
-              borderRadius: '2px',
-              overflow: 'hidden'
-            }}>
-              <div
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  backgroundColor: '#10b981',
-                  animation: 'shrink 3s linear forwards'
-                }}
-              />
-            </div>
-          </div>
 
-          <style>
-            {`
-              @keyframes shrink {
-                from { width: 100%; }
-                to { width: 0%; }
-              }
-            `}
-          </style>
-        </div>
-      )}
     </div>
   );
 };

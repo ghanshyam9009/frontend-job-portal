@@ -122,13 +122,13 @@ const AdminSidebar = ({ isOpen, onClose }) => {
     },
       {
       id: 'job-posting',
-      label: 'Job Posting ',
+      label: 'Job Admin Posting ',
       icon: FileText,
       path: '/admin/job-posting'
     },
      {
       id: 'jobs',
-      label: 'Manage Jobs',
+      label: 'Manage Employers Jobs',
       icon: FileText,
       path: '/admin/jobs'
     },
