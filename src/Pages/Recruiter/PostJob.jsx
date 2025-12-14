@@ -35,11 +35,7 @@ const PostJob = () => {
     location: "",
     employment_type: "Full-Time",
     work_mode: "On-site",
-    salary_range: {
-      min: "",
-      max: "",
-      currency: "INR",
-    },
+    salary_range: "",
     experience_required: {
       min_years: "",
       max_years: "",
@@ -159,11 +155,6 @@ const PostJob = () => {
         location: "",
         employment_type: "Full-Time",
         work_mode: "On-site",
-        salary_range: {
-          min: "",
-          max: "",
-          currency: "INR",
-        },
         experience_required: {
           min_years: "",
           max_years: "",
@@ -366,82 +357,18 @@ const PostJob = () => {
                 </div>
               </div>
 
-                  <div className="md:col-span-2">
-                    <label className={`block text-sm font-medium ${textColor} mb-2`}>
-                      Salary Range
-                    </label>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                      <select
-                        value={jobData.salary_range.currency}
-                        onChange={(e) => handleInputChange("salary_range.currency", e.target.value)}
-                        className={`px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
-                      >
-                        <option value="INR">INR (₹)</option>
-                        <option value="USD">USD ($)</option>
-                        <option value="EUR">EUR (€)</option>
-                        <option value="GBP">GBP (£)</option>
-                      </select>
-                      <select
-                        value={jobData.salary_range.min}
-                        onChange={(e) => handleInputChange("salary_range.min", e.target.value)}
-                        className={`px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
-                      >
-                        <option value="">Min Salary</option>
-                        <option value="0">0</option>
-                        <option value="5000">5,000</option>
-                        <option value="10000">10,000</option>
-                        <option value="15000">15,000</option>
-                        <option value="20000">20,000</option>
-                        <option value="25000">25,000</option>
-                        <option value="30000">30,000</option>
-                        <option value="35000">35,000</option>
-                        <option value="40000">40,000</option>
-                        <option value="45000">45,000</option>
-                        <option value="50000">50,000</option>
-                        <option value="60000">60,000</option>
-                        <option value="70000">70,000</option>
-                        <option value="80000">80,000</option>
-                        <option value="90000">90,000</option>
-                        <option value="100000">1,00,000</option>
-                        <option value="125000">1,25,000</option>
-                        <option value="150000">1,50,000</option>
-                        <option value="200000">2,00,000</option>
-                        <option value="250000">2,50,000</option>
-                        <option value="300000">3,00,000</option>
-                        <option value="400000">4,00,000</option>
-                        <option value="500000">5,00,000+</option>
-                      </select>
-                      <select
-                        value={jobData.salary_range.max}
-                        onChange={(e) => handleInputChange("salary_range.max", e.target.value)}
-                        className={`px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
-                      >
-                        <option value="">Max Salary</option>
-                        <option value="10000">10,000</option>
-                        <option value="20000">20,000</option>
-                        <option value="30000">30,000</option>
-                        <option value="40000">40,000</option>
-                        <option value="50000">50,000</option>
-                        <option value="60000">60,000</option>
-                        <option value="70000">70,000</option>
-                        <option value="80000">80,000</option>
-                        <option value="90000">90,000</option>
-                        <option value="100000">1,00,000</option>
-                        <option value="125000">1,25,000</option>
-                        <option value="150000">1,50,000</option>
-                        <option value="200000">2,00,000</option>
-                        <option value="250000">2,50,000</option>
-                        <option value="300000">3,00,000</option>
-                        <option value="400000">4,00,000</option>
-                        <option value="500000">5,00,000</option>
-                        <option value="600000">6,00,000</option>
-                        <option value="700000">7,00,000</option>
-                        <option value="800000">8,00,000</option>
-                        <option value="900000">9,00,000</option>
-                        <option value="1000000">10,00,000+</option>
-                      </select>
-                    </div>
-                  </div>
+              <div className="md:col-span-2">
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Salary Range
+                </label>
+                <input
+                  type="text"
+                  value={jobData.salary_range}
+                  onChange={(e) => handleInputChange('salary_range', e.target.value)}
+                  placeholder="e.g., ₹5,00,000 - ₹8,00,000 per annum"
+                  className={`w-full px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                />
+              </div>
 
                   <div className="md:col-span-2">
                     <label className={`block text-sm font-medium ${textColor} mb-2`}>
