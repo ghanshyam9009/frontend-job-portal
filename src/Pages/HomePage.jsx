@@ -736,7 +736,9 @@ const Homepage = () => {
 
   return (
     <> {/* Navigation */}
-      {user? (user.industry ?<RecruiterNavbar/>: <CandidateNavbar />) : <HomeNav />}
+
+    {console.log(user)}
+      {user? (user.company_name ?<RecruiterNavbar/>: <CandidateNavbar />) : <HomeNav />}
     <div className="">
      
 

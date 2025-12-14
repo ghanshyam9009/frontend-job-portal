@@ -5,7 +5,7 @@ import { useSidebar } from "../../Contexts/SidebarContext";
 import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
 import RecruiterSidebar from "../../Components/Recruiter/RecruiterSidebar";
 import { useTheme } from "../../Contexts/ThemeContext";
-import { Edit, Users, CircleX, FileText, MapPin, Check, ArrowLeft, ExternalLink, Briefcase, Calendar, TrendingUp, Building, X, Plus } from "lucide-react";
+import { Edit, Users, CircleX, FileText, MapPin, Check, ArrowLeft, ExternalLink, Briefcase, Calendar, TrendingUp, Building, X, Plus, Eye, Filter, Search, Activity, Target } from "lucide-react";
 import { recruiterExternalService } from "../../services";
 import { studentService } from "../../services/studentService";
 
@@ -165,200 +165,277 @@ const ManageJobs = () => {
     switch (statusLower) {
       case 'active':
       case 'open':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+        return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400';
       case 'draft':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+        return 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400';
       case 'closed':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+        return 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400';
       case 'shortlisted':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+        return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+        return 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400';
       default:
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+        return 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400';
     }
   };
 
   const isDark = theme === 'dark';
-  const bgColor = isDark ? 'bg-gray-900' : 'bg-gray-50';
-  const cardBg = isDark ? 'bg-gray-800' : 'bg-white';
+  const bgColor = isDark ? 'bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800' : 'bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/20';
+  const cardBg = isDark ? 'bg-gray-800/50 backdrop-blur-sm' : 'bg-white/80 backdrop-blur-sm';
   const textColor = isDark ? 'text-white' : 'text-gray-900';
   const textSecondary = isDark ? 'text-gray-400' : 'text-gray-600';
-  const borderColor = isDark ? 'border-gray-700' : 'border-gray-200';
+  const borderColor = isDark ? 'border-gray-700/50' : 'border-gray-200/50';
 
   return (
     <div className={`min-h-screen ${bgColor}`}>
       <RecruiterNavbar toggleSidebar={toggleSidebar} darkMode={theme === 'dark'} toggleDarkMode={toggleTheme} />
-      {/* <RecruiterSidebar darkMode={theme === 'dark'} isOpen={sidebarOpen} toggleSidebar={toggleSidebar} /> */}
       
-      <main className="pt-20 lg:pt-24 px-4 sm:px-6 lg:px-8 pb-8">
+      <main className="pt-20 lg:pt-24 px-4 sm:px-6 lg:px-8 pb-12">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div>
-                <h1 className={`text-2xl lg:text-3xl font-bold ${textColor} mb-1`}>
-                  Manage Posted Jobs
-                </h1>
-                <p className={`text-sm ${textSecondary}`}>
-                  View, edit, and manage your job postings
-                </p>
+          {/* Header with Gradient Background */}
+          <div className={`${cardBg} rounded-2xl shadow-lg border ${borderColor} p-6 sm:p-8 mb-6 relative overflow-hidden`}>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl"></div>
+            <div className="relative z-10">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <h1 className={`text-2xl sm:text-3xl lg:text-4xl font-bold ${textColor} mb-2 flex items-center gap-3`}>
+                    <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                      <Briefcase className="text-white" size={28} />
+                    </div>
+                    Manage Posted Jobs
+                  </h1>
+                  <p className={`text-base ${textSecondary} ml-16`}>
+                    View, edit, and manage all your job postings in one place
+                  </p>
+                </div>
+                <button 
+                  onClick={() => navigate('/post-job')}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium flex items-center gap-2 group"
+                >
+                  <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+                  Post New Job
+                </button>
               </div>
-              <button 
-                onClick={() => navigate('/post-job')}
-                className="px-6 py-2.5 bg-[#2271B5] text-white rounded-md hover:bg-[#1a5a8f] transition-colors flex items-center gap-2 font-medium"
-              >
-                <Plus size={18} />
-                Post New Job
-              </button>
             </div>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            <div className={`${cardBg} rounded-lg shadow-sm p-4 border ${borderColor}`}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="p-2 bg-blue-500/10 rounded-lg">
-                  <FileText className="text-blue-500" size={20} />
+          {/* Stats Grid - Modern Gradient Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div className={`${cardBg} rounded-xl shadow-md border ${borderColor} p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative overflow-hidden group`}>
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                    <FileText className="text-white" size={24} />
+                  </div>
+                  <TrendingUp className="text-emerald-500" size={20} />
                 </div>
-                <TrendingUp className="text-green-500" size={16} />
+                <h3 className={`text-4xl font-bold ${textColor} mb-1`}>{jobs.length}</h3>
+                <p className={`text-sm font-medium ${textSecondary}`}>Total Jobs Posted</p>
               </div>
-              <h3 className={`text-2xl font-bold ${textColor} mb-0.5`}>{jobs.length}</h3>
-              <p className={`text-xs ${textSecondary}`}>Total Jobs</p>
             </div>
 
-            <div className={`${cardBg} rounded-lg shadow-sm p-4 border ${borderColor}`}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="p-2 bg-green-500/10 rounded-lg">
-                  <Briefcase className="text-green-500" size={20} />
+            <div className={`${cardBg} rounded-xl shadow-md border ${borderColor} p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative overflow-hidden group`}>
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg">
+                    <Activity className="text-white" size={24} />
+                  </div>
                 </div>
+                <h3 className={`text-4xl font-bold ${textColor} mb-1`}>{jobs.filter(j => j.status === 'Active').length}</h3>
+                <p className={`text-sm font-medium ${textSecondary}`}>Active Openings</p>
               </div>
-              <h3 className={`text-2xl font-bold ${textColor} mb-0.5`}>{jobs.filter(j => j.status === 'Active').length}</h3>
-              <p className={`text-xs ${textSecondary}`}>Active Jobs</p>
             </div>
 
-            <div className={`${cardBg} rounded-lg shadow-sm p-4 border ${borderColor}`}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="p-2 bg-purple-500/10 rounded-lg">
-                  <Users className="text-purple-500" size={20} />
+            <div className={`${cardBg} rounded-xl shadow-md border ${borderColor} p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative overflow-hidden group`}>
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg">
+                    <Users className="text-white" size={24} />
+                  </div>
                 </div>
+                <h3 className={`text-4xl font-bold ${textColor} mb-1`}>{jobs.reduce((sum, job) => sum + job.applications, 0)}</h3>
+                <p className={`text-sm font-medium ${textSecondary}`}>Total Applications</p>
               </div>
-              <h3 className={`text-2xl font-bold ${textColor} mb-0.5`}>{jobs.reduce((sum, job) => sum + job.applications, 0)}</h3>
-              <p className={`text-xs ${textSecondary}`}>Total Applications</p>
             </div>
           </div>
 
-          {/* Filters */}
-          <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-4 mb-6`}>
-            <div className="flex gap-2 flex-wrap">
+          {/* Filters Section - Modern Design */}
+          <div className={`${cardBg} rounded-xl shadow-md border ${borderColor} p-5 mb-6`}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg">
+                <Filter className="text-white" size={18} />
+              </div>
+              <h3 className={`text-lg font-bold ${textColor}`}>Filter Jobs</h3>
+            </div>
+            <div className="flex gap-3 flex-wrap">
               {['All', 'Active', 'Draft', 'Closed'].map(status => (
                 <button
                   key={status}
                   onClick={() => setFilterStatus(status)}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
                     filterStatus === status 
-                      ? 'bg-[#2271B5] text-white' 
-                      : `${isDark ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} ${textColor}`
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg scale-105' 
+                      : `${isDark ? 'bg-gray-700/50 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'} ${textColor} hover:scale-105`
                   }`}
                 >
                   {status}
+                  {status !== 'All' && (
+                    <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-white/20">
+                      {status === 'Active' ? jobs.filter(j => j.status === 'Active').length : 
+                       status === 'Draft' ? jobs.filter(j => j.status === 'Draft').length :
+                       jobs.filter(j => j.status === 'Closed').length}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Jobs List */}
+          {/* Loading State */}
           {loading && (
-            <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-8 text-center`}>
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2271B5] mx-auto mb-4"></div>
-              <h3 className={`text-lg ${textColor}`}>Loading jobs...</h3>
+            <div className={`${cardBg} rounded-2xl shadow-lg border ${borderColor} p-12 text-center`}>
+              <div className="relative mb-6">
+                <div className="animate-spin rounded-full h-20 w-20 border-b-4 border-t-4 border-blue-500 mx-auto"></div>
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                  <Briefcase className="text-blue-500" size={32} />
+                </div>
+              </div>
+              <h3 className={`text-xl font-bold ${textColor}`}>Loading your jobs...</h3>
+              <p className={`${textSecondary} mt-2`}>Please wait while we fetch your job postings</p>
             </div>
           )}
 
+          {/* Error State */}
           {error && (
-            <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-8 text-center`}>
-              <h3 className="text-lg text-red-500">{error}</h3>
+            <div className={`${cardBg} rounded-2xl shadow-lg border ${borderColor} p-12 text-center`}>
+              <div className="w-16 h-16 bg-red-100 dark:bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <X className="text-red-500" size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-red-500 mb-2">Failed to Load Jobs</h3>
+              <p className={`${textSecondary}`}>{error}</p>
             </div>
           )}
 
+          {/* Empty State */}
           {!loading && !error && filteredJobs.length === 0 && (
-            <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-12 text-center`}>
-              <FileText size={48} className={`mx-auto ${textSecondary} mb-4`} />
-              <h3 className={`text-lg font-semibold ${textColor} mb-2`}>No jobs found</h3>
-              <p className={`${textSecondary} mb-6`}>No jobs match your current filter criteria.</p>
-              <button 
-                onClick={() => navigate('/post-job')}
-                className="px-6 py-2.5 bg-[#2271B5] text-white rounded-md hover:bg-[#1a5a8f] transition-colors"
-              >
-                Post Your First Job
-              </button>
+            <div className={`${cardBg} rounded-2xl shadow-lg border ${borderColor} p-16 text-center relative overflow-hidden`}>
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl"></div>
+              <div className="relative z-10">
+                <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-500/20 dark:to-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <FileText size={48} className="text-blue-500" />
+                </div>
+                <h3 className={`text-2xl font-bold ${textColor} mb-3`}>No Jobs Found</h3>
+                <p className={`text-lg ${textSecondary} mb-8 max-w-md mx-auto`}>
+                  {filterStatus === 'All' 
+                    ? "Start your recruitment journey by posting your first job opening."
+                    : `No jobs match the "${filterStatus}" filter criteria.`
+                  }
+                </p>
+                <button 
+                  onClick={() => navigate('/post-job')}
+                  className="px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold inline-flex items-center gap-3 text-lg"
+                >
+                  <Plus size={24} />
+                  Post Your First Job
+                </button>
+              </div>
             </div>
           )}
 
-          <div className="space-y-4">
+          {/* Jobs List - Enhanced Cards */}
+          <div className="space-y-5">
             {filteredJobs.map(job => (
-              <div key={job.id} className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-5 hover:shadow-md transition-shadow`}>
-                <div className="flex items-start justify-between mb-4 flex-wrap gap-4">
-                  <div className="flex-1">
-                    <h3 className={`text-lg font-bold ${textColor} mb-2`}>{job.title}</h3>
-                    <div className="flex flex-wrap gap-2 text-sm">
-                      <span className={`flex items-center gap-1 ${textSecondary}`}>
-                        <Building size={14} /> {job.company}
+              <div key={job.id} className={`${cardBg} rounded-2xl shadow-md border ${borderColor} p-6 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 relative overflow-hidden group`}>
+                <div className={`absolute inset-0 bg-gradient-to-r ${
+                  job.status === 'Active' ? 'from-emerald-500/5 to-emerald-600/5' :
+                  job.status === 'Draft' ? 'from-amber-500/5 to-amber-600/5' :
+                  'from-rose-500/5 to-rose-600/5'
+                } opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+                
+                <div className="relative z-10">
+                  <div className="flex items-start justify-between mb-5 flex-wrap gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className={`p-2.5 rounded-xl ${
+                          job.status === 'Active' ? 'bg-gradient-to-br from-emerald-500 to-emerald-600' :
+                          job.status === 'Draft' ? 'bg-gradient-to-br from-amber-500 to-amber-600' :
+                          'bg-gradient-to-br from-rose-500 to-rose-600'
+                        } shadow-lg`}>
+                          <Briefcase className="text-white" size={20} />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className={`text-xl font-bold ${textColor} mb-2 hover:text-blue-500 transition-colors cursor-pointer`}>
+                            {job.title}
+                          </h3>
+                          <div className="flex flex-wrap gap-3 text-sm">
+                            <span className={`flex items-center gap-1.5 ${textSecondary} font-medium`}>
+                              <Building size={16} /> {job.company}
+                            </span>
+                            <span className={`flex items-center gap-1.5 ${textSecondary} font-medium`}>
+                              <MapPin size={16} /> {job.location}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <span className={`px-4 py-2 rounded-full text-sm font-bold ${getStatusColor(job.status)} shadow-md`}>
+                      {job.status}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2.5 mb-5">
+                    <span className={`text-sm px-4 py-2 rounded-xl font-semibold ${isDark ? 'bg-gray-700/50' : 'bg-gray-100'} ${textSecondary} shadow-sm`}>
+                      {job.type}
+                    </span>
+                    {job.workMode && (
+                      <span className={`text-sm px-4 py-2 rounded-xl font-semibold ${isDark ? 'bg-gray-700/50' : 'bg-gray-100'} ${textSecondary} shadow-sm`}>
+                        {job.workMode}
                       </span>
-                      <span className={`flex items-center gap-1 ${textSecondary}`}>
-                        <MapPin size={14} /> {job.location}
-                      </span>
+                    )}
+                    <span className={`text-sm px-4 py-2 rounded-xl font-semibold ${isDark ? 'bg-gray-700/50' : 'bg-gray-100'} ${textSecondary} shadow-sm`}>
+                      💰 {job.salary}
+                    </span>
+                    <span className={`text-sm px-4 py-2 rounded-xl font-semibold ${isDark ? 'bg-gray-700/50' : 'bg-gray-100'} ${textSecondary} flex items-center gap-1.5 shadow-sm`}>
+                      <Calendar size={14} />
+                      {job.postedDate}
+                    </span>
+                  </div>
+
+                  <div className={`flex items-center gap-6 p-5 rounded-xl mb-5 ${isDark ? 'bg-gray-700/30' : 'bg-gradient-to-r from-blue-50 to-purple-50'} border ${borderColor}`}>
+                    <div className="text-center">
+                      <p className={`text-3xl font-bold ${textColor} mb-1`}>{job.applications}</p>
+                      <p className={`text-xs font-semibold ${textSecondary} uppercase tracking-wide`}>Applications</p>
+                    </div>
+                    <div className={`h-12 w-px ${isDark ? 'bg-gray-600' : 'bg-gray-300'}`}></div>
+                    <div className="text-center">
+                      <p className={`text-3xl font-bold ${textColor} mb-1`}>{job.views}</p>
+                      <p className={`text-xs font-semibold ${textSecondary} uppercase tracking-wide`}>Views</p>
                     </div>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(job.status)}`}>
-                    {job.status}
-                  </span>
-                </div>
 
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <span className={`text-xs px-2 py-1 rounded ${isDark ? 'bg-gray-700' : 'bg-gray-100'} ${textSecondary}`}>
-                    {job.type}
-                  </span>
-                  {job.workMode && (
-                    <span className={`text-xs px-2 py-1 rounded ${isDark ? 'bg-gray-700' : 'bg-gray-100'} ${textSecondary}`}>
-                      {job.workMode}
-                    </span>
-                  )}
-                  <span className={`text-xs px-2 py-1 rounded ${isDark ? 'bg-gray-700' : 'bg-gray-100'} ${textSecondary}`}>
-                    {job.salary}
-                  </span>
-                  <span className={`text-xs px-2 py-1 rounded ${isDark ? 'bg-gray-700' : 'bg-gray-100'} ${textSecondary} flex items-center gap-1`}>
-                    <Calendar size={10} />
-                    {job.postedDate}
-                  </span>
-                </div>
-
-                <div className={`flex items-center gap-4 mb-4 p-3 rounded-lg ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                  <div className="text-center">
-                    <p className={`text-2xl font-bold ${textColor}`}>{job.applications}</p>
-                    <p className={`text-xs ${textSecondary}`}>Applications</p>
+                  <div className="flex gap-3 flex-wrap">
+                    <button
+                      onClick={() => handleEditJob(job.id)}
+                      className={`flex-1 min-w-[140px] px-5 py-3 border-2 ${borderColor} rounded-xl text-sm font-semibold ${textColor} hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200 flex items-center justify-center gap-2 hover:shadow-lg hover:scale-105`}
+                    >
+                      <Edit size={18} /> Edit Job
+                    </button>
+                    <button
+                      onClick={() => handleViewApplications(job.id)}
+                      className="flex-1 min-w-[140px] px-5 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:scale-105"
+                    >
+                      <Eye size={18} /> View ({job.applications})
+                    </button>
+                    <button
+                      onClick={() => handleToggleStatus(job.id)}
+                      className={`px-5 py-3 border-2 ${borderColor} rounded-xl text-sm font-semibold ${textColor} hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200 flex items-center gap-2 hover:shadow-lg hover:scale-105`}
+                    >
+                      <CircleX size={18} /> {job.status === 'Active' ? 'Close Job' : 'Reopen Job'}
+                    </button>
                   </div>
-                </div>
-
-                <div className="flex gap-2 flex-wrap">
-                  <button
-                    onClick={() => handleEditJob(job.id)}
-                    className={`flex-1 min-w-[120px] px-4 py-2 border ${borderColor} rounded-md text-sm ${textColor} hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2`}
-                  >
-                    <Edit size={16} /> Edit
-                  </button>
-                  <button
-                    onClick={() => handleViewApplications(job.id)}
-                    className="flex-1 min-w-[120px] px-4 py-2 bg-[#2271B5] text-white text-sm rounded-md hover:bg-[#1a5a8f] transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Users size={16} /> View ({job.applications})
-                  </button>
-                  <button
-                    onClick={() => handleToggleStatus(job.id)}
-                    className={`px-4 py-2 border ${borderColor} rounded-md text-sm ${textColor} hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2`}
-                  >
-                    <CircleX size={16} /> {job.status === 'Active' ? 'Close' : 'Reopen'}
-                  </button>
                 </div>
               </div>
             ))}
@@ -366,84 +443,120 @@ const ManageJobs = () => {
         </div>
       </main>
 
-      {/* Applications Modal */}
+      {/* Applications Modal - Enhanced Design */}
       {showApplicationsModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={closeApplicationsModal}>
-          <div className={`${cardBg} rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-xl`} onClick={(e) => e.stopPropagation()}>
-            <div className={`p-5 border-b ${borderColor} flex items-center justify-between`}>
-              <h2 className={`text-xl font-bold ${textColor}`}>Job Applications</h2>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fadeIn" onClick={closeApplicationsModal}>
+          <div className={`${cardBg} rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border ${borderColor} animate-slideUp`} onClick={(e) => e.stopPropagation()}>
+            <div className={`p-6 border-b ${borderColor} flex items-center justify-between bg-gradient-to-r ${isDark ? 'from-gray-800/50 to-gray-800/30' : 'from-blue-50/50 to-purple-50/30'}`}>
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg">
+                  <Users className="text-white" size={24} />
+                </div>
+                <div>
+                  <h2 className={`text-2xl font-bold ${textColor}`}>Job Applications</h2>
+                  <p className={`text-sm ${textSecondary}`}>Review and manage candidate applications</p>
+                </div>
+              </div>
               <button
                 onClick={closeApplicationsModal}
-                className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors`}
+                className={`p-3 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-xl transition-all duration-200 hover:rotate-90 group`}
               >
-                <X size={20} className={textColor} />
+                <X size={24} className={`${textColor} group-hover:text-red-500 transition-colors`} />
               </button>
             </div>
 
-            <div className="flex-1 overflow-auto p-5">
+            <div className="flex-1 overflow-auto p-6">
               {applicationsLoading ? (
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2271B5] mx-auto mb-4"></div>
-                  <h3 className={`text-lg ${textColor}`}>Loading applications...</h3>
+                <div className="text-center py-16">
+                  <div className="relative mb-6">
+                    <div className="animate-spin rounded-full h-20 w-20 border-b-4 border-t-4 border-purple-500 mx-auto"></div>
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                      <Users className="text-purple-500" size={32} />
+                    </div>
+                  </div>
+                  <h3 className={`text-xl font-bold ${textColor}`}>Loading applications...</h3>
+                  <p className={`${textSecondary} mt-2`}>Fetching candidate details</p>
                 </div>
               ) : applications[selectedJobId]?.length === 0 ? (
-                <div className="text-center py-12">
-                  <Users size={48} className={`mx-auto ${textSecondary} mb-4`} />
-                  <p className={`text-lg ${textSecondary}`}>No applications found for this job.</p>
+                <div className="text-center py-16">
+                  <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-500/20 dark:to-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Users size={48} className="text-purple-500" />
+                  </div>
+                  <h3 className={`text-2xl font-bold ${textColor} mb-3`}>No Applications Yet</h3>
+                  <p className={`text-lg ${textSecondary}`}>This job hasn't received any applications yet.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-5">
                   {applications[selectedJobId]?.map((application) => (
-                    <div key={application.application_id} className={`border ${borderColor} rounded-lg p-4 hover:shadow-md transition-shadow`}>
-                      <div className="flex items-start justify-between mb-3 flex-wrap gap-3">
+                    <div key={application.application_id} className={`border-2 ${borderColor} rounded-2xl p-6 hover:shadow-xl transition-all duration-300 ${isDark ? 'bg-gray-700/20 hover:bg-gray-700/40' : 'bg-gradient-to-br from-white to-gray-50/50 hover:from-gray-50 hover:to-white'}`}>
+                      <div className="flex items-start justify-between mb-5 flex-wrap gap-4">
                         <div className="flex-1">
-                          <h4 className={`text-lg font-bold ${textColor} mb-1`}>{application.student_name}</h4>
-                          <p className={`text-sm ${textSecondary} mb-1`}>{application.student_email}</p>
-                          <div className="flex gap-3 flex-wrap text-xs">
-                            <span className={`flex items-center gap-1 ${textSecondary}`}>
-                              <Calendar size={12} />
-                              Applied: {new Date(application.created_at).toLocaleDateString()}
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                              {application.student_name?.charAt(0) || 'U'}
+                            </div>
+                            <div>
+                              <h4 className={`text-xl font-bold ${textColor}`}>{application.student_name}</h4>
+                              <p className={`text-sm ${textSecondary} font-medium`}>{application.student_email}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4 flex-wrap text-sm ml-17">
+                            <span className={`flex items-center gap-1.5 ${textSecondary} font-medium`}>
+                              <Calendar size={14} />
+                              Applied: {new Date(application.created_at).toLocaleDateString('en-US', { 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric' 
+                              })}
                             </span>
-                            <span className={`px-2 py-0.5 rounded-full font-medium ${getStatusColor(application.status)}`}>
+                            <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${getStatusColor(application.status)} shadow-md`}>
                               {application.status}
                             </span>
                           </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-3">
                           {application.status === 'Pending' ? (
                             <button
                               onClick={() => handleUpdateApplicationStatus(application.application_id, true)}
                               disabled={loading}
-                              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors flex items-center gap-2 text-sm font-medium disabled:opacity-50"
+                              className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
                             >
-                              <Check size={16} /> Shortlist
+                              <Check size={18} /> Shortlist
                             </button>
                           ) : (
                             <button
                               onClick={() => handleUpdateApplicationStatus(application.application_id, false)}
                               disabled={loading}
-                              className={`px-4 py-2 border ${borderColor} rounded-md text-sm ${textColor} hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 font-medium disabled:opacity-50`}
+                              className={`px-6 py-3 border-2 ${borderColor} rounded-xl text-sm font-bold ${textColor} hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105`}
                             >
-                              <ArrowLeft size={16} /> Move to Pending
+                              <ArrowLeft size={18} /> Move to Pending
                             </button>
                           )}
                         </div>
                       </div>
 
-                      <div className={`p-3 rounded-lg mb-3 ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                        <h5 className={`text-sm font-bold ${textColor} mb-2`}>Cover Letter:</h5>
-                        <p className={`text-sm ${textSecondary} leading-relaxed`}>{application.cover_letter}</p>
+                      <div className={`p-5 rounded-xl mb-5 border-2 ${borderColor} ${isDark ? 'bg-gray-700/30' : 'bg-gradient-to-br from-blue-50 to-purple-50'}`}>
+                        <h5 className={`text-base font-bold ${textColor} mb-3 flex items-center gap-2`}>
+                          <FileText size={18} />
+                          Cover Letter
+                        </h5>
+                        <p className={`text-sm ${textSecondary} leading-relaxed`}>
+                          {application.cover_letter || 'No cover letter provided.'}
+                        </p>
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        <h5 className={`text-sm font-bold ${textColor}`}>Resume:</h5>
+                      <div className="flex items-center gap-4 flex-wrap">
+                        <h5 className={`text-base font-bold ${textColor} flex items-center gap-2`}>
+                          <FileText size={18} />
+                          Resume:
+                        </h5>
                         <a
                           href={application.resume_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#2271B5] text-white rounded-md hover:bg-[#1a5a8f] transition-colors text-sm font-medium"
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl text-sm font-bold hover:scale-105"
                         >
-                          <ExternalLink size={14} />
+                          <ExternalLink size={16} />
                           View Resume
                         </a>
                       </div>
@@ -453,10 +566,10 @@ const ManageJobs = () => {
               )}
             </div>
 
-            <div className={`p-5 border-t ${borderColor} flex justify-end`}>
+            <div className={`p-6 border-t ${borderColor} flex justify-end bg-gradient-to-r ${isDark ? 'from-gray-800/50 to-gray-800/30' : 'from-blue-50/50 to-purple-50/30'}`}>
               <button
                 onClick={closeApplicationsModal}
-                className="px-6 py-2.5 bg-[#2271B5] text-white rounded-md hover:bg-[#1a5a8f] transition-colors font-medium"
+                className="px-8 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl font-bold"
               >
                 Close
               </button>
@@ -464,6 +577,36 @@ const ManageJobs = () => {
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes slideUp {
+          from {
+            transform: translateY(20px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out;
+        }
+
+        .animate-slideUp {
+          animation: slideUp 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 };
