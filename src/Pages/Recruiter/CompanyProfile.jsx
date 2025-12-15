@@ -4,12 +4,17 @@ import { useTheme } from '../../Contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { recruiterService } from '../../services/recruiterService';
 import { calculateRecruiterProfileCompletion, getMissingRequiredFields } from '../../utils/recruiterProfileUtils';
-import { TrendingUp, CheckCircle, AlertCircle, Shield, Edit, MapPin, Briefcase, Globe, Calendar, FileText, Building, Phone, Mail, Hash, Award, XCircle } from 'lucide-react';
+import {
+  TrendingUp, CheckCircle, AlertCircle, Shield, Edit, MapPin, Briefcase,
+  Globe, Calendar, FileText, Building, Phone, Mail, Users, Award, XCircle,
+  Camera, Upload, Check, X, ExternalLink, Lock
+} from 'lucide-react';
 
 const CompanyProfile = () => {
   const { user, updateUser } = useAuth();
   const { theme } = useTheme();
-  
+  const navigate = useNavigate();
+
   const [profileData, setProfileData] = useState({
     company_name: '',
     email: '',
@@ -26,9 +31,9 @@ const CompanyProfile = () => {
     founded_year: '',
     location: '',
     company_logo: '',
-    companyLogoFile: null // Store selected file for upload during profile save
+    companyLogoFile: null
   });
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
@@ -48,7 +53,9 @@ const CompanyProfile = () => {
   const [kycLoading, setKycLoading] = useState(false);
   const [kycError, setKycError] = useState(null);
   const [kycSuccess, setKycSuccess] = useState('');
-  const [isEditMode, setIsEditMode] = useState(true); // Start in edit mode if profile incomplete
+  const [showKycReviewModal, setShowKycReviewModal] = useState(false);
+  // Initialize to null. Will be set after profileCompletionPercent is calculated upon fetch.
+  const [isEditMode, setIsEditMode] = useState(null);
   const [detailedData, setDetailedData] = useState(null);
   const logoInputRef = useRef(null);
 
@@ -60,16 +67,12 @@ const CompanyProfile = () => {
       .join(' ');
   };
 
-  // KYC status determination - must be defined before useMemo that depends on it
   const normalizedKycStatus = (kycStatus.status || '').toLowerCase();
   const isKycVerified = ['verified', 'approved', 'completed', 'success', 'accepted'].includes(normalizedKycStatus);
-  const isKycSubmitted = ['submitted', 'in_review', 'under_review', 'pending_verification', 'submitted', 'in_review'].includes(normalizedKycStatus);
+  const isKycSubmitted = ['submitted', 'in_review', 'under_review', 'pending_verification'].includes(normalizedKycStatus);
   const hasKycDocumentSubmitted = isKycSubmitted && (kycData.documentFile || kycStatus.documentUrl);
-
-  // If user has submitted KYC document, consider KYC as contributing to completion
   const isKycEffective = isKycVerified || hasKycDocumentSubmitted;
 
-  // Calculate profile completion percentage in real-time
   const profileCompletionPercent = useMemo(() => {
     const dataForCalculation = {
       company_name: profileData.company_name,
@@ -86,29 +89,14 @@ const CompanyProfile = () => {
       postal_code: profileData.postal_code,
       founded_year: profileData.founded_year,
     };
-
-    const completion = calculateRecruiterProfileCompletion(dataForCalculation);
-    return completion;
+    return calculateRecruiterProfileCompletion(dataForCalculation);
   }, [profileData]);
 
-  // Calculate overall completion (70% profile + 30% KYC)
   const profileCompletion = useMemo(() => {
-    const profileWeight = 70; // 70% weight for profile completion
-    const kycWeight = 30; // 30% weight for KYC completion
-    const kycScore = isKycEffective ? kycWeight : 0;  // Use isKycEffective instead of isKycVerified
-
-    const totalCompletion = Math.round((profileCompletionPercent * profileWeight / 100) + kycScore);
-
-    console.log('Overall completion calculation:', {
-      profileCompletionPercent,
-      profileWeighted: profileCompletionPercent * profileWeight / 100,
-      kycScore,
-      isKycEffective,
-      hasKycDocumentSubmitted,
-      totalCompletion
-    });
-
-    return totalCompletion;
+    const profileWeight = 70;
+    const kycWeight = 30;
+    const kycScore = isKycEffective ? kycWeight : 0;
+    return Math.round((profileCompletionPercent * profileWeight / 100) + kycScore);
   }, [profileCompletionPercent, isKycEffective]);
 
   const missingFields = useMemo(() => {
@@ -124,13 +112,14 @@ const CompanyProfile = () => {
   }, [profileData]);
 
   const isProfileComplete = profileCompletion === 100;
-  
-  const stepDefinitions = [
+
+  // Step Definitions rely on profileCompletionPercent, not profileCompletion
+  const stepDefinitions = useMemo(() => ([
     {
       number: 1,
       label: 'Company Profile',
-      complete: isProfileComplete,
-      statusText: `${profileCompletion}%`
+      complete: profileCompletionPercent === 100,
+      statusText: `${profileCompletionPercent}%`
     },
     {
       number: 2,
@@ -138,9 +127,7 @@ const CompanyProfile = () => {
       complete: isKycVerified,
       statusText: isKycVerified ? 'Verified' : (isKycSubmitted ? 'In Review' : 'Pending')
     }
-  ];
-  const completedSteps = stepDefinitions.filter(step => step.complete).length;
-  const stepProgress = (completedSteps / stepDefinitions.length) * 100;
+  ]), [profileCompletionPercent, isKycVerified, isKycSubmitted]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -148,10 +135,9 @@ const CompanyProfile = () => {
         try {
           setLoading(true);
           const response = await recruiterService.getProfile(user.email, true);
-
           if (response.success && response.data) {
             const data = response.data.employer || response.data.profile || response.data;
-            const profileData = {
+            const fetchedProfileData = {
               company_name: data.company_name || '',
               email: data.email || user.email || '',
               phone: data.phone_number || data.phone || '',
@@ -169,10 +155,10 @@ const CompanyProfile = () => {
               company_logo: data.company_logo || data.logo || data.profile_image || ''
             };
 
-            console.log('Loaded profile data:', profileData); // Debug log
-            console.log('Company logo URL:', profileData.company_logo); // Debug log
+            console.log('Loaded profile data:', fetchedProfileData); // Debug log
+            console.log('Company logo URL:', fetchedProfileData.company_logo); // Debug log
 
-            setProfileData(profileData);
+            setProfileData(fetchedProfileData);
             setKycStatus({
               status: data.kyc_status || '',
               documentUrl: data.kycDocUrl || data.kyc_document_url || '',
@@ -184,6 +170,13 @@ const CompanyProfile = () => {
               documentType: data.kyc_document_type || prev.documentType,
               documentNumber: data.kyc_document_number || ''
             }));
+
+            // --- NEW LOGIC FOR isEditMode INITIALIZATION ---
+            // Calculate completion based on fetched data
+            const initialCompletion = calculateRecruiterProfileCompletion(fetchedProfileData);
+            // Set edit mode: true if < 50%, false if >= 50%
+            setIsEditMode(initialCompletion < 50);
+            // ----------------------------------------------
           }
         } catch (err) {
           console.error('Error fetching profile:', err);
@@ -195,42 +188,82 @@ const CompanyProfile = () => {
         setLoading(false);
       }
     };
-
     fetchProfile();
   }, [user]);
 
-  const fetchDetailedData = async () => {
-    if (user?.email && isProfileComplete) {
-      try {
-        const url = `https://4x10ubol84.execute-api.ap-southeast-1.amazonaws.com/default/getepmloyerdetailed?email=${encodeURIComponent(user.email)}`;
-        const response = await fetch(url);
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        setDetailedData(data);
-      } catch (err) {
-        console.error('Error fetching detailed data:', err);
-      }
-    }
-  };
+  // Note: The previous logic of checking for < 50% completion is now handled
+  // upon data fetching/setting the state. This simplified useEffect is sufficient.
+  // The subsequent useMemo logic handles the main profile percentage update.
 
   useEffect(() => {
-    if (!isProfileComplete) {
-      setIsEditMode(true);
+    if (showKycReviewModal) {
+      const timer = setTimeout(() => {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        window.location.href = '/recruiter/login';
+      }, 3000);
+      return () => clearTimeout(timer);
     }
-  }, [isProfileComplete]);
-
-
+  }, [showKycReviewModal]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setProfileData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setProfileData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const validateImageFile = (file) => {
+    if (!file) return '';
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    const maxSize = 2 * 1024 * 1024;
+    if (!allowedTypes.includes(file.type)) return 'Please upload a JPEG, PNG, or GIF image';
+    if (file.size > maxSize) return 'Image size must be less than 2MB';
+    return '';
+  };
+
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const error = validateImageFile(file);
+    if (error) {
+      setError(error);
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+    setProfileData(prev => ({ ...prev, companyLogoFile: file }));
+    const previewUrl = URL.createObjectURL(file);
+    setProfileData(prev => ({ ...prev, company_logo: previewUrl }));
+    setSuccess('Company logo selected successfully');
+    setTimeout(() => setSuccess(''), 3000);
+  };
+
+  const validateProfileData = (data) => {
+    const trimmed = {};
+    if (!data.company_name?.trim()) throw new Error('Company name is required');
+    if (!data.phone?.trim()) throw new Error('Phone number is required');
+    if (!data.industry?.trim()) throw new Error('Industry is required');
+    if (!data.company_size?.trim()) throw new Error('Company size is required');
+    if (!data.description?.trim()) throw new Error('Company description is required');
+
+    trimmed.company_name = data.company_name.trim();
+    trimmed.phone_number = data.phone.trim();
+    trimmed.industry = data.industry.trim();
+    trimmed.company_size = data.company_size.trim();
+    trimmed.description = data.description.trim();
+
+    if (data.address?.trim()) trimmed.address = data.address.trim();
+    if (data.city?.trim()) trimmed.city = data.city.trim();
+    if (data.state?.trim()) trimmed.state = data.state.trim();
+    if (data.country?.trim()) trimmed.country = data.country.trim();
+    if (data.postal_code?.trim()) trimmed.postal_code = data.postal_code.trim();
+    if (data.location?.trim()) trimmed.location = data.location.trim();
+    if (data.website?.trim()) trimmed.company_website = data.website.trim();
+    if (data.founded_year) {
+      const year = parseInt(data.founded_year);
+      if (!isNaN(year) && year >= 1900 && year <= new Date().getFullYear()) {
+        trimmed.founded_year = year;
+      }
+    }
+    return trimmed;
   };
 
   const handleProfileUpdate = async (e) => {
@@ -240,28 +273,19 @@ const CompanyProfile = () => {
     setSuccess(false);
 
     try {
-      // Use the new validation function
       const cleanProfileData = validateProfileData(profileData);
-
-      // Handle logo URL - generate S3 URL format if new file selected
       if (profileData.companyLogoFile) {
-        // Generate S3 URL format: https://student-profile-docs.s3.ap-southeast-1.amazonaws.com/documents/{email}_{timestamp}.jpg
         const timestamp = Date.now();
         const emailPrefix = user.email.replace('@', '').replace('.', '_');
         const s3Url = `https://student-profile-docs.s3.ap-southeast-1.amazonaws.com/logos/${emailPrefix}_${timestamp}.jpg`;
         cleanProfileData.company_logo = s3Url; // Send the generated S3 URL to backend
       } else if (typeof profileData.company_logo === 'string' && profileData.company_logo) {
-        // If no new file but existing logo URL, include it
         if (!profileData.company_logo.startsWith('data:') && !profileData.company_logo.startsWith('blob:')) {
           cleanProfileData.company_logo = profileData.company_logo;
         }
       }
 
-      console.log('Clean profile data being sent:', cleanProfileData);
-
-      // Use the recruiterService.updateProfile method
       const response = await recruiterService.updateProfile(user?.email, cleanProfileData);
-
       if (response && response.success) {
         setShowSuccessModal(true);
         setSuccess(true);
@@ -270,7 +294,6 @@ const CompanyProfile = () => {
 
         if (response.data || response.profile) {
           const updatedData = response.data?.profile || response.profile || response.data;
-
           const profileOnlyData = {
             company_name: updatedData?.company_name,
             phone_number: updatedData?.phone_number || updatedData?.phone,
@@ -285,9 +308,7 @@ const CompanyProfile = () => {
             postal_code: updatedData?.postal_code,
             founded_year: updatedData?.founded_year
           };
-
           updateUser(profileOnlyData);
-
           setProfileData(prev => ({
             ...prev,
             company_name: updatedData.company_name ?? prev.company_name,
@@ -307,122 +328,33 @@ const CompanyProfile = () => {
           }));
         }
       } else {
-        const errorMessage = response?.error || 
-                            response?.message || 
-                            'Failed to update profile. Please check all required fields and try again.';
-        
-        if (response?.status === 500) {
-          setError(`Server error: ${errorMessage}. Please ensure all required fields are filled correctly and try again. If the problem persists, contact support.`);
-        } else {
-          setError(errorMessage);
-        }
+        const errorMessage = response?.error || response?.message || 'Failed to update profile';
+        setError(errorMessage);
         setSuccess(false);
       }
     } catch (err) {
       console.error('Profile update error:', err);
-      const errorMessage = err?.response?.data?.error || 
-                          err?.error?.message || 
-                          err?.error || 
-                          err?.message || 
-                          'Failed to update profile. Please check all required fields and try again.';
+      const errorMessage = err?.response?.data?.error || err?.message || 'Failed to update profile';
       setError(errorMessage);
       setSuccess(false);
     } finally {
       setLoading(false);
+      // After a successful update, switch to view mode if completion is >= 50%
+      if (profileCompletionPercent >= 50) {
+        setIsEditMode(false);
+      }
     }
   };
 
   const handleKycInputChange = (e) => {
     const { name, value } = e.target;
-    setKycData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setKycData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleKycFileChange = (e) => {
     const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
-    setKycData(prev => ({
-      ...prev,
-      documentFile: file
-    }));
+    setKycData(prev => ({ ...prev, documentFile: file }));
   };
-
-  const validateImageFile = (file) => {
-    if (!file) return '';
-
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-    const maxSize = 2 * 1024 * 1024; // 2MB
-
-    if (!allowedTypes.includes(file.type)) {
-      return 'Please upload a JPEG, PNG, or GIF image';
-    }
-
-    if (file.size > maxSize) {
-      return 'Image size must be less than 2MB';
-    }
-
-    return '';
-  };
-
-  const handleLogoChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const error = validateImageFile(file);
-    if (error) {
-      setError(error);
-      setTimeout(() => setError(''), 3000);
-      return;
-    }
-
-    // Store the selected file for upload during profile save
-    setProfileData(prev => ({ ...prev, companyLogoFile: file }));
-
-    // Create preview URL for display
-    const previewUrl = URL.createObjectURL(file);
-    setProfileData(prev => ({ ...prev, company_logo: previewUrl }));
-
-    setSuccess('Company logo selected successfully');
-    setTimeout(() => setSuccess(''), 3000);
-  };
-
-  const validateProfileData = (data) => {
-    const trimmed = {};
-
-    // Required fields validation
-    if (!data.company_name?.trim()) throw new Error('Company name is required');
-    if (!data.phone?.trim()) throw new Error('Phone number is required');
-    if (!data.industry?.trim()) throw new Error('Industry is required');
-    if (!data.company_size?.trim()) throw new Error('Company size is required');
-    if (!data.description?.trim()) throw new Error('Company description is required');
-
-    // Build clean payload - required fields
-    trimmed.company_name = data.company_name.trim();
-    trimmed.phone_number = data.phone.trim();
-    trimmed.industry = data.industry.trim();
-    trimmed.company_size = data.company_size.trim();
-    trimmed.description = data.description.trim();
-
-    // Optional fields - only include if they have values (to match backend expectations)
-    if (data.address?.trim()) trimmed.address = data.address.trim();
-    if (data.city?.trim()) trimmed.city = data.city.trim();
-    if (data.state?.trim()) trimmed.state = data.state.trim();
-    if (data.country?.trim()) trimmed.country = data.country.trim();
-    if (data.postal_code?.trim()) trimmed.postal_code = data.postal_code.trim();
-    if (data.location?.trim()) trimmed.location = data.location.trim();
-    if (data.website?.trim()) trimmed.company_website = data.website.trim();
-    if (data.founded_year) {
-      const year = parseInt(data.founded_year);
-      if (!isNaN(year) && year >= 1900 && year <= new Date().getFullYear()) {
-        trimmed.founded_year = year;
-      }
-    }
-
-    return trimmed;
-  };
-
-
 
   const handleKycSubmit = async (e) => {
     e.preventDefault();
@@ -433,18 +365,15 @@ const CompanyProfile = () => {
       setKycError('Unable to determine recruiter email. Please re-login.');
       return;
     }
-
     if (!kycData.documentNumber?.trim()) {
       setKycError('Document number is required.');
       return;
     }
-
     if (!kycData.documentFile) {
       setKycError('Please upload the supporting document.');
       return;
     }
 
-    // Check if this is the first KYC submission
     const isFirstKycSubmission = !kycStatus.documentUrl && (!kycStatus.status || kycStatus.status === '');
 
     try {
@@ -459,11 +388,8 @@ const CompanyProfile = () => {
       formData.append('document', kycData.documentFile);
 
       const response = await recruiterService.submitKyc(user.email, formData);
-
       if (response?.success) {
         const updatedData = response.data?.profile || response.data || response;
-
-        // Update KYC status
         setKycStatus(prev => ({
           status: updatedData?.kyc_status || prev.status || 'submitted',
           documentUrl: updatedData?.kycDocUrl || updatedData?.kyc_document_url || prev.documentUrl,
@@ -480,12 +406,11 @@ const CompanyProfile = () => {
         // Show success message for all KYC submissions
         setKycSuccess(response.message || 'KYC details submitted successfully. We will notify you once verification is complete.');
       } else {
-        setKycError(response?.error || 'Failed to submit KYC details. Please try again.');
+        setKycError(response?.error || 'Failed to submit KYC details.');
       }
     } catch (err) {
       console.error('KYC submission failed:', err);
-      const errorMessage = err?.error || err?.message || 'Failed to submit KYC details. Please try again.';
-      setKycError(errorMessage);
+      setKycError(err?.error || err?.message || 'Failed to submit KYC details.');
     } finally {
       setKycLoading(false);
     }
@@ -497,10 +422,15 @@ const CompanyProfile = () => {
   const textColor = isDark ? 'text-white' : 'text-gray-900';
   const textSecondary = isDark ? 'text-gray-400' : 'text-gray-600';
   const borderColor = isDark ? 'border-gray-700' : 'border-gray-200';
+  const inputBg = isDark ? 'bg-gray-700' : 'bg-white';
+  const inputBorder = isDark ? 'border-gray-600' : 'border-gray-300';
 
+  // Profile View Mode
   const renderProfileView = () => {
-    if (!isProfileComplete || isEditMode) return null;
-
+    // Show view mode only if NOT in edit mode AND profile fields are 50% complete (for a decent looking view)
+    if (isEditMode || profileCompletion < 50) return null;
+{console.log(isEditMode)}
+{console.log(profileCompletion )}
     return (
       <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} overflow-hidden mb-6`}>
         {/* Profile Header with Company Logo */}
@@ -632,61 +562,81 @@ const CompanyProfile = () => {
                 <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>Location</label>
                 <p className={`text-sm ${textColor} mt-1`}>{profileData.location || 'Not provided'}</p>
               </div>
+
+              <button
+                onClick={() => setIsEditMode(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
+              >
+                <Edit size={16} />
+                Edit Profile
+              </button>
             </div>
           </div>
+        </div>
 
-          {/* Company Description */}
-          <div>
-            <h3 className={`text-base font-semibold ${textColor} mb-3 flex items-center gap-2`}>
-              <Briefcase size={18} className="text-[#2271B5]" />
-              Company Description
-            </h3>
-            <p className={`text-sm ${textColor} leading-relaxed`}>{profileData.description || 'Not provided'}</p>
-          </div>
+        {/* About Section */}
+        <div className={`${cardBg} rounded-2xl shadow-lg border ${borderColor} p-8 mb-6`}>
+          <h2 className={`text-xl font-bold ${textColor} mb-4 flex items-center gap-2`}>
+            <Briefcase size={20} className="text-blue-500" />
+            About
+          </h2>
+          <p className={`${textColor} leading-relaxed whitespace-pre-wrap`}>
+            {profileData.description || 'No description provided'}
+          </p>
+        </div>
 
-          {/* Additional Details */}
-          {detailedData && (
+        {/* Contact Information */}
+        <div className={`${cardBg} rounded-2xl shadow-lg border ${borderColor} p-8`}>
+          <h2 className={`text-xl font-bold ${textColor} mb-6 flex items-center gap-2`}>
+            <Mail size={20} className="text-blue-500" />
+            Contact Information
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h3 className={`text-base font-semibold ${textColor} mb-3 flex items-center gap-2`}>
-                <FileText size={18} className="text-[#2271B5]" />
-                Additional Details
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(detailedData).map(([key, value]) => {
-                  const skipFields = ['company_name', 'email', 'phone', 'phone_number', 'website', 'company_website', 'address', 'city', 'state', 'country', 'postal_code', 'industry', 'company_size', 'description', 'founded_year'];
-                  if (skipFields.includes(key.toLowerCase()) || !value) return null;
-
-                  return (
-                    <div key={key}>
-                      <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide`}>
-                        {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                      </label>
-                      <p className={`text-sm ${textColor} mt-1`}>{String(value)}</p>
-                    </div>
-                  );
-                })}
+              <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide mb-1 block`}>Email</label>
+              <div className={`flex items-center gap-2 ${textColor}`}>
+                <Mail size={16} className="text-blue-500" />
+                {profileData.email}
               </div>
             </div>
-          )}
+            <div>
+              <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide mb-1 block`}>Phone</label>
+              <div className={`flex items-center gap-2 ${textColor}`}>
+                <Phone size={16} className="text-blue-500" />
+                {profileData.phone}
+              </div>
+            </div>
+            {profileData.address && (
+              <div className="md:col-span-2">
+                <label className={`text-xs font-medium ${textSecondary} uppercase tracking-wide mb-1 block`}>Address</label>
+                <div className={`flex items-start gap-2 ${textColor}`}>
+                  <MapPin size={16} className="text-blue-500 mt-1" />
+                  <span>
+                    {[profileData.address, profileData.city, profileData.state, profileData.country, profileData.postal_code]
+                      .filter(Boolean)
+                      .join(', ')}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
   };
 
-  if (loading && !profileData.company_name) {
-    return (
+  if (loading && isEditMode === null) {
+     return (
       <div className={`min-h-screen ${bgColor} pt-20 lg:pt-24 px-4 sm:px-6 lg:px-8`}>
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#2271B5]"></div>
-            <h2 className={`mt-4 text-xl font-semibold ${textColor}`}>Loading Profile...</h2>
-            <p className={`mt-2 ${textSecondary}`}>Fetching your company profile data</p>
-          </div>
+        <div className="max-w-7xl mx-auto flex flex-col items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500"></div>
+          <h2 className={`mt-4 text-xl font-semibold ${textColor}`}>Loading Profile...</h2>
         </div>
       </div>
     );
   }
 
+  // --- Main Render Logic ---
   return (
     <div className={`min-h-screen ${bgColor} pt-20 lg:pt-24 px-4 sm:px-6 lg:px-8`}>
       <main className="max-w-7xl mx-auto">
@@ -752,7 +702,7 @@ const CompanyProfile = () => {
             <div className={`w-full h-2 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full overflow-hidden`}>
               <div
                 className="h-full bg-[#2271B5] transition-all duration-300"
-                style={{ width: `${stepProgress}%` }}
+                style={{ width: `${profileCompletionPercent}%` }}
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -814,7 +764,7 @@ const CompanyProfile = () => {
                   </div>
                 )}
                 <p style={{ marginTop: '0.5rem', marginBottom: 0 }}>
-                  {profileCompletion === 100 
+                  {profileCompletion === 100
                     ? '✅ Your profile is complete! You can now post jobs.'
                     : `Complete ${100 - profileCompletion}% more to Compite profile .`}
                 </p>
@@ -957,14 +907,16 @@ const CompanyProfile = () => {
                   />
                 </div>
               </div>
-              <div className={`w-full h-3 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full overflow-hidden mb-3`}>
+
+              <div className="relative w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-4">
                 <div
-                  className={`h-full transition-all duration-300 ${
-                    profileCompletion === 100 ? 'bg-green-500' : profileCompletion >= 70 ? 'bg-yellow-500' : 'bg-red-500'
+                  className={`absolute top-0 left-0 h-full transition-all duration-500 rounded-full ${
+                    profileCompletion === 100 ? 'bg-green-500' : profileCompletion >= 70 ? 'bg-yellow-500' : 'bg-blue-500'
                   }`}
                   style={{ width: `${profileCompletion}%` }}
                 />
               </div>
+
               {profileCompletion < 100 ? (
                 <div className={`text-sm ${textSecondary}`}>
                   {missingFields.length > 0 && (
@@ -975,12 +927,19 @@ const CompanyProfile = () => {
                       </div>
                     </div>
                   )}
-              
+
                 </div>
-              ) : (
-                <div className="flex items-center gap-2 text-green-500 text-sm font-medium">
-                  <CheckCircle size={16} />
-                  Profile Complete! You can now post jobs.
+              ) : null}
+
+              {missingFields.length > 0 && (
+                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className={`text-sm font-medium ${textColor} mb-1`}>Complete these required fields:</p>
+                      <p className="text-sm text-blue-600 dark:text-blue-400">{missingFields.join(', ')}</p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -1032,192 +991,197 @@ const CompanyProfile = () => {
                     </span>
                   </div>
                 </div>
-                {kycStatus.updatedAt && (
-                  <p className={`text-xs ${textSecondary}`}>
-                    Last updated: {new Date(kycStatus.updatedAt).toLocaleString()}
-                  </p>
-                )}
               </div>
 
-              <div className="p-5">
-                {(!isProfileComplete || !isKycVerified) && (
-                  <div className={`mb-4 p-3 rounded-lg ${
-                    isDark ? 'bg-blue-900/20 border border-blue-800' : 'bg-blue-50 border border-blue-200'
-                  }`}>
-                    <p className={`text-sm ${isDark ? 'text-blue-200' : 'text-blue-800'}`}>
-                      {isProfileComplete
-                        ? 'Upload your company KYC document (GST, PAN, Incorporation Certificate, etc.) to enable job posting and candidate outreach.'
-                        : 'Complete your company profile first. Once done, return here to submit your KYC documents.'}
-                    </p>
-                  </div>
-                )}
-
-                {kycError && (
-                  <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2">
-                    <XCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-800 dark:text-red-200">{kycError}</p>
-                  </div>
-                )}
-
-                {kycSuccess && (
-                  <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-start gap-2">
-                    <CheckCircle size={16} className="text-green-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-green-800 dark:text-green-200">{kycSuccess}</p>
-                  </div>
-                )}
-
-                <form onSubmit={handleKycSubmit}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="p-6">
+                {profileCompletionPercent < 100 ? (
+                  <div className="p-6 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 flex items-start gap-4">
+                    <Lock size={24} className="text-blue-500 flex-shrink-0 mt-1" />
                     <div>
-                      <label className={`block text-sm font-medium ${textColor} mb-1`}>
-                        Document Type
-                      </label>
-                      <select
-                        name="documentType"
-                        value={kycData.documentType}
-                        onChange={handleKycInputChange}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
-                          isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
-                        } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
-                      >
-                        <option value="GST">GST Certificate</option>
-                        <option value="PAN">PAN Card (self Issue)</option>
-                        <option value="EMPLOYEE_ID">Employee ID</option>
-                        <option value="MSME">MSME Registration</option>
-                        <option value="INCORPORATION">Certificate of Incorporation</option>
-                        <option value="ID_CARD">ID Card</option>
-                        <option value="OFFER_LETTER">Offer Letter</option>
-                        <option value="FSSAI_LICENSE">FSSAI License</option>
-                        <option value="OTHER">Other Government Issued Document</option>
-                      </select>
+                      <p className={`font-medium ${textColor} mb-1`}>Complete Your Profile First</p>
+                      <p className={`text-sm ${textSecondary}`}>
+                        Achieve 100% profile completion before submitting KYC documents. Once done, return here to verify your organization.
+                      </p>
                     </div>
-
-                    <div>
-                      <label className={`block text-sm font-medium ${textColor} mb-1`}>
-                        Document Number <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="documentNumber"
-                        value={kycData.documentNumber}
-                        onChange={handleKycInputChange}
-                        placeholder="Enter registration / document number"
-                        required
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
-                          isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
-                        } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className={`block text-sm font-medium ${textColor} mb-1`}>
-                        Upload Document (PDF/JPG/PNG) <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        onChange={handleKycFileChange}
-                        required
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
-                          isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
-                        } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
-                      />
-                      {kycData.documentFile && (
-                        <p className={`text-xs ${textSecondary} mt-1`}>
-                          Selected file: {kycData.documentFile.name}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className={`block text-sm font-medium ${textColor} mb-1`}>
-                        Additional Notes (Optional)
-                      </label>
-                      <textarea
-                        name="additionalNotes"
-                        value={kycData.additionalNotes}
-                        onChange={handleKycInputChange}
-                        rows="3"
-                        placeholder="Add any clarifications for the verification team (optional)"
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-md ${
-                          isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
-                        } focus:ring-2 focus:ring-[#2271B5] focus:border-transparent`}
-                      />
-                    </div>
-
-                    {kycStatus.documentUrl && (
-                      <div className="md:col-span-2">
-                        <label className={`block text-sm font-medium ${textColor} mb-1`}>
-                          Previously Uploaded Document
-                        </label>
-                        <a
-                          href={kycStatus.documentUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[#2271B5] hover:underline text-sm flex items-center gap-1"
-                        >
-                          <FileText size={14} />
-                          View document
-                        </a>
+                  </div>
+                ) : (
+                  <>
+                    {kycError && (
+                      <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-3">
+                        <XCircle size={20} className="text-red-500 flex-shrink-0" />
+                        <p className="text-sm text-red-600 dark:text-red-400">{kycError}</p>
                       </div>
                     )}
 
-                    {kycStatus.reviewerNote && (
-                      <div className="md:col-span-2">
-                        <label className={`block text-sm font-medium ${textColor} mb-1`}>
-                          Reviewer Note
-                        </label>
-                        <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
-                          <p className="text-sm text-yellow-900 dark:text-yellow-200">{kycStatus.reviewerNote}</p>
+                    {kycSuccess && (
+                      <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-center gap-3">
+                        <CheckCircle size={20} className="text-green-500 flex-shrink-0" />
+                        <p className="text-sm text-green-600 dark:text-green-400">{kycSuccess}</p>
+                      </div>
+                    )}
+
+                    <form onSubmit={handleKycSubmit} className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className={`block text-sm font-medium ${textColor} mb-2`}>Document Type</label>
+                          <select
+                            name="documentType"
+                            value={kycData.documentType}
+                            onChange={handleKycInputChange}
+                            className={`w-full px-4 py-3 border ${inputBorder} rounded-xl ${inputBg} ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
+                          >
+                            <option value="GST">GST Certificate</option>
+                            <option value="PAN">PAN Card</option>
+                            <option value="MSME">MSME Registration</option>
+                            <option value="INCORPORATION">Certificate of Incorporation</option>
+                            <option value="OTHER">Other Government Document</option>
+                          </select>
                         </div>
-                      </div>
-                    )}
-                  </div>
 
-                  <button
-                    type="submit"
-                    disabled={kycLoading}
-                    className="w-full md:w-auto px-6 py-2.5 bg-[#2271B5] text-white font-medium rounded-md hover:bg-[#1a5a8f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {kycLoading ? 'Submitting...' : 'Submit KYC for Review'}
-                  </button>
-                </form>
+                        <div>
+                          <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                            Document Number <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            name="documentNumber"
+                            value={kycData.documentNumber}
+                            onChange={handleKycInputChange}
+                            required
+                            className={`w-full px-4 py-3 border ${inputBorder} rounded-xl ${inputBg} ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
+                            placeholder="Enter document number"
+                          />
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                            Upload Document <span className="text-red-500">*</span>
+                          </label>
+                          <div className={`border-2 border-dashed ${borderColor} rounded-xl p-6 text-center hover:border-blue-500 transition-colors cursor-pointer`}>
+                            <input
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              onChange={handleKycFileChange}
+                              required={!kycStatus.documentUrl}
+                              className="hidden"
+                              id="kyc-file-input"
+                            />
+                            <label htmlFor="kyc-file-input" className="cursor-pointer">
+                              {kycData.documentFile ? (
+                                <div className="flex items-center justify-center gap-3">
+                                  <FileText size={24} className="text-blue-500" />
+                                  <span className={textColor}>{kycData.documentFile.name}</span>
+                                </div>
+                              ) : (
+                                <>
+                                  <Upload size={32} className={`${textSecondary} mx-auto mb-2`} />
+                                  <p className={`${textColor} font-medium mb-1`}>Click to upload or drag and drop</p>
+                                  <p className={`text-xs ${textSecondary}`}>PDF, JPG, or PNG (max 10MB)</p>
+                                </>
+                              )}
+                            </label>
+                          </div>
+                          {kycStatus.documentUrl && (
+                            <a
+                              href={kycStatus.documentUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-2 inline-flex items-center gap-2 text-sm text-blue-500 hover:text-blue-600"
+                            >
+                              <FileText size={16} />
+                              View previously uploaded document
+                            </a>
+                          )}
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <label className={`block text-sm font-medium ${textColor} mb-2`}>Additional Notes (Optional)</label>
+                          <textarea
+                            name="additionalNotes"
+                            value={kycData.additionalNotes}
+                            onChange={handleKycInputChange}
+                            rows="3"
+                            className={`w-full px-4 py-3 border ${inputBorder} rounded-xl ${inputBg} ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none`}
+                            placeholder="Add any clarifications for the verification team..."
+                          />
+                        </div>
+
+                        {kycStatus.reviewerNote && (
+                          <div className="md:col-span-2 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800">
+                            <p className={`text-sm font-medium ${textColor} mb-1`}>Reviewer Note:</p>
+                            <p className="text-sm text-yellow-800 dark:text-yellow-200">{kycStatus.reviewerNote}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={kycLoading}
+                        className="w-full py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {kycLoading ? (
+                          <>
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <Shield size={20} />
+                            Submit for Verification
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  </>
+                )}
               </div>
             </div>
           </section>
         )}
       </main>
 
-      {/* Success Modal */}
+      {/* Success Modal (Unchanged) */}
       {showSuccessModal && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4"
-          onClick={() => setShowSuccessModal(false)}
-        >
-          <div
-            className={`${cardBg} rounded-lg shadow-xl max-w-md w-full p-6`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-center mb-4">
-              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                <CheckCircle size={32} className="text-green-500" />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4" onClick={() => setShowSuccessModal(false)}>
+          <div className={`${cardBg} rounded-2xl shadow-2xl max-w-md w-full p-8 transform transition-all`} onClick={(e) => e.stopPropagation()}>
+            <div className="text-center">
+              <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle size={40} className="text-green-500" />
               </div>
+              <h2 className={`text-2xl font-bold ${textColor} mb-2`}>Success!</h2>
+              <p className={`${textSecondary} mb-6`}>Your company profile has been updated successfully.</p>
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors font-medium"
+              >
+                Continue
+              </button>
             </div>
-            <h2 className={`text-xl font-bold ${textColor} text-center mb-2`}>Success!</h2>
-            <p className={`text-sm ${textSecondary} text-center mb-6`}>
-              Your company profile has been updated successfully.
-            </p>
-            <button
-              onClick={() => setShowSuccessModal(false)}
-              className="w-full px-4 py-2.5 bg-[#2271B5] text-white font-medium rounded-md hover:bg-[#1a5a8f] transition-colors"
-            >
-              OK
-            </button>
           </div>
         </div>
       )}
 
-
+      {/* KYC Review Modal (Unchanged) */}
+      {showKycReviewModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
+            <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Shield size={40} className="text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">KYC Document Submitted</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Your KYC document is under review. After approval, you can post jobs and access all hiring features.
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">
+              Logging out automatically in a few seconds...
+            </p>
+            <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div className="h-full bg-green-500 rounded-full" style={{ animation: 'shrink 3s linear forwards', width: '100%' }} />
+            </div>
+            <style>{`@keyframes shrink { from { width: 100%; } to { width: 0%; } }`}</style>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
