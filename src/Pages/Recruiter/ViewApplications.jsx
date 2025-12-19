@@ -1,0 +1,421 @@
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "../../Contexts/AuthContext";
+import { useSidebar } from "../../Contexts/SidebarContext";
+import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
+import { useTheme } from "../../Contexts/ThemeContext";
+import { 
+  ArrowLeft, 
+  Users, 
+  FileText, 
+  ExternalLink, 
+  Check, 
+  X, 
+  Calendar,
+  Filter,
+  Search
+} from "lucide-react";
+import { recruiterExternalService } from "../../services";
+import { studentService } from "../../services/studentService";
+
+const ViewApplications = () => {
+  const navigate = useNavigate();
+  const { jobId } = useParams();
+  const { user } = useAuth();
+  const { sidebarOpen, setSidebarOpen } = useSidebar();
+  const { theme, toggleTheme } = useTheme();
+  
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [jobDetails, setJobDetails] = useState(null);
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
+
+  useEffect(() => {
+    const fetchApplications = async () => {
+      if (!jobId) {
+        setError("Job ID is missing");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError("");
+
+        // Fetch job details
+        const employerId = user?.employer_id || user?.id;
+        const jobsData = await recruiterExternalService.getAllPostedJobs(employerId);
+        const job = jobsData?.jobs?.find(j => j.job_id === parseInt(jobId));
+        
+        if (job) {
+          setJobDetails({
+            title: job.job_title,
+            company: job.company_name || "",
+            location: job.location || "",
+            type: job.employment_type || "",
+            status: job.status || "Open"
+          });
+        }
+
+        // Fetch applications
+        const applicationsData = await recruiterExternalService.getAllApplicants(jobId);
+        const applicationsList = applicationsData.applications || [];
+        
+        // Fetch student details for each application
+        const applicationsWithDetails = await Promise.all(
+          applicationsList.map(async (app) => {
+            try {
+              const studentDetails = await studentService.getStudentById(app.student_id);
+              return { 
+                ...app, 
+                student_name: studentDetails?.full_name || studentDetails?.name || app.student_name || "Unknown Candidate",
+                student_email: studentDetails?.email || app.student_email || "Unknown Email",
+                ...studentDetails
+              };
+            } catch (err) {
+              console.error(`Failed to fetch details for student ${app.student_id}:`, err);
+              return { 
+                ...app, 
+                student_name: app.student_name || "Unknown Candidate", 
+                student_email: app.student_email || "Unknown Email" 
+              };
+            }
+          })
+        );
+
+        setApplications(applicationsWithDetails);
+      } catch (e) {
+        console.error(e);
+        setError(typeof e === "string" ? e : e?.message || "Failed to load applications");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchApplications();
+  }, [jobId, user]);
+
+  const handleUpdateApplicationStatus = async (applicationId, statusBool) => {
+    try {
+      setActionLoading(true);
+      await recruiterExternalService.changeApplicationStatus(applicationId, statusBool);
+      
+      const updatedApplications = applications.map(app => 
+        app.application_id === applicationId 
+          ? { ...app, status: statusBool ? 'Shortlisted' : 'Pending' }
+          : app
+      );
+      
+      setApplications(updatedApplications);
+      
+      // Show success message
+      const message = statusBool ? 'Application shortlisted successfully' : 'Application moved to pending';
+      alert(message);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to update application status');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const filteredApplications = applications.filter(app => {
+    const matchesStatus = filterStatus === "All" || app.status?.toLowerCase() === filterStatus.toLowerCase();
+    const matchesSearch = app.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         app.student_email?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesStatus && matchesSearch;
+  });
+
+  const getStatusColor = (status) => {
+    const statusLower = status?.toLowerCase() || '';
+    switch (statusLower) {
+      case 'shortlisted':
+        return 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30';
+      case 'pending':
+        return 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30';
+      case 'rejected':
+        return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30';
+      default:
+        return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30';
+    }
+  };
+
+  const getStatusStats = () => {
+    return {
+      total: applications.length,
+      pending: applications.filter(app => app.status?.toLowerCase() === 'pending').length,
+      shortlisted: applications.filter(app => app.status?.toLowerCase() === 'shortlisted').length,
+      rejected: applications.filter(app => app.status?.toLowerCase() === 'rejected').length,
+    };
+  };
+
+  const stats = getStatusStats();
+
+  const isDark = theme === 'dark';
+  const bgColor = isDark ? 'bg-gray-900' : 'bg-gray-50';
+  const cardBg = isDark ? 'bg-gray-800' : 'bg-white';
+  const textColor = isDark ? 'text-white' : 'text-gray-900';
+  const textSecondary = isDark ? 'text-gray-400' : 'text-gray-600';
+  const borderColor = isDark ? 'border-gray-700' : 'border-gray-200';
+
+  return (
+    <div className={`min-h-screen ${bgColor}`}>
+      <RecruiterNavbar toggleSidebar={toggleSidebar} darkMode={theme === 'dark'} toggleDarkMode={toggleTheme} />
+      
+      {/* Header */}
+      <div className={`${cardBg} border-b ${borderColor} mt-20 sticky top-0 z-40`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col gap-4">
+            {/* Back button and title */}
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/manage-jobs')}
+                className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors`}
+              >
+                <ArrowLeft size={20} className={textColor} />
+              </button>
+              <div className="flex-1">
+                <h1 className={`text-xl sm:text-2xl font-bold ${textColor}`}>
+                  Applications
+                </h1>
+                {jobDetails && (
+                  <p className={`text-sm ${textSecondary} mt-1`}>
+                    {jobDetails.title} • {jobDetails.company}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="flex flex-wrap gap-4">
+              <div className={`px-4 py-2 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                <div className="flex items-center gap-2">
+                  <Users size={16} className={textSecondary} />
+                  <span className={`text-sm font-semibold ${textColor}`}>{stats.total}</span>
+                  <span className={`text-xs ${textSecondary}`}>Total</span>
+                </div>
+              </div>
+              <div className="px-4 py-2 rounded-lg bg-yellow-50 dark:bg-yellow-500/20">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">{stats.pending}</span>
+                  <span className="text-xs text-yellow-600 dark:text-yellow-500">Pending</span>
+                </div>
+              </div>
+              <div className="px-4 py-2 rounded-lg bg-green-50 dark:bg-green-500/20">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-green-700 dark:text-green-400">{stats.shortlisted}</span>
+                  <span className="text-xs text-green-600 dark:text-green-500">Shortlisted</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Filters Sidebar */}
+          <aside className="lg:w-72 flex-shrink-0">
+            <div className={`${cardBg} rounded-lg border ${borderColor} p-5 lg:sticky lg:top-24`}>
+              <h2 className={`text-lg font-bold ${textColor} mb-4 flex items-center gap-2`}>
+                <Filter size={20} />
+                Filters
+              </h2>
+
+              {/* Search */}
+              <div className="mb-6">
+                <label className={`block text-sm font-semibold ${textColor} mb-2`}>Search Candidates</label>
+                <div className="relative">
+                  <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`} />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Name or email..."
+                    className={`w-full pl-10 pr-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+                  />
+                </div>
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <label className={`block text-sm font-semibold ${textColor} mb-3`}>Application Status</label>
+                <div className="space-y-2">
+                  {['All', 'Pending', 'Shortlisted', 'Rejected'].map(status => (
+                    <button
+                      key={status}
+                      onClick={() => setFilterStatus(status)}
+                      className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                        filterStatus === status 
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30' 
+                          : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span>{status}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                          {status === 'All' ? stats.total :
+                           status === 'Pending' ? stats.pending :
+                           status === 'Shortlisted' ? stats.shortlisted :
+                           stats.rejected}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          {/* Applications List */}
+          <div className="flex-1 min-w-0">
+            {/* Results Header */}
+            <div className="mb-4">
+              <p className={`text-sm ${textSecondary}`}>
+                Showing <span className={`font-semibold ${textColor}`}>{filteredApplications.length}</span> {filteredApplications.length === 1 ? 'application' : 'applications'}
+              </p>
+            </div>
+
+            {/* Loading State */}
+            {loading && (
+              <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center`}>
+                <div className="relative mb-6">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-t-4 border-blue-500 mx-auto"></div>
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <Users className="text-blue-500" size={24} />
+                  </div>
+                </div>
+                <h3 className={`text-lg font-bold ${textColor}`}>Loading applications...</h3>
+                <p className={`${textSecondary} mt-2`}>Please wait</p>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center`}>
+                <div className="w-16 h-16 bg-red-100 dark:bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <X className="text-red-500" size={32} />
+                </div>
+                <h3 className="text-lg font-bold text-red-500 mb-2">Failed to Load Applications</h3>
+                <p className={textSecondary}>{error}</p>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!loading && !error && filteredApplications.length === 0 && (
+              <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center`}>
+                <div className={`w-16 h-16 ${isDark ? 'bg-blue-500/20' : 'bg-blue-100'} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                  <Users size={32} className="text-blue-500" />
+                </div>
+                <h3 className={`text-lg font-semibold ${textColor} mb-2`}>No applications found</h3>
+                <p className={`${textSecondary} mb-6`}>
+                  {filterStatus === 'All' && searchQuery === ''
+                    ? "This job hasn't received any applications yet."
+                    : "Try adjusting your filters or search query"}
+                </p>
+                {(filterStatus !== 'All' || searchQuery !== '') && (
+                  <button 
+                    onClick={() => {
+                      setFilterStatus('All');
+                      setSearchQuery('');
+                    }}
+                    className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Applications */}
+            {!loading && !error && filteredApplications.length > 0 && (
+              <div className="space-y-4">
+                {filteredApplications.map((application) => (
+                  <div 
+                    key={application.application_id} 
+                    className={`${cardBg} border ${borderColor} rounded-lg p-4 sm:p-5 hover:border-blue-300 dark:hover:border-blue-500 transition-colors`}
+                  >
+                    {/* Candidate Header */}
+                    <div className="flex items-start justify-between gap-4 mb-4">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                          {application.student_name?.charAt(0) || 'U'}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className={`text-base sm:text-lg font-bold ${textColor} truncate`}>
+                            {application.student_name}
+                          </h4>
+                          <p className={`text-sm ${textSecondary} truncate`}>
+                            {application.student_email}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                            <span className={`text-xs ${textSecondary}`}>
+                              {new Date(application.created_at).toLocaleDateString()}
+                            </span>
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${getStatusColor(application.status)}`}>
+                              {application.status}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Cover Letter */}
+                    <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 mb-4 border ${borderColor}`}>
+                      <h5 className={`text-sm font-semibold ${textColor} mb-2 flex items-center gap-2`}>
+                        <FileText size={16} />
+                        Cover Letter
+                      </h5>
+                      <p className={`text-sm ${textSecondary} line-clamp-3`}>
+                        {application.cover_letter || 'No cover letter provided.'}
+                      </p>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap gap-2">
+                      {application.status === 'Pending' ? (
+                        <button
+                          onClick={() => handleUpdateApplicationStatus(application.application_id, true)}
+                          disabled={actionLoading}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+                        >
+                          <Check size={16} />
+                          Shortlist
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleUpdateApplicationStatus(application.application_id, false)}
+                          disabled={actionLoading}
+                          className={`px-4 py-2 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium flex items-center gap-2 disabled:opacity-50`}
+                        >
+                          <ArrowLeft size={16} />
+                          Move to Pending
+                        </button>
+                      )}
+                      <a
+                        href={application.resume_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`px-4 py-2 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium flex items-center gap-2`}
+                      >
+                        <ExternalLink size={16} />
+                        Resume
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ViewApplications;
