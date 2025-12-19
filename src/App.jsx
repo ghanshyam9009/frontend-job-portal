@@ -59,11 +59,13 @@ import CompanyReviews from './Pages/CompanyReviews'
 import SalaryTools from './Pages/SalaryTools'
 import EmployerBranding from './Pages/EmployerBranding'
 import RecruitingSolutions from './Pages/RecruitingSolutions'
+>>>>>>> Stashed changes
 import PrivacyPolicy from './Pages/PrivacyPolicy'
 import TermsOfService from './Pages/TermsOfService'
 import PaymentSuccess from './Pages/PaymentSuccess'
 import ViewApplications from './Pages/Recruiter/ViewApplications';
-// import JobListing from './Pages/default'
+=======
+>>>>>>> Stashed changes
 
 function App() {
   return (

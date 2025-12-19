@@ -53,3 +53,5 @@ export const demoService = {
     }
   }
 };
+
+export default demoService;

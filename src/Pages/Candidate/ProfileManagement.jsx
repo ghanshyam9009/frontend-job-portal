@@ -45,8 +45,52 @@ const ProfileManagement = () => {
   const [completedSteps, setCompletedSteps] = useState([]);
   const [validationErrors, setValidationErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [profileComplete, setProfileComplete] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(() => {
+    // Initialize based on user context if available
+    if (user?.email) {
+      const hasName = user.full_name && user.full_name.trim();
+      const hasGender = user.gender && user.gender.trim();
+      const hasCity = user.address?.city && user.address.city.trim();
+      const hasState = user.address?.state && user.address.state.trim();
+      const hasCountry = user.address?.country && user.address.country.trim();
+      const hasBio = user.bio && user.bio.trim();
+      const hasSkills = user.skills && user.skills.trim();
+      const hasEducation = Array.isArray(user.education) && user.education.length > 0 &&
+        user.education.some(edu => edu.degree?.trim() && edu.institution?.trim());
+      const hasExperience = user.experienceLevel === 'Fresher' || (
+        Array.isArray(user.experience) && user.experience.length > 0 &&
+        user.experience.some(exp => exp.title?.trim() && exp.company?.trim())
+      );
+
+      const isComplete = hasName && hasGender && hasCity && hasState && hasCountry &&
+                         hasBio && hasSkills && hasEducation && hasExperience;
+
+      return !isComplete; // Start in edit mode if incomplete, view mode if complete
+    }
+    return true; // Default to edit mode if no user data
+  });
+  const [profileComplete, setProfileComplete] = useState(() => {
+    // Initialize based on user context if available
+    if (user?.email) {
+      const hasName = user.full_name && user.full_name.trim();
+      const hasGender = user.gender && user.gender.trim();
+      const hasCity = user.address?.city && user.address.city.trim();
+      const hasState = user.address?.state && user.address.state.trim();
+      const hasCountry = user.address?.country && user.address.country.trim();
+      const hasBio = user.bio && user.bio.trim();
+      const hasSkills = user.skills && user.skills.trim();
+      const hasEducation = Array.isArray(user.education) && user.education.length > 0 &&
+        user.education.some(edu => edu.degree?.trim() && edu.institution?.trim());
+      const hasExperience = user.experienceLevel === 'Fresher' || (
+        Array.isArray(user.experience) && user.experience.length > 0 &&
+        user.experience.some(exp => exp.title?.trim() && exp.company?.trim())
+      );
+
+      return hasName && hasGender && hasCity && hasState && hasCountry &&
+             hasBio && hasSkills && hasEducation && hasExperience;
+    }
+    return false; // Default to incomplete if no user data
+  });
   const [currentSkillInput, setCurrentSkillInput] = useState('');
   const logoInputRef = useRef(null);
 
@@ -372,7 +416,6 @@ const ProfileManagement = () => {
 
             // Debug: Log profile data to help identify what's missing
             console.log('Loaded profile data:', loadedData);
-            console.log('Logo value from API:', profileData.logo);
 
             // Check if profile is complete and log the results
             const isComplete = checkProfileComplete(loadedData);
@@ -396,7 +439,8 @@ const ProfileManagement = () => {
 
             setProfileComplete(isComplete);
             setCompletedSteps(isComplete ? [0, 1] : []);
-            setIsEditMode(!isComplete); // Start in edit mode if incomplete, view mode if complete
+            // Always start in view mode if complete, regardless of initial state
+            setIsEditMode(false);
             } else {
               // Fallback to user context data if API fetch fails
               setFormData({
@@ -583,31 +627,6 @@ const ProfileManagement = () => {
       // Upload the resume file immediately using the dedicated API
       const uploadResponse = await studentService.uploadResumeFile(user.email, file);
 
-      if (uploadResponse.success) {
-        const uploadedResumeUrl =
-          uploadResponse.data?.resumeUrl ||
-          uploadResponse.data?.url ||
-          uploadResponse.data?.profile?.resumeUrl ||
-          uploadResponse.data?.profile?.resume ||
-          uploadResponse.data?.profile?.resumeFile?.resumeUrl ||
-          uploadResponse.data?.profile?.resumeFile?.url ||
-          (typeof uploadResponse.data?.profile?.resumeFile === 'string' ? uploadResponse.data?.profile?.resumeFile : null) ||
-          uploadResponse.data?.data?.resumeUrl ||
-          uploadResponse.data?.data?.url ||
-          (typeof uploadResponse.data === 'string' ? uploadResponse.data : null);
-
-        // Update resume URL in formData only (don't update user context to prevent re-renders)
-        if (uploadedResumeUrl) {
-          setFormData(prev => ({ ...prev, resume: uploadedResumeUrl }));
-        }
-        // Note: Removed profile fetch fallback and user context update to prevent form data clearing
-        // User context will be updated when profile is saved, keeping form data intact
-        setValidationErrors({ ...validationErrors, resume: '' });
-        setSuccess('Resume uploaded successfully');
-        setTimeout(() => setSuccess(''), 3000);
-      } else {
-        setValidationErrors({ ...validationErrors, resume: uploadResponse.error?.message || 'Failed to upload resume' });
-      }
     } catch (error) {
       console.error('Resume upload error:', error);
       setValidationErrors({ ...validationErrors, resume: 'Failed to upload resume. Please try again.' });
@@ -635,17 +654,23 @@ const ProfileManagement = () => {
       const uploadResponse = await studentService.uploadLogoFile(user.email, file);
 
       if (uploadResponse.success) {
-        const uploadedLogoUrl =
-          uploadResponse.data?.logoUrl ||
-          uploadResponse.data?.logo ||
-          uploadResponse.data?.profile?.logoUrl ||
-          uploadResponse.data?.profile?.logo ||
-          uploadResponse.data?.logoUrl ||
-          (typeof uploadResponse.data === 'string' ? uploadResponse.data : null);
+        // Direct extraction from the known response structure
+        const uploadedLogoUrl = uploadResponse.data?.logo || uploadResponse.data?.logoUrl;
 
-        // Update logo URL in formData
+        // Update logo URL in formData only (don't update user context to avoid triggering re-fetch)
         if (uploadedLogoUrl) {
-          setFormData(prev => ({ ...prev, logo: uploadedLogoUrl, logoFile: null })); // Clear logoFile since it's uploaded
+          console.log('Updating formData with new logo URL:', uploadedLogoUrl);
+          setFormData(prev => {
+            const newFormData = { ...prev, logo: uploadedLogoUrl, logoFile: null };
+            console.log('New formData logo will be:', newFormData.logo);
+            return newFormData;
+          });
+          // Verify the update after a short delay
+          setTimeout(() => {
+            console.log('Verification - current formData logo:', formData.logo);
+          }, 100);
+        } else {
+          console.error('No logo URL extracted from response! Response structure:', uploadResponse);
         }
         setValidationErrors({ ...validationErrors, logo: '' });
         setSuccess('Profile image uploaded successfully');
@@ -821,9 +846,13 @@ const ProfileManagement = () => {
         dataForSubmission.resume = resume;
       }
 
-      // Include logo URL if it's a string and a proper URL (not blob/data URL)
+      // Always include logo URL if it's a string and a proper URL (not blob/data URL)
+      // This ensures newly uploaded logos are included in profile updates
       if (typeof logo === 'string' && logo && !logo.startsWith('data:') && !logo.startsWith('blob:')) {
         dataForSubmission.logo = logo;
+        console.log('Including logo in profile update:', logo);
+      } else {
+        console.log('Logo not included in update - logo value:', logo, 'type:', typeof logo);
       }
 
       console.log('Submitting profile data:', dataForSubmission);
@@ -960,7 +989,7 @@ const ProfileManagement = () => {
         const isComplete = checkProfileComplete(normalizedData);
         setProfileComplete(isComplete);
             setCompletedSteps(isComplete ? [0, 1] : []);
-            setIsEditMode(!isComplete); // Switch to view mode if complete
+            // Keep in edit mode after saving, don't automatically switch to view mode
 
         // Update completion percentage in real-time by triggering a recalculation
         // The CandidateHome component will pick up the updated user context

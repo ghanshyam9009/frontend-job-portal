@@ -1,372 +1,827 @@
-# Subscription Flow API Integration
-
-## Overview
-This document details the integration of subscription/premium APIs for the Job Portal application. The integration includes functionality for marking jobs as premium, managing student premium subscriptions, and handling premium pricing.
-
-## API Endpoints Integrated
-
-### 1. Mark Job as Premium
-**Endpoint:** `POST https://api.bigsources.in/api/premium/mark-job-premium`
-
-**Request Body:**
-```json
-{
-  "job_id": "928b134c-23ce-41b6-91cf-794de1901fb1",
-  "is_premium": true,
-  "category": "job"
-}
-```
-
-**Response:**
-```json
-{
-  "message": "Job in category 'job' marked as premium successfully.",
-  "job": { /* job details */ }
-}
-```
-
-**Integration Location:**
-- Service: `src/services/adminService.js` - `markJobPremium()`
-- Admin UI: `src/Pages/Admin/ManageJobs.jsx` - Premium star button in job actions
+# Job Portal Frontend - Complete Technical Documentation
 
 ---
 
-### 2. Mark Student as Premium
-**Endpoint:** `POST https://api.bigsources.in/api/premium/mark-student-premium`
+## 📋 Table of Contents
 
-**Request Body:**
-```json
-{
-  "email": "parulsenjeewansathi@gmail.com",
-  "is_premium": true,
-  "plan": "gold"
-}
-```
-
-**Response:**
-```json
-{
-  "message": "Student marked as premium successfully.",
-  "student": { /* student details */ }
-}
-```
-
-**Integration Location:**
-- Service: `src/services/candidateService.js` - `markStudentPremium()`
-- Service: `src/services/adminService.js` - `markStudentPremium()`
-- Candidate UI: `src/Pages/Candidate/MembershipPlans.jsx` - Plan upgrade functionality
+1. [Project Overview](#1-project-overview)
+2. [Technology Stack](#2-technology-stack)
+3. [Project Structure](#3-project-structure)
+4. [Application Architecture](#4-application-architecture)
+5. [User Roles & Authentication](#5-user-roles--authentication)
+6. [Routing System](#6-routing-system)
+7. [Components Documentation](#7-components-documentation)
+8. [Services & API Integration](#8-services--api-integration)
+9. [State Management (Context API)](#9-state-management-context-api)
+10. [Pages & Features](#10-pages--features)
+11. [Utility Functions](#11-utility-functions)
+12. [Data Flow Diagrams](#12-data-flow-diagrams)
+13. [API Endpoints Reference](#13-api-endpoints-reference)
 
 ---
 
-### 3. Get Premium Prices
-**Endpoint:** `GET https://api.bigsources.in/api/students/premium-prices`
+## 1. Project Overview
 
-**Response:**
-```json
+### What is this Application?
+This is a **Job Portal Web Application** built with React.js. It connects three types of users:
+- **Candidates** (Job Seekers) - People looking for jobs
+- **Recruiters** (Employers) - Companies posting jobs
+- **Admins** - Platform administrators managing the system
+
+### Key Features
+- Job listings and search
+- Job applications
+- Save/Bookmark jobs
+- User profiles management
+- Membership/Premium plans
+- Government job listings
+- Admin dashboard for management
+- Payment integration (Razorpay)
+
+---
+
+## 2. Technology Stack
+
+| Technology | Purpose |
+|------------|---------|
+| **React.js 18** | Frontend framework |
+| **React Router v6** | Client-side routing |
+| **Axios** | HTTP client for API calls |
+| **Vite** | Build tool and dev server |
+| **Tailwind CSS** | Utility-first CSS framework |
+| **Lucide React** | Icon library |
+| **React Hot Toast** | Toast notifications |
+| **React Toastify** | Additional notifications |
+| **Razorpay** | Payment gateway |
+
+---
+
+## 3. Project Structure
+
+```
+frontend-job-portal/
+├── public/                    # Static assets
+│   └── favicon-icon.png
+├── src/                       # Source code
+│   ├── assets/               # Images, videos, logos
+│   ├── Components/           # Reusable UI components
+│   │   ├── Admin/           # Admin-specific components
+│   │   ├── Candidate/       # Candidate-specific components
+│   │   ├── Recruiter/       # Recruiter-specific components
+│   │   ├── Shared/          # Shared/common components
+│   │   ├── Footer.jsx       # Site footer
+│   │   ├── HomeNav.jsx      # Home navigation
+│   │   ├── ProtectedRoute.jsx # Route protection
+│   │   └── JobDescriptionDetail.jsx
+│   ├── config/              # Configuration files
+│   │   ├── api.js          # API endpoints config
+│   │   └── razorpay.js     # Payment config
+│   ├── Contexts/            # React Context providers
+│   │   ├── AuthContext.jsx  # Authentication state
+│   │   ├── SidebarContext.jsx # Sidebar state
+│   │   └── ThemeContext.jsx # Theme state
+│   ├── hooks/               # Custom React hooks
+│   │   └── useApi.js
+│   ├── Pages/               # Page components
+│   │   ├── Admin/          # Admin pages
+│   │   ├── Auth/           # Authentication pages
+│   │   ├── Candidate/      # Candidate pages
+│   │   ├── Recruiter/      # Recruiter pages
+│   │   └── [Public pages]  # HomePage, JobListings, etc.
+│   ├── services/            # API service functions
+│   ├── Styles/              # CSS stylesheets
+│   ├── utils/               # Utility functions
+│   ├── App.jsx              # Main application component
+│   ├── main.jsx             # Application entry point
+│   └── index.css            # Global styles
+├── package.json             # Dependencies
+└── vite.config.js           # Vite configuration
+```
+
+---
+
+## 4. Application Architecture
+
+### High-Level Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        USER INTERFACE                            │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │   Candidate  │  │   Recruiter  │  │    Admin     │          │
+│  │    Pages     │  │    Pages     │  │    Pages     │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     SHARED COMPONENTS                            │
+│  JobCard │ Button │ Loader │ SkeletonJobCard │ ErrorBox         │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     CONTEXT PROVIDERS                            │
+│  AuthContext │ SidebarContext │ ThemeContext                    │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      SERVICES LAYER                              │
+│  authService │ jobService │ candidateService │ recruiterService │
+│  applicationService │ paymentService │ adminService │ etc.      │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                       API CLIENT (Axios)                         │
+│  - Request interceptors (add auth token)                        │
+│  - Response interceptors (error handling)                       │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     BACKEND API SERVER                           │
+│              https://api.bigsources.in/api                      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 5. User Roles & Authentication
+
+### User Types
+
+| Role | Description | Login Path |
+|------|-------------|------------|
+| **Candidate** | Job seekers who can browse jobs, apply, save jobs | `/candidate/login` |
+| **Recruiter** | Employers who post jobs, manage applications | `/recruiter/login` |
+| **Admin** | Platform administrators with full access | `/admin/login` |
+
+### Authentication Flow
+
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│  User Login  │────▶│ authService  │────▶│  Backend API │
+│    Form      │     │   .login()   │     │   /login     │
+└──────────────┘     └──────────────┘     └──────────────┘
+                              │
+                              ▼
+                     ┌──────────────┐
+                     │  Store in    │
+                     │sessionStorage│
+                     │ - authToken  │
+                     │ - user data  │
+                     │ - timestamp  │
+                     └──────────────┘
+                              │
+                              ▼
+                     ┌──────────────┐
+                     │ AuthContext  │
+                     │  updates     │
+                     │ isAuthenticated│
+                     └──────────────┘
+```
+
+### Session Management
+- **Session Duration**: 24 hours
+- **Storage**: SessionStorage (clears on browser close)
+- **Auto-logout**: After 24 hours of inactivity
+- **Session Warning**: Shown when less than 1 hour remaining
+
+### AuthContext Functions
+
+| Function | Purpose |
+|----------|---------|
+| `login(email, password, role)` | Authenticates user |
+| `register(userData)` | Creates new account |
+| `logout()` | Ends session, clears storage |
+| `updateUser(data)` | Updates user data in context |
+| `forgotPassword(email)` | Initiates password reset |
+| `resetPassword(token, password, role, otp)` | Completes password reset |
+
+---
+
+## 6. Routing System
+
+### Route Structure (App.jsx)
+
+```jsx
+<BrowserRouter>
+  <Routes>
+    {/* PUBLIC ROUTES - Accessible to everyone */}
+    <Route path="/" element={<HomePage />} />
+    <Route path="/jobs" element={<JobListings />} />
+    <Route path="/government-jobs" element={<GovernmentJobs />} />
+    <Route path="/job/:slug" element={<Jobdescription />} />
+    <Route path="/about" element={<AboutUs />} />
+    <Route path="/contact" element={<ContactUs />} />
+    
+    {/* CANDIDATE PROTECTED ROUTES */}
+    <Route element={<ProtectedRoute role="candidate"><CandidateLayout /></ProtectedRoute>}>
+      <Route path="/userdashboard" element={<UserDashboard />} />
+      <Route path="/saved-jobs" element={<SavedJobs />} />
+      <Route path="/my-applications" element={<AppliedJobs />} />
+      <Route path="/profile" element={<ProfileManagement />} />
+    </Route>
+    
+    {/* RECRUITER PROTECTED ROUTES */}
+    <Route element={<ProtectedRoute role="recruiter"><RecruiterLayout /></ProtectedRoute>}>
+      <Route path="/recruiter/dashboard" element={<RecruiterDashboard />} />
+      <Route path="/post-job" element={<PostJob />} />
+      <Route path="/manage-jobs" element={<ManageJobs />} />
+      <Route path="/candidate-applications" element={<CandidateApplications />} />
+    </Route>
+    
+    {/* ADMIN PROTECTED ROUTES */}
+    <Route element={<ProtectedRoute role="admin"><AdminLayout /></ProtectedRoute>}>
+      <Route path="/admin/dashboard" element={<AdminDashboard />} />
+      <Route path="/admin/candidates" element={<ManageCandidates />} />
+      <Route path="/admin/employers" element={<ManageEmployers />} />
+      <Route path="/admin/jobs" element={<AdminManageJobs />} />
+    </Route>
+  </Routes>
+</BrowserRouter>
+```
+
+### ProtectedRoute Component
+
+The `ProtectedRoute` component:
+1. Checks if user is authenticated
+2. Verifies user role matches required role
+3. For recruiters, checks admin approval status
+4. Redirects to appropriate login page if not authenticated
+
+```
+User Request → ProtectedRoute → Check Auth → Check Role → Render Page
+                                    │             │
+                                    ▼             ▼
+                               Redirect to    Redirect to
+                               Login Page     Home Page
+```
+
+---
+
+## 7. Components Documentation
+
+### 7.1 Shared Components
+
+#### JobCard Component
+**Location**: `src/Components/Shared/JobCard.jsx`
+
+**Purpose**: Displays job information in a card format
+
+**Props**:
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `job` | Object | required | Job data object |
+| `onBookmark` | Function | - | Bookmark click handler |
+| `isBookmarked` | Boolean | false | Bookmark state |
+| `showBookmark` | Boolean | true | Show bookmark button |
+| `className` | String | '' | Additional CSS classes |
+| `isDark` | Boolean | false | Dark mode styling |
+
+**Job Object Structure**:
+```javascript
 {
-  "subscription": {
-    "silver": 1000,
-    "updated_at": "2025-10-26T05:34:18.289Z",
-    "subscription_id": "default",
-    "email": "john900009@example.com",
-    "platinum": 500,
-    "gold": 4000
+  job_id: "string",
+  job_title: "string",
+  company_name: "string",
+  company_logo: "string",
+  location: "string",
+  employment_type: "Full-time | Part-time | Contract",
+  salary_range: "string or object",
+  experience_required: { min_years: number, max_years: number },
+  description: "string",
+  created_at: "date string",
+  is_premium: boolean
+}
+```
+
+#### Button Component
+**Location**: `src/Components/Shared/Button.jsx`
+
+**Purpose**: Reusable button with variants
+
+#### Loader Component
+**Location**: `src/Components/Shared/Loader.jsx`
+
+**Purpose**: Loading spinner/indicator
+
+#### SkeletonJobCard Component
+**Location**: `src/Components/Shared/SkeletonJobCard.jsx`
+
+**Purpose**: Loading placeholder for job cards
+
+#### ErrorBox Component
+**Location**: `src/Components/Shared/ErrorBox.jsx`
+
+**Purpose**: Error message display
+
+### 7.2 Layout Components
+
+#### CandidateLayout
+**Location**: `src/Components/Candidate/CandidateLayout.jsx`
+
+**Contains**:
+- CandidateNavbar
+- CandidateSidebar
+- Main content area (Outlet)
+
+#### RecruiterLayout
+**Location**: `src/Components/Recruiter/RecruiterLayout.jsx`
+
+**Contains**:
+- RecruiterNavbar
+- RecruiterSidebar
+- Main content area (Outlet)
+
+#### AdminLayout
+**Location**: `src/Components/Admin/AdminLayout.jsx`
+
+**Contains**:
+- AdminNavbar
+- AdminSidebar
+- Main content area (Outlet)
+
+---
+
+## 8. Services & API Integration
+
+### 8.1 API Client Setup
+
+**Location**: `src/services/apiClient.js`
+
+```javascript
+// Creates axios instance with base configuration
+const apiClient = axios.create({
+  baseURL: 'https://api.bigsources.in/api',
+  timeout: 10000  // 10 seconds
+});
+
+// Request interceptor - adds auth token to all requests
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
-}
+  return config;
+});
+
+// Response interceptor - handles errors
+apiClient.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    // Error handling logic
+  }
+);
 ```
 
-**Integration Location:**
-- Service: `src/services/candidateService.js` - `getPremiumPrices()`
-- Service: `src/services/adminService.js` - `getPremiumPrices()`
-- Candidate UI: `src/Pages/Candidate/MembershipPlans.jsx` - Display pricing
-- Admin UI: `src/Pages/Admin/ManageMembershipPlans.jsx` - Display & manage pricing
+### 8.2 Service Files
 
----
+| Service | File | Purpose |
+|---------|------|---------|
+| **authService** | `authService.js` | Login, logout, registration, password reset |
+| **jobService** | `jobService.js` | CRUD operations for jobs |
+| **candidateService** | `candidateService.js` | Candidate profile operations |
+| **recruiterService** | `recruiterService.js` | Recruiter profile operations |
+| **applicationService** | `applicationService.js` | Job applications |
+| **savedJobService** | `savedJobService.js` | Bookmark/save jobs |
+| **appliedJobService** | `appliedJobService.js` | Applied jobs tracking |
+| **adminService** | `adminService.js` | Admin operations |
+| **paymentService** | `paymentService.js` | Payment processing |
+| **planService** | `planService.js` | Membership plans |
+| **notificationService** | `notificationService.js` | User notifications |
+| **statsService** | `statsService.js` | Dashboard statistics |
 
-### 4. Update Premium Prices
-**Endpoint:** `PUT https://api.bigsources.in/api/admin/updates/premium-pricess`
-
-**Request Body:**
-```json
-{
-  "email": "admin@example.com",
-  "gold": 400,
-  "platinum": 500,
-  "silver": 1000
-}
-```
-
-**Response:**
-```json
-{
-  "message": "Subscription prices updated successfully",
-  "subscription": { /* updated subscription details */ }
-}
-```
-
-**Integration Location:**
-- Service: `src/services/adminService.js` - `updatePremiumPrices()`
-- Admin UI: `src/Pages/Admin/ManageMembershipPlans.jsx` - Premium price management modal
-
----
-
-## File Structure
-
-### Services Layer
-```
-src/services/
-├── adminService.js         # Admin premium management functions
-├── candidateService.js     # Candidate premium functions
-└── apiClient.js            # HTTP client for API calls
-```
-
-### Configuration
-```
-src/config/
-└── api.js                  # API endpoint definitions
-```
-
-### UI Components
-
-#### Admin Side
-```
-src/Pages/Admin/
-├── ManageJobs.jsx          # Job premium marking functionality
-└── ManageMembershipPlans.jsx  # Premium pricing management
-```
-
-#### Candidate Side
-```
-src/Pages/Candidate/
-└── MembershipPlans.jsx     # Premium plan selection & upgrade
-```
-
----
-
-## Key Features Implemented
-
-### Admin Features
-1. **Mark Job as Premium**
-   - Gold star button in ManageJobs page
-   - Marks individual jobs as premium
-   - Updates job status in real-time
-
-2. **Manage Premium Prices**
-   - View current pricing for Gold, Platinum, and Silver plans
-   - Update pricing through dedicated modal
-   - Real-time price updates across the platform
-
-3. **Student Premium Management**
-   - Mark students as premium users
-   - Assign premium plans (Gold/Platinum/Silver)
-
-### Candidate Features
-1. **View Membership Plans**
-   - Display all available plans (Free, Silver, Gold, Platinum)
-   - Real-time pricing from API
-   - Feature comparison for each plan
-
-2. **Upgrade to Premium**
-   - One-click plan upgrade
-   - Automatic premium status assignment
-   - Plan-specific benefits activation
-
----
-
-## API Configuration
-
-All API endpoints are centralized in `src/config/api.js`:
+### 8.3 Service Example - jobService
 
 ```javascript
-premium: {
-  markJobPremium: '/premium/mark-job-premium',
-  markStudentPremium: '/premium/mark-student-premium',
-  getPremiumPrices: '/students/premium-prices',
-  updatePremiumPrices: '/admin/updates/premium-pricess'
-}
-```
+export const jobService = {
+  // Get all jobs
+  async getAllJobs(params = {}) {
+    const response = await apiClient.get('/jobs', { params });
+    return response;
+  },
 
-Base URL: `https://api.bigsources.in/api`
+  // Get job by ID
+  async getJobById(jobId) {
+    const response = await apiClient.get(`/jobs/${jobId}`);
+    return response;
+  },
 
----
+  // Create new job
+  async createJob(jobData) {
+    const response = await apiClient.post('/job/jobs', jobData);
+    return response;
+  },
 
-## Usage Examples
+  // Update job
+  async updateJob(jobId, jobData) {
+    const response = await apiClient.put(`/jobs/${jobId}`, jobData);
+    return response;
+  },
 
-### Admin: Mark Job as Premium
-```javascript
-import { adminService } from '../../services/adminService';
+  // Delete job
+  async deleteJob(jobId) {
+    const response = await apiClient.delete(`/jobs/${jobId}`);
+    return response;
+  },
 
-const handleMarkJobPremium = async (jobId) => {
-  try {
-    const result = await adminService.markJobPremium(
-      jobId,      // Job ID
-      true,       // is_premium flag
-      'job'       // category
-    );
-    console.log('Job marked as premium:', result);
-  } catch (error) {
-    console.error('Error:', error);
+  // Search jobs
+  async searchJobs(searchParams) {
+    const response = await apiClient.get('/jobs/search', { params: searchParams });
+    return response;
   }
 };
 ```
 
-### Admin: Update Premium Prices
-```javascript
-import { adminService } from '../../services/adminService';
+### 8.4 How Components Use Services
 
-const handleUpdatePrices = async () => {
-  try {
-    const result = await adminService.updatePremiumPrices({
-      email: "admin@example.com",
-      gold: 400,
-      platinum: 500,
-      silver: 1000
-    });
-    console.log('Prices updated:', result);
-  } catch (error) {
-    console.error('Error:', error);
-  }
-};
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Component     │     │    Service      │     │    API Client   │
+│  (JobListings)  │────▶│  (jobService)   │────▶│    (Axios)      │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+        │                       │                       │
+        │  1. Call service      │  2. Make HTTP        │
+        │     function          │     request          │
+        │                       │                       │
+        ▼                       ▼                       ▼
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  Update State   │◀────│  Return Data    │◀────│  Backend API    │
+│  (useState)     │     │                 │     │  Response       │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
 ```
 
-### Candidate: Upgrade Plan
-```javascript
-import { candidateService } from '../../services/candidateService';
+**Example Usage in Component**:
+```jsx
+import { jobService } from '../services';
 
-const handleUpgrade = async (userEmail, plan) => {
-  try {
-    const result = await candidateService.markStudentPremium({
-      email: userEmail,
-      is_premium: true,
-      plan: plan  // 'gold', 'platinum', or 'silver'
-    });
-    console.log('Plan upgraded:', result);
-  } catch (error) {
-    console.error('Error:', error);
-  }
-};
-```
+function JobListings() {
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-### Get Current Pricing
-```javascript
-import { candidateService } from '../../services/candidateService';
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const response = await jobService.getAllJobs();
+        setJobs(response.data || []);
+      } catch (error) {
+        console.error('Failed to fetch jobs:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchJobs();
+  }, []);
 
-const fetchPrices = async () => {
-  try {
-    const response = await candidateService.getPremiumPrices();
-    console.log('Current prices:', response.data);
-    // { gold: 400, platinum: 500, silver: 1000 }
-  } catch (error) {
-    console.error('Error:', error);
-  }
-};
-```
-
----
-
-## Premium Plans Overview
-
-### Free Plan
-- Basic job searching features
-- Limited applications (3 per month)
-- Save up to 5 jobs
-- Basic profile visibility
-- Email support
-
-### Silver Plan
-- 50 job applications per month
-- Save up to 50 jobs
-- Standard profile visibility
-- Basic messaging
-- Application tracking
-- Email support
-
-### Gold Plan (Most Popular)
-- **Unlimited** job applications
-- Save unlimited jobs
-- Advanced profile visibility
-- Priority in search results
-- Direct messaging with employers
-- Application tracking
-- Resume builder
-- Email & phone support
-
-### Platinum Plan
-- Everything in Gold
-- Personalized job recommendations
-- Interview preparation tools
-- Career coaching sessions
-- Salary negotiation guidance
-- LinkedIn profile optimization
-- Priority customer support
-- Advanced analytics
-
----
-
-## Error Handling
-
-All API calls include comprehensive error handling:
-
-```javascript
-try {
-  const result = await adminService.markJobPremium(jobId, true, 'job');
-  // Success handling
-} catch (error) {
-  console.error('Error marking job as premium:', error);
-  // Error notification to user
-  alert('Failed to mark job as premium. Please try again.');
+  return (
+    <div>
+      {jobs.map(job => <JobCard key={job.job_id} job={job} />)}
+    </div>
+  );
 }
 ```
 
 ---
 
-## Testing Checklist
+## 9. State Management (Context API)
 
-- [x] API endpoints configured in `api.js`
-- [x] Service functions implemented for all 4 APIs
-- [x] Admin can mark jobs as premium
-- [x] Admin can view and update premium prices
-- [x] Admin can mark students as premium
-- [x] Candidates can view premium plans with live pricing
-- [x] Candidates can upgrade to premium plans
-- [x] Error handling implemented for all API calls
-- [x] Loading states implemented
-- [x] Success/failure notifications implemented
+### 9.1 AuthContext
+
+**Location**: `src/Contexts/AuthContext.jsx`
+
+**Purpose**: Manages authentication state across the application
+
+**State Values**:
+```javascript
+{
+  isAuthenticated: boolean,    // Is user logged in?
+  user: object | null,         // Current user data
+  loading: boolean,            // Auth check in progress?
+  isRecruiterApproved: boolean // For recruiters only
+}
+```
+
+**Usage**:
+```jsx
+import { useAuth } from '../Contexts/AuthContext';
+
+function MyComponent() {
+  const { isAuthenticated, user, login, logout } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <LoginPrompt />;
+  }
+  
+  return <div>Welcome, {user.name}!</div>;
+}
+```
+
+### 9.2 SidebarContext
+
+**Location**: `src/Contexts/SidebarContext.jsx`
+
+**Purpose**: Manages sidebar open/close state
+
+### 9.3 ThemeContext
+
+**Location**: `src/Contexts/ThemeContext.jsx`
+
+**Purpose**: Manages light/dark theme preference
 
 ---
 
-## Future Enhancements
+## 10. Pages & Features
 
-1. **Payment Integration**
-   - Add payment gateway for plan upgrades
-   - Subscription renewal automation
-   - Invoice generation
+### 10.1 Public Pages
 
-2. **Analytics**
-   - Track premium conversions
-   - Monitor popular plans
-   - Revenue analytics
+| Page | Path | Description |
+|------|------|-------------|
+| HomePage | `/` | Landing page with featured jobs |
+| JobListings | `/jobs` | Browse all jobs with filters |
+| GovernmentJobs | `/government-jobs` | Government job listings |
+| Jobdescription | `/job/:slug` | Single job details |
+| AboutUs | `/about` | About the company |
+| ContactUs | `/contact` | Contact form |
+| Membership | `/membership` | Membership plans info |
+| CareerServices | `/career-services` | Career services info |
+| PrivacyPolicy | `/privacy-policy` | Privacy policy |
+| TermsOfService | `/terms-of-service` | Terms of service |
 
-3. **Notifications**
-   - Email notifications for plan upgrades
-   - Expiry reminders
-   - Feature unlock notifications
+### 10.2 Candidate Pages
 
-4. **Advanced Features**
-   - Trial periods for premium plans
-   - Discounts and promotional codes
-   - Referral programs
+| Page | Path | Description |
+|------|------|-------------|
+| CandidateLogin | `/candidate/login` | Login/Register |
+| UserDashboard | `/userdashboard` | Dashboard overview |
+| UserJobListings | `/userjoblistings` | Browse jobs |
+| SavedJobs | `/saved-jobs` | Bookmarked jobs |
+| AppliedJobs | `/my-applications` | Job applications |
+| ProfileManagement | `/profile` | Edit profile |
+| Settings | `/settings` | Account settings |
+| MembershipPlans | `/membership-plans` | Upgrade plans |
+
+### 10.3 Recruiter Pages
+
+| Page | Path | Description |
+|------|------|-------------|
+| RecruiterLogin | `/recruiter/login` | Login/Register |
+| RecruiterDashboard | `/recruiter/dashboard` | Dashboard overview |
+| PostJob | `/post-job` | Create new job |
+| ManageJobs | `/manage-jobs` | View/edit posted jobs |
+| EditJob | `/edit-job/:jobId` | Edit specific job |
+| CandidateApplications | `/candidate-applications` | View applications |
+| ShortlistCandidates | `/shortlist-candidates` | Shortlisted candidates |
+| CompanyProfile | `/company-profile` | Company details |
+| MembershipTokens | `/membership-tokens` | Token management |
+| RecruiterSettings | `/recruiter-settings` | Account settings |
+
+### 10.4 Admin Pages
+
+| Page | Path | Description |
+|------|------|-------------|
+| AdminLogin | `/admin/login` | Admin login |
+| AdminDashboard | `/admin/dashboard` | Dashboard overview |
+| ManageCandidates | `/admin/candidates` | Manage candidates |
+| ManageEmployers | `/admin/employers` | Manage recruiters |
+| AdminManageJobs | `/admin/jobs` | Manage all jobs |
+| AdminPostJob | `/admin/post-job` | Post job as admin |
+| PendingJobApplications | `/admin/pending-applications` | Review applications |
+| ReportsAnalytics | `/admin/reports` | Analytics reports |
+| ManageMembershipPlans | `/admin/membership` | Manage plans |
+| HomepageForms | `/admin/homepage-forms` | Form submissions |
+| ContactForms | `/admin/contact-forms` | Contact form submissions |
+| GovernmentJobsManagement | `/admin/government-jobs` | Manage govt jobs |
 
 ---
 
-## Support
+## 11. Utility Functions
 
-For issues or questions regarding the subscription API integration:
-- Check API documentation at `https://api.bigsources.in/docs`
-- Review error logs in browser console
-- Contact backend team for API-related issues
+### 11.1 Error Handler
+
+**Location**: `src/utils/errorHandler.js`
+
+```javascript
+// Show success toast
+showSuccess(message);
+
+// Show error toast
+showError(error, fallbackMessage);
+
+// Wrap async function with error handling
+withErrorHandling(asyncFn, errorMessage);
+```
+
+### 11.2 Helpers
+
+**Location**: `src/utils/helpers.js`
+
+Common utility functions for:
+- Date formatting
+- String manipulation
+- Data validation
+
+### 11.3 Constants
+
+**Location**: `src/utils/constants.js`
+
+Application-wide constants:
+- Employment types
+- Job categories
+- Status values
 
 ---
 
-**Last Updated:** October 28, 2025  
-**Version:** 1.0.0
+## 12. Data Flow Diagrams
+
+### 12.1 Job Application Flow
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│  Candidate  │───▶│  Job Card   │───▶│    Job      │───▶│   Apply     │
+│  Browses    │    │   Click     │    │  Details    │    │   Button    │
+└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+                                                                │
+                                                                ▼
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│  Success    │◀───│   Backend   │◀───│ Application │◀───│   Submit    │
+│  Message    │    │   Creates   │    │   Service   │    │Application  │
+└─────────────┘    │ Application │    │   Call      │    │   Form      │
+                   └─────────────┘    └─────────────┘    └─────────────┘
+```
+
+### 12.2 Job Posting Flow (Recruiter)
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│  Recruiter  │───▶│  Post Job   │───▶│  Fill Job   │───▶│   Submit    │
+│  Dashboard  │    │   Page      │    │   Form      │    │   Button    │
+└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+                                                                │
+                                                                ▼
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   Job       │◀───│   Backend   │◀───│    Job      │◀───│  Validate   │
+│  Created    │    │   Creates   │    │   Service   │    │   Data      │
+│  Success    │    │    Job      │    │  .createJob │    │             │
+└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+```
+
+### 12.3 Save/Bookmark Job Flow
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│  Candidate  │───▶│  Bookmark   │───▶│ savedJob    │───▶│   Backend   │
+│  Clicks     │    │   Icon      │    │  Service    │    │   API       │
+│  Bookmark   │    │             │    │   .save()   │    │             │
+└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+                                                                │
+                                                                ▼
+┌─────────────┐    ┌─────────────┐                      ┌─────────────┐
+│   UI        │◀───│   Update    │◀─────────────────────│   Job       │
+│  Updates    │    │   State     │                      │   Saved     │
+│  (filled)   │    │             │                      │             │
+└─────────────┘    └─────────────┘                      └─────────────┘
+```
+
+---
+
+## 13. API Endpoints Reference
+
+### Base URL
+```
+https://api.bigsources.in/api
+```
+
+### Authentication Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/students/login` | Candidate login |
+| POST | `/students/register` | Candidate registration |
+| POST | `/Recruiter/login` | Recruiter login |
+| POST | `/recruiter/register` | Recruiter registration |
+| POST | `/admin/login` | Admin login |
+| POST | `/auth/logout` | Logout |
+| POST | `/auth/refresh` | Refresh token |
+| POST | `/password/send-otp` | Send OTP for password reset |
+| POST | `/password/verify-otp` | Verify OTP |
+| POST | `/password/reset-password` | Reset password |
+
+### Job Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/jobs` | Get all jobs |
+| GET | `/jobs/:id` | Get job by ID |
+| POST | `/job/jobs` | Create new job |
+| PUT | `/jobs/:id` | Update job |
+| DELETE | `/jobs/:id` | Delete job |
+| GET | `/jobs/search` | Search jobs |
+| GET | `/jobs/featured` | Get featured jobs |
+| GET | `/jobs/recent` | Get recent jobs |
+| GET | `/jobs/government` | Get government jobs |
+| POST | `/job/Govtjobs` | Create government job |
+
+### Application Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/applications` | Get all applications |
+| GET | `/applications/:id` | Get application by ID |
+| POST | `/applications` | Create application |
+| PUT | `/applications/:id` | Update application |
+| POST | `/applications/jobs/:jobId/apply` | Apply to job |
+| GET | `/applications/job/:jobId` | Get applications by job |
+| GET | `/applications/student/:studentId` | Get applications by student |
+
+### Saved Jobs (Bookmarks)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/bookmarkjobs` | Get all bookmarks |
+| GET | `/bookmarkjobs/user/:userId` | Get user's bookmarks |
+| POST | `/bookmarkjobs` | Save job |
+| DELETE | `/bookmarkjobs/:jobId/user/:userId` | Remove bookmark |
+
+### User Profile Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/students/profile/:email` | Get candidate profile |
+| PUT | `/students/profile/:email` | Update candidate profile |
+| POST | `/students/:id/resume` | Upload resume |
+| POST | `/students/:id/profile-image` | Upload profile image |
+| GET | `/recruiter/profile/:email` | Get recruiter profile |
+| PUT | `/Recruiter/update/:email` | Update recruiter profile |
+
+### Admin Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/admin/get-all-recruiter` | Get all recruiters |
+| POST | `/admin/approved-recruiter` | Approve/reject recruiter |
+| PUT | `/admin/candidate/:email/status` | Update candidate status |
+
+### Payment Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/payments` | Create payment |
+| GET | `/payments/user/:userId` | Get user payments |
+| POST | `/payments/:id/verify` | Verify payment |
+
+### Plans Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/plans` | Get all plans |
+| GET | `/plans/:id` | Get plan by ID |
+| POST | `/plans` | Create plan |
+| PUT | `/plans/:id` | Update plan |
+| DELETE | `/plans/:id` | Delete plan |
+
+---
+
+## Quick Reference Card
+
+### Starting Development
+```bash
+npm install     # Install dependencies
+npm run dev     # Start development server
+npm run build   # Build for production
+```
+
+### Adding a New Page
+1. Create page component in `src/Pages/[Role]/`
+2. Add route in `App.jsx`
+3. Add navigation link in respective Navbar/Sidebar
+
+### Adding a New API Service
+1. Add endpoint in `src/config/api.js`
+2. Create service function in `src/services/`
+3. Export from `src/services/index.js`
+
+### Using Authentication
+```jsx
+import { useAuth } from '../Contexts/AuthContext';
+const { user, isAuthenticated, login, logout } = useAuth();
+```
+
+### Making API Calls
+```jsx
+import { jobService } from '../services';
+const jobs = await jobService.getAllJobs();
+```
+
+---
+
+## Document Version
+- **Version**: 1.0
+- **Last Updated**: December 2024
+- **Author**: Development Team
+
+---
+
+
