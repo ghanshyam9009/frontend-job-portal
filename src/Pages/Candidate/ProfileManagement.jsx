@@ -654,23 +654,45 @@ const ProfileManagement = () => {
       const uploadResponse = await studentService.uploadLogoFile(user.email, file);
 
       if (uploadResponse.success) {
-        // Direct extraction from the known response structure
-        const uploadedLogoUrl = uploadResponse.data?.logo || uploadResponse.data?.logoUrl;
+        // Debug the response structure
+        console.log('Full upload response:', uploadResponse);
+        console.log('Upload response data:', uploadResponse.data);
+        console.log('Data type:', typeof uploadResponse.data);
+        console.log('Data keys:', uploadResponse.data ? Object.keys(uploadResponse.data) : 'No data');
+
+        // Try multiple extraction approaches - handle nested data structure from withErrorHandling
+        let uploadedLogoUrl;
+
+        // First try: nested data structure from service response
+        if (uploadResponse.data?.data?.logoUrl) {
+          uploadedLogoUrl = uploadResponse.data.data.logoUrl;
+          console.log('Found logo in uploadResponse.data.data.logoUrl');
+        } else if (uploadResponse.data?.data?.logo) {
+          uploadedLogoUrl = uploadResponse.data.data.logo;
+          console.log('Found logo in uploadResponse.data.data.logo');
+        }
+        // Second try: direct from data (fallback for different response structures)
+        else if (uploadResponse.data?.logo) {
+          uploadedLogoUrl = uploadResponse.data.logo;
+          console.log('Found logo in uploadResponse.data.logo');
+        } else if (uploadResponse.data?.logoUrl) {
+          uploadedLogoUrl = uploadResponse.data.logoUrl;
+          console.log('Found logo in uploadResponse.data.logoUrl');
+        }
+        // Third try: check if data itself is the URL (fallback)
+        else if (typeof uploadResponse.data === 'string' && uploadResponse.data.startsWith('http')) {
+          uploadedLogoUrl = uploadResponse.data;
+          console.log('Found logo as direct string in data');
+        }
+
+        console.log('Final extracted logo URL:', uploadedLogoUrl);
 
         // Update logo URL in formData only (don't update user context to avoid triggering re-fetch)
         if (uploadedLogoUrl) {
-          console.log('Updating formData with new logo URL:', uploadedLogoUrl);
-          setFormData(prev => {
-            const newFormData = { ...prev, logo: uploadedLogoUrl, logoFile: null };
-            console.log('New formData logo will be:', newFormData.logo);
-            return newFormData;
-          });
-          // Verify the update after a short delay
-          setTimeout(() => {
-            console.log('Verification - current formData logo:', formData.logo);
-          }, 100);
+          console.log('Setting logo URL in formData:', uploadedLogoUrl);
+          setFormData(prev => ({ ...prev, logo: uploadedLogoUrl, logoFile: null }));
         } else {
-          console.error('No logo URL extracted from response! Response structure:', uploadResponse);
+          console.error('No logo URL found! Data content:', uploadResponse.data);
         }
         setValidationErrors({ ...validationErrors, logo: '' });
         setSuccess('Profile image uploaded successfully');
