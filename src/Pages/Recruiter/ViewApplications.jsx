@@ -4,16 +4,19 @@ import { useAuth } from "../../Contexts/AuthContext";
 import { useSidebar } from "../../Contexts/SidebarContext";
 import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
 import { useTheme } from "../../Contexts/ThemeContext";
-import { 
-  ArrowLeft, 
-  Users, 
-  FileText, 
-  ExternalLink, 
-  Check, 
-  X, 
+import {
+  ArrowLeft,
+  Users,
+  FileText,
+  ExternalLink,
+  Check,
+  X,
   Calendar,
   Filter,
-  Search
+  Search,
+  GraduationCap,
+  Briefcase,
+  Phone
 } from "lucide-react";
 import { recruiterExternalService } from "../../services";
 import { studentService } from "../../services/studentService";
@@ -24,7 +27,7 @@ const ViewApplications = () => {
   const { user } = useAuth();
   const { sidebarOpen, setSidebarOpen } = useSidebar();
   const { theme, toggleTheme } = useTheme();
-  
+ 
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -51,7 +54,7 @@ const ViewApplications = () => {
         const employerId = user?.employer_id || user?.id;
         const jobsData = await recruiterExternalService.getAllPostedJobs(employerId);
         const job = jobsData?.jobs?.find(j => j.job_id === parseInt(jobId));
-        
+       
         if (job) {
           setJobDetails({
             title: job.job_title,
@@ -65,24 +68,37 @@ const ViewApplications = () => {
         // Fetch applications
         const applicationsData = await recruiterExternalService.getAllApplicants(jobId);
         const applicationsList = applicationsData.applications || [];
-        
+       
         // Fetch student details for each application
         const applicationsWithDetails = await Promise.all(
           applicationsList.map(async (app) => {
             try {
               const studentDetails = await studentService.getStudentById(app.student_id);
-              return { 
-                ...app, 
+         
+              return {
+                ...app,
                 student_name: studentDetails?.full_name || studentDetails?.name || app.student_name || "Unknown Candidate",
                 student_email: studentDetails?.email || app.student_email || "Unknown Email",
+                qualification: studentDetails?.qualification || studentDetails?.education || studentDetails?.degree || "Not provided",
+                experience: studentDetails?.experience || studentDetails?.years_of_experience || studentDetails?.work_experience || "Not provided",
+                phone_number: studentDetails?.phone_number || studentDetails?.phone || studentDetails?.contact_number || studentDetails?.mobile || "Not provided",
+                skills: studentDetails?.skills || studentDetails?.skill_set || [],
                 ...studentDetails
+               
               };
+           
             } catch (err) {
               console.error(`Failed to fetch details for student ${app.student_id}:`, err);
-              return { 
-                ...app, 
-                student_name: app.student_name || "Unknown Candidate", 
-                student_email: app.student_email || "Unknown Email" 
+               
+              return {
+                ...app,
+                student_name: app.student_name || "Unknown Candidate",
+                student_email: app.student_email || "Unknown Email",
+                qualification: "Not provided",
+                experience: "Not provided",
+                phone_number: "Not provided",
+                skills: [],
+               
               };
             }
           })
@@ -98,27 +114,54 @@ const ViewApplications = () => {
     };
 
     fetchApplications();
+ 
   }, [jobId, user]);
 
   const handleUpdateApplicationStatus = async (applicationId, statusBool) => {
     try {
       setActionLoading(true);
       await recruiterExternalService.changeApplicationStatus(applicationId, statusBool);
-      
-      const updatedApplications = applications.map(app => 
-        app.application_id === applicationId 
+     
+      const updatedApplications = applications.map(app =>
+        app.application_id === applicationId
           ? { ...app, status: statusBool ? 'Shortlisted' : 'Pending' }
           : app
       );
-      
+     
       setApplications(updatedApplications);
-      
+     
       // Show success message
       const message = statusBool ? 'Application shortlisted successfully' : 'Application moved to pending';
       alert(message);
     } catch (e) {
       console.error(e);
       alert('Failed to update application status');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectApplication = async (applicationId) => {
+    if (!window.confirm('Are you sure you want to reject this application?')) {
+      return;
+    }
+   
+    try {
+      setActionLoading(true);
+      // Update status to rejected
+      await recruiterExternalService.changeApplicationStatus(applicationId, false);
+     
+      const updatedApplications = applications.map(app =>
+        app.application_id === applicationId
+          ? { ...app, status: 'Rejected' }
+          : app
+      );
+     
+      setApplications(updatedApplications);
+      alert('Application rejected successfully');
+    } catch (e) {
+      console.error(e);
+      alert('Failed to reject application');
     } finally {
       setActionLoading(false);
     }
@@ -166,7 +209,7 @@ const ViewApplications = () => {
   return (
     <div className={`min-h-screen ${bgColor}`}>
       <RecruiterNavbar toggleSidebar={toggleSidebar} darkMode={theme === 'dark'} toggleDarkMode={toggleTheme} />
-      
+     
       {/* Header */}
       <div className={`${cardBg} border-b ${borderColor} mt-20 sticky top-0 z-40`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -251,8 +294,8 @@ const ViewApplications = () => {
                       key={status}
                       onClick={() => setFilterStatus(status)}
                       className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                        filterStatus === status 
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30' 
+                        filterStatus === status
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
                           : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
                       }`}
                     >
@@ -319,7 +362,7 @@ const ViewApplications = () => {
                     : "Try adjusting your filters or search query"}
                 </p>
                 {(filterStatus !== 'All' || searchQuery !== '') && (
-                  <button 
+                  <button
                     onClick={() => {
                       setFilterStatus('All');
                       setSearchQuery('');
@@ -332,32 +375,32 @@ const ViewApplications = () => {
               </div>
             )}
 
-            {/* Applications */}
+            {/* Applications - Compact Cards */}
             {!loading && !error && filteredApplications.length > 0 && (
-              <div className="space-y-4">
+              <div className="space-y-2.5">
                 {filteredApplications.map((application) => (
-                  <div 
-                    key={application.application_id} 
-                    className={`${cardBg} border ${borderColor} rounded-lg p-4 sm:p-5 hover:border-blue-300 dark:hover:border-blue-500 transition-colors`}
+                  <div
+                    key={application.application_id}
+                    className={`${cardBg} border ${borderColor} rounded-lg p-2.5 hover:border-blue-300 dark:hover:border-blue-500 transition-colors`}
                   >
                     {/* Candidate Header */}
-                    <div className="flex items-start justify-between gap-4 mb-4">
-                      <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                    <div className="flex items-start justify-between gap-2.5 mb-2.5">
+                      <div className="flex items-start gap-2 flex-1 min-w-0">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
                           {application.student_name?.charAt(0) || 'U'}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <h4 className={`text-base sm:text-lg font-bold ${textColor} truncate`}>
+                          <h4 className={`text-xs font-bold ${textColor} truncate leading-tight`}>
                             {application.student_name}
                           </h4>
-                          <p className={`text-sm ${textSecondary} truncate`}>
+                          <p className={`text-xs ${textSecondary} truncate`} style={{ fontSize: '0.7rem' }}>
                             {application.student_email}
                           </p>
-                          <div className="flex flex-wrap items-center gap-2 mt-2">
-                            <span className={`text-xs ${textSecondary}`}>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                            <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.65rem' }}>
                               {new Date(application.created_at).toLocaleDateString()}
                             </span>
-                            <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${getStatusColor(application.status)}`}>
+                            <span className={`px-1.5 py-0.5 rounded-full text-xs font-semibold border ${getStatusColor(application.status)}`} style={{ fontSize: '0.65rem' }}>
                               {application.status}
                             </span>
                           </div>
@@ -365,35 +408,75 @@ const ViewApplications = () => {
                       </div>
                     </div>
 
-                    {/* Cover Letter */}
-                    <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 mb-4 border ${borderColor}`}>
-                      <h5 className={`text-sm font-semibold ${textColor} mb-2 flex items-center gap-2`}>
-                        <FileText size={16} />
-                        Cover Letter
-                      </h5>
-                      <p className={`text-sm ${textSecondary} line-clamp-3`}>
-                        {application.cover_letter || 'No cover letter provided.'}
-                      </p>
+                    {/* Candidate Information */}
+                    <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-2 mb-2 border ${borderColor}`}>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {/* Qualification */}
+                        <div>
+                          <h5 className={`text-xs font-semibold ${textColor} mb-0.5 flex items-center gap-1`} style={{ fontSize: '0.7rem' }}>
+                            <GraduationCap size={12} />
+                            Qualification
+                          </h5>
+                          <p className={`text-xs ${textSecondary}`} style={{ fontSize: '0.7rem' }}>
+                            {application.qualification || application.education || 'Not provided'}
+                          </p>
+                        </div>
+
+                        {/* Experience */}
+                        <div>
+                          <h5 className={`text-xs font-semibold ${textColor} mb-0.5 flex items-center gap-1`} style={{ fontSize: '0.7rem' }}>
+                            <Briefcase size={12} />
+                            Experience
+                          </h5>
+                          <p className={`text-xs ${textSecondary}`} style={{ fontSize: '0.7rem' }}>
+                            {application.experience || application.years_of_experience || 'Not provided'}
+                          </p>
+                        </div>
+
+                        {/* Mobile Number */}
+                        <div className="sm:col-span-2">
+                          <h5 className={`text-xs font-semibold ${textColor} mb-0.5 flex items-center gap-1`} style={{ fontSize: '0.7rem' }}>
+                            <Phone size={12} />
+                           Contact Number
+                          </h5>
+                          <p className={`text-xs ${textSecondary}`} style={{ fontSize: '0.7rem' }}>
+                            {application.phone_number || application.phone || application.contact_number || application.mobile || 'Not provided'}
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {application.status === 'Pending' ? (
-                        <button
-                          onClick={() => handleUpdateApplicationStatus(application.application_id, true)}
-                          disabled={actionLoading}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center gap-2 disabled:opacity-50"
-                        >
-                          <Check size={16} />
-                          Shortlist
-                        </button>
+                        <>
+                          <button
+                            onClick={() => handleUpdateApplicationStatus(application.application_id, true)}
+                            disabled={actionLoading}
+                            className="px-2.5 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-medium flex items-center gap-1 disabled:opacity-50"
+                            style={{ fontSize: '0.7rem' }}
+                          >
+                            <Check size={12} />
+                            Shortlist
+                          </button>
+                          <button
+                            onClick={() => handleRejectApplication(application.application_id)}
+                            disabled={actionLoading}
+                            className="px-2.5 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium flex items-center gap-1 disabled:opacity-50"
+                            style={{ fontSize: '0.7rem' }}
+                          >
+                            <X size={12} />
+                            Reject
+                          </button>
+                        </>
                       ) : (
                         <button
                           onClick={() => handleUpdateApplicationStatus(application.application_id, false)}
                           disabled={actionLoading}
-                          className={`px-4 py-2 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium flex items-center gap-2 disabled:opacity-50`}
+                          className={`px-2.5 py-1 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium flex items-center gap-1 disabled:opacity-50`}
+                          style={{ fontSize: '0.7rem' }}
                         >
-                          <ArrowLeft size={16} />
+                          <ArrowLeft size={12} />
                           Move to Pending
                         </button>
                       )}
@@ -401,9 +484,10 @@ const ViewApplications = () => {
                         href={application.resume_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={`px-4 py-2 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium flex items-center gap-2`}
+                        className={`px-2.5 py-1 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium flex items-center gap-1`}
+                        style={{ fontSize: '0.7rem' }}
                       >
-                        <ExternalLink size={16} />
+                        <ExternalLink size={12} />
                         Resume
                       </a>
                     </div>

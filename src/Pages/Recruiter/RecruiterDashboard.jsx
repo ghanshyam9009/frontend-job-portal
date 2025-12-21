@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { recruiterExternalService } from "../../services";
@@ -192,11 +192,11 @@ const RecruiterDashboard = () => {
       action: () => navigate('/post-job')
     },
     {
-      title: "View Applications",
+      title: "Manage Jobs",
       description: "Review candidate applications",
       icon: <Users size={20} />,
       gradient: "from-purple-500 to-purple-600",
-      action: () => navigate('/candidate-applications')
+      action: () => navigate('/manage-jobs')
     },
     {
       title: "Shortlist Candidates",
@@ -309,6 +309,7 @@ const RecruiterDashboard = () => {
 
             {/* Stats Grid - Modern Cards with Gradients */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+              <Link to={"/manage-jobs"}>
               <div className={`${cardBg} rounded-xl shadow-md border ${borderColor} p-5 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative overflow-hidden group`}>
                 <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
                 <div className="relative z-10">
@@ -322,7 +323,8 @@ const RecruiterDashboard = () => {
                   <p className={`text-xs font-medium ${textSecondary}`}>Total Jobs</p>
                 </div>
               </div>
-
+              </Link>
+<Link to={"/manage-jobs"}>
               <div className={`${cardBg} rounded-xl shadow-md border ${borderColor} p-5 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative overflow-hidden group`}>
                 <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
                 <div className="relative z-10">
@@ -335,7 +337,8 @@ const RecruiterDashboard = () => {
                   <p className={`text-xs font-medium ${textSecondary}`}>Active Jobs</p>
                 </div>
               </div>
-
+</Link>
+<Link to={"/manage-jobs"}>
               <div className={`${cardBg} rounded-xl shadow-md border ${borderColor} p-5 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative overflow-hidden group`}>
                 <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
                 <div className="relative z-10">
@@ -347,8 +350,10 @@ const RecruiterDashboard = () => {
                   <h3 className={`text-3xl font-bold ${textColor} mb-1`}>{stats.totalApplications}</h3>
                   <p className={`text-xs font-medium ${textSecondary}`}>Applications</p>
                 </div>
+                
               </div>
-
+</Link>
+<Link to={"/shortlist-candidates"}>
               <div className={`${cardBg} rounded-xl shadow-md border ${borderColor} p-5 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative overflow-hidden group`}>
                 <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-amber-500/20 to-amber-600/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
                 <div className="relative z-10">
@@ -361,6 +366,7 @@ const RecruiterDashboard = () => {
                   <p className={`text-xs font-medium ${textSecondary}`}>Shortlisted</p>
                 </div>
               </div>
+</Link>
 
               <div className={`${cardBg} rounded-xl shadow-md border ${borderColor} p-5 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative overflow-hidden group`}>
                 <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-indigo-500/20 to-indigo-600/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>

@@ -1,13 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../Contexts/AuthContext';
 import { studentService } from '../../services/studentService';
-import { ChevronLeft, ChevronRight, Check, User, MapPin, Briefcase, GraduationCap, Award, AlertCircle, Edit, Mail, Phone, Calendar, Globe, FileText } from 'lucide-react';
-import styles from './ProfileManagement.module.css';
+import {
+  ChevronLeft, ChevronRight, Check, User, MapPin, Briefcase,
+  GraduationCap, Award, AlertCircle, Edit, Mail, Phone, Calendar,
+  Globe, FileText, Building, Camera, Upload, XCircle, CheckCircle,
+  ArrowRight, Lock, TrendingUp, Shield
+} from 'lucide-react';
 
 const ProfileManagement = () => {
   const { user, updateUser } = useAuth();
   const todayForDateInput = new Date().toISOString().split("T")[0];
   const [currentStep, setCurrentStep] = useState(0);
+  const [expandedStep, setExpandedStep] = useState(1);
 
   // Helper function to get user initials
   const getInitials = (name) => {
@@ -17,13 +22,14 @@ const ProfileManagement = () => {
     if (nameParts.length === 1) return nameParts[0].charAt(0).toUpperCase();
     return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
   };
+
   const [formData, setFormData] = useState({
     full_name: '',
     phone_number: '',
     dob: '',
     gender: '',
     logo: '',
-    logoFile: null, // Store selected file for upload during profile save
+    logoFile: null,
     address: {
       street: '',
       city: '',
@@ -45,6 +51,7 @@ const ProfileManagement = () => {
   const [completedSteps, setCompletedSteps] = useState([]);
   const [validationErrors, setValidationErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
+
   const [isEditMode, setIsEditMode] = useState(() => {
     // Initialize based on user context if available
     if (user?.email) {
@@ -69,6 +76,7 @@ const ProfileManagement = () => {
     }
     return true; // Default to edit mode if no user data
   });
+
   const [profileComplete, setProfileComplete] = useState(() => {
     // Initialize based on user context if available
     if (user?.email) {
@@ -91,7 +99,9 @@ const ProfileManagement = () => {
     }
     return false; // Default to incomplete if no user data
   });
+
   const [currentSkillInput, setCurrentSkillInput] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const logoInputRef = useRef(null);
 
   const steps = [
@@ -146,8 +156,6 @@ const ProfileManagement = () => {
         }
         break;
 
-    
-
       case 'dob':
         if (value) {
           const birthDate = new Date(value);
@@ -194,7 +202,6 @@ const ProfileManagement = () => {
     const currentStepConfig = steps[stepIndex];
     const errors = {};
 
-    // Validate all fields in the current step
     currentStepConfig.fields.forEach(field => {
       let value;
       let fieldName = field;
@@ -204,7 +211,6 @@ const ProfileManagement = () => {
         value = formData.address[addressField];
         fieldName = `address.${addressField}`;
       } else if (field === 'education') {
-        // Validate education array - only if has content
         formData.education.forEach((edu, index) => {
           const hasContent = edu.degree.trim() || edu.institution.trim() || edu.year.trim();
           if (hasContent) {
@@ -218,7 +224,6 @@ const ProfileManagement = () => {
         });
         return;
       } else if (field === 'experience') {
-        // Validate experience array - only if has content
         formData.experience.forEach((exp, index) => {
           const hasContent = exp.title.trim() || exp.company.trim() || exp.duration.trim();
           if (hasContent) {
@@ -232,7 +237,6 @@ const ProfileManagement = () => {
         });
         return;
       } else if (field === 'skills') {
-        // Special validation for skills - check if at least one skill is added
         const skillsArray = getSkillsArray();
         if (skillsArray.length === 0) {
           if (touchedFields[fieldName]) {
@@ -293,7 +297,6 @@ const ProfileManagement = () => {
   // Check if profile is complete
   function checkProfileComplete(data) {
     const hasName = data.full_name && data.full_name.trim();
-    const hasPhone = data.phone_number && data.phone_number.trim(); // Made optional since user mentioned phone is not required in other messages
     const hasGender = data.gender && data.gender.trim();
     const hasCity = data.address?.city && data.address.city.trim();
     const hasState = data.address?.state && data.address.state.trim();
@@ -310,17 +313,35 @@ const ProfileManagement = () => {
       data.experience.some(exp => exp.title?.trim() && exp.company?.trim())
     );
 
-    // Only check required fields, phone number is optional
     return hasName && hasGender && hasCity && hasState && hasCountry &&
            hasBio && hasSkills && hasEducation && hasExperience;
   }
+
+  // Calculate profile completion percentage
+  const calculateProfileCompletion = () => {
+    let completed = 0;
+    let total = 11; // Total required fields
+
+    if (formData.full_name?.trim()) completed++;
+    if (formData.gender?.trim()) completed++;
+    if (formData.address?.city?.trim()) completed++;
+    if (formData.address?.state?.trim()) completed++;
+    if (formData.address?.country?.trim()) completed++;
+    if (formData.bio?.trim()) completed++;
+    if (getSkillsArray().length > 0) completed++;
+    if (formData.education.some(edu => edu.degree?.trim() && edu.institution?.trim())) completed++;
+    if (formData.experienceLevel === 'Fresher' || formData.experience.some(exp => exp.title?.trim() && exp.company?.trim())) completed++;
+    if (formData.logo) completed++;
+    if (formData.resume) completed++;
+
+    return Math.round((completed / total) * 100);
+  };
 
   useEffect(() => {
     const loadProfileData = async () => {
       if (user?.email) {
         try {
           setLoading(true);
-          // Fetch latest profile data using the new API endpoint
           const profileResponse = await studentService.fetchProfileDetails(user.email);
           if (profileResponse.success && profileResponse.data) {
             const profileData = profileResponse.data.student || profileResponse.data.profile || profileResponse.data;
@@ -329,18 +350,14 @@ const ProfileManagement = () => {
               phone_number: profileData.phone_number || user.phone_number || '',
               dob: (() => {
                 try {
-                  // Check multiple possible DOB sources and formats
                   let dateValue = profileData.dob || profileData.date_of_birth || profileData.birth_date || profileData.dateOfBirth || user.dob || user.date_of_birth || user.birth_date || user.dateOfBirth;
 
                   if (dateValue) {
-                    // If it's already in YYYY-MM-DD format, use it directly
                     if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
                       return dateValue;
                     }
-                    // Try to parse various date formats
                     const parsed = new Date(dateValue);
                     if (!isNaN(parsed.getTime())) {
-                      // Ensure it's in local timezone for consistent display
                       const year = parsed.getFullYear();
                       const month = String(parsed.getMonth() + 1).padStart(2, '0');
                       const day = String(parsed.getDate()).padStart(2, '0');
@@ -363,20 +380,8 @@ const ProfileManagement = () => {
               },
               logo: profileData.logo || profileData.profile_image || user.logo || '',
               bio: profileData.bio || user.bio || '',
-              resume: profileData.resumeUrl
-                || profileData.resume
-                || profileData.resumeFile?.resumeUrl
-                || profileData.resumeFile?.url
-                || (typeof profileData.resumeFile === 'string' ? profileData.resumeFile : null)
-                || profileData.resume
-                || profileData.resumeFile?.resumeUrl
-                || profileData.resumeFile?.url
-                || (typeof profileData.resumeFile === 'string' ? profileData.resumeFile : null)
-                || user.resumeUrl
-                || user.resume
-                || null,
+              resume: profileData.resumeUrl || profileData.resume || profileData.resumeFile?.resumeUrl || profileData.resumeFile?.url || (typeof profileData.resumeFile === 'string' ? profileData.resumeFile : null) || user.resumeUrl || user.resume || null,
               education: (() => {
-                // Handle education - could be array, string, or missing
                 if (Array.isArray(profileData.education) && profileData.education.length > 0) {
                   return profileData.education;
                 } else if (typeof profileData.education === 'string') {
@@ -392,7 +397,6 @@ const ProfileManagement = () => {
                 return [{ degree: '', institution: '', year: '' }];
               })(),
               experience: (() => {
-                // Handle experience - for fresher, if backend sends 'fresher', start with empty array
                 if (profileData.experienceLevel === 'Fresher' && profileData.experience === 'fresher') {
                   return [];
                 } else if (Array.isArray(profileData.experience) && profileData.experience.length > 0) {
@@ -419,122 +423,15 @@ const ProfileManagement = () => {
 
             // Check if profile is complete and log the results
             const isComplete = checkProfileComplete(loadedData);
-            console.log('Profile complete check:', {
-              isComplete,
-              hasName: !!(loadedData.full_name && loadedData.full_name.trim()),
-              hasPhone: !!(loadedData.phone_number && loadedData.phone_number.trim()),
-              hasGender: !!(loadedData.gender && loadedData.gender.trim()),
-              hasCity: !!(loadedData.address?.city && loadedData.address.city.trim()),
-              hasState: !!(loadedData.address?.state && loadedData.address.state.trim()),
-              hasCountry: !!(loadedData.address?.country && loadedData.address.country.trim()),
-              hasBio: !!(loadedData.bio && loadedData.bio.trim()),
-              hasSkills: !!(loadedData.skills && loadedData.skills.trim()),
-              hasEducation: Array.isArray(loadedData.education) && loadedData.education.length > 0 &&
-                loadedData.education.some(edu => edu.degree?.trim() && edu.institution?.trim()),
-              hasExperience: loadedData.experienceLevel === 'Fresher' || (
-                Array.isArray(loadedData.experience) && loadedData.experience.length > 0 &&
-                loadedData.experience.some(exp => exp.title?.trim() && exp.company?.trim())
-              )
-            });
-
             setProfileComplete(isComplete);
             setCompletedSteps(isComplete ? [0, 1] : []);
             // Always start in view mode if complete, regardless of initial state
             setIsEditMode(false);
-            } else {
-              // Fallback to user context data if API fetch fails
-              setFormData({
-                full_name: user.full_name || '',
-                phone_number: user.phone_number || '',
-                dob: user.dob ? new Date(user.dob).toISOString().split('T')[0] : '',
-                gender: user.gender || '',
-                address: {
-                  street: user.address?.street || '',
-                  city: user.address?.city || '',
-                  state: user.address?.state || '',
-                  zip: user.address?.zip || '',
-                  country: user.address?.country || ''
-                },
-                logo: user.logo || '',
-                bio: user.bio || '',
-                resume: user.resumeUrl || user.resume || null,
-                education: (() => {
-                  if (Array.isArray(user.education) && user.education.length > 0) {
-                    return user.education;
-                  } else if (typeof user.education === 'string') {
-                    try {
-                      const parsed = JSON.parse(user.education);
-                      return Array.isArray(parsed) && parsed.length > 0 ? parsed : [{ degree: '', institution: '', year: '' }];
-                    } catch {
-                      return [{ degree: '', institution: '', year: '' }];
-                    }
-                  }
-                  return [{ degree: '', institution: '', year: '' }];
-                })(),
-                experience: (() => {
-                  if (Array.isArray(user.experience) && user.experience.length > 0) {
-                    return user.experience;
-                  } else if (typeof user.experience === 'string') {
-                    try {
-                      const parsed = JSON.parse(user.experience);
-                      return Array.isArray(parsed) && parsed.length > 0 ? parsed : [{ title: '', company: '', duration: '' }];
-                    } catch {
-                      return [{ title: '', company: '', duration: '' }];
-                    }
-                  }
-                  return [{ title: '', company: '', duration: '' }];
-            })(),
-            skills: user.skills || '',
-            experienceLevel: user.experienceLevel || 'Experienced'
-          });
-            }
+          } else {
+            setExpandedStep(0);
+          }
         } catch (error) {
           console.error('Error loading profile data:', error);
-          // Fallback to user context data
-          setFormData({
-            full_name: user.full_name || '',
-            phone_number: user.phone_number || '',
-            dob: user.dob ? new Date(user.dob).toISOString().split('T')[0] : '',
-            gender: user.gender || '',
-            logo: user.logo || '',
-            address: {
-              street: user.address?.street || '',
-              city: user.address?.city || '',
-              state: user.address?.state || '',
-              zip: user.address?.zip || '',
-              country: user.address?.country || ''
-            },
-            bio: user.bio || '',
-            resume: user.resumeUrl || user.resume || null,
-            education: (() => {
-              if (Array.isArray(user.education) && user.education.length > 0) {
-                return user.education;
-              } else if (typeof user.education === 'string') {
-                try {
-                  const parsed = JSON.parse(user.education);
-                  return Array.isArray(parsed) && parsed.length > 0 ? parsed : [{ degree: '', institution: '', year: '' }];
-                } catch {
-                  return [{ degree: '', institution: '', year: '' }];
-                }
-              }
-              return [{ degree: '', institution: '', year: '' }];
-            })(),
-            experience: (() => {
-              if (Array.isArray(user.experience) && user.experience.length > 0) {
-                return user.experience;
-              } else if (typeof user.experience === 'string') {
-                try {
-                  const parsed = JSON.parse(user.experience);
-                  return Array.isArray(parsed) && parsed.length > 0 ? parsed : [{ title: '', company: '', duration: '' }];
-                } catch {
-                  return [{ title: '', company: '', duration: '' }];
-                }
-              }
-              return [{ title: '', company: '', duration: '' }];
-                })(),
-                skills: user.skills || '',
-                experienceLevel: user.experienceLevel || 'Experienced'
-              });
         } finally {
           setLoading(false);
         }
@@ -544,53 +441,10 @@ const ProfileManagement = () => {
     loadProfileData();
   }, [user]);
 
-  // Ensure scrollability after data loads and on component mount
-  useEffect(() => {
-    // Immediate check on mount
-    const enableScrolling = () => {
-      // Ensure body scrolling is enabled
-      document.body.style.overflowY = 'auto';
-      document.documentElement.style.overflowY = 'auto';
-
-      // Force container scroll recalculation
-      const container = document.querySelector(`.${styles.container}`);
-      if (container) {
-        container.style.overflowY = 'auto';
-        // Trigger reflow
-        container.offsetHeight;
-      }
-    };
-
-    // Immediate execution
-    enableScrolling();
-
-    // Add a small timeout to handle any reflow issues during loading
-    const timer = setTimeout(enableScrolling, 100);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Additional effect for data loading changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const container = document.querySelector(`.${styles.container}`);
-      if (container) {
-        container.style.overflowY = 'auto';
-        container.offsetHeight;
-      }
-    }, 50);
-
-    return () => clearTimeout(timer);
-  }, [formData, loading, styles.container]);
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-
-    // Mark field as touched
     setTouchedFields({ ...touchedFields, [name]: true });
-
-    // Validate on change
     const error = validateField(name, value);
     setValidationErrors({ ...validationErrors, [name]: error });
   };
@@ -602,11 +456,7 @@ const ProfileManagement = () => {
       ...formData,
       address: { ...formData.address, [name]: value }
     });
-
-    // Mark field as touched
     setTouchedFields({ ...touchedFields, [fieldName]: true });
-
-    // Validate on change
     const error = validateField(fieldName, value);
     setValidationErrors({ ...validationErrors, [fieldName]: error });
   };
@@ -624,15 +474,25 @@ const ProfileManagement = () => {
 
     setLoading(true);
     try {
-      // Upload the resume file immediately using the dedicated API
       const uploadResponse = await studentService.uploadResumeFile(user.email, file);
 
+      if (uploadResponse.success) {
+        const uploadedResumeUrl = uploadResponse.data?.resumeUrl || uploadResponse.data?.url || uploadResponse.data?.profile?.resumeUrl || uploadResponse.data?.profile?.resume || uploadResponse.data?.profile?.resumeFile?.resumeUrl || uploadResponse.data?.profile?.resumeFile?.url || (typeof uploadResponse.data?.profile?.resumeFile === 'string' ? uploadResponse.data?.profile?.resumeFile : null) || uploadResponse.data?.data?.resumeUrl || uploadResponse.data?.data?.url || (typeof uploadResponse.data === 'string' ? uploadResponse.data : null);
+
+        if (uploadedResumeUrl) {
+          setFormData(prev => ({ ...prev, resume: uploadedResumeUrl }));
+        }
+        setValidationErrors({ ...validationErrors, resume: '' });
+        setSuccess('Resume uploaded successfully');
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setValidationErrors({ ...validationErrors, resume: uploadResponse.error?.message || 'Failed to upload resume' });
+      }
     } catch (error) {
       console.error('Resume upload error:', error);
       setValidationErrors({ ...validationErrors, resume: 'Failed to upload resume. Please try again.' });
     } finally {
       setLoading(false);
-      // Mark field as touched
       setTouchedFields({ ...touchedFields, resume: true });
     }
   };
@@ -643,14 +503,13 @@ const ProfileManagement = () => {
 
     const error = validateImageFile(file);
     if (error) {
-      setValidationErrors({ ...validationErrors, logo: error });
-      setTouchedFields({ ...touchedFields, logo: true });
+      setError(error);
+      setTimeout(() => setError(''), 3000);
       return;
     }
 
     setLoading(true);
     try {
-      // Upload the logo file immediately using the dedicated API
       const uploadResponse = await studentService.uploadLogoFile(user.email, file);
 
       if (uploadResponse.success) {
@@ -705,26 +564,20 @@ const ProfileManagement = () => {
       setValidationErrors({ ...validationErrors, logo: 'Failed to upload profile image. Please try again.' });
     } finally {
       setLoading(false);
-      // Mark field as touched
       setTouchedFields({ ...touchedFields, logo: true });
     }
   };
-
-
 
   const handleDynamicChange = (e, index, type) => {
     const { name, value } = e.target;
     const fieldKey = `${type}_${index}_${name}`;
 
-    // Mark field as touched
     setTouchedFields({ ...touchedFields, [fieldKey]: true });
 
-    // Update form data
     const list = [...formData[type]];
     list[index][name] = value;
     setFormData({ ...formData, [type]: list });
 
-    // Validate required fields for dynamic sections
     const errors = { ...validationErrors };
     if (name === 'degree' || name === 'institution') {
       errors[fieldKey] = value.trim() ? '' : `${name.charAt(0).toUpperCase() + name.slice(1)} is required`;
@@ -737,9 +590,7 @@ const ProfileManagement = () => {
   const addDynamicField = (type) => {
     const fields = {
       education: { degree: '', institution: '', year: '' },
-      experience: { title: '', company: '', duration: '' },
-      internships: { title: '', company: '', duration: '' },
-      certifications: [{ name: '', authority: '', year: '' }]
+      experience: { title: '', company: '', duration: '' }
     };
     setFormData({ ...formData, [type]: [...formData[type], fields[type]] });
   };
@@ -750,14 +601,11 @@ const ProfileManagement = () => {
     setFormData({ ...formData, [type]: list });
   };
 
-  // Skills management functions
   const getSkillsArray = () => {
-    // If skills is already an array (from backend), handle it
     if (Array.isArray(formData.skills)) {
       return formData.skills.filter(skill => skill && skill.trim());
     }
 
-    // Convert comma-separated string to array and clean
     if (typeof formData.skills === 'string' && formData.skills.trim()) {
       return formData.skills.split(',').map(skill => skill.trim()).filter(skill => skill);
     }
@@ -769,16 +617,13 @@ const ProfileManagement = () => {
     if (currentSkillInput && currentSkillInput.trim()) {
       const currentSkills = getSkillsArray();
 
-      // Don't add duplicate skills
       if (!currentSkills.includes(currentSkillInput.trim())) {
         const newSkills = [...currentSkills, currentSkillInput.trim()];
         setFormData({ ...formData, skills: newSkills });
 
-        // Mark field as touched when adding a skill
         setTouchedFields({ ...touchedFields, skills: true });
       }
 
-      // Clear the input
       setCurrentSkillInput('');
     }
   };
@@ -792,8 +637,6 @@ const ProfileManagement = () => {
   const removeResume = async () => {
     try {
       setLoading(true);
-      // Call API to remove resume (assuming studentService has this method)
-      // For now, just clear from local state
       setFormData(prev => ({ ...prev, resume: null }));
       updateUser({ ...user, resume: null, resumeUrl: null });
       setSuccess('Resume removed successfully');
@@ -806,51 +649,23 @@ const ProfileManagement = () => {
     }
   };
 
-  const nextStep = () => {
-    // Validate current step before proceeding
-    const stepErrors = validateStep(currentStep);
-
-    if (Object.keys(stepErrors).length > 0) {
-      setValidationErrors({ ...validationErrors, ...stepErrors });
-      setError('Please fix the errors before proceeding to the next step');
-      return;
-    }
-
-    if (!completedSteps.includes(currentStep)) {
-      setCompletedSteps([...completedSteps, currentStep]);
-    }
-    setCurrentStep(currentStep + 1);
-    setError(''); // Clear any previous errors
-  };
-
-  const prevStep = () => {
-    setCurrentStep(currentStep - 1);
-  };
-
-  const goToStep = (stepIndex) => {
-    setCurrentStep(stepIndex);
-  };
-
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setError('');
     setSuccess('');
     setLoading(true);
 
     try {
-      // Prepare form data for submission - ensure arrays are properly formatted
       const jsonData = {
         ...formData,
-        // Handle skills array - convert back to comma-separated string for backend
         skills: typeof formData.skills === 'string'
           ? formData.skills
           : (Array.isArray(formData.skills) ? formData.skills.join(', ') : formData.skills),
-        // Filter out empty education entries, but keep at least one if all are empty
         education: formData.education.filter(edu =>
           edu.degree?.trim() || edu.institution?.trim() || edu.year?.trim()
         ).length > 0
           ? formData.education.filter(edu => edu.degree?.trim() || edu.institution?.trim() || edu.year?.trim())
           : formData.education,
-        // Handle experience based on experience level
         experience: formData.experienceLevel === 'Fresher'
           ? 'fresher'
           : (formData.experience.filter(exp =>
@@ -860,10 +675,8 @@ const ProfileManagement = () => {
               : formData.experience)
       };
 
-      // Prepare data for JSON submission - handle resume and logo fields
       const { resume, logo, logoFile, ...dataForSubmission } = jsonData;
 
-      // Include resume URL if it's a string (from existing data), but not if it's a File object
       if (typeof resume === 'string' && resume) {
         dataForSubmission.resume = resume;
       }
@@ -877,33 +690,22 @@ const ProfileManagement = () => {
         console.log('Logo not included in update - logo value:', logo, 'type:', typeof logo);
       }
 
-      console.log('Submitting profile data:', dataForSubmission);
-
-      // Submit as regular JSON (the working approach)
       const response = await studentService.updateProfileDetails(user.email, dataForSubmission);
-      console.log('Update response:', response);
 
       if (response.success) {
-        // Wait a bit for the backend to process, then always fetch latest profile data
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Initialize normalizedData with form data as fallback
         let normalizedData = {
           ...user,
           ...jsonData
         };
 
-        // ALWAYS fetch the latest profile data after update to get processed image URLs
         try {
           const profileResponse = await studentService.fetchProfileDetails(user.email);
-          console.log('Fetched latest profile response after update:', profileResponse);
 
           if (profileResponse.success && profileResponse.data) {
-            // Handle different API response structures
             const profileData = profileResponse.data.student || profileResponse.data.profile || profileResponse.data || {};
-            console.log('Profile data after update:', profileData);
 
-            // Normalize the data structure - handle different possible formats
             normalizedData = {
               ...user,
               full_name: profileData.full_name || profileData.fullName || user.full_name || jsonData.full_name || '',
@@ -912,7 +714,6 @@ const ProfileManagement = () => {
               gender: profileData.gender || user.gender || jsonData.gender || '',
               bio: profileData.bio || user.bio || jsonData.bio || '',
               skills: profileData.skills || user.skills || jsonData.skills || '',
-              // Handle address - could be object or nested
               address: profileData.address || (profileData.address_city ? {
                 street: profileData.address_street || user.address?.street || jsonData.address?.street || '',
                 city: profileData.address_city || user.address?.city || jsonData.address?.city || '',
@@ -920,55 +721,35 @@ const ProfileManagement = () => {
                 zip: profileData.address_zip || user.address?.zip || jsonData.address?.zip || '',
                 country: profileData.address_country || user.address?.country || jsonData.address?.country || ''
               } : (user.address || jsonData.address || {})),
-              // Handle education - ensure it's an array
               education: Array.isArray(profileData.education)
                 ? profileData.education.filter(edu => edu && (edu.degree || edu.institution || edu.year))
                 : (Array.isArray(jsonData.education) ? jsonData.education : (user.education || [])),
-              // Handle experience - ensure it's an array
               experience: Array.isArray(profileData.experience)
                 ? profileData.experience.filter(exp => exp && (exp.title || exp.company || exp.duration))
                 : (Array.isArray(jsonData.experience) ? jsonData.experience : (user.experience || [])),
               experienceLevel: profileData.experienceLevel || jsonData.experienceLevel || (profileData.experience === 'fresher' ? 'Fresher' : 'Experienced'),
               logo: profileData.logo || profileData.profile_image || user.logo || '',
-              resume: profileData.resume
-                || profileData.resumeUrl
-                || profileData.resumeFile?.resumeUrl
-                || profileData.resumeFile?.url
-                || (typeof profileData.resumeFile === 'string' ? profileData.resumeFile : null)
-                || user.resume
-                || user.resumeUrl
-                || null
+              resume: profileData.resume || profileData.resumeUrl || profileData.resumeFile?.resumeUrl || profileData.resumeFile?.url || (typeof profileData.resumeFile === 'string' ? profileData.resumeFile : null) || user.resume || user.resumeUrl || null
             };
-
-            console.log('Final normalized user data with logo:', normalizedData.logo);
-          } else {
-            console.warn('Profile fetch failed after update, keeping form data');
           }
         } catch (fetchError) {
           console.error('Error fetching updated profile:', fetchError);
-          // Keep normalizedData with existing data
         }
 
-        // Update user context with normalized data (includes processed image URL)
         updateUser(normalizedData);
 
-        // Update form data with the normalized data from API
         setFormData({
           full_name: normalizedData.full_name || '',
           phone_number: normalizedData.phone_number || '',
           dob: (() => {
             try {
               if (normalizedData.dob) {
-                // Handle different date formats from API
                 let date = normalizedData.dob;
-                // If it's already in YYYY-MM-DD format, use it directly
                 if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
                   return date;
                 }
-                // Otherwise parse it and format it
                 const parsed = new Date(date);
                 if (!isNaN(parsed.getTime())) {
-                  // Ensure it's in local timezone for consistent display
                   const year = parsed.getFullYear();
                   const month = String(parsed.getMonth() + 1).padStart(2, '0');
                   const day = String(parsed.getDate()).padStart(2, '0');
@@ -991,32 +772,24 @@ const ProfileManagement = () => {
           },
           bio: normalizedData.bio || '',
           logo: normalizedData.logo || '',
-          resume: normalizedData.resume
-            || normalizedData.resumeUrl
-            || normalizedData.resumeFile?.resumeUrl
-            || normalizedData.resumeFile?.url
-            || (typeof normalizedData.resumeFile === 'string' ? normalizedData.resumeFile : null)
-            || null,
+          resume: normalizedData.resume || normalizedData.resumeUrl || normalizedData.resumeFile?.resumeUrl || normalizedData.resumeFile?.url || (typeof normalizedData.resumeFile === 'string' ? normalizedData.resumeFile : null) || null,
           education: Array.isArray(normalizedData.education) ? normalizedData.education : [{ degree: '', institution: '', year: '' }],
           experience: Array.isArray(normalizedData.experience) ? normalizedData.experience : [{ title: '', company: '', duration: '' }],
           skills: normalizedData.skills || ''
         });
 
-        console.log('Form data updated with logo:', normalizedData.logo);
+        setShowSuccessModal(true);
         setSuccess('Profile updated successfully');
-        // Mark all steps as completed
-        setCompletedSteps([0, 1, 2, 3, 4]);
+        setCompletedSteps([0, 1]);
 
-        // Check if profile is now complete
         const isComplete = checkProfileComplete(normalizedData);
         setProfileComplete(isComplete);
-            setCompletedSteps(isComplete ? [0, 1] : []);
-            // Keep in edit mode after saving, don't automatically switch to view mode
+        setCompletedSteps(isComplete ? [0, 1] : []);
+        // Keep in edit mode after saving, don't automatically switch to view mode
 
-        // Update completion percentage in real-time by triggering a recalculation
-        // The CandidateHome component will pick up the updated user context
         setTimeout(() => {
-          setSuccess(''); // Clear success message after 3 seconds
+          setSuccess('');
+          setShowSuccessModal(false);
         }, 3000);
       } else {
         setError(response.error?.message || response.message || 'Failed to update profile');
@@ -1029,770 +802,707 @@ const ProfileManagement = () => {
     }
   };
 
-// Combined form grid layout
-const renderBasicInformationForm = () => (
-  <div className={styles.stepContent}>
-    <h3 className={styles.stepTitle}>Basic Information</h3>
-    <p className={styles.stepDescription}>Tell us about yourself to get started.</p>
-
-    <div className={styles.formGrid}>
-      {/* Personal Information */}
-      <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-        <label>Full Name *</label>
-        <input
-          type="text"
-          name="full_name"
-          value={formData.full_name}
-          onChange={handleInputChange}
-          placeholder="Enter your full name"
-          className={validationErrors.full_name ? styles.inputError : ''}
-          required
-        />
-        {validationErrors.full_name && (
-          <div className={styles.errorMessage}>
-            <AlertCircle size={14} />
-            {validationErrors.full_name}
+  // Main render - Always show profile summary + editable form (like CompanyProfile)
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-24 px-4 pb-12">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">My Profile</h1>
+            <p className="text-gray-600 dark:text-gray-400">Manage your professional identity</p>
           </div>
-        )}
-      </div>
+          <div className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center gap-3 shadow-sm">
+            <TrendingUp className={calculateProfileCompletion() === 100 ? "text-green-500" : "text-blue-500"} size={20} />
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Profile Strength</p>
+              <p className={`text-sm font-bold ${calculateProfileCompletion() === 100 ? "text-green-600" : "text-blue-600"}`}>
+                {calculateProfileCompletion()}% Complete
+              </p>
+            </div>
+          </div>
+        </div>
 
-        <div className={styles.formGroup}>
-          <label>Profile Image</label>
-          <div className={styles.uploadImageContainer}>
-            <div
-              className={styles.logoPreview}
-              onClick={() => logoInputRef.current?.click()}
-              style={{ cursor: 'pointer' }}
-              title="Click to upload profile image"
-            >
-              {formData.logo ? (
-                <>
-                  {console.log('Rendering logo image:', formData.logo)}
-                  <img src={formData.logo} alt="Profile" className={styles.logoImage} />
-                </>
-              ) : (
-                <div className={styles.logoInitials}>
-                  {getInitials(formData.full_name || user?.full_name)}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Sidebar - Profile Summary (View Only) */}
+          <div className="lg:col-span-1">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden sticky top-24">
+              <div className="h-24 bg-gradient-to-r from-blue-600 to-indigo-700 relative">
+                <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
+                  <div className="w-20 h-20 rounded-2xl bg-white dark:bg-gray-800 border-4 border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden flex items-center justify-center">
+                    {formData.logo ? (
+                      <img src={formData.logo} className="w-full h-full object-cover" alt="Profile" />
+                    ) : (
+                      <div className="w-full h-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-400 text-2xl font-bold">
+                        {getInitials(formData.full_name)}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-              <div className={styles.uploadOverlay}>
-                <div className={styles.uploadIcon}>+</div>
-                <div className={styles.uploadText}>Upload Image</div>
               </div>
-            </div>
-          </div>
-          <input
-            ref={logoInputRef}
-            type="file"
-            accept="image/jpeg,image/jpg,image/png,image/gif"
-            onChange={handleLogoChange}
-            className={styles.fileInput}
-            style={{ display: 'none' }}
-          />
-          <small className={styles.fileHelp}>Click on the image to upload. Accepted formats: JPEG, PNG, GIF (Max 2MB)</small>
-          {validationErrors.logo && (
-            <div className={styles.errorMessage}>
-              <AlertCircle size={14} />
-              {validationErrors.logo}
-            </div>
-          )}
-        </div>
-
-      <div className={styles.formGroup}>
-        <label>Phone Number</label>
-        <input
-          type="tel"
-          name="phone_number"
-          value={formData.phone_number}
-          onChange={handleInputChange}
-          placeholder="+1 (555) 123-4567"
-        />
-      </div>
-
- 
-
-      <div className={styles.formGroup}>
-        <label>Gender</label>
-        <select name="gender" value={formData.gender} onChange={handleInputChange}>
-          <option value="">Select Gender</option>
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
-          <option value="Other">Other</option>
-          <option value="Prefer not to say">Prefer not to say</option>
-        </select>
-      </div>
-
-      <div className={styles.formGroup}>
-        <label>Date of Birth</label>
-        <input
-          type="date"
-          name="dob"
-          value={formData.dob}
-          onChange={handleInputChange}
-          max={todayForDateInput}
-        />
-        {validationErrors.dob && (
-          <div className={styles.errorMessage}>
-            <AlertCircle size={14} />
-            {validationErrors.dob}
-          </div>
-        )}
-      </div>
-
-      {/* Address Information */}
-      <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-        <label>Street Address</label>
-        <input
-          type="text"
-          name="street"
-          value={formData.address.street}
-          onChange={handleAddressChange}
-          placeholder="123 Main St"
-        />
-      </div>
-
-      <div className={styles.formGroup}>
-        <label>City *</label>
-        <input
-          type="text"
-          name="city"
-          value={formData.address.city}
-          onChange={handleAddressChange}
-          placeholder="New York"
-          required
-        />
-      </div>
-
-      <div className={styles.formGroup}>
-        <label>State/Province *</label>
-        <input
-          type="text"
-          name="state"
-          value={formData.address.state}
-          onChange={handleAddressChange}
-          placeholder="NY"
-          required
-        />
-      </div>
-
-      <div className={styles.formGroup}>
-        <label>ZIP/Postal Code</label>
-        <input
-          type="text"
-          name="zip"
-          value={formData.address.zip}
-          onChange={handleAddressChange}
-          placeholder="10001"
-        />
-      </div>
-
-      <div className={styles.formGroup}>
-        <label>Country *</label>
-        <select
-          name="country"
-          value={formData.address.country}
-          onChange={handleAddressChange}
-          required
-        >
-          <option value="">Select Country</option>
-          <option value="US">United States</option>
-          <option value="CA">Canada</option>
-          <option value="UK">United Kingdom</option>
-          <option value="IN">India</option>
-          <option value="AU">Australia</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
-
-      {/* Professional Information */}
-      <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-        <label>Professional Bio *</label>
-        <textarea
-          name="bio"
-          value={formData.bio}
-          onChange={handleInputChange}
-          rows="4"
-          placeholder="Tell us about your professional background, interests, and career goals..."
-          required
-        />
-      </div>
-
-      <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-        <label>Skills *</label>
-        <div className={styles.skillsContainer}>
-          <div className={styles.skillsInputWrapper}>
-            <input
-              type="text"
-              value={currentSkillInput}
-              onChange={(e) => setCurrentSkillInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && currentSkillInput.trim()) {
-                  e.preventDefault();
-                  addSkill();
-                }
-              }}
-              name="skills"
-              placeholder="Type a skill and press Enter or Add"
-              className={validationErrors.skills || (!getSkillsArray().length && touchedFields.skills) ? styles.inputError : ''}
-            />
-            <button
-              type="button"
-              className={styles.addSkillBtn}
-              onClick={addSkill}
-              disabled={!currentSkillInput.trim()}
-            >
-              +
-            </button>
-          </div>
-          <div className={styles.skillTags}>
-            {getSkillsArray().map((skill, index) => (
-              <span key={index} className={styles.skillTag}>
-                {skill}
-                <button
-                  type="button"
-                  className={styles.removeSkillBtn}
-                  onClick={() => removeSkill(skill)}
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
-        </div>
-        {(validationErrors.skills || (!getSkillsArray().length && touchedFields.skills)) && (
-          <div className={styles.errorMessage}>
-            <AlertCircle size={14} />
-            {validationErrors.skills || 'At least one skill is required'}
-          </div>
-        )}
-      </div>
-
-      <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-        <label>Resume/CV</label>
-        <div className={styles.resumeUploadSection}>
-          {user?.resumeUrl && (
-            <div className={styles.currentResumeContainer}>
-              <div className={styles.currentResumeInfo}>
-                <FileText size={16} className={styles.resumeIcon} />
-                <div className={styles.resumeDetails}>
-                  <span className={styles.resumeLabel}>Current Resume</span>
-                  <a
-                    href={user.resumeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.resumeLink}
-                  >
-                    View/Download Resume
-                  </a>
-                </div>
-                <button
-                  type="button"
-                  className={styles.removeResumeBtn}
-                  onClick={removeResume}
-                  title="Remove current resume"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          )}
-          <div className={styles.uploadResumeContainer}>
-            <input
-              type="file"
-              name="resume"
-              onChange={handleFileChange}
-              accept=".pdf,.doc,.docx"
-              className={styles.resumeInput}
-            />
-            <div className={styles.resumeHelp}>
-              {!user?.resumeUrl ? (
-                <span>Choose file to upload</span>
-              ) : (
-                <span>Choose a different file to replace</span>
-              )}
-              <small className={styles.fileFormats}>Accepted: PDF, DOC, DOCX (Max 5MB)</small>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-const renderBackgroundForm = () => (
-  <div className={styles.stepContent}>
-    <h3 className={styles.stepTitle}>Education & Experience</h3>
-    <p className={styles.stepDescription}>Share your academic and professional background.</p>
-
-    {/* Education Section */}
-    <div className={styles.sectionHeader}>
-      <GraduationCap size={18} />
-      <span>Education</span>
-    </div>
-    <div className={styles.dynamicSection}>
-      {formData.education.map((edu, index) => (
-        <div key={index} className={styles.dynamicGroup}>
-          <div className={styles.formGroup}>
-            <label>Degree/Course *</label>
-            <input
-              type="text"
-              name="degree"
-              value={edu.degree}
-              onChange={(e) => handleDynamicChange(e, index, 'education')}
-              placeholder="Bachelor of Computer Science"
-              required
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Institution *</label>
-            <input
-              type="text"
-              name="institution"
-              value={edu.institution}
-              onChange={(e) => handleDynamicChange(e, index, 'education')}
-              placeholder="University Name"
-              required
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Year</label>
-            <input
-              type="text"
-              name="year"
-              value={edu.year}
-              onChange={(e) => handleDynamicChange(e, index, 'education')}
-              placeholder="2023"
-            />
-          </div>
-          {formData.education.length > 1 && (
-            <button
-              type="button"
-              className={styles.removeBtn}
-              onClick={() => removeDynamicField(index, 'education')}
-            >
-              Remove
-            </button>
-          )}
-        </div>
-      ))}
-
-      <button
-        type="button"
-        className={styles.addBtn}
-        onClick={() => addDynamicField('education')}
-      >
-        + Add Education
-      </button>
-    </div>
-
-    {/* Experience Level Dropdown */}
-    <div className={styles.formGroup}>
-      <label>Experience Level</label>
-      <select name="experienceLevel" value={formData.experienceLevel} onChange={handleInputChange}>
-        <option value="Experienced">Experienced</option>
-        <option value="Fresher">Fresher</option>
-      </select>
-    </div>
-
-    {formData.experienceLevel === 'Experienced' && (
-      <>
-        {/* Experience Section */}
-        <div className={styles.sectionHeader}>
-          <Award size={18} />
-          <span>Work Experience</span>
-        </div>
-        <div className={styles.dynamicSection}>
-          {formData.experience.map((exp, index) => (
-            <div key={index} className={styles.dynamicGroup}>
-              <div className={styles.formGroup}>
-                <label>Job Title *</label>
-                <input
-                  type="text"
-                  name="title"
-                  value={exp.title}
-                  onChange={(e) => handleDynamicChange(e, index, 'experience')}
-                  placeholder="Software Developer"
-                  required
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>Company *</label>
-                <input
-                  type="text"
-                  name="company"
-                  value={exp.company}
-                  onChange={(e) => handleDynamicChange(e, index, 'experience')}
-                  placeholder="Company Name"
-                  required
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>Duration</label>
-                <input
-                  type="text"
-                  name="duration"
-                  value={exp.duration}
-                  onChange={(e) => handleDynamicChange(e, index, 'experience')}
-                  placeholder="2020 - 2023"
-                />
-              </div>
-              {formData.experience.length > 1 && (
-                <button
-                  type="button"
-                  className={styles.removeBtn}
-                  onClick={() => removeDynamicField(index, 'experience')}
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-          ))}
-
-          <button
-            type="button"
-            className={styles.addBtn}
-            onClick={() => addDynamicField('experience')}
-          >
-            + Add Experience
-          </button>
-        </div>
-      </>
-    )}
-  </div>
-);
-
-const renderStepContent = () => {
-  switch (currentStep) {
-    case 0: // Basic Information (Personal + Address + Professional)
-      return renderBasicInformationForm();
-
-    case 1: // Education & Experience
-      return renderBackgroundForm();
-
-    default:
-      return null;
-  }
-};
-
-  // Render profile view when complete and not in edit mode
-  const renderProfileView = () => {
-    if (!profileComplete || isEditMode) return null;
-
-    return (
-      <div className={styles.profileView}>
-        <div className={styles.profileHeader}>
-          <div className={styles.profileTitle}>
-            <div className={styles.logoWrapper}>
-              {formData.logo ? (
-                <img src={formData.logo} alt="Profile" className={styles.logoImage} />
-              ) : (
-                <div className={styles.logoInitials}>
-                  {getInitials(formData.full_name || user?.full_name)}
-                </div>
-              )}
-            </div>
-            <h1>My Profile</h1>
-            <button 
-              className={styles.editButton}
-              onClick={() => setIsEditMode(true)}
-            >
-              <Edit size={16} />
-              Edit Profile
-            </button>
-          </div>
-        </div>
-
-        <div className={styles.profileSections}>
-          {/* Personal Information */}
-          <div className={styles.profileSection}>
-            <h2 className={styles.sectionTitle}>
-              <User size={20} />
-              Personal Information
-            </h2>
-            <div className={styles.profileGrid}>
-              <div className={styles.profileField}>
-                <label>Full Name</label>
-                <p>{formData.full_name || 'Not provided'}</p>
-              </div>
-              <div className={styles.profileField}>
-                <label>Email</label>
-                <p>{user?.email || 'Not provided'}</p>
-              </div>
-              <div className={styles.profileField}>
-                <label>Phone Number</label>
-                <p>{formData.phone_number || 'Not provided'}</p>
-              </div>
-            
-              <div className={styles.profileField}>
-                <label>Date of Birth</label>
-                <p>{(() => {
-                  try {
-                    if (formData.dob && formData.dob.trim()) {
-                      let dateValue = formData.dob.trim();
-
-                      // Handle different date formats
-                      if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
-                        // Already in YYYY-MM-DD format
-                        const date = new Date(dateValue);
-                        if (!isNaN(date.getTime())) {
-                          return date.toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          });
-                        }
-                      } else {
-                        // Try parsing other date formats
-                        const date = new Date(dateValue);
-                        if (!isNaN(date.getTime())) {
-                          return date.toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          });
-                        }
-                      }
-
-                      // If parsing failed, return the original value
-                      return dateValue;
-                    }
-                  } catch (error) {
-                    console.error('DOB display error:', error, formData.dob);
-                  }
-                  return 'Not provided';
-                })()}</p>
-              </div>
-              <div className={styles.profileField}>
-                <label>Gender</label>
-                <p>{formData.gender || 'Not provided'}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Address */}
-          <div className={styles.profileSection}>
-            <h2 className={styles.sectionTitle}>
-              <MapPin size={20} />
-              Address
-            </h2>
-            <div className={styles.profileGrid}>
-              <div className={`${styles.profileField} ${styles.fullWidth}`}>
-                <label>Street Address</label>
-                <p>{formData.address?.street || 'Not provided'}</p>
-              </div>
-              <div className={styles.profileField}>
-                <label>City</label>
-                <p>{formData.address?.city || 'Not provided'}</p>
-              </div>
-              <div className={styles.profileField}>
-                <label>State/Province</label>
-                <p>{formData.address?.state || 'Not provided'}</p>
-              </div>
-              <div className={styles.profileField}>
-                <label>ZIP/Postal Code</label>
-                <p>{formData.address?.zip || 'Not provided'}</p>
-              </div>
-              <div className={styles.profileField}>
-                <label>Country</label>
-                <p>{getCountryDisplayName(formData.address?.country)}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Professional Information */}
-          <div className={styles.profileSection}>
-            <h2 className={styles.sectionTitle}>
-              <Briefcase size={20} />
-              Professional Information
-            </h2>
-            <div className={styles.profileGrid}>
-              <div className={`${styles.profileField} ${styles.fullWidth}`}>
-                <label>Bio</label>
-                <p className={styles.bioText}>{formData.bio || 'Not provided'}</p>
-              </div>
-              <div className={`${styles.profileField} ${styles.fullWidth}`}>
-                <label>Skills</label>
-                <div className={styles.skillsList}>
-                  {formData.skills ? (
-                    formData.skills.split(',').map((skill, index) => (
-                      <span key={index} className={styles.skillTag}>
-                        {skill.trim()}
-                      </span>
-                    ))
-                  ) : (
-                    <p>Not provided</p>
+              <div className="pt-12 pb-6 px-6">
+                {/* Name and Status */}
+                <div className="text-center mb-6">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">{formData.full_name || "Your Name"}</h2>
+                  <p className="text-sm text-blue-500 font-medium">{formData.experienceLevel}</p>
+                  {formData.address.city && formData.address.country && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {formData.address.city}, {getCountryDisplayName(formData.address.country)}
+                    </p>
                   )}
                 </div>
-              </div>
-              {typeof formData.resume === 'string' && formData.resume && (
-                <div className={`${styles.profileField} ${styles.fullWidth}`}>
-                  <label>Resume</label>
-                  <div className={styles.resumeContainer}>
-                    <FileText size={16} className={styles.resumeIcon} />
-                    <a href={formData.resume} target="_blank" rel="noopener noreferrer" className={styles.resumeLink}>
-                      View Resume
-                    </a>
+
+                {/* Contact Information */}
+                <div className="space-y-3 mb-6">
+                  {user?.email && (
+                    <div className="flex items-start gap-2">
+                      <Mail size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                      <a href={`mailto:${user.email}`} className="text-xs text-gray-900 dark:text-white hover:text-blue-500 transition-colors break-all">
+                        {user.email}
+                      </a>
+                    </div>
+                  )}
+
+                  {formData.phone_number && (
+                    <div className="flex items-start gap-2">
+                      <Phone size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                      <a href={`tel:${formData.phone_number}`} className="text-xs text-gray-900 dark:text-white hover:text-blue-500 transition-colors">
+                        {formData.phone_number}
+                      </a>
+                    </div>
+                  )}
+
+                  {(formData.address.street || formData.address.city || formData.address.state) && (
+                    <div className="flex items-start gap-2">
+                      <MapPin size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                      <p className="text-xs text-gray-900 dark:text-white">
+                        {[formData.address.street, formData.address.city, formData.address.state, formData.address.zip]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </p>
+                    </div>
+                  )}
+
+                  {formData.dob && (
+                    <div className="flex items-start gap-2">
+                      <Calendar size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                      <p className="text-xs text-gray-900 dark:text-white">
+                        {new Date(formData.dob).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Profile Strength */}
+                <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50">
+                  <div className="flex justify-between text-xs font-bold mb-2">
+                    <span className="text-gray-600 dark:text-gray-400">PROFILE STRENGTH</span>
+                    <span className={calculateProfileCompletion() === 100 ? "text-green-500" : "text-blue-500"}>
+                      {calculateProfileCompletion()}%
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-700 ${
+                        calculateProfileCompletion() === 100 ? 'bg-green-500' : 'bg-blue-500'
+                      }`}
+                      style={{ width: `${calculateProfileCompletion()}%` }}
+                    />
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
 
-          {/* Education */}
-          {formData.education && formData.education.length > 0 && formData.education.some(edu => edu.degree || edu.institution) && (
-            <div className={styles.profileSection}>
-              <h2 className={styles.sectionTitle}>
-                <GraduationCap size={20} />
-                Education
-              </h2>
-              <div className={styles.listSection}>
-                {formData.education
-                  .filter(edu => edu.degree || edu.institution)
-                  .map((edu, index) => (
-                    <div key={index} className={styles.listItem}>
-                      <h3>{edu.degree || 'Degree not specified'}</h3>
-                      <p className={styles.institution}>{edu.institution || 'Institution not specified'}</p>
-                      {edu.year && <p className={styles.year}>{edu.year}</p>}
+                {/* Skills Preview */}
+                {getSkillsArray().length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="text-xs font-bold uppercase text-gray-400 mb-2">Top Skills</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {getSkillsArray().slice(0, 5).map((skill, index) => (
+                        <span key={index} className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-medium">
+                          {skill}
+                        </span>
+                      ))}
+                      {getSkillsArray().length > 5 && (
+                        <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-lg text-xs font-medium">
+                          +{getSkillsArray().length - 5} more
+                        </span>
+                      )}
                     </div>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {/* Experience */}
-          {(formData.experienceLevel === 'Fresher' || (formData.experience && formData.experience.length > 0 && formData.experience.some(exp => exp.title || exp.company))) && (
-            <div className={styles.profileSection}>
-              <h2 className={styles.sectionTitle}>
-                <Award size={20} />
-                Work Experience
-              </h2>
-              <div className={styles.listSection}>
-                {formData.experienceLevel === 'Fresher' ? (
-                  <div className={styles.listItem}>
-                    <h3>Fresher Candidate</h3>
                   </div>
-                ) : (
-                  formData.experience
-                    .filter(exp => exp.title || exp.company)
-                    .map((exp, index) => (
-                      <div key={index} className={styles.listItem}>
-                        <h3>{exp.title || 'Title not specified'}</h3>
-                        <p className={styles.company}>{exp.company || 'Company not specified'}</p>
-                        {exp.duration && <p className={styles.duration}>{exp.duration}</p>}
+                )}
+
+                {/* Resume Status */}
+                {formData.resume && (
+                  <div className="mt-6 p-3 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800">
+                    <div className="flex items-center gap-2">
+                      <FileText size={16} className="text-green-600 dark:text-green-400" />
+                      <div className="flex-1">
+                        <p className="text-xs font-bold text-green-800 dark:text-green-300">Resume Uploaded</p>
+                        <a
+                          href={formData.resume}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-green-600 dark:text-green-400 hover:underline"
+                        >
+                          View/Download
+                        </a>
                       </div>
-                    ))
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
-          )}
-        </div>
-      </div>
-    );
-  };
 
-  return (
-    <div className={`${styles.container}`}>
-      {profileComplete && !isEditMode ? (
-        renderProfileView()
-      ) : (
-        <>
-          <div className={styles.header}>
-            <h1 className={styles.title}>
-              {profileComplete ? 'Edit Your Profile' : 'Complete Your Profile'}
-            </h1>
-            <p className={styles.subtitle}>
-              {profileComplete ? 'Update your profile information' : 'Fill in your details step by step'}
-            </p>
-            {profileComplete && (
-              <button
-                className={styles.cancelEditButton}
-                onClick={() => setIsEditMode(false)}
-              >
-                Cancel Edit
-              </button>
-            )}
-          </div>
-
-          {/* Progress Bar */}
-          <div className={styles.progressContainer}>
-            <div className={styles.progressBar}>
-              {steps.map((step, index) => {
-                const StepIcon = step.icon;
-                const isCompleted = completedSteps.includes(index);
-                const isCurrent = index === currentStep;
-
-                return (
-                  <div
-                    key={step.id}
-                    className={`${styles.progressStep} ${isCurrent ? styles.current : ''} ${isCompleted ? styles.completed : ''}`}
-                    onClick={() => goToStep(index)}
-                  >
-                    <div className={styles.stepIcon}>
-                      {isCompleted ? <Check size={16} /> : <StepIcon size={16} />}
-                    </div>
-                    <div className={styles.stepText}>
-                      <div className={styles.stepTitle}>{step.title}</div>
-                      <div className={styles.stepDescription}>{step.description}</div>
-                    </div>
-                  </div>
-                );
-              })}
+            {/* Info Card */}
+            <div className="mt-6 p-5 rounded-2xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+              <div className="flex gap-3">
+                <AlertCircle className="text-blue-500 shrink-0" size={18} />
+                <p className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
+                  Complete profiles receive 5x more interview opportunities from recruiters.
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Form Content */}
-          <div className={styles.formContainer}>
-            {error && (
-              <div className={styles.alert} style={{ backgroundColor: '#fee2e2', color: '#dc2626' }}>
-                {error}
-              </div>
-            )}
-            {success && (
-              <div className={styles.alert} style={{ backgroundColor: '#dcfce7', color: '#16a34a' }}>
-                {success}
-              </div>
-            )}
-
-            {renderStepContent()}
-
-            {/* Navigation Buttons */}
-            <div className={styles.navigation}>
+          {/* Right Content - Editable Form (Always Shown) */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Step 1: Basic Information */}
+            <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-lg border transition-all ${
+              expandedStep === 1 ? 'border-blue-500 ring-4 ring-blue-500/10' : 'border-gray-200 dark:border-gray-700'
+            }`}>
               <button
-                type="button"
-                className={styles.navBtn}
-                onClick={prevStep}
-                disabled={currentStep === 0}
+                onClick={() => setExpandedStep(expandedStep === 1 ? 0 : 1)}
+                className="w-full p-6 flex items-center justify-between"
               >
-                <ChevronLeft size={16} />
-                Previous
+                <div className="flex items-center gap-4 text-left">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                    completedSteps.includes(0) ? 'bg-green-500 text-white' : 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
+                  }`}>
+                    {completedSteps.includes(0) ? <Check size={20} /> : '1'}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Basic Information</h3>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Personal details and contact</p>
+                  </div>
+                </div>
+                <ChevronRight className={`transition-transform text-gray-400 ${expandedStep === 1 ? 'rotate-90' : ''}`} />
               </button>
 
-              <div className={styles.stepIndicator}>
-                Step {currentStep + 1} of {steps.length}
-              </div>
+              {expandedStep === 1 && (
+                <div className="p-6 pt-0 border-t border-gray-50 dark:border-gray-700">
+                  {error && (
+                    <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-3">
+                      <XCircle size={20} className="text-red-500 flex-shrink-0" />
+                      <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                    </div>
+                  )}
 
-              {currentStep < steps.length - 1 ? (
-                <button
-                  type="button"
-                  className={`${styles.navBtn} ${styles.primary}`}
-                  onClick={nextStep}
-                >
-                  Next
-                  <ChevronRight size={16} />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className={`${styles.navBtn} ${styles.primary} ${styles.final}`}
-                  onClick={handleSubmit}
-                  disabled={loading}
-                >
-                  {loading ? 'Saving...' : 'Complete Profile'}
-                </button>
+                  {success && !showSuccessModal && (
+                    <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-center gap-3">
+                      <CheckCircle size={20} className="text-green-500 flex-shrink-0" />
+                      <p className="text-sm text-green-600 dark:text-green-400">{success}</p>
+                    </div>
+                  )}
+
+                  <form className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+                    {/* Profile Photo */}
+                    <div className="md:col-span-2">
+                      <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Profile Photo</label>
+                      <div className="flex items-center gap-4">
+                        <div className="relative group">
+                          <div className="w-24 h-24 rounded-2xl border-4 border-dashed border-gray-200 dark:border-gray-600 overflow-hidden flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                            {formData.logo ? (
+                              <img src={formData.logo} className="w-full h-full object-cover" alt="preview" />
+                            ) : (
+                              <div className="text-gray-400 text-3xl font-bold">
+                                {getInitials(formData.full_name)}
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => logoInputRef.current.click()}
+                            className="absolute -bottom-2 -right-2 p-2 bg-blue-600 text-white rounded-xl shadow-xl hover:scale-110 transition-transform"
+                          >
+                            <Camera size={18} />
+                          </button>
+                        </div>
+                        <input
+                          type="file"
+                          ref={logoInputRef}
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleLogoChange}
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">Upload your photo</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Max 2MB (JPG, PNG, GIF)</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Full Name */}
+                    <div className="md:col-span-2">
+                      <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Full Name *</label>
+                      <input
+                        name="full_name"
+                        value={formData.full_name}
+                        onChange={handleInputChange}
+                        className={`w-full p-3 rounded-xl border ${
+                          validationErrors.full_name ? 'border-red-500' : 'border-gray-200 dark:border-gray-600'
+                        } bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
+                        placeholder="Enter your full name"
+                        required
+                      />
+                      {validationErrors.full_name && (
+                        <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
+                          <AlertCircle size={12} />
+                          {validationErrors.full_name}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Phone */}
+                    <div>
+                      <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Phone Number</label>
+                      <input
+                        name="phone_number"
+                        type="tel"
+                        value={formData.phone_number}
+                        onChange={handleInputChange}
+                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="+1 (555) 123-4567"
+                      />
+                    </div>
+
+                    {/* Gender */}
+                    <div>
+                      <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Gender</label>
+                      <select
+                        name="gender"
+                        value={formData.gender}
+                        onChange={handleInputChange}
+                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      >
+                        <option value="">Select Gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                        <option value="Prefer not to say">Prefer not to say</option>
+                      </select>
+                    </div>
+
+                    {/* DOB */}
+                    <div className="md:col-span-2">
+                      <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Date of Birth</label>
+                      <input
+                        name="dob"
+                        type="date"
+                        value={formData.dob}
+                        onChange={handleInputChange}
+                        max={todayForDateInput}
+                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                      {validationErrors.dob && (
+                        <p className="mt-1 text-xs text-red-500">{validationErrors.dob}</p>
+                      )}
+                    </div>
+
+                    {/* Address */}
+                    <div className="md:col-span-2">
+                      <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Street Address</label>
+                      <input
+                        name="street"
+                        value={formData.address.street}
+                        onChange={handleAddressChange}
+                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="123 Main St"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">City *</label>
+                      <input
+                        name="city"
+                        value={formData.address.city}
+                        onChange={handleAddressChange}
+                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="New York"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">State/Province *</label>
+                      <input
+                        name="state"
+                        value={formData.address.state}
+                        onChange={handleAddressChange}
+                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="NY"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">ZIP/Postal Code</label>
+                      <input
+                        name="zip"
+                        value={formData.address.zip}
+                        onChange={handleAddressChange}
+                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="10001"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Country *</label>
+                      <select
+                        name="country"
+                        value={formData.address.country}
+                        onChange={handleAddressChange}
+                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        required
+                      >
+                        <option value="">Select Country</option>
+                        <option value="US">United States</option>
+                        <option value="CA">Canada</option>
+                        <option value="UK">United Kingdom</option>
+                        <option value="IN">India</option>
+                        <option value="AU">Australia</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+
+                    {/* Bio */}
+                    <div className="md:col-span-2">
+                      <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Professional Bio *</label>
+                      <textarea
+                        name="bio"
+                        value={formData.bio}
+                        onChange={handleInputChange}
+                        rows="4"
+                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="Tell us about your professional background..."
+                        required
+                      />
+                    </div>
+
+                    {/* Skills */}
+                    <div className="md:col-span-2">
+                      <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Skills *</label>
+                      <div className="space-y-3">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={currentSkillInput}
+                            onChange={(e) => setCurrentSkillInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && currentSkillInput.trim()) {
+                                e.preventDefault();
+                                addSkill();
+                              }
+                            }}
+                            className="flex-1 p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            placeholder="Type a skill and press Enter"
+                          />
+                          <button
+                            type="button"
+                            onClick={addSkill}
+                            disabled={!currentSkillInput.trim()}
+                            className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Add
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {getSkillsArray().map((skill, index) => (
+                            <span
+                              key={index}
+                              className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-medium flex items-center gap-2"
+                            >
+                              {skill}
+                              <button
+                                type="button"
+                                onClick={() => removeSkill(skill)}
+                                className="hover:text-red-500"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Resume */}
+                    <div className="md:col-span-2">
+                      <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Resume/CV</label>
+                      {formData.resume && (
+                        <div className="mb-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <FileText size={16} className="text-green-600 dark:text-green-400" />
+                            <a
+                              href={formData.resume}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-green-600 dark:text-green-400 hover:underline"
+                            >
+                              View Current Resume
+                            </a>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={removeResume}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <XCircle size={18} />
+                          </button>
+                        </div>
+                      )}
+                      <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl p-8 text-center bg-gray-50 dark:bg-gray-900/30">
+                        <Upload className="mx-auto text-gray-300 mb-3" size={40} />
+                        <input
+                          type="file"
+                          onChange={handleFileChange}
+                          accept=".pdf,.doc,.docx"
+                          className="hidden"
+                          id="resume"
+                        />
+                        <label
+                          htmlFor="resume"
+                          className="text-blue-500 font-bold cursor-pointer hover:underline"
+                        >
+                          {formData.resume ? 'Upload New Resume' : 'Upload Resume'}
+                        </label>
+                        <p className="text-xs text-gray-500 mt-2">PDF, DOC, DOCX (Max 5MB)</p>
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-2 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedStep(2)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition-all"
+                      >
+                        Continue <ArrowRight size={18} />
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+            </div>
+
+            {/* Step 2: Education & Experience */}
+            <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-lg border transition-all ${
+              expandedStep === 2 ? 'border-blue-500 ring-4 ring-blue-500/10' : 'border-gray-200 dark:border-gray-700'
+            }`}>
+              <button
+                onClick={() => setExpandedStep(expandedStep === 2 ? 0 : 2)}
+                className="w-full p-6 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-4 text-left">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                    completedSteps.includes(1) ? 'bg-green-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'
+                  }`}>
+                    {completedSteps.includes(1) ? <Check size={20} /> : '2'}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Education & Experience</h3>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Academic and work background</p>
+                  </div>
+                </div>
+                <ChevronRight className={`transition-transform text-gray-400 ${expandedStep === 2 ? 'rotate-90' : ''}`} />
+              </button>
+
+              {expandedStep === 2 && (
+                <div className="p-6 pt-0 border-t border-gray-50 dark:border-gray-700">
+                  <form onSubmit={handleSubmit} className="space-y-6 mt-6">
+                    {/* Education */}
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <GraduationCap size={18} className="text-blue-500" />
+                        Education
+                      </h4>
+                      {formData.education.map((edu, index) => (
+                        <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-xl">
+                          <div>
+                            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Degree *</label>
+                            <input
+                              name="degree"
+                              value={edu.degree}
+                              onChange={(e) => handleDynamicChange(e, index, 'education')}
+                              className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+                              placeholder="B.S. Computer Science"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Institution *</label>
+                            <input
+                              name="institution"
+                              value={edu.institution}
+                              onChange={(e) => handleDynamicChange(e, index, 'education')}
+                              className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+                              placeholder="University Name"
+                              required
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <div className="flex-1">
+                              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Year</label>
+                              <input
+                                name="year"
+                                value={edu.year}
+                                onChange={(e) => handleDynamicChange(e, index, 'education')}
+                                className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+                                placeholder="2023"
+                              />
+                            </div>
+                            {formData.education.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeDynamicField(index, 'education')}
+                                className="self-end p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                              >
+                                <XCircle size={20} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => addDynamicField('education')}
+                        className="text-blue-500 text-sm font-medium hover:underline"
+                      >
+                        + Add Education
+                      </button>
+                    </div>
+
+                    {/* Experience Level */}
+                    <div>
+                      <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Experience Level</label>
+                      <select
+                        name="experienceLevel"
+                        value={formData.experienceLevel}
+                        onChange={handleInputChange}
+                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      >
+                        <option value="Experienced">Experienced</option>
+                        <option value="Fresher">Fresher</option>
+                      </select>
+                    </div>
+
+                    {/* Experience */}
+                    {formData.experienceLevel === 'Experienced' && (
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                          <Briefcase size={18} className="text-blue-500" />
+                          Work Experience
+                        </h4>
+                        {formData.experience.map((exp, index) => (
+                          <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-xl">
+                            <div>
+                              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Job Title *</label>
+                              <input
+                                name="title"
+                                value={exp.title}
+                                onChange={(e) => handleDynamicChange(e, index, 'experience')}
+                                className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+                                placeholder="Software Developer"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Company *</label>
+                              <input
+                                name="company"
+                                value={exp.company}
+                                onChange={(e) => handleDynamicChange(e, index, 'experience')}
+                                className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+                                placeholder="Company Name"
+                                required
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <div className="flex-1">
+                                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Duration</label>
+                                <input
+                                  name="duration"
+                                  value={exp.duration}
+                                  onChange={(e) => handleDynamicChange(e, index, 'experience')}
+                                  className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+                                  placeholder="2020 - 2023"
+                                />
+                              </div>
+                              {formData.experience.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeDynamicField(index, 'experience')}
+                                  className="self-end p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                                >
+                                  <XCircle size={20} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => addDynamicField('experience')}
+                          className="text-blue-500 text-sm font-medium hover:underline"
+                        >
+                          + Add Experience
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="flex justify-end pt-4">
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition-all disabled:opacity-50"
+                      >
+                        {loading ? (
+                          <>
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Check size={18} />
+                            Save Profile
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
               )}
             </div>
           </div>
-        </>
+        </div>
+      </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl">
+            <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="text-green-500" size={40} />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Profile Saved!</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-8">
+              Your profile has been updated successfully.
+            </p>
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

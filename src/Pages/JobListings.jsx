@@ -13,6 +13,7 @@ import { candidateExternalService } from "../services/candidateExternalService";
 import { candidateService } from "../services/candidateService";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import { Loader, ErrorBox, SkeletonJobCard, JobCard } from "../Components/Shared";
+import RecruiterNavbar from "../Components/Recruiter/RecruiterNavbar";
 
 const JobListings = () => {
   const { theme } = useTheme();
@@ -679,7 +680,8 @@ const JobListings = () => {
 
   return (
     <div className={`min-h-screen ${bgPrimary} transition-colors duration-300`}>
-      {user ? <CandidateNavbar /> : <HomeNav />}
+      {/* {console.log(user.company_name)} */}
+      {user? (user.company_name ?<RecruiterNavbar/>: <CandidateNavbar />) : <HomeNav />}
       
       {/* Search Section - COMPACT */}
       <div className={`${isDark ? 'bg-gradient-to-r from-gray-800 to-gray-700' : 'bg-gray-50'} lg:mt-20 border-b ${borderColor}`}>
