@@ -19,7 +19,6 @@ import {
   Phone
 } from "lucide-react";
 import { recruiterExternalService } from "../../services";
-import { studentService } from "../../services/studentService";
 
 const ViewApplications = () => {
   const navigate = useNavigate();
@@ -68,41 +67,51 @@ const ViewApplications = () => {
         // Fetch applications
         const applicationsData = await recruiterExternalService.getAllApplicants(jobId);
         const applicationsList = applicationsData.applications || [];
-       
-        // Fetch student details for each application
-        const applicationsWithDetails = await Promise.all(
-          applicationsList.map(async (app) => {
-            try {
-              const studentDetails = await studentService.getStudentById(app.student_id);
-         
-              return {
-                ...app,
-                student_name: studentDetails?.full_name || studentDetails?.name || app.student_name || "Unknown Candidate",
-                student_email: studentDetails?.email || app.student_email || "Unknown Email",
-                qualification: studentDetails?.qualification || studentDetails?.education || studentDetails?.degree || "Not provided",
-                experience: studentDetails?.experience || studentDetails?.years_of_experience || studentDetails?.work_experience || "Not provided",
-                phone_number: studentDetails?.phone_number || studentDetails?.phone || studentDetails?.contact_number || studentDetails?.mobile || "Not provided",
-                skills: studentDetails?.skills || studentDetails?.skill_set || [],
-                ...studentDetails
-               
-              };
-           
-            } catch (err) {
-              console.error(`Failed to fetch details for student ${app.student_id}:`, err);
-               
-              return {
-                ...app,
-                student_name: app.student_name || "Unknown Candidate",
-                student_email: app.student_email || "Unknown Email",
-                qualification: "Not provided",
-                experience: "Not provided",
-                phone_number: "Not provided",
-                skills: [],
-               
-              };
+
+        // Use embedded student data from application response
+        const applicationsWithDetails = applicationsList.map((app) => {
+          // Extract student profile data from the embedded student_profile object
+          const studentProfile = app.student_profile || {};
+
+          // Format experience data properly
+          let experienceString = "Not provided";
+          if (studentProfile.experience_years) {
+            experienceString = `${studentProfile.experience_years} years`;
+          } else if (studentProfile.experience && Array.isArray(studentProfile.experience) && studentProfile.experience.length > 0) {
+            const firstExp = studentProfile.experience[0];
+            if (typeof firstExp === 'object' && firstExp.title) {
+              experienceString = `${firstExp.title} at ${firstExp.company || 'Unknown Company'}`;
+            } else if (typeof firstExp === 'string') {
+              experienceString = firstExp;
             }
-          })
-        );
+          } else if (app.student_experience) {
+            experienceString = app.student_experience;
+          }
+
+          // Format education data properly
+          let qualificationString = "Not provided";
+          if (studentProfile.education && Array.isArray(studentProfile.education) && studentProfile.education.length > 0) {
+            qualificationString = studentProfile.education[0].degree || studentProfile.education[0].institution || "Not provided";
+          } else if (app.student_degree) {
+            qualificationString = app.student_degree;
+          }
+
+          return {
+            ...app,
+            student_name: studentProfile.full_name || app.student_name || "Unknown Candidate",
+            student_email: studentProfile.email || app.student_email || "Unknown Email",
+            qualification: qualificationString,
+            experience: experienceString,
+            phone_number: studentProfile.phone_number || app.student_phone || "Not provided",
+            skills: Array.isArray(studentProfile.skills) ? studentProfile.skills : (app.student_skills ? [app.student_skills] : []),
+            // Include other student profile data but exclude complex objects that might cause React rendering issues
+            student_profile: {
+              ...studentProfile,
+              experience: undefined, // Remove complex experience array
+              education: undefined, // Remove complex education array
+            }
+          };
+        });
 
         setApplications(applicationsWithDetails);
       } catch (e) {
