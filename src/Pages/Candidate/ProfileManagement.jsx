@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../Contexts/AuthContext';
 import { studentService } from '../../services/studentService';
-import { 
-  ChevronLeft, ChevronRight, Check, User, MapPin, Briefcase, 
-  GraduationCap, Award, AlertCircle, Edit, Mail, Phone, Calendar, 
+import {
+  ChevronLeft, ChevronRight, Check, User, MapPin, Briefcase,
+  GraduationCap, Award, AlertCircle, Edit, Mail, Phone, Calendar,
   Globe, FileText, Building, Camera, Upload, XCircle, CheckCircle,
   ArrowRight, Lock, TrendingUp, Shield
 } from 'lucide-react';
@@ -51,7 +51,55 @@ const ProfileManagement = () => {
   const [completedSteps, setCompletedSteps] = useState([]);
   const [validationErrors, setValidationErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
-  const [profileComplete, setProfileComplete] = useState(false);
+
+  const [isEditMode, setIsEditMode] = useState(() => {
+    // Initialize based on user context if available
+    if (user?.email) {
+      const hasName = user.full_name && user.full_name.trim();
+      const hasGender = user.gender && user.gender.trim();
+      const hasCity = user.address?.city && user.address.city.trim();
+      const hasState = user.address?.state && user.address.state.trim();
+      const hasCountry = user.address?.country && user.address.country.trim();
+      const hasBio = user.bio && user.bio.trim();
+      const hasSkills = user.skills && user.skills.trim();
+      const hasEducation = Array.isArray(user.education) && user.education.length > 0 &&
+        user.education.some(edu => edu.degree?.trim() && edu.institution?.trim());
+      const hasExperience = user.experienceLevel === 'Fresher' || (
+        Array.isArray(user.experience) && user.experience.length > 0 &&
+        user.experience.some(exp => exp.title?.trim() && exp.company?.trim())
+      );
+
+      const isComplete = hasName && hasGender && hasCity && hasState && hasCountry &&
+                         hasBio && hasSkills && hasEducation && hasExperience;
+
+      return !isComplete; // Start in edit mode if incomplete, view mode if complete
+    }
+    return true; // Default to edit mode if no user data
+  });
+
+  const [profileComplete, setProfileComplete] = useState(() => {
+    // Initialize based on user context if available
+    if (user?.email) {
+      const hasName = user.full_name && user.full_name.trim();
+      const hasGender = user.gender && user.gender.trim();
+      const hasCity = user.address?.city && user.address.city.trim();
+      const hasState = user.address?.state && user.address.state.trim();
+      const hasCountry = user.address?.country && user.address.country.trim();
+      const hasBio = user.bio && user.bio.trim();
+      const hasSkills = user.skills && user.skills.trim();
+      const hasEducation = Array.isArray(user.education) && user.education.length > 0 &&
+        user.education.some(edu => edu.degree?.trim() && edu.institution?.trim());
+      const hasExperience = user.experienceLevel === 'Fresher' || (
+        Array.isArray(user.experience) && user.experience.length > 0 &&
+        user.experience.some(exp => exp.title?.trim() && exp.company?.trim())
+      );
+
+      return hasName && hasGender && hasCity && hasState && hasCountry &&
+             hasBio && hasSkills && hasEducation && hasExperience;
+    }
+    return false; // Default to incomplete if no user data
+  });
+
   const [currentSkillInput, setCurrentSkillInput] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const logoInputRef = useRef(null);
@@ -370,18 +418,17 @@ const ProfileManagement = () => {
             };
             setFormData(loadedData);
 
+            // Debug: Log profile data to help identify what's missing
+            console.log('Loaded profile data:', loadedData);
+
+            // Check if profile is complete and log the results
             const isComplete = checkProfileComplete(loadedData);
             setProfileComplete(isComplete);
             setCompletedSteps(isComplete ? [0, 1] : []);
-
-            // Auto-expand logic
-            if (!isComplete) {
-              setExpandedStep(1);
-            } else if (!loadedData.logo) {
-              setExpandedStep(2);
-            } else {
-              setExpandedStep(0);
-            }
+            // Always start in view mode if complete, regardless of initial state
+            setIsEditMode(false);
+          } else {
+            setExpandedStep(0);
           }
         } catch (error) {
           console.error('Error loading profile data:', error);
@@ -466,10 +513,45 @@ const ProfileManagement = () => {
       const uploadResponse = await studentService.uploadLogoFile(user.email, file);
 
       if (uploadResponse.success) {
-        const uploadedLogoUrl = uploadResponse.data?.logoUrl || uploadResponse.data?.logo || uploadResponse.data?.profile?.logoUrl || uploadResponse.data?.profile?.logo || uploadResponse.data?.logoUrl || (typeof uploadResponse.data === 'string' ? uploadResponse.data : null);
+        // Debug the response structure
+        console.log('Full upload response:', uploadResponse);
+        console.log('Upload response data:', uploadResponse.data);
+        console.log('Data type:', typeof uploadResponse.data);
+        console.log('Data keys:', uploadResponse.data ? Object.keys(uploadResponse.data) : 'No data');
 
+        // Try multiple extraction approaches - handle nested data structure from withErrorHandling
+        let uploadedLogoUrl;
+
+        // First try: nested data structure from service response
+        if (uploadResponse.data?.data?.logoUrl) {
+          uploadedLogoUrl = uploadResponse.data.data.logoUrl;
+          console.log('Found logo in uploadResponse.data.data.logoUrl');
+        } else if (uploadResponse.data?.data?.logo) {
+          uploadedLogoUrl = uploadResponse.data.data.logo;
+          console.log('Found logo in uploadResponse.data.data.logo');
+        }
+        // Second try: direct from data (fallback for different response structures)
+        else if (uploadResponse.data?.logo) {
+          uploadedLogoUrl = uploadResponse.data.logo;
+          console.log('Found logo in uploadResponse.data.logo');
+        } else if (uploadResponse.data?.logoUrl) {
+          uploadedLogoUrl = uploadResponse.data.logoUrl;
+          console.log('Found logo in uploadResponse.data.logoUrl');
+        }
+        // Third try: check if data itself is the URL (fallback)
+        else if (typeof uploadResponse.data === 'string' && uploadResponse.data.startsWith('http')) {
+          uploadedLogoUrl = uploadResponse.data;
+          console.log('Found logo as direct string in data');
+        }
+
+        console.log('Final extracted logo URL:', uploadedLogoUrl);
+
+        // Update logo URL in formData only (don't update user context to avoid triggering re-fetch)
         if (uploadedLogoUrl) {
+          console.log('Setting logo URL in formData:', uploadedLogoUrl);
           setFormData(prev => ({ ...prev, logo: uploadedLogoUrl, logoFile: null }));
+        } else {
+          console.error('No logo URL found! Data content:', uploadResponse.data);
         }
         setValidationErrors({ ...validationErrors, logo: '' });
         setSuccess('Profile image uploaded successfully');
@@ -599,8 +681,13 @@ const ProfileManagement = () => {
         dataForSubmission.resume = resume;
       }
 
+      // Always include logo URL if it's a string and a proper URL (not blob/data URL)
+      // This ensures newly uploaded logos are included in profile updates
       if (typeof logo === 'string' && logo && !logo.startsWith('data:') && !logo.startsWith('blob:')) {
         dataForSubmission.logo = logo;
+        console.log('Including logo in profile update:', logo);
+      } else {
+        console.log('Logo not included in update - logo value:', logo, 'type:', typeof logo);
       }
 
       const response = await studentService.updateProfileDetails(user.email, dataForSubmission);
@@ -697,6 +784,8 @@ const ProfileManagement = () => {
 
         const isComplete = checkProfileComplete(normalizedData);
         setProfileComplete(isComplete);
+        setCompletedSteps(isComplete ? [0, 1] : []);
+        // Keep in edit mode after saving, don't automatically switch to view mode
 
         setTimeout(() => {
           setSuccess('');
@@ -813,11 +902,11 @@ const ProfileManagement = () => {
                     </span>
                   </div>
                   <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className={`h-full transition-all duration-700 ${
                         calculateProfileCompletion() === 100 ? 'bg-green-500' : 'bg-blue-500'
                       }`}
-                      style={{ width: `${calculateProfileCompletion()}%` }} 
+                      style={{ width: `${calculateProfileCompletion()}%` }}
                     />
                   </div>
                 </div>
@@ -848,9 +937,9 @@ const ProfileManagement = () => {
                       <FileText size={16} className="text-green-600 dark:text-green-400" />
                       <div className="flex-1">
                         <p className="text-xs font-bold text-green-800 dark:text-green-300">Resume Uploaded</p>
-                        <a 
-                          href={formData.resume} 
-                          target="_blank" 
+                        <a
+                          href={formData.resume}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="text-xs text-green-600 dark:text-green-400 hover:underline"
                         >
@@ -880,8 +969,8 @@ const ProfileManagement = () => {
             <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-lg border transition-all ${
               expandedStep === 1 ? 'border-blue-500 ring-4 ring-blue-500/10' : 'border-gray-200 dark:border-gray-700'
             }`}>
-              <button 
-                onClick={() => setExpandedStep(expandedStep === 1 ? 0 : 1)} 
+              <button
+                onClick={() => setExpandedStep(expandedStep === 1 ? 0 : 1)}
                 className="w-full p-6 flex items-center justify-between"
               >
                 <div className="flex items-center gap-4 text-left">
@@ -897,7 +986,7 @@ const ProfileManagement = () => {
                 </div>
                 <ChevronRight className={`transition-transform text-gray-400 ${expandedStep === 1 ? 'rotate-90' : ''}`} />
               </button>
-              
+
               {expandedStep === 1 && (
                 <div className="p-6 pt-0 border-t border-gray-50 dark:border-gray-700">
                   {error && (
@@ -929,20 +1018,20 @@ const ProfileManagement = () => {
                               </div>
                             )}
                           </div>
-                          <button 
+                          <button
                             type="button"
-                            onClick={() => logoInputRef.current.click()} 
+                            onClick={() => logoInputRef.current.click()}
                             className="absolute -bottom-2 -right-2 p-2 bg-blue-600 text-white rounded-xl shadow-xl hover:scale-110 transition-transform"
                           >
                             <Camera size={18} />
                           </button>
                         </div>
-                        <input 
-                          type="file" 
-                          ref={logoInputRef} 
-                          className="hidden" 
-                          accept="image/*" 
-                          onChange={handleLogoChange} 
+                        <input
+                          type="file"
+                          ref={logoInputRef}
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleLogoChange}
                         />
                         <div>
                           <p className="text-sm font-medium text-gray-900 dark:text-white">Upload your photo</p>
@@ -1207,8 +1296,8 @@ const ProfileManagement = () => {
             <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-lg border transition-all ${
               expandedStep === 2 ? 'border-blue-500 ring-4 ring-blue-500/10' : 'border-gray-200 dark:border-gray-700'
             }`}>
-              <button 
-                onClick={() => setExpandedStep(expandedStep === 2 ? 0 : 2)} 
+              <button
+                onClick={() => setExpandedStep(expandedStep === 2 ? 0 : 2)}
                 className="w-full p-6 flex items-center justify-between"
               >
                 <div className="flex items-center gap-4 text-left">
@@ -1224,7 +1313,7 @@ const ProfileManagement = () => {
                 </div>
                 <ChevronRight className={`transition-transform text-gray-400 ${expandedStep === 2 ? 'rotate-90' : ''}`} />
               </button>
-              
+
               {expandedStep === 2 && (
                 <div className="p-6 pt-0 border-t border-gray-50 dark:border-gray-700">
                   <form onSubmit={handleSubmit} className="space-y-6 mt-6">
@@ -1406,8 +1495,8 @@ const ProfileManagement = () => {
             <p className="text-gray-500 dark:text-gray-400 text-sm mb-8">
               Your profile has been updated successfully.
             </p>
-            <button 
-              onClick={() => setShowSuccessModal(false)} 
+            <button
+              onClick={() => setShowSuccessModal(false)}
               className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700"
             >
               Continue

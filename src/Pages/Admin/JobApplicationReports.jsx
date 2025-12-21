@@ -28,8 +28,14 @@ const JobApplicationReports = () => {
         setLoading(true);
         setError(null);
         const jobsData = await adminService.getJobsWithApplicationCounts();
-        setJobs(jobsData);
-        setFilteredJobs(jobsData);
+
+        // Filter out government jobs and sort by latest date first
+        const filteredData = jobsData
+          .filter(job => job.job_type !== "GOVERNMENT")
+          .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+        setJobs(filteredData);
+        setFilteredJobs(filteredData);
       } catch (error) {
         console.error('Failed to fetch job application reports:', error);
         setError('Failed to fetch job application reports. Please try again.');
@@ -686,7 +692,7 @@ const JobApplicationReports = () => {
             padding: '20px',
             borderRadius: '8px',
             width: '90%',
-            maxWidth: '900px',
+            maxWidth: '1000px',
             maxHeight: '90%',
             overflowY: 'auto',
             color: theme === 'dark' ? '#fff' : '#000'
@@ -714,6 +720,85 @@ const JobApplicationReports = () => {
               </div>
             ) : (
               <div style={{ display: 'grid', gap: '20px' }}>
+                {/* Profile Header with Image */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '20px',
+                  padding: '20px',
+                  border: '2px solid #007bff',
+                  borderRadius: '8px',
+                  backgroundColor: theme === 'dark' ? '#2a4a6b' : '#f8f9ff'
+                }}>
+                  {/* Profile Image */}
+                  <div style={{
+                    width: '100px',
+                    height: '100px',
+                    borderRadius: '50%',
+                    border: '3px solid #007bff',
+                    overflow: 'hidden',
+                    backgroundColor: '#f0f0f0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '36px',
+                    fontWeight: 'bold',
+                    color: '#666'
+                  }}>
+                    {selectedCandidate.student_details?.logo || selectedCandidate.student_details?.profile_image ? (
+                      <img
+                        src={selectedCandidate.student_details.logo || selectedCandidate.student_details.profile_image}
+                        alt="Profile"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.parentElement.innerHTML = (selectedCandidate.student_name || selectedCandidate.student_details?.name || 'U')[0].toUpperCase();
+                        }}
+                      />
+                    ) : (
+                      (selectedCandidate.student_name || selectedCandidate.student_details?.name || selectedCandidate.student_details?.full_name || 'U')[0].toUpperCase()
+                    )}
+                  </div>
+
+                  {/* Basic Info */}
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ margin: '0 0 10px 0', color: '#007bff' }}>
+                      {selectedCandidate.student_name || selectedCandidate.student_details?.name || selectedCandidate.student_details?.full_name || 'Unknown Candidate'}
+                    </h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <div>
+                        <strong>Email:</strong> {selectedCandidate.student_details?.email || selectedCandidate.student_email || 'Not provided'}
+                      </div>
+                      <div>
+                        <strong>Phone:</strong> {selectedCandidate.student_details?.phone || selectedCandidate.student_details?.phone_number || selectedCandidate.student_phone || 'Not provided'}
+                      </div>
+                      <div>
+                        <strong>Location:</strong> {selectedCandidate.student_details?.location || selectedCandidate.student_details?.address || selectedCandidate.student_location || 'Not provided'}
+                      </div>
+                      <div>
+                        <strong>Applied For:</strong> {selectedJob?.job_title || 'Not available'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Application Status Badge */}
+                  <div style={{
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    backgroundColor: selectedCandidate.status === 'Shortlisted' ? '#28a745' :
+                                   selectedCandidate.status === 'Rejected' ? '#dc3545' : '#ffc107',
+                    color: '#fff',
+                    fontWeight: 'bold',
+                    textAlign: 'center'
+                  }}>
+                    {selectedCandidate.status || 'Pending'}
+                  </div>
+                </div>
+
                 {/* Application Details Section */}
                 <div style={{
                   border: '2px solid #007bff',
@@ -721,48 +806,31 @@ const JobApplicationReports = () => {
                   padding: '15px',
                   backgroundColor: theme === 'dark' ? '#2a4a6b' : '#f8f9ff'
                 }}>
-                  <h4 style={{ margin: '0 0 15px 0', color: '#007bff' }}>Application Details</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                    <div>
-                      <label style={{ fontWeight: 'bold' }}>Application ID:</label>
-                      <p>{selectedCandidate.application_id}</p>
-                    </div>
-                    <div>
-                      <label style={{ fontWeight: 'bold' }}>Student Name:</label>
-                      <p>{selectedCandidate.student_name || 'Unknown'}</p>
-                    </div>
-                    <div>
-                      <label style={{ fontWeight: 'bold' }}>Job Title:</label>
-                      <p>{selectedJob?.job_title || 'Not available'}</p>
-                    </div>
-                    <div>
-                      <label style={{ fontWeight: 'bold' }}>Company Name:</label>
-                      <p>{selectedJob?.company_name || 'Unknown'}</p>
-                    </div>
-                    <div>
-                      <label style={{ fontWeight: 'bold' }}>Application Status:</label>
-                      <p style={{
-                        display: 'inline-block',
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        backgroundColor: selectedCandidate.status === 'Shortlisted' ? '#28a745' :
-                                       selectedCandidate.status === 'Rejected' ? '#dc3545' : '#ffc107',
-                        color: '#fff'
-                      }}>
-                        {selectedCandidate.status || 'pending'}
-                      </p>
-                    </div>
-                    <div>
-                      <label style={{ fontWeight: 'bold' }}>Status Verified:</label>
-                      <p>{selectedCandidate.status_verified || 'Not verified'}</p>
-                    </div>
+                  <h4 style={{ margin: '0 0 15px 0', color: '#007bff' }}>Application Information</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
                     <div>
                       <label style={{ fontWeight: 'bold' }}>Applied Date:</label>
                       <p>{formatDate(selectedCandidate.created_at || selectedCandidate.applied_date)}</p>
                     </div>
                     <div>
-                      <label style={{ fontWeight: 'bold' }}>Last Updated:</label>
-                      <p>{formatDate(selectedCandidate.updated_at)}</p>
+                      <label style={{ fontWeight: 'bold' }}>Company:</label>
+                      <p>{selectedJob?.company_name || 'Unknown'}</p>
+                    </div>
+                    <div>
+                      <label style={{ fontWeight: 'bold' }}>Job Position:</label>
+                      <p>{selectedJob?.job_title || 'Not available'}</p>
+                    </div>
+                    <div>
+                      <label style={{ fontWeight: 'bold' }}>Status Verified:</label>
+                      <p>{selectedCandidate.status_verified ? 'Yes' : 'No'}</p>
+                    </div>
+                    <div>
+                      <label style={{ fontWeight: 'bold' }}>Show to Recruiter:</label>
+                      <p>{selectedCandidate.to_show_recruiter ? 'Yes' : 'No'}</p>
+                    </div>
+                    <div>
+                      <label style={{ fontWeight: 'bold' }}>Show to User:</label>
+                      <p>{selectedCandidate.to_show_user ? 'Yes' : 'No'}</p>
                     </div>
                   </div>
                 </div>
@@ -775,24 +843,8 @@ const JobApplicationReports = () => {
                     padding: '15px',
                     backgroundColor: theme === 'dark' ? '#2d5a2d' : '#f8fff8'
                   }}>
-                    <h4 style={{ margin: '0 0 15px 0', color: '#28a745' }}>Candidate Profile</h4>
+                    <h4 style={{ margin: '0 0 15px 0', color: '#28a745' }}>Professional Profile</h4>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                      <div>
-                        <label style={{ fontWeight: 'bold' }}>Full Name:</label>
-                        <p>{selectedCandidate.student_details.name || selectedCandidate.student_details.full_name || 'Not provided'}</p>
-                      </div>
-                      <div>
-                        <label style={{ fontWeight: 'bold' }}>Email:</label>
-                        <p>{selectedCandidate.student_details.email || selectedCandidate.student_id || 'Not provided'}</p>
-                      </div>
-                      <div>
-                        <label style={{ fontWeight: 'bold' }}>Phone:</label>
-                        <p>{selectedCandidate.student_details.phone || selectedCandidate.student_details.phone_number || 'Not provided'}</p>
-                      </div>
-                      <div>
-                        <label style={{ fontWeight: 'bold' }}>Location:</label>
-                        <p>{selectedCandidate.student_details.location || selectedCandidate.student_details.address || 'Not provided'}</p>
-                      </div>
                       <div>
                         <label style={{ fontWeight: 'bold' }}>Experience:</label>
                         <p>{selectedCandidate.student_details.experience || selectedCandidate.student_details.experience_years ? `${selectedCandidate.student_details.experience_years || ''} years`.trim() : 'Not provided'}</p>
@@ -818,105 +870,70 @@ const JobApplicationReports = () => {
                       )}
                       {selectedCandidate.student_details.bio && (
                         <div style={{ gridColumn: 'span 2' }}>
-                          <label style={{ fontWeight: 'bold' }}>Bio/About:</label>
+                          <label style={{ fontWeight: 'bold' }}>About:</label>
                           <p>{selectedCandidate.student_details.bio}</p>
-                        </div>
-                      )}
-                      {selectedCandidate.student_details.resumeUrl || (selectedCandidate.resume_url && selectedCandidate.resume_url !== 'Not available') && (
-                        <div style={{ gridColumn: 'span 2' }}>
-                          <label style={{ fontWeight: 'bold' }}>Resume Details:</label>
-                          <div style={{
-                            padding: '10px',
-                            border: '1px solid #ddd',
-                            borderRadius: '4px',
-                            backgroundColor: theme === 'dark' ? '#555' : '#f8f8f8',
-                            marginTop: '5px'
-                          }}>
-                            <p style={{ margin: '0 0 10px 0' }}>
-                              Resume URL: {selectedCandidate.student_details.resumeUrl || selectedCandidate.resume_url}
-                            </p>
-                            {selectedCandidate.student_details.resumeUrl || selectedCandidate.resume_url ? (
-                              <a
-                                href={selectedCandidate.student_details.resumeUrl || selectedCandidate.resume_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{
-                                  backgroundColor: '#007bff',
-                                  color: '#fff',
-                                  textDecoration: 'none',
-                                  padding: '6px 12px',
-                                  borderRadius: '4px',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  fontSize: '14px'
-                                }}
-                              >
-                                <Download size={14} style={{ marginRight: '5px' }} />
-                                View/Download Resume
-                              </a>
-                            ) : (
-                              <p>Resume not available</p>
-                            )}
-                          </div>
                         </div>
                       )}
                     </div>
                   </div>
                 )}
 
-                {/* Application Specific Details */}
-                <div style={{ display: 'grid', gap: '15px' }}>
-                  <div>
-                    <label style={{ fontWeight: 'bold' }}>Show to Recruiter:</label>
-                    <p>{selectedCandidate.to_show_recruiter ? 'Yes' : 'No'}</p>
-                  </div>
-
-                  <div>
-                    <label style={{ fontWeight: 'bold' }}>Show to User:</label>
-                    <p>{selectedCandidate.to_show_user ? 'Yes' : 'No'}</p>
-                  </div>
-
-                  {selectedCandidate.cover_letter && (
-                    <div>
-                      <label style={{ fontWeight: 'bold' }}>Cover Letter:</label>
-                      <div style={{
-                        padding: '10px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        backgroundColor: theme === 'dark' ? '#444' : '#f9f9f9',
-                        marginTop: '5px',
-                        whiteSpace: 'pre-wrap'
-                      }}>
-                        {selectedCandidate.cover_letter}
-                      </div>
+                {/* Cover Letter */}
+                {selectedCandidate.cover_letter && (
+                  <div style={{
+                    border: '2px solid #ff6b35',
+                    borderRadius: '8px',
+                    padding: '15px',
+                    backgroundColor: theme === 'dark' ? '#4a3a2a' : '#fff5f0'
+                  }}>
+                    <h4 style={{ margin: '0 0 15px 0', color: '#ff6b35' }}>Cover Letter</h4>
+                    <div style={{
+                      padding: '15px',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      backgroundColor: theme === 'dark' ? '#555' : '#ffffff',
+                      whiteSpace: 'pre-wrap',
+                      fontStyle: 'italic'
+                    }}>
+                      {selectedCandidate.cover_letter}
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {(selectedCandidate.resume_url || (selectedCandidate.student_details && selectedCandidate.student_details.resumeUrl)) && (
-                    <div>
-                      <label style={{ fontWeight: 'bold' }}>Resume:</label>
-                      <div style={{ marginTop: '5px' }}>
-                        <a
-                          href={selectedCandidate.resume_url || selectedCandidate.student_details.resumeUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            backgroundColor: '#007bff',
-                            color: '#fff',
-                            textDecoration: 'none',
-                            padding: '8px 16px',
-                            borderRadius: '4px',
-                            display: 'inline-flex',
-                            alignItems: 'center'
-                          }}
-                        >
-                          <Download size={14} style={{ marginRight: '5px' }} />
-                          Download Resume
-                        </a>
-                      </div>
+                {/* Resume Section */}
+                {(selectedCandidate.resume_url || (selectedCandidate.student_details && selectedCandidate.student_details.resumeUrl)) && (
+                  <div style={{
+                    border: '2px solid #6f42c1',
+                    borderRadius: '8px',
+                    padding: '15px',
+                    backgroundColor: theme === 'dark' ? '#3a2a4a' : '#f8f0ff'
+                  }}>
+                    <h4 style={{ margin: '0 0 15px 0', color: '#6f42c1' }}>Resume & Documents</h4>
+                    <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                      <a
+                        href={selectedCandidate.resume_url || selectedCandidate.student_details.resumeUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          backgroundColor: '#6f42c1',
+                          color: '#fff',
+                          textDecoration: 'none',
+                          padding: '12px 20px',
+                          borderRadius: '4px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        <Download size={16} style={{ marginRight: '8px' }} />
+                        Download Resume
+                      </a>
+                      <span style={{ color: '#666', fontSize: '14px' }}>
+                        Click to view/download the candidate's resume
+                      </span>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )}
 

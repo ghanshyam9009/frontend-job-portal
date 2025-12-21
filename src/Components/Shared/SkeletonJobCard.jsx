@@ -49,3 +49,8 @@ const SkeletonJobCard = ({ count = 1 }) => {
 
 export default SkeletonJobCard;
 
+
+
+
+
+
