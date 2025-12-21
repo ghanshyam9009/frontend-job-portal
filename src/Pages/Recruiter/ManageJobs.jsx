@@ -357,87 +357,90 @@ const ManageJobs = () => {
               </div>
             )}
             
-            {/* Job Listings */}
-            <div className="space-y-4">
+            {/* Job Listings - Compact Cards */}
+            <div className="space-y-3">
               {filteredJobs.map(job => (
                 <div key={job.id} 
                      className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all`}>
-                  <div className="p-5 sm:p-6">
+                  <div className="p-3">
                     {/* Job Header */}
-                    <div className="flex items-start justify-between gap-4 mb-4">
+                    <div className="flex items-start justify-between gap-3 mb-2.5">
                       <div className="flex-1 min-w-0">
-                        <h3 className={`text-lg sm:text-xl font-bold ${textColor} mb-2 hover:text-blue-600 cursor-pointer`}>
+                        <h3 className={`text-base font-bold ${textColor} mb-1.5 hover:text-blue-600 cursor-pointer leading-tight`}>
                           {job.title}
                         </h3>
-                        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 dark:text-gray-400 mb-3">
-                          <span className="flex items-center gap-1.5">
-                            <Building size={16} className="flex-shrink-0" />
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mb-2">
+                          <span className="flex items-center gap-1">
+                            <Building size={13} className="flex-shrink-0" />
                             {job.company}
                           </span>
-                          <span className="flex items-center gap-1.5">
-                            <MapPin size={16} className="flex-shrink-0" />
+                          <span className="flex items-center gap-1">
+                            <MapPin size={13} className="flex-shrink-0" />
                             {job.location}
                           </span>
                         </div>
                       </div>
-                      <span className={`px-3 py-1.5 rounded-full text-xs font-semibold border flex-shrink-0 ${getStatusColor(job.status)}`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold border flex-shrink-0 ${getStatusColor(job.status)}`} style={{ fontSize: '0.7rem' }}>
                         {job.status}
                       </span>
                     </div>
 
                     {/* Job Details */}
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      <span className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`}>
+                    <div className="flex flex-wrap gap-1.5 mb-2.5">
+                      <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`} style={{ fontSize: '0.7rem' }}>
                         {job.type}
                       </span>
-                      <span className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`}>
+                      <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`} style={{ fontSize: '0.7rem' }}>
                         {job.workMode}
                       </span>
-                      <span className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`}>
+                      <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`} style={{ fontSize: '0.7rem' }}>
                         💰 {job.salary}
                       </span>
-                      <span className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'} flex items-center gap-1.5`}>
-                        <Calendar size={14} />
+                      <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'} flex items-center gap-1`} style={{ fontSize: '0.7rem' }}>
+                        <Calendar size={12} />
                         {job.postedDate}
                       </span>
                     </div>
 
                     {/* Stats Bar */}
-                    <div className={`flex items-center gap-6 p-3 rounded-lg mb-4 border ${borderColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                      <div className="flex items-center gap-2">
-                        <Users size={16} className="text-gray-500" />
-                        <span className={`text-sm font-semibold ${textColor}`}>{job.applications}</span>
-                        <span className={`text-xs ${textSecondary}`}>applications</span>
+                    <div className={`flex items-center gap-4 p-2 rounded-lg mb-2.5 border ${borderColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
+                      <div className="flex items-center gap-1.5">
+                        <Users size={13} className="text-gray-500" />
+                        <span className={`text-xs font-semibold ${textColor}`}>{job.applications}</span>
+                        <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.65rem' }}>applications</span>
                       </div>
-                      <div className={`h-4 w-px ${isDark ? 'bg-gray-600' : 'bg-gray-300'}`}></div>
-                      <div className="flex items-center gap-2">
-                        <Eye size={16} className="text-gray-500" />
-                        <span className={`text-sm font-semibold ${textColor}`}>{job.views}</span>
-                        <span className={`text-xs ${textSecondary}`}>views</span>
+                      <div className={`h-3 w-px ${isDark ? 'bg-gray-600' : 'bg-gray-300'}`}></div>
+                      <div className="flex items-center gap-1.5">
+                        <Eye size={13} className="text-gray-500" />
+                        <span className={`text-xs font-semibold ${textColor}`}>{job.views}</span>
+                        <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.65rem' }}>views</span>
                       </div>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-2 sm:gap-3">
+                    <div className="flex flex-wrap gap-1.5">
                       <button
                         onClick={() => handleEditJob(job.id)}
-                        className={`flex-1 sm:flex-initial px-4 py-2.5 border ${borderColor} rounded-lg text-sm font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2`}
+                        className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5`}
+                        style={{ fontSize: '0.7rem' }}
                       >
-                        <Edit size={16} />
+                        <Edit size={13} />
                         <span className="hidden sm:inline">Edit</span>
                       </button>
                       <button
                         onClick={() => handleViewApplications(job.id)}
-                        className="flex-1 sm:flex-initial px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                        className="flex-1 sm:flex-initial px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5"
+                        style={{ fontSize: '0.7rem' }}
                       >
-                        <Eye size={16} />
+                        <Eye size={13} />
                         View Applications ({job.applications})
                       </button>
                       <button
                         onClick={() => handleToggleStatus(job.id)}
-                        className={`flex-1 sm:flex-initial px-4 py-2.5 border ${borderColor} rounded-lg text-sm font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2`}
+                        className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5`}
+                        style={{ fontSize: '0.7rem' }}
                       >
-                        <CircleX size={16} />
+                        <CircleX size={13} />
                         <span className="hidden sm:inline">{job.status === 'Active' ? 'Close' : 'Reopen'}</span>
                       </button>
                     </div>

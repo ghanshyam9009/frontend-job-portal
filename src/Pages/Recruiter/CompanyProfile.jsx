@@ -43,6 +43,7 @@ const CompanyProfile = () => {
 
   // --- COMPUTED VALUES ---
   const normalizedKycStatus = (kycStatus.status || '').toLowerCase();
+
   const isKycVerified = ['verified', 'approved', 'completed', 'success', 'accepted'].includes(normalizedKycStatus);
   const isKycSubmitted = ['submitted', 'in_review', 'under_review', 'pending_verification'].includes(normalizedKycStatus);
 
@@ -618,12 +619,33 @@ const CompanyProfile = () => {
                     <div>
                       <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Industry *</label>
                       <select name="industry" value={profileData.industry} onChange={handleInputChange} className={`w-full p-3 rounded-xl border ${borderColor} ${inputBg} ${textColor}`} required>
-                        <option value="">Select Industry</option>
-                        <option value="IT-Hardware & Networking / IT-Software / Software Services">IT & Software</option>
-                        <option value="Accounting / Finance">Accounting & Finance</option>
-                        <option value="Real Estate / Property / Construction">Real Estate</option>
-                        <option value="Media / Entertainment / Broadcasting">Media & Entertainment</option>
-                        <option value="Custom">Custom (Other)</option>
+                       <option value="">Select Industry</option>
+                      <option value="Taxi / Cab / Car Rental Services">Taxi / Cab / Car Rental Services</option>
+                      <option value="Tobacco / Cigarettes / Biris">Tobacco / Cigarettes / Biris</option>
+                      <option value="Engineering / Cement / Metals">Engineering / Cement / Metals</option>
+                      <option value="Furniture and Furnishing">Furniture and Furnishing</option>
+                      <option value="Wires & Cables">Wires & Cables</option>
+                      <option value="Water Treatment / Waste Management">Water Treatment / Waste Management</option>
+                      <option value="Housekeeping / Facilities management Services">Housekeeping / Facilities management Services</option>
+                      <option value="Leather / Leather Goods">Leather / Leather Goods</option>
+                      <option value="Paper & Pulp">Paper & Pulp</option>
+                      <option value="Railways / Metro Rail">Railways / Metro Rail</option>
+                      <option value="Electricals / Switchgears">Electricals / Switchgears</option>
+                      <option value="Semiconductors / Electronics">Semiconductors / Electronics</option>
+                      <option value="Agro Chemical / Fertilizers / Pesticides">Agro Chemical / Fertilizers / Pesticides</option>
+                      <option value="Breweries / Distilleries / Liquor">Breweries / Distilleries / Liquor</option>
+                      <option value="Office Equipment / Automation">Office Equipment / Automation</option>
+                      <option value="Media / Entertainment / Broadcasting">Media / Entertainment / Broadcasting</option>
+                      <option value="Accounting / Finance">Accounting / Finance</option>
+                      <option value="Wellness / Fitness / Sports / Beauty">Wellness / Fitness / Sports / Beauty</option>
+                      <option value="Sugar">Sugar</option>
+                      <option value="Tyre">Tyre</option>
+                      <option value="Real Estate / Property / Construction">Real Estate / Property / Construction</option>
+                      <option value="Security Forces / Defence Forces / Investigation">Security Forces / Defence Forces / Investigation</option>
+                      <option value="Textile / Garments / Fashion / Accessories">Textile / Garments / Fashion / Accessories</option>
+                      <option value="Travel / Tourism">Travel / Tourism</option>
+                      <option value="IT-Hardware & Networking / IT-Software / Software Services">IT-Hardware & Networking / IT-Software / Software Services</option>
+                      <option value="Custom">Custom (Other)</option>
                       </select>
                     </div>
 

@@ -9,6 +9,7 @@ import HomeNav from "../Components/HomeNav";
 import { Bookmark, Briefcase, MapPin, Sparkles, TrendingUp } from "lucide-react";
 import Footer from "../Components/Footer";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
+import RecruiterNavbar from "../Components/Recruiter/RecruiterNavbar";
 
 const JobDescription = () => {
   // theme
@@ -498,7 +499,9 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
   return (
 
     <>
-    {user?<CandidateNavbar/>: <HomeNav/>}
+    {/* {user?<CandidateNavbar/>: <HomeNav/>} */}
+          {user? (user.company_name ?<RecruiterNavbar/>: <CandidateNavbar />) : <HomeNav />}
+
     <div className={`${isDarkMode ? "bg-slate-900 text-slate-100" : "bg-gray-100 text-slate-900"} lg:mt-18 min-h-screen font-sans`}>
       {/* header */}
 

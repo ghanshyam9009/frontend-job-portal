@@ -259,23 +259,19 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
             </li>
             <li>
               <button
-                onClick={() => handleRestrictedNavigation('/candidate-applications', !canAccessJobFeatures)}
+                onClick={() => handleRestrictedNavigation('/jobs', !canAccessJobFeatures)}
                 disabled={!canAccessJobFeatures}
                 title={!canAccessJobFeatures ? restrictionMessage : ''}
                 className={`flex items-center gap-2 text-sm font-bold transition-colors ${
                   !canAccessJobFeatures 
                     ? 'opacity-50 cursor-not-allowed' 
-                    : isActive("/candidate-applications")
+                    : isActive("/jobs")
                       ? "text-[#2271B5]"
                       : `${textSecondary} hover:text-[#2271B5]`
                 }`}
               >
-                <span>Applications</span>
-                {applicationCount > 0 && (
-                  <span className="ml-1 bg-[#2271B5] text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                    {applicationCount}
-                  </span>
-                )}
+                <span>Jobs</span>
+               
               </button>
             </li>
             <li>
@@ -459,7 +455,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                     if (!canAccessJobFeatures) {
                       alert(restrictionMessage);
                     } else {
-                      navigate('/candidate-applications'); 
+                      navigate('/jobs'); 
                       setShowProfileSidebar(false);
                     }
                   }}
@@ -469,12 +465,9 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                   } transition-colors`}
                 >
                   <Users size={18} />
-                  <span className="font-medium">Applications</span>
-                  {applicationCount > 0 && (
-                    <span className="ml-auto bg-[#2271B5] text-white text-xs font-bold px-2 py-1 rounded-full">
-                      {applicationCount}
-                    </span>
-                  )}
+                  <span className="font-medium">Jobs</span>
+                  
+
                 </button>
                 <button
                   onMouseDown={() => { 
@@ -637,18 +630,14 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-colors ${
                       !canAccessJobFeatures
                         ? 'opacity-50 cursor-not-allowed'
-                        : isActive("/candidate-applications")
+                        : isActive("/jobs")
                           ? `text-[#2271B5] ${isDark ? 'bg-[#2271B5]/20' : 'bg-[#2271B5]/10'}`
                           : `${textSecondary} ${dropdownHover}`
                     }`}
                   >
                     <Users size={18} />
-                    <span>Applications</span>
-                    {applicationCount > 0 && (
-                      <span className="ml-auto bg-[#2271B5] text-white text-xs font-bold px-2 py-1 rounded-full">
-                        {applicationCount}
-                      </span>
-                    )}
+                    <span>Jobs</span>
+                   
                   </button>
                 </li>
                 <li>

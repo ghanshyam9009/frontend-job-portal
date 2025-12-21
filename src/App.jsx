@@ -128,7 +128,7 @@ function App() {
             <Route path="/manage-jobs" element={<ManageJobs />} />
             <Route path="/edit-job/:jobId" element={<EditJob />} />
             <Route path="/view-applications/:jobId" element={<ViewApplications />} />
-            <Route path="/candidate-applications" element={<CandidateApplications />} />
+             <Route path="/jobs" element={<JobListings />} />
             <Route path="/shortlist-candidates" element={<ShortlistCandidates />} />
             <Route path="/company-profile" element={<CompanyProfile />} />
             <Route path="/membership-tokens" element={<MembershipTokens />} />
