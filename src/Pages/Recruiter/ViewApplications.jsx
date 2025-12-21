@@ -75,15 +75,10 @@ const ViewApplications = () => {
 
           // Format experience data properly
           let experienceString = "Not provided";
-          if (studentProfile.experience_years) {
+          if (studentProfile.experience && typeof studentProfile.experience === 'string') {
+            experienceString = studentProfile.experience; // e.g., "fresher"
+          } else if (studentProfile.experience_years) {
             experienceString = `${studentProfile.experience_years} years`;
-          } else if (studentProfile.experience && Array.isArray(studentProfile.experience) && studentProfile.experience.length > 0) {
-            const firstExp = studentProfile.experience[0];
-            if (typeof firstExp === 'object' && firstExp.title) {
-              experienceString = `${firstExp.title} at ${firstExp.company || 'Unknown Company'}`;
-            } else if (typeof firstExp === 'string') {
-              experienceString = firstExp;
-            }
           } else if (app.student_experience) {
             experienceString = app.student_experience;
           }
@@ -91,10 +86,14 @@ const ViewApplications = () => {
           // Format education data properly
           let qualificationString = "Not provided";
           if (studentProfile.education && Array.isArray(studentProfile.education) && studentProfile.education.length > 0) {
-            qualificationString = studentProfile.education[0].degree || studentProfile.education[0].institution || "Not provided";
+            const firstEdu = studentProfile.education[0];
+            qualificationString = firstEdu.degree || firstEdu.institution || "Not provided";
           } else if (app.student_degree) {
             qualificationString = app.student_degree;
           }
+
+          // Get resume URL from student profile
+          const resumeUrl = studentProfile.resumeUrl || studentProfile.resume || app.resume_url;
 
           return {
             ...app,
@@ -104,6 +103,7 @@ const ViewApplications = () => {
             experience: experienceString,
             phone_number: studentProfile.phone_number || app.student_phone || "Not provided",
             skills: Array.isArray(studentProfile.skills) ? studentProfile.skills : (app.student_skills ? [app.student_skills] : []),
+            resume_url: resumeUrl, // Use the resume URL from student profile
             // Include other student profile data but exclude complex objects that might cause React rendering issues
             student_profile: {
               ...studentProfile,
@@ -395,8 +395,21 @@ const ViewApplications = () => {
                     {/* Candidate Header */}
                     <div className="flex items-start justify-between gap-2.5 mb-2.5">
                       <div className="flex items-start gap-2 flex-1 min-w-0">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                          {application.student_name?.charAt(0) || 'U'}
+                        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
+                          {application.student_profile?.logo || application.student_profile?.company_logo || application.student_profile?.profile_image ? (
+                            <img
+                              src={application.student_profile.logo || application.student_profile.company_logo || application.student_profile.profile_image}
+                              alt={application.student_name || 'Candidate'}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextElementSibling.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          <div className={`w-full h-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs ${application.student_profile?.logo || application.student_profile?.company_logo || application.student_profile?.profile_image ? 'hidden' : 'flex'}`}>
+                            {application.student_name?.charAt(0)?.toUpperCase() || 'U'}
+                          </div>
                         </div>
                         <div className="min-w-0 flex-1">
                           <h4 className={`text-xs font-bold ${textColor} truncate leading-tight`}>

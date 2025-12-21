@@ -4,7 +4,6 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
 import RecruiterSidebar from "../../Components/Recruiter/RecruiterSidebar";
 import { recruiterExternalService } from "../../services";
-import { studentService } from "../../services/studentService";
 import { Check, X, ArrowLeft, FileText, Users, Calendar, Mail, Briefcase, TrendingUp, ExternalLink, Filter, Search, UserCheck, Clock, Target } from "lucide-react";
 
 const CandidateApplications = () => {
@@ -51,17 +50,21 @@ const CandidateApplications = () => {
           }
         }
         
-        const applicationsWithDetails = await Promise.all(
-          allApplications.map(async (app) => {
-            try {
-              const studentDetails = await studentService.getStudentById(app.student_id);
-              return { ...app, ...studentDetails };
-            } catch (err) {
-              console.error(`Failed to fetch details for student ${app.student_id}:`, err);
-              return { ...app, student_name: "Unknown", student_email: "Unknown" };
-            }
-          })
-        );
+        // Use embedded student data from application response
+        const applicationsWithDetails = allApplications.map((app) => {
+          // Extract student profile data from the embedded student_profile object
+          const studentProfile = app.student_profile || {};
+
+          // Get resume URL from student profile
+          const resumeUrl = studentProfile.resumeUrl || studentProfile.resume || app.resume_url;
+
+          return {
+            ...app,
+            student_name: studentProfile.full_name || app.student_name || "Unknown Candidate",
+            student_email: studentProfile.email || app.student_email || "Unknown Email",
+            resume_url: resumeUrl, // Use the resume URL from student profile
+          };
+        });
 
         setApplications(applicationsWithDetails);
       } catch (e) {
@@ -306,8 +309,21 @@ const CandidateApplications = () => {
                   <div className="flex items-start justify-between mb-5 flex-wrap gap-4">
                     <div className="flex-1">
                       <div className="flex items-start gap-4 mb-4">
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg flex-shrink-0">
-                          {application.student_name?.charAt(0)?.toUpperCase() || 'U'}
+                        <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
+                          {studentProfile.logo || studentProfile.profile_image ? (
+                            <img
+                              src={studentProfile.logo || studentProfile.profile_image}
+                              alt={application.student_name || 'Candidate'}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextElementSibling.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          <div className={`w-full h-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl ${studentProfile.logo || studentProfile.profile_image ? 'hidden' : 'flex'}`}>
+                            {application.student_name?.charAt(0)?.toUpperCase() || 'U'}
+                          </div>
                         </div>
                         <div className="flex-1">
                           <h3 className={`text-xl font-bold ${textColor} mb-2`}>{application.student_name}</h3>

@@ -3,7 +3,6 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { recruiterExternalService } from "../../services";
-import { studentService } from "../../services/studentService";
 import { 
   Plus, 
   Users, 
@@ -104,17 +103,21 @@ const RecruiterDashboard = () => {
         );
         const recent = sortedApplications.slice(0, 4);
 
-        const recentWithDetails = await Promise.all(
-          recent.map(async (app) => {
-            try {
-              const studentDetails = await studentService.getStudentById(app.student_id);
-              return { ...app, ...studentDetails };
-            } catch (err) {
-              console.error(`Failed to fetch details for student ${app.student_id}:`, err);
-              return { ...app, student_name: "Unknown", student_email: "Unknown" };
-            }
-          })
-        );
+        // Use embedded student data from application response
+        const recentWithDetails = recent.map((app) => {
+          // Extract student profile data from the embedded student_profile object
+          const studentProfile = app.student_profile || {};
+
+          // Get resume URL from student profile
+          const resumeUrl = studentProfile.resumeUrl || studentProfile.resume || app.resume_url;
+
+          return {
+            ...app,
+            student_name: studentProfile.full_name || app.student_name || "Unknown Candidate",
+            student_email: studentProfile.email || app.student_email || "Unknown Email",
+            resume_url: resumeUrl, // Use the resume URL from student profile
+          };
+        });
 
         setRecentApplications(recentWithDetails);
         setStats({
@@ -495,12 +498,12 @@ const RecruiterDashboard = () => {
                                 <Edit size={16} />
                                 Edit
                               </button>
-                              <button 
-                                onClick={() => navigate('/candidate-applications')}
+                              <button
+                                onClick={() => navigate(`/view-applications/${job.job_id}`)}
                                 className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-medium rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
                               >
                                 <Eye size={16} />
-                                View Applications
+                                View Applications ({job.application_count || 0})
                               </button>
                             </div>
                           </div>
@@ -549,8 +552,21 @@ const RecruiterDashboard = () => {
                             <div className="flex items-start justify-between mb-3">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
-                                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
-                                    {application.student_name?.charAt(0) || 'U'}
+                                  <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
+                                    {application.student_profile?.logo || application.student_profile?.profile_image ? (
+                                      <img
+                                        src={application.student_profile.logo || application.student_profile.profile_image}
+                                        alt={application.student_name || 'Candidate'}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          e.target.style.display = 'none';
+                                          e.target.nextElementSibling.style.display = 'flex';
+                                        }}
+                                      />
+                                    ) : null}
+                                    <div className={`w-full h-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm ${application.student_profile?.logo || application.student_profile?.profile_image ? 'hidden' : 'flex'}`}>
+                                      {application.student_name?.charAt(0)?.toUpperCase() || 'U'}
+                                    </div>
                                   </div>
                                   <div>
                                     <h4 className={`font-bold ${textColor} text-sm`}>{application.student_name}</h4>
