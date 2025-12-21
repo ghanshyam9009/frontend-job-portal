@@ -218,55 +218,105 @@ const ManageJobs = () => {
             return;
           }
 
-          console.log('Fetching application data for task:', editingTask);
+          console.log('Fetching recruiter data for job approval:', editingTask);
 
-          // Set basic application info from task data
+          // Set basic task info
           setApplicantDetails({
-            application_id: editingTask.application_id,
-            student_id: editingTask.student_id,
             job_id: editingTask.job_id,
             recruiter_id: editingTask.recruiter_id,
             task_category: editingTask.category,
             task_id: editingTask.task_id
           });
 
-          // Check cache first for applicants data
-          let applicantsData = applicantsCache[editingTask.job_id];
-          if (!applicantsData) {
-            // Fetch application details using the get all applicants API
-            applicantsData = await recruiterExternalService.getApplicantsByJobId(editingTask.job_id);
-            setApplicantsCache(prev => ({ ...prev, [editingTask.job_id]: applicantsData }));
-          }
+          // For job approval, we need recruiter information, not candidate applications
+          // Check cache first for recruiter details
+          let recruiterDetails = recruiterCache[editingTask.recruiter_id];
+          if (!recruiterDetails && editingTask.recruiter_id) {
+            try {
+              // First try to get recruiter from the detailed API using email
+              // We need to get the recruiter email first from the task or from a basic API call
+              let recruiterEmail = null;
 
-          console.log('Retrieved applicants data:', applicantsData);
+              // Try to get basic recruiter info first to get the email
+              try {
+                const basicRecruiterResponse = await recruiterExternalService.getRecruiterCompanyName(editingTask.recruiter_id);
+                if (basicRecruiterResponse && basicRecruiterResponse.email) {
+                  recruiterEmail = basicRecruiterResponse.email;
+                }
+              } catch (basicError) {
+                console.warn('Could not get basic recruiter info:', basicError);
+              }
 
-          if (applicantsData && Array.isArray(applicantsData.applicants)) {
-            const application = applicantsData.applicants.find(app => app.application_id === editingTask.application_id);
+              // If we have an email, call the detailed API
+              if (recruiterEmail) {
+                console.log('Fetching detailed recruiter data for email:', recruiterEmail);
+                const detailedApiUrl = `https://4x10ubol84.execute-api.ap-southeast-1.amazonaws.com/default/getepmloyerdetailed?email=${encodeURIComponent(recruiterEmail)}`;
+                console.log('API URL:', detailedApiUrl);
 
-            if (application) {
-              setApplicantDetails(prevDetails => ({
-                ...prevDetails,
-                name: application.name || "",
-                email: application.email || "",
-                phone: application.phone || "",
-                skills: application.skills || [],
-                experience: application.experience || "",
-                education: application.education || "",
-                resume_link: application.resume_link || "",
-                status: application.status || "pending",
-                applied_date: application.applied_date || "",
-                updated_date: application.updated_date || ""
-              }));
+                const detailedResponse = await fetch(detailedApiUrl, {
+                  method: 'GET',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                });
+
+                console.log('Detailed API response status:', detailedResponse.status);
+
+                if (detailedResponse.ok) {
+                  recruiterDetails = await detailedResponse.json();
+                  console.log('Detailed recruiter data received:', recruiterDetails);
+                } else {
+                  console.error('Detailed API failed:', detailedResponse.status, detailedResponse.statusText);
+                }
+              } else {
+                console.log('No recruiter email found for ID:', editingTask.recruiter_id);
+              }
+
+              // Fallback to recruiter service if detailed API fails
+              if (!recruiterDetails) {
+                const response = await recruiterService.getProfile(editingTask.recruiter_id);
+                recruiterDetails = response.success && response.data ? response.data : null;
+              }
+
+              setRecruiterCache(prev => ({ ...prev, [editingTask.recruiter_id]: recruiterDetails }));
+            } catch (error) {
+              console.error('Failed to fetch recruiter details:', error);
             }
-
-            // Store all applicants for this job to show in a list - sort by latest first
-            const sortedApplicants = applicantsData.applicants.sort((a, b) => {
-              const dateA = new Date(a.applied_date || 0);
-              const dateB = new Date(b.applied_date || 0);
-              return dateB - dateA; // Latest first
-            });
-            setApplicationData(sortedApplicants);
           }
+
+          if (recruiterDetails) {
+            setApplicantDetails(prevDetails => ({
+              ...prevDetails,
+              recruiter_name: recruiterDetails.full_name || recruiterDetails.name || "Not available",
+              company_name: recruiterDetails.company_name || "Not available",
+              email: recruiterDetails.email || "Not available",
+              phone: recruiterDetails.phone_number || recruiterDetails.phone || "Not available",
+              industry: recruiterDetails.industry || "Not available",
+              company_size: recruiterDetails.company_size || "Not available",
+              location: recruiterDetails.location || "Not available",
+              kyc_status: recruiterDetails.kyc_status || "Not verified",
+              approval_status: recruiterDetails.hasadminapproved ? "Approved" : "Pending",
+              registration_date: recruiterDetails.created_at || recruiterDetails.registration_date || "",
+              bio: recruiterDetails.description || recruiterDetails.bio || "",
+              experience_years: recruiterDetails.experience_years || "",
+              website: recruiterDetails.company_website || recruiterDetails.website || "",
+              company_logo: recruiterDetails.company_logo || null,
+              kyc_doc_url: recruiterDetails.kycDocUrl || null,
+              kyc_document_number: recruiterDetails.kyc_document_number || "",
+              kyc_notes: recruiterDetails.kyc_notes || "",
+              kyc_type: recruiterDetails.kyc_type || "",
+              rejection_reason: recruiterDetails.rejection_reason || "",
+              account_status: recruiterDetails.status || "active",
+              address: recruiterDetails.address || "",
+              city: recruiterDetails.city || "",
+              state: recruiterDetails.state || "",
+              country: recruiterDetails.country || "",
+              postal_code: recruiterDetails.postal_code || "",
+              founded_year: recruiterDetails.founded_year || ""
+            }));
+          }
+
+
         } else {
           console.log('Unsupported edit category:', editingTask.category);
         }
@@ -854,69 +904,198 @@ const ManageJobs = () => {
                 {(editingTask.category === 'newapplication' || editingTask.category === 'change status of application') && applicantDetails && (
                   <div style={{ marginBottom: '20px' }}>
                     <h4>Application Information</h4>
+
+                    {/* Recruiter Profile Header */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '15px',
+                      padding: '15px',
+                      backgroundColor: '#f8f9fa',
+                      borderRadius: '8px',
+                      marginBottom: '20px',
+                      border: '1px solid #e9ecef'
+                    }}>
+                      <div style={{
+                        width: '60px',
+                        height: '60px',
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        backgroundColor: '#e9ecef',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}>
+                        {applicantDetails.company_logo ? (
+                          <img
+                            src={applicantDetails.company_logo}
+                            alt={applicantDetails.company_name || 'Company'}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover'
+                            }}
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextElementSibling.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        <div style={{
+                          width: '100%',
+                          height: '100%',
+                          backgroundColor: '#28a745',
+                          display: applicantDetails.company_logo ? 'none' : 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontSize: '20px',
+                          fontWeight: 'bold'
+                        }}>
+                          {(applicantDetails.company_name || 'C').charAt(0).toUpperCase()}
+                        </div>
+                      </div>
+                      <div>
+                        <h3 style={{
+                          margin: '0 0 5px 0',
+                          fontSize: '18px',
+                          fontWeight: 'bold',
+                          color: '#333'
+                        }}>
+                          {applicantDetails.recruiter_name || 'Not available'}
+                        </h3>
+                        <p style={{
+                          margin: '0 0 2px 0',
+                          color: '#666',
+                          fontSize: '14px',
+                          fontWeight: 'bold'
+                        }}>
+                          {applicantDetails.company_name || 'Company not specified'}
+                        </p>
+                        <p style={{
+                          margin: '0',
+                          color: '#666',
+                          fontSize: '14px'
+                        }}>
+                          {applicantDetails.email || 'No email provided'}
+                        </p>
+                        {applicantDetails.phone && (
+                          <p style={{
+                            margin: '2px 0 0 0',
+                            color: '#666',
+                            fontSize: '14px'
+                          }}>
+                            {applicantDetails.phone}
+                          </p>
+                        )}
+                      </div>
+                      <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                        <div style={{
+                          padding: '4px 12px',
+                          borderRadius: '20px',
+                          backgroundColor: applicantDetails.approval_status === 'Approved' ? '#28a745' :
+                                         applicantDetails.kyc_status === 'Verified' ? '#17a2b8' : '#ffc107',
+                          color: '#fff',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          textTransform: 'capitalize',
+                          display: 'inline-block',
+                          marginBottom: '4px'
+                        }}>
+                          {applicantDetails.approval_status || 'Pending'}
+                        </div>
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#666',
+                          marginTop: '4px'
+                        }}>
+                          KYC: {applicantDetails.kyc_status || 'Not verified'}
+                        </div>
+                      </div>
+                    </div>
+
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                       <div>
-                        <label style={{ fontWeight: 'bold' }}>Application ID:</label>
-                        <p>{applicantDetails.application_id}</p>
+                        <label style={{ fontWeight: 'bold' }}>Industry:</label>
+                        <p>{applicantDetails.industry || 'Not specified'}</p>
                       </div>
                       <div>
-                        <label style={{ fontWeight: 'bold' }}>Student ID:</label>
-                        <p>{applicantDetails.student_id}</p>
+                        <label style={{ fontWeight: 'bold' }}>Company Size:</label>
+                        <p>{applicantDetails.company_size || 'Not specified'}</p>
                       </div>
                       <div>
-                        <label style={{ fontWeight: 'bold' }}>Applicant Name:</label>
-                        <p>{applicantDetails.name || 'Not available'}</p>
+                        <label style={{ fontWeight: 'bold' }}>Address:</label>
+                        <p>{applicantDetails.address || 'Not specified'}</p>
                       </div>
                       <div>
-                        <label style={{ fontWeight: 'bold' }}>Email:</label>
-                        <p>{applicantDetails.email || 'Not available'}</p>
+                        <label style={{ fontWeight: 'bold' }}>City:</label>
+                        <p>{applicantDetails.city || 'Not specified'}</p>
                       </div>
                       <div>
-                        <label style={{ fontWeight: 'bold' }}>Phone:</label>
-                        <p>{applicantDetails.phone || 'Not available'}</p>
+                        <label style={{ fontWeight: 'bold' }}>State:</label>
+                        <p>{applicantDetails.state || 'Not specified'}</p>
                       </div>
                       <div>
-                        <label style={{ fontWeight: 'bold' }}>Application Status:</label>
-                        <p style={{ textTransform: 'capitalize' }}>
-                          <span style={{
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            backgroundColor: applicantDetails.status === 'approved' ? '#28a745' :
-                                           applicantDetails.status === 'rejected' ? '#dc3545' : '#ffc107',
-                            color: '#fff'
-                          }}>
-                            {applicantDetails.status || 'pending'}
-                          </span>
-                        </p>
+                        <label style={{ fontWeight: 'bold' }}>Country:</label>
+                        <p>{applicantDetails.country || 'Not specified'}</p>
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 'bold' }}>Postal Code:</label>
+                        <p>{applicantDetails.postal_code || 'Not specified'}</p>
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 'bold' }}>Founded Year:</label>
+                        <p>{applicantDetails.founded_year || 'Not specified'}</p>
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 'bold' }}>KYC Type:</label>
+                        <p style={{ textTransform: 'uppercase' }}>{applicantDetails.kyc_type || 'Not specified'}</p>
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 'bold' }}>KYC Document Number:</label>
+                        <p>{applicantDetails.kyc_document_number || 'Not provided'}</p>
                       </div>
                       <div style={{ gridColumn: 'span 2' }}>
-                        <label style={{ fontWeight: 'bold' }}>Skills:</label>
-                        <p>
-                          {applicantDetails.skills && Array.isArray(applicantDetails.skills)
-                            ? applicantDetails.skills.join(', ')
-                            : 'Not available'
-                          }
-                        </p>
+                        <label style={{ fontWeight: 'bold' }}>Registration Date:</label>
+                        <p>{applicantDetails.registration_date ? new Date(applicantDetails.registration_date).toLocaleDateString() : 'Not available'}</p>
                       </div>
-                      <div>
-                        <label style={{ fontWeight: 'bold' }}>Experience:</label>
-                        <p>{applicantDetails.experience || 'Not available'}</p>
-                      </div>
-                      <div>
-                        <label style={{ fontWeight: 'bold' }}>Education:</label>
-                        <p>{applicantDetails.education || 'Not available'}</p>
-                      </div>
-                      <div style={{ gridColumn: 'span 2' }}>
-                        <label style={{ fontWeight: 'bold' }}>Applied Date:</label>
-                        <p>{applicantDetails.applied_date ? new Date(applicantDetails.applied_date).toLocaleDateString() : 'Not available'}</p>
-                      </div>
-                      {applicantDetails.resume_link && (
+                      {applicantDetails.bio && (
                         <div style={{ gridColumn: 'span 2' }}>
-                          <label style={{ fontWeight: 'bold' }}>Resume:</label>
+                          <label style={{ fontWeight: 'bold' }}>Bio/Description:</label>
+                          <p style={{ maxHeight: '60px', overflowY: 'auto' }}>{applicantDetails.bio}</p>
+                        </div>
+                      )}
+                      {applicantDetails.kyc_notes && (
+                        <div style={{ gridColumn: 'span 2' }}>
+                          <label style={{ fontWeight: 'bold' }}>KYC Notes:</label>
+                          <p style={{ maxHeight: '60px', overflowY: 'auto' }}>{applicantDetails.kyc_notes}</p>
+                        </div>
+                      )}
+                      {applicantDetails.rejection_reason && (
+                        <div style={{ gridColumn: 'span 2' }}>
+                          <label style={{ fontWeight: 'bold' }}>Rejection Reason:</label>
+                          <p style={{ color: '#dc3545', fontWeight: 'bold' }}>{applicantDetails.rejection_reason}</p>
+                        </div>
+                      )}
+                      {applicantDetails.website && (
+                        <div style={{ gridColumn: 'span 2' }}>
+                          <label style={{ fontWeight: 'bold' }}>Website:</label>
                           <p>
-                            <a href={applicantDetails.resume_link} target="_blank" rel="noopener noreferrer"
+                            <a href={applicantDetails.website} target="_blank" rel="noopener noreferrer"
                                style={{ color: '#007bff', textDecoration: 'underline' }}>
-                              View Resume
+                              {applicantDetails.website}
+                            </a>
+                          </p>
+                        </div>
+                      )}
+                      {applicantDetails.kyc_doc_url && (
+                        <div style={{ gridColumn: 'span 2' }}>
+                          <label style={{ fontWeight: 'bold' }}>KYC Document:</label>
+                          <p>
+                            <a href={applicantDetails.kyc_doc_url} target="_blank" rel="noopener noreferrer"
+                               style={{ color: '#007bff', textDecoration: 'underline' }}>
+                              View KYC Document
                             </a>
                           </p>
                         </div>

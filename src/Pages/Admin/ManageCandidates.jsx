@@ -239,7 +239,7 @@ const ManageCandidates = () => {
           </thead>
           <tbody>
             {currentCandidates.map((candidate) => (
-              <tr key={candidate.id}>
+              <tr key={candidate.id || candidate.email}>
                 <td>
                   <div className={styles.userInfo}>
                     <div className={styles.userAvatar}>
