@@ -16,6 +16,16 @@ const ManageJobs = () => {
   const [error, setError] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
   const [recruiterDetails, setRecruiterDetails] = useState(null);
+
+  // Load premium status from localStorage on component mount
+  const [premiumOverrides, setPremiumOverrides] = useState(() => {
+    try {
+      const stored = localStorage.getItem('jobPremiumOverrides');
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
   const [jobData, setJobData] = useState({
     job_title: "",
     company_name: "",
@@ -90,7 +100,7 @@ const ManageJobs = () => {
           title: task.title || task.category,
           posted_date: task.posted_date,
           updated_date: task.updated_date,
-          is_premium: task.premium_job || task.is_premium || false, // Include premium status from task
+          is_premium: premiumOverrides[task.job_id] !== undefined ? premiumOverrides[task.job_id] : (task.is_premium || task.premium_job || false), // Include premium status from task or overrides
           tasks: []
         };
       }
@@ -125,7 +135,7 @@ const ManageJobs = () => {
 
     setFilteredJobs(filtered);
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, jobs]);
+  }, [searchTerm, statusFilter, jobs, premiumOverrides]);
 
   // Cache for recruiter details, job data, and applicants to avoid multiple API calls
   const [recruiterCache, setRecruiterCache] = useState({});
@@ -509,11 +519,21 @@ const ManageJobs = () => {
       const result = await adminService.markJobPremium(task.job_id, isPremium, 'job');
       alert(`Job successfully marked as ${isPremium ? 'premium' : 'non-premium'}: ${result.message || 'Success'}`);
 
+      // Update premium overrides in localStorage
+      const updatedOverrides = { ...premiumOverrides, [task.job_id]: isPremium };
+      setPremiumOverrides(updatedOverrides);
+      localStorage.setItem('jobPremiumOverrides', JSON.stringify(updatedOverrides));
+
       // Update the local state immediately to reflect the change
       setJobs(prevJobs => {
         return prevJobs.map(job => {
           if (job.job_id === task.job_id) {
-            return { ...job, premium_job: isPremium };
+            // Update the premium status in all tasks for this job
+            const updatedTasks = job.tasks ? job.tasks.map(t => ({
+              ...t,
+              premium_job: isPremium
+            })) : [];
+            return { ...job, premium_job: isPremium, is_premium: isPremium, tasks: updatedTasks };
           }
           return job;
         });
@@ -523,7 +543,12 @@ const ManageJobs = () => {
       setFilteredJobs(prevFiltered => {
         return prevFiltered.map(job => {
           if (job.job_id === task.job_id) {
-            return { ...job, premium_job: isPremium };
+            // Update the premium status in all tasks for this job
+            const updatedTasks = job.tasks ? job.tasks.map(t => ({
+              ...t,
+              premium_job: isPremium
+            })) : [];
+            return { ...job, premium_job: isPremium, is_premium: isPremium, tasks: updatedTasks };
           }
           return job;
         });
@@ -683,10 +708,18 @@ const ManageJobs = () => {
                       {/* View Applications button */}
                       <button
                         className={styles.viewBtn}
-                        disabled={!job.tasks || !job.tasks.some(task => task.category === 'newapplication' || task.category === 'change status of application')}
                         onClick={() => {
-                          const appTask = job.tasks.find(t => t.category === 'newapplication' || t.category === 'change status of application');
-                          if (appTask) setEditingTask(appTask);
+                          const appTask = job.tasks && job.tasks.find(t => t.category === 'newapplication' || t.category === 'change status of application');
+                          if (appTask) {
+                            setEditingTask(appTask);
+                          } else {
+                            // If no application task exists, create a dummy task for viewing applications
+                            setEditingTask({
+                              job_id: job.job_id,
+                              recruiter_id: job.tasks && job.tasks[0] ? job.tasks[0].recruiter_id : null,
+                              category: 'view_applications'
+                            });
+                          }
                         }}
                       >
                         View Applications
@@ -710,7 +743,7 @@ const ManageJobs = () => {
                           className={styles.premiumBtn}
                           onClick={() => handleMarkJobPremium(job.tasks[0], !job.is_premium)}
                         >
-                          {job.is_premium ? 'Remove Premium' : 'Mark Premium'}
+                          {premiumOverrides[job.job_id] !== undefined ? (premiumOverrides[job.job_id] ? 'Remove Premium' : 'Mark Premium') : (job.is_premium ? 'Remove Premium' : 'Mark Premium')}
                         </button>
                       )}
                     </div>

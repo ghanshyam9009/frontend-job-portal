@@ -129,8 +129,8 @@ export const adminService = {
             company_name = recruiterData[task.recruiter_id].company_name;
           }
 
-          // Get premium status from the jobs data
-          const is_premium = task.job_id ? premiumStatusMap[task.job_id] || false : false;
+          // Get premium status - prioritize task.premium_job if it exists (from recent API calls), otherwise use jobs data
+          const is_premium = task.premium_job !== undefined ? task.premium_job : (task.job_id ? premiumStatusMap[task.job_id] || false : false);
 
           return {
             id: task.task_id,

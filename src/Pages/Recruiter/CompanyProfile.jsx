@@ -45,6 +45,7 @@ const CompanyProfile = () => {
   const normalizedKycStatus = (kycStatus.status || '').toLowerCase();
   const isKycVerified = ['verified', 'approved', 'completed', 'success', 'accepted'].includes(normalizedKycStatus);
   const isKycSubmitted = ['submitted', 'in_review', 'under_review', 'pending_verification'].includes(normalizedKycStatus);
+  const isAdminApproved = user?.hasadminapproved === true;
 
   const profileCompletionPercent = useMemo(() => {
     const dataForCalculation = {
@@ -162,23 +163,79 @@ const CompanyProfile = () => {
     setProfileData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleLogoChange = (e) => {
+  const handleLogoChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
     const error = validateImageFile(file);
     if (error) {
       setError(error);
       setTimeout(() => setError(null), 3000);
       return;
     }
-    setProfileData(prev => ({ 
-      ...prev, 
-      companyLogoFile: file, 
-      company_logo: URL.createObjectURL(file) 
-    }));
-    setSuccess('Company logo selected successfully');
-    setTimeout(() => setSuccess(false), 3000);
-    setExpandedStep(2);
+
+    setLoading(true);
+    try {
+      // Upload the logo file immediately using the dedicated API
+      const uploadResponse = await recruiterService.uploadLogoFile(user.email, file);
+
+      if (uploadResponse.success) {
+        // Debug the response structure
+        console.log('Full upload response:', uploadResponse);
+        console.log('Upload response data:', uploadResponse.data);
+        console.log('Data type:', typeof uploadResponse.data);
+        console.log('Data keys:', uploadResponse.data ? Object.keys(uploadResponse.data) : 'No data');
+
+        // Try multiple extraction approaches - handle nested data structure from withErrorHandling
+        let uploadedLogoUrl;
+
+        // First try: nested data structure from service response
+        if (uploadResponse.data?.data?.logoUrl) {
+          uploadedLogoUrl = uploadResponse.data.data.logoUrl;
+          console.log('Found logo in uploadResponse.data.data.logoUrl');
+        } else if (uploadResponse.data?.data?.logo) {
+          uploadedLogoUrl = uploadResponse.data.data.logo;
+          console.log('Found logo in uploadResponse.data.data.logo');
+        }
+        // Second try: direct from data (fallback for different response structures)
+        else if (uploadResponse.data?.logo) {
+          uploadedLogoUrl = uploadResponse.data.logo;
+          console.log('Found logo in uploadResponse.data.logo');
+        } else if (uploadResponse.data?.logoUrl) {
+          uploadedLogoUrl = uploadResponse.data.logoUrl;
+          console.log('Found logo in uploadResponse.data.logoUrl');
+        }
+        // Third try: check if data itself is the URL (fallback)
+        else if (typeof uploadResponse.data === 'string' && uploadResponse.data.startsWith('http')) {
+          uploadedLogoUrl = uploadResponse.data;
+          console.log('Found logo as direct string in data');
+        }
+
+        console.log('Final extracted logo URL:', uploadedLogoUrl);
+
+        // Update logo URL in profileData only (don't update user context to avoid triggering re-fetch)
+        if (uploadedLogoUrl) {
+          console.log('Setting logo URL in profileData:', uploadedLogoUrl);
+          setProfileData(prev => ({
+            ...prev,
+            company_logo: uploadedLogoUrl,
+            companyLogoFile: null
+          }));
+        } else {
+          console.error('No logo URL found! Data content:', uploadResponse.data);
+        }
+        setSuccess('Company logo uploaded successfully');
+        setTimeout(() => setSuccess(false), 3000);
+        setExpandedStep(2);
+      } else {
+        setError(uploadResponse.error?.message || 'Failed to upload company logo');
+      }
+    } catch (error) {
+      console.error('Logo upload error:', error);
+      setError('Failed to upload company logo. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleProfileUpdate = async (e) => {
@@ -455,8 +512,8 @@ const CompanyProfile = () => {
             <Shield className={isKycVerified ? "text-green-500" : "text-amber-500"} size={20} />
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Trust Score</p>
-              <p className={`text-sm font-bold ${isKycVerified ? "text-green-600" : "text-amber-600"}`}>
-                {isKycVerified ? "Verified Employer" : isKycSubmitted ? "Verification Pending" : "Unverified"}
+              <p className={`text-sm font-bold ${isAdminApproved ? "text-green-600" : isKycVerified ? "text-green-600" : "text-amber-600"}`}>
+                {isAdminApproved ? "Verification Complete" : isKycVerified ? "Verified Employer" : isKycSubmitted ? "Verification Pending" : "Unverified"}
               </p>
             </div>
           </div>
@@ -767,70 +824,113 @@ const CompanyProfile = () => {
                       </div>
                     </div>
                   ) : (
-                    <form onSubmit={handleKycSubmit} className="space-y-6 mt-6">
-                      {kycError && (
-                        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-3">
-                          <XCircle size={20} className="text-red-500 flex-shrink-0" />
-                          <p className="text-sm text-red-600 dark:text-red-400">{kycError}</p>
+                    <div className="space-y-6 mt-6">
+                      {/* Display uploaded KYC documents if they exist */}
+                      {kycStatus.documentUrl && (
+                        <div className="p-6 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800">
+                          <div className="flex items-start gap-4">
+                            <CheckCircle className="text-green-500 flex-shrink-0 mt-1" size={24} />
+                            <div className="flex-1">
+                              <h4 className={`text-lg font-bold ${textColor} mb-2`}>KYC Documents Submitted</h4>
+                              <div className="space-y-3">
+                                <div>
+                                  <p className="text-sm text-green-800 dark:text-green-400 mb-2">
+                                    <strong>Document Type:</strong> {kycData.documentType || 'GST Certificate'}
+                                  </p>
+                                  <p className="text-sm text-green-800 dark:text-green-400 mb-3">
+                                    <strong>Document Number:</strong> {kycData.documentNumber || 'Not available'}
+                                  </p>
+                                  <div className="flex items-center gap-3">
+                                    <a
+                                      href={kycStatus.documentUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                    >
+                                      <FileText size={16} />
+                                      View Document
+                                    </a>
+                                    <span className={`text-xs ${textSecondary}`}>
+                                      Status: {formatKycStatusLabel(kycStatus.status)}
+                                    </span>
+                                  </div>
+                                </div>
+                                {kycStatus.updatedAt && (
+                                  <p className={`text-xs ${textSecondary}`}>
+                                    Last updated: {new Date(kycStatus.updatedAt).toLocaleDateString()}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       )}
 
-                      {kycSuccess && (
-                        <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-center gap-3">
-                          <CheckCircle size={20} className="text-green-500 flex-shrink-0" />
-                          <p className="text-sm text-green-600 dark:text-green-400">{kycSuccess}</p>
-                        </div>
-                      )}
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div>
-                          <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Document Type</label>
-                          <select name="documentType" value={kycData.documentType} onChange={handleKycInputChange} className={`w-full p-3 rounded-xl border ${borderColor} ${inputBg} ${textColor}`}>
-                            <option value="GST">GST Certificate</option>
-                            <option value="PAN">PAN Card</option>
-                            <option value="MSME">MSME Registration</option>
-                            <option value="INCORPORATION">Certificate of Incorporation</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Document Number *</label>
-                          <input name="documentNumber" value={kycData.documentNumber} onChange={handleKycInputChange} className={`w-full p-3 rounded-xl border ${borderColor} ${inputBg} ${textColor}`} placeholder="Enter registration number" required />
-                        </div>
-                      </div>
-
-                      <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl p-10 text-center bg-gray-50 dark:bg-gray-900/30">
-                        <Upload className="mx-auto text-gray-300 mb-4" size={48} />
-                        <input type="file" className="hidden" id="kyc" onChange={handleKycFileChange} accept=".pdf,.jpg,.jpeg,.png" />
-                        <label htmlFor="kyc" className="text-blue-500 font-bold cursor-pointer hover:underline">Click to upload document (PDF/JPG)</label>
-                        {kycData.documentFile && <p className="mt-3 text-sm text-green-500 font-bold flex items-center justify-center gap-2"><Check size={16}/> {kycData.documentFile.name}</p>}
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Additional Notes (Optional)</label>
-                        <textarea name="additionalNotes" value={kycData.additionalNotes} onChange={handleKycInputChange} rows="3" className={`w-full p-3 rounded-xl border ${borderColor} ${inputBg} ${textColor}`} placeholder="Any additional information..." />
-                      </div>
-
-                      {kycStatus.reviewerNote && (
-                        <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
-                          <p className={`text-sm font-medium ${textColor} mb-1`}>Reviewer Note:</p>
-                          <p className="text-sm text-amber-800 dark:text-amber-200">{kycStatus.reviewerNote}</p>
-                        </div>
-                      )}
-
-                      <button type="submit" disabled={kycLoading} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-50">
-                        {kycLoading ? (
-                          <>
-                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            Submitting...
-                          </>
-                        ) : (
-                          <>
-                            <Shield size={20} />
-                            Submit for Verification
-                          </>
+                      <form onSubmit={handleKycSubmit} className="space-y-6">
+                        {kycError && (
+                          <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-3">
+                            <XCircle size={20} className="text-red-500 flex-shrink-0" />
+                            <p className="text-sm text-red-600 dark:text-red-400">{kycError}</p>
+                          </div>
                         )}
-                      </button>
-                    </form>
+
+                        {kycSuccess && (
+                          <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-center gap-3">
+                            <CheckCircle size={20} className="text-green-500 flex-shrink-0" />
+                            <p className="text-sm text-green-600 dark:text-green-400">{kycSuccess}</p>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                          <div>
+                            <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Document Type</label>
+                            <select name="documentType" value={kycData.documentType} onChange={handleKycInputChange} className={`w-full p-3 rounded-xl border ${borderColor} ${inputBg} ${textColor}`}>
+                              <option value="GST">GST Certificate</option>
+                              <option value="PAN">PAN Card</option>
+                              <option value="MSME">MSME Registration</option>
+                              <option value="INCORPORATION">Certificate of Incorporation</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Document Number *</label>
+                            <input name="documentNumber" value={kycData.documentNumber} onChange={handleKycInputChange} className={`w-full p-3 rounded-xl border ${borderColor} ${inputBg} ${textColor}`} placeholder="Enter registration number" required />
+                          </div>
+                        </div>
+
+                        <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl p-10 text-center bg-gray-50 dark:bg-gray-900/30">
+                          <Upload className="mx-auto text-gray-300 mb-4" size={48} />
+                          <input type="file" className="hidden" id="kyc" onChange={handleKycFileChange} accept=".pdf,.jpg,.jpeg,.png" />
+                          <label htmlFor="kyc" className="text-blue-500 font-bold cursor-pointer hover:underline">Click to upload document (PDF/JPG)</label>
+                          {kycData.documentFile && <p className="mt-3 text-sm text-green-500 font-bold flex items-center justify-center gap-2"><Check size={16}/> {kycData.documentFile.name}</p>}
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Additional Notes (Optional)</label>
+                          <textarea name="additionalNotes" value={kycData.additionalNotes} onChange={handleKycInputChange} rows="3" className={`w-full p-3 rounded-xl border ${borderColor} ${inputBg} ${textColor}`} placeholder="Any additional information..." />
+                        </div>
+
+                        {kycStatus.reviewerNote && (
+                          <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+                            <p className={`text-sm font-medium ${textColor} mb-1`}>Reviewer Note:</p>
+                            <p className="text-sm text-amber-800 dark:text-amber-200">{kycStatus.reviewerNote}</p>
+                          </div>
+                        )}
+
+                        <button type="submit" disabled={kycLoading} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-50">
+                          {kycLoading ? (
+                            <>
+                              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              Submitting...
+                            </>
+                          ) : (
+                            <>
+                              <Shield size={20} />
+                              Submit for Verification
+                            </>
+                          )}
+                        </button>
+                      </form>
+                    </div>
                   )}
                 </div>
               )}
