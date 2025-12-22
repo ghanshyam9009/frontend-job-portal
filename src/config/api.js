@@ -121,7 +121,7 @@ export const API_ENDPOINTS = {
     getAll: '/jobs',
     getById: (id) => `/jobs/${id}`,
     create: '/job/jobs',
-    update: (id) => `/jobs/${id}`,
+    update: (id) => `/job/jobs/${id}`,
     delete: (id) => `/jobs/${id}`,
     search: '/jobs/search',
     getByEmployer: (employerId) => `/jobs/employer/${employerId}`,

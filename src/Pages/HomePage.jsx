@@ -451,6 +451,7 @@ const Homepage = () => {
           employment_type: j.employment_type || "Full-time",
           job_type: j.employment_type || "Full-time",
           company_logo: j.company_logo || j.logo || j.companyLogo || null,
+          job_logo_url: j.job_logo_url || null, // Include job-specific logo URL
           is_premium: j.premium_job || j.is_premium || false,
           created_at: j.created_at || j.posted_date,
           posted_date: j.posted_date,
