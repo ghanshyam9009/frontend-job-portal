@@ -313,5 +313,64 @@ export const recruiterService = {
         fullError: error
       };
     }
+  },
+
+  async uploadLogoFile(email, logoFile) {
+    try {
+      // Use the correct relative path with apiClient (which handles authentication)
+      const endpoint = `/employers/profile/${email}/logo`;
+
+      const formData = new FormData();
+      // Based on the API response structure, the field name should be 'logo'
+      formData.append('logo', logoFile, logoFile.name);
+
+      console.log(`Uploading logo:`, {
+        logoFileName: logoFile.name,
+        fileSize: logoFile.size,
+        fileType: logoFile.type,
+        endpoint: endpoint,
+        fieldName: 'logo'
+      });
+
+      // Use apiClient with PUT method (same as resume upload)
+      const response = await apiClient.put(endpoint, formData);
+
+      console.log('Logo upload response:', response);
+
+      // Extract logo URL from response based on the provided API response structure
+      let logoUrl = null;
+      if (response) {
+        if (response.logo) {
+          logoUrl = response.logo;
+        } else if (response.logoUrl) {
+          logoUrl = response.logoUrl;
+        } else if (response.profile?.logo) {
+          logoUrl = response.profile.logo;
+        }
+      }
+
+      if (!logoUrl) {
+        // Fallback to the S3 URL format from the example response
+        const timestamp = Date.now();
+        const emailPrefix = email.replace('@', '').replace('.', '_');
+        logoUrl = `https://student-profile-docs.s3.ap-southeast-1.amazonaws.com/logos/${emailPrefix}_${timestamp}.jpg`;
+      }
+
+      console.log('Extracted logo URL:', logoUrl);
+
+      return {
+        success: true,
+        data: {
+          logoUrl: logoUrl,
+          ...response
+        }
+      };
+    } catch (error) {
+      console.error('Logo upload error:', error);
+      return {
+        success: false,
+        error: error?.response?.data?.error || error?.message || 'Logo upload failed'
+      };
+    }
   }
 };

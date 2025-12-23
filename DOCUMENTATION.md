@@ -134,14 +134,14 @@ frontend-job-portal/
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                       API CLIENT (Axios)                         │
+│                       API CLIENT (Axios)                        │
 │  - Request interceptors (add auth token)                        │
 │  - Response interceptors (error handling)                       │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                     BACKEND API SERVER                           │
+│                     BACKEND API SERVER                          │
 │              https://api.bigsources.in/api                      │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -165,22 +165,22 @@ frontend-job-portal/
 │  User Login  │────▶│ authService  │────▶│  Backend API │
 │    Form      │     │   .login()   │     │   /login     │
 └──────────────┘     └──────────────┘     └──────────────┘
-                              │
-                              ▼
-                     ┌──────────────┐
-                     │  Store in    │
-                     │sessionStorage│
-                     │ - authToken  │
-                     │ - user data  │
-                     │ - timestamp  │
-                     └──────────────┘
-                              │
-                              ▼
-                     ┌──────────────┐
-                     │ AuthContext  │
-                     │  updates     │
-                     │ isAuthenticated│
-                     └──────────────┘
+                                                │
+                                                ▼
+                                          ┌──────────────┐
+                                          │  Store in    │
+                                          │sessionStorage│
+                                          │ - authToken  │
+                                          │ - user data  │
+                                          │ - timestamp  │
+                                          └──────────────┘
+                                                │
+                                                ▼
+                                          ┌──────────────┐
+                                          │ AuthContext  │
+                                          │  updates     │
+                                          │ isAuthenticated│
+                                          └──────────────┘
 ```
 
 ### Session Management
@@ -216,7 +216,7 @@ frontend-job-portal/
     <Route path="/job/:slug" element={<Jobdescription />} />
     <Route path="/about" element={<AboutUs />} />
     <Route path="/contact" element={<ContactUs />} />
-    
+
     {/* CANDIDATE PROTECTED ROUTES */}
     <Route element={<ProtectedRoute role="candidate"><CandidateLayout /></ProtectedRoute>}>
       <Route path="/userdashboard" element={<UserDashboard />} />
@@ -224,7 +224,7 @@ frontend-job-portal/
       <Route path="/my-applications" element={<AppliedJobs />} />
       <Route path="/profile" element={<ProfileManagement />} />
     </Route>
-    
+
     {/* RECRUITER PROTECTED ROUTES */}
     <Route element={<ProtectedRoute role="recruiter"><RecruiterLayout /></ProtectedRoute>}>
       <Route path="/recruiter/dashboard" element={<RecruiterDashboard />} />
@@ -232,7 +232,7 @@ frontend-job-portal/
       <Route path="/manage-jobs" element={<ManageJobs />} />
       <Route path="/candidate-applications" element={<CandidateApplications />} />
     </Route>
-    
+
     {/* ADMIN PROTECTED ROUTES */}
     <Route element={<ProtectedRoute role="admin"><AdminLayout /></ProtectedRoute>}>
       <Route path="/admin/dashboard" element={<AdminDashboard />} />
@@ -256,8 +256,8 @@ The `ProtectedRoute` component:
 User Request → ProtectedRoute → Check Auth → Check Role → Render Page
                                     │             │
                                     ▼             ▼
-                               Redirect to    Redirect to
-                               Login Page     Home Page
+                              Redirect to    Redirect to
+                              Login Page     Home Page
 ```
 
 ---
@@ -510,11 +510,11 @@ import { useAuth } from '../Contexts/AuthContext';
 
 function MyComponent() {
   const { isAuthenticated, user, login, logout } = useAuth();
-  
+
   if (!isAuthenticated) {
     return <LoginPrompt />;
   }
-  
+
   return <div>Welcome, {user.name}!</div>;
 }
 ```
@@ -643,8 +643,8 @@ Application-wide constants:
 │  Candidate  │───▶│  Job Card   │───▶│    Job      │───▶│   Apply     │
 │  Browses    │    │   Click     │    │  Details    │    │   Button    │
 └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-                                                                │
-                                                                ▼
+                                                               │
+                                                               ▼
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
 │  Success    │◀───│   Backend   │◀───│ Application │◀───│   Submit    │
 │  Message    │    │   Creates   │    │   Service   │    │Application  │
@@ -659,8 +659,8 @@ Application-wide constants:
 │  Recruiter  │───▶│  Post Job   │───▶│  Fill Job   │───▶│   Submit    │
 │  Dashboard  │    │   Page      │    │   Form      │    │   Button    │
 └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-                                                                │
-                                                                ▼
+                                                               │
+                                                               ▼
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
 │   Job       │◀───│   Backend   │◀───│    Job      │◀───│  Validate   │
 │  Created    │    │   Creates   │    │   Service   │    │   Data      │
@@ -676,8 +676,8 @@ Application-wide constants:
 │  Clicks     │    │   Icon      │    │  Service    │    │   API       │
 │  Bookmark   │    │             │    │   .save()   │    │             │
 └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-                                                                │
-                                                                ▼
+                                                               │
+                                                               ▼
 ┌─────────────┐    ┌─────────────┐                      ┌─────────────┐
 │   UI        │◀───│   Update    │◀─────────────────────│   Job       │
 │  Updates    │    │   State     │                      │   Saved     │
@@ -823,5 +823,4 @@ const jobs = await jobService.getAllJobs();
 - **Author**: Development Team
 
 ---
-
 

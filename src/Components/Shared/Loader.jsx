@@ -33,3 +33,8 @@ const Loader = ({ size = 'md', fullScreen = false, message = 'Loading...' }) => 
 
 export default Loader;
 
+
+
+
+
+

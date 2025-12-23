@@ -1,18 +1,20 @@
-// API Configuration
+// API Configuration - Use environment variable for flexibility
+const API_BASE_URL_ENV = import.meta.env.VITE_API_BASE_URL || 'https://api.bigsources.in/api';
+
 const API_CONFIG = {
   development: {
-    baseURL: 'https://api.bigsources.in/api',
+    baseURL: API_BASE_URL_ENV,
     timeout: 10000
   },
   production: {
-    baseURL: 'https://api.bigsources.in/api',
+    baseURL: API_BASE_URL_ENV,
     timeout: 15000
   }
 };
 
 // Get current environment
-const environment = process.env.NODE_ENV || 'development';
-const config = API_CONFIG[environment];
+const environment = import.meta.env.MODE || 'development';
+const config = API_CONFIG[environment] || API_CONFIG.production;
 
 // Base API configuration
 export const API_BASE_URL = config.baseURL;
