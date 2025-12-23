@@ -68,7 +68,7 @@ const ManageJobs = () => {
   }, [user]);
 
   const handleEditJob = (jobId) => {
-    navigate(`/recruiter/edit-job/${jobId}`);
+    navigate(`/edit-job/${jobId}`);
   };
 
   const handleViewApplications = (jobId) => {

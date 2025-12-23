@@ -48,6 +48,7 @@ const PostJob = () => {
     contact_email: user?.email || "",
     job_status: "open",
   });
+  const [logoFile, setLogoFile] = useState(null);
 
   const [newSkill, setNewSkill] = useState("");
   const [canPostJob, setCanPostJob] = useState(false);
@@ -144,9 +145,21 @@ const PostJob = () => {
         qualifications: jobData.qualifications.split("\n"),
       };
 
+      // Create the job first
+      const createResponse = await jobService.createJob(jobPayload);
+      const jobId = createResponse.data?.job_id || createResponse.data?.id;
 
+      // If logo file is selected and job was created successfully, upload the logo
+      if (logoFile && jobId) {
+        try {
+          await jobService.uploadJobLogo(jobId, logoFile);
+          // Note: Logo upload API automatically updates the job record with logo URL
+        } catch (logoErr) {
+          console.error('Failed to upload job logo:', logoErr);
+          // Don't fail the entire job posting if logo upload fails
+        }
+      }
 
-      await jobService.createJob(jobPayload);
       setShowSuccessModal(true);
       // Clear form data after successful submission
       setJobData({
@@ -167,6 +180,7 @@ const PostJob = () => {
         contact_email: user?.email || "",
         job_status: "open",
       });
+      setLogoFile(null); // Clear the logo file
     } catch (err) {
       setError("Failed to post job. Please try again.");
       console.error(err);
@@ -290,6 +304,44 @@ const PostJob = () => {
                   required
                   className={`w-full px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
                 />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Job Logo
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      // Validate file size (5MB max)
+                      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+                      if (file.size > maxSize) {
+                        alert('File size must be less than 5MB');
+                        e.target.value = '';
+                        setLogoFile(null);
+                        return;
+                      }
+                      // Validate file type
+                      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                      if (!allowedTypes.includes(file.type)) {
+                        alert('Please select a valid image file (JPG, PNG, or GIF)');
+                        e.target.value = '';
+                        setLogoFile(null);
+                        return;
+                      }
+                      setLogoFile(file);
+                    } else {
+                      setLogoFile(null);
+                    }
+                  }}
+                  className={`w-full px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100`}
+                />
+                <p className={`text-xs ${textSecondary} mt-1`}>
+                  Upload a logo for this job posting (optional). Max size: 5MB. Supported formats: JPG, PNG, GIF
+                </p>
               </div>
 
               <div>

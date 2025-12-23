@@ -13,13 +13,18 @@ export const recruiterExternalService = {
     const response = await axios.get(JOBS_URL, { params: { employer_id: employerId } });
     const jobsData = response.data;
 
+    // Optimize by getting all application counts in parallel instead of sequential calls
     if (jobsData && jobsData.jobs) {
-        for (const job of jobsData.jobs) {
-            const applicantsData = await this.getApplicationCount(job.job_id);
-            job.application_count = applicantsData.application_count || 0;
-        }
+        const applicationCountPromises = jobsData.jobs.map(job =>
+            this.getApplicationCount(job.job_id).catch(() => ({ application_count: 0 }))
+        );
+        const applicationCounts = await Promise.all(applicationCountPromises);
+
+        jobsData.jobs.forEach((job, index) => {
+            job.application_count = applicationCounts[index].application_count || 0;
+        });
     }
-    
+
     return jobsData;
   },
 

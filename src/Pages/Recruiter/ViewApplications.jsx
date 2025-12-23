@@ -19,7 +19,6 @@ import {
   Phone
 } from "lucide-react";
 import { recruiterExternalService } from "../../services";
-import { studentService } from "../../services/studentService";
 
 const ViewApplications = () => {
   const navigate = useNavigate();
@@ -68,41 +67,51 @@ const ViewApplications = () => {
         // Fetch applications
         const applicationsData = await recruiterExternalService.getAllApplicants(jobId);
         const applicationsList = applicationsData.applications || [];
-       
-        // Fetch student details for each application
-        const applicationsWithDetails = await Promise.all(
-          applicationsList.map(async (app) => {
-            try {
-              const studentDetails = await studentService.getStudentById(app.student_id);
-         
-              return {
-                ...app,
-                student_name: studentDetails?.full_name || studentDetails?.name || app.student_name || "Unknown Candidate",
-                student_email: studentDetails?.email || app.student_email || "Unknown Email",
-                qualification: studentDetails?.qualification || studentDetails?.education || studentDetails?.degree || "Not provided",
-                experience: studentDetails?.experience || studentDetails?.years_of_experience || studentDetails?.work_experience || "Not provided",
-                phone_number: studentDetails?.phone_number || studentDetails?.phone || studentDetails?.contact_number || studentDetails?.mobile || "Not provided",
-                skills: studentDetails?.skills || studentDetails?.skill_set || [],
-                ...studentDetails
-               
-              };
-           
-            } catch (err) {
-              console.error(`Failed to fetch details for student ${app.student_id}:`, err);
-               
-              return {
-                ...app,
-                student_name: app.student_name || "Unknown Candidate",
-                student_email: app.student_email || "Unknown Email",
-                qualification: "Not provided",
-                experience: "Not provided",
-                phone_number: "Not provided",
-                skills: [],
-               
-              };
+
+        // Use embedded student data from application response
+        const applicationsWithDetails = applicationsList.map((app) => {
+          // Extract student profile data from the embedded student_profile object
+          const studentProfile = app.student_profile || {};
+
+          // Format experience data properly
+          let experienceString = "Not provided";
+          if (studentProfile.experience && typeof studentProfile.experience === 'string') {
+            experienceString = studentProfile.experience; // e.g., "fresher"
+          } else if (studentProfile.experience_years) {
+            experienceString = `${studentProfile.experience_years} years`;
+          } else if (app.student_experience) {
+            experienceString = app.student_experience;
+          }
+
+          // Format education data properly
+          let qualificationString = "Not provided";
+          if (studentProfile.education && Array.isArray(studentProfile.education) && studentProfile.education.length > 0) {
+            const firstEdu = studentProfile.education[0];
+            qualificationString = firstEdu.degree || firstEdu.institution || "Not provided";
+          } else if (app.student_degree) {
+            qualificationString = app.student_degree;
+          }
+
+          // Get resume URL from student profile
+          const resumeUrl = studentProfile.resumeUrl || studentProfile.resume || app.resume_url;
+
+          return {
+            ...app,
+            student_name: studentProfile.full_name || app.student_name || "Unknown Candidate",
+            student_email: studentProfile.email || app.student_email || "Unknown Email",
+            qualification: qualificationString,
+            experience: experienceString,
+            phone_number: studentProfile.phone_number || app.student_phone || "Not provided",
+            skills: Array.isArray(studentProfile.skills) ? studentProfile.skills : (app.student_skills ? [app.student_skills] : []),
+            resume_url: resumeUrl, // Use the resume URL from student profile
+            // Include other student profile data but exclude complex objects that might cause React rendering issues
+            student_profile: {
+              ...studentProfile,
+              experience: undefined, // Remove complex experience array
+              education: undefined, // Remove complex education array
             }
-          })
-        );
+          };
+        });
 
         setApplications(applicationsWithDetails);
       } catch (e) {
@@ -386,8 +395,21 @@ const ViewApplications = () => {
                     {/* Candidate Header */}
                     <div className="flex items-start justify-between gap-2.5 mb-2.5">
                       <div className="flex items-start gap-2 flex-1 min-w-0">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                          {application.student_name?.charAt(0) || 'U'}
+                        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
+                          {application.student_profile?.logo || application.student_profile?.company_logo || application.student_profile?.profile_image ? (
+                            <img
+                              src={application.student_profile.logo || application.student_profile.company_logo || application.student_profile.profile_image}
+                              alt={application.student_name || 'Candidate'}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextElementSibling.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          <div className={`w-full h-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs ${application.student_profile?.logo || application.student_profile?.company_logo || application.student_profile?.profile_image ? 'hidden' : 'flex'}`}>
+                            {application.student_name?.charAt(0)?.toUpperCase() || 'U'}
+                          </div>
                         </div>
                         <div className="min-w-0 flex-1">
                           <h4 className={`text-xs font-bold ${textColor} truncate leading-tight`}>

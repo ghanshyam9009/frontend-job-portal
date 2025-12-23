@@ -134,11 +134,22 @@ export const jobService = {
       const response = await apiClient.put(API_ENDPOINTS.jobs.updateGovernmentJob(jobId), jobData);
       return response;
     }, 'Failed to update government job');
+  },
+
+  // Upload job logo
+  async uploadJobLogo(jobId, logoFile) {
+    return withErrorHandling(async () => {
+      const formData = new FormData();
+      formData.append('logo', logoFile);
+
+      const response = await apiClient.put(`job/jobs/${jobId}/logo`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response;
+    }, 'Failed to upload job logo');
   }
 };
 
 export default jobService;
-
-
-
-

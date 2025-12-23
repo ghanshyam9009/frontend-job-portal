@@ -66,7 +66,7 @@ const JobCard = ({
       .substring(0, 2);
   };
 
-  const companyLogo = job.company_logo || job.logo;
+  const companyLogo = job.job_logo_url || job.job_logo || job.company_logo || job.logo;
 
   const bgSecondary = isDark ? 'bg-gray-800' : 'bg-white';
   const textPrimary = isDark ? 'text-white' : 'text-gray-900';

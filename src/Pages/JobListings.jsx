@@ -324,6 +324,7 @@ const JobListings = () => {
           title: j.job_title,
           company_name: j.company_name || "",
           company_logo: j.company_logo || j.logo || j.companyLogo || null,
+          job_logo_url: j.job_logo_url || null, // Include job-specific logo URL
           company: j.company_name || "",
           salary_range: j.salary_range,
           salary: j.salary_range ?

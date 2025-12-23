@@ -1,11 +1,11 @@
-﻿import React, { useState, useEffect } from "react";
-import { 
-  Search, 
-  Filter, 
-  Download, 
-  Users, 
-  UserCheck, 
-  Clock, 
+import React, { useState, useEffect } from "react";
+import {
+  Search,
+  Filter,
+  Download,
+  Users,
+  UserCheck,
+  Clock,
   UserX,
   ChevronLeft,
   ChevronRight,
@@ -25,7 +25,7 @@ const StatusBadge = ({ status }) => {
     active: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
     inactive: "bg-gray-500/10 text-gray-600 border-gray-500/20"
   };
-  
+
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${styles[status] || styles.active}`}>
       {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -109,7 +109,7 @@ const ManageCandidates = () => {
       );
     }
     if (statusFilter !== "all") {
-      filtered = filtered.filter(candidate => 
+      filtered = filtered.filter(candidate =>
         candidate.status?.toLowerCase() === statusFilter.toLowerCase()
       );
     }
@@ -195,14 +195,14 @@ const ManageCandidates = () => {
       await studentService.updateProfile(editingCandidate.email, dataForSubmission);
 
       const updatedCandidates = candidates.map(c =>
-        c.email === editingCandidate.email ? { 
-          ...c, 
-          name: editFormData.full_name, 
-          phone: editFormData.phone_number, 
-          location: editFormData.address, 
+        c.email === editingCandidate.email ? {
+          ...c,
+          name: editFormData.full_name,
+          phone: editFormData.phone_number,
+          location: editFormData.address,
           experience: editFormData.experience_years,
-          skills: editFormData.skills, 
-          status: editFormData.status 
+          skills: editFormData.skills,
+          status: editFormData.status
         } : c
       );
       setCandidates(updatedCandidates);
@@ -252,7 +252,7 @@ const ManageCandidates = () => {
   };
 
   const toggleCheckbox = (id) => {
-    setSelectedCandidates(prev => 
+    setSelectedCandidates(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
   };
@@ -369,129 +369,129 @@ const ManageCandidates = () => {
         </div>
 
         {/* Table */}
-   <div className="rounded-xl border border-gray-200 bg-white shadow-sm ">
-  <div className=" overflow-x-auto">
-    <table className="w-full">
-      <thead>
-        <tr className="bg-gray-50 border-b border-gray-200">
-          <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Candidate</th>
-          <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Phone</th>
-          <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Location</th>
-          <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Experience</th>
-          <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Skills</th>
-          <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Status</th>
-          <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Joined</th>
-          <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Actions</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-gray-200">
-        {currentCandidates.length > 0 ? (
-          currentCandidates.map((candidate) => (
-            <tr 
-              key={candidate.id}
-              className="hover:bg-gray-50 transition-colors"
-            >
-              <td className="px-4 py-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/10 text-blue-600 font-medium text-xs">
-                    {candidate.logo ? (
-                      <img src={candidate.logo} alt={candidate.name || 'Candidate'} className="h-full w-full object-cover" />
-                    ) : (
-                      getInitials(candidate.name)
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900 text-sm">{candidate.name || 'N/A'}</p>
-                    <p className="text-xs text-gray-600">{candidate.email || 'N/A'}</p>
-                  </div>
-                </div>
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-600">{candidate.phone || 'N/A'}</td>
-              <td className="px-4 py-3 text-sm text-gray-600">{candidate.city || 'N/A'}</td>
-              <td className="px-4 py-3 text-sm text-gray-600">{candidate.experience || 'N/A'}</td>
-              <td className="px-4 py-3">
-                <div className="flex gap-1">
-                  {(candidate.skills || []).slice(0, 2).map((skill, index) => (
-                    <span key={index} className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/10 text-blue-600 border border-blue-500/20">
-                      {skill}
-                    </span>
-                  ))}
-                  {(candidate.skills || []).length > 2 && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500/10 text-gray-600">
-                      +{(candidate.skills || []).length - 2}
-                    </span>
-                  )}
-                </div>
-              </td>
-              <td className="px-3 py-2">
-                <StatusBadge status={candidate.status || 'active'} />
-              </td>
-              <td className="px-3 py-2 text-xs text-gray-600">
-                {formatDate(candidate.created_at)}
-              </td>
-              <td className="px-3 py-2">
-                <div className="relative">
-                  <button
-                    onClick={() => setOpenDropdown(openDropdown === candidate.id ? null : candidate.id)}
-                    className="inline-flex items-center justify-center h-6 w-6 rounded hover:bg-gray-100 transition-colors"
-                  >
-                    <MoreHorizontal className="h-3.5 w-3.5 text-gray-600" />
-                  </button>
-                  {openDropdown === candidate.id && (
-                    <>
-                      <div 
-                        className="fixed inset-0 z-10" 
-                        onClick={() => setOpenDropdown(null)}
-                      />
-                      <div className="absolute right-0 mt-1 w-32 rounded-lg border border-gray-200 bg-white shadow-lg z-20">
-                        <button
-                          onClick={() => {
-                            openViewModal(candidate);
-                            setOpenDropdown(null);
-                          }}
-                          className="flex w-full items-center gap-2 px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-50 transition-colors"
-                        >
-                          <Eye className="h-3 w-3" />
-                          View Details
-                        </button>
-                        <button
-                          onClick={() => {
-                            openEditModal(candidate);
-                          }}
-                          className="flex w-full items-center gap-2 px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-50 transition-colors"
-                        >
-                          <Pencil className="h-3 w-3" />
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleBlockStudent(candidate)}
-                          className="flex w-full items-center gap-2 px-2 py-1.5 text-xs text-red-600 hover:bg-red-50 transition-colors"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                          Block
-                        </button>
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm ">
+          <div className=" overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Candidate</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Phone</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Location</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Experience</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Skills</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Joined</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {currentCandidates.length > 0 ? (
+                  currentCandidates.map((candidate) => (
+                    <tr
+                      key={candidate.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/10 text-blue-600 font-medium text-xs">
+                            {candidate.logo ? (
+                              <img src={candidate.logo} alt={candidate.name || 'Candidate'} className="h-full w-full object-cover" />
+                            ) : (
+                              getInitials(candidate.name)
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900 text-sm">{candidate.name || 'N/A'}</p>
+                            <p className="text-xs text-gray-600">{candidate.email || 'N/A'}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{candidate.phone || 'N/A'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{candidate.city || 'N/A'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{candidate.experience || 'N/A'}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-1">
+                          {(candidate.skills || []).slice(0, 2).map((skill, index) => (
+                            <span key={index} className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/10 text-blue-600 border border-blue-500/20">
+                              {skill}
+                            </span>
+                          ))}
+                          {(candidate.skills || []).length > 2 && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-500/10 text-gray-600">
+                              +{(candidate.skills || []).length - 2}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <StatusBadge status={candidate.status || 'active'} />
+                      </td>
+                      <td className="px-3 py-2 text-xs text-gray-600">
+                        {formatDate(candidate.created_at)}
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="relative">
+                          <button
+                            onClick={() => setOpenDropdown(openDropdown === candidate.id ? null : candidate.id)}
+                            className="inline-flex items-center justify-center h-6 w-6 rounded hover:bg-gray-100 transition-colors"
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5 text-gray-600" />
+                          </button>
+                          {openDropdown === candidate.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-10"
+                                onClick={() => setOpenDropdown(null)}
+                              />
+                              <div className="absolute right-0 mt-1 w-32 rounded-lg border border-gray-200 bg-white shadow-lg z-20">
+                                <button
+                                  onClick={() => {
+                                    openViewModal(candidate);
+                                    setOpenDropdown(null);
+                                  }}
+                                  className="flex w-full items-center gap-2 px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-50 transition-colors"
+                                >
+                                  <Eye className="h-3 w-3" />
+                                  View Details
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    openEditModal(candidate);
+                                  }}
+                                  className="flex w-full items-center gap-2 px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-50 transition-colors"
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleBlockStudent(candidate)}
+                                  className="flex w-full items-center gap-2 px-2 py-1.5 text-xs text-red-600 hover:bg-red-50 transition-colors"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                  Block
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={9} className="h-24 text-center">
+                      <div className="flex flex-col items-center justify-center text-gray-500">
+                        <Users className="h-10 w-10 mb-2 opacity-50" />
+                        <p className="font-medium text-sm">No candidates found</p>
+                        <p className="text-xs">Try adjusting your filters</p>
                       </div>
-                    </>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))
-        ) : (
-          <tr>
-            <td colSpan={9} className="h-24 text-center">
-              <div className="flex flex-col items-center justify-center text-gray-500">
-                <Users className="h-10 w-10 mb-2 opacity-50" />
-                <p className="font-medium text-sm">No candidates found</p>
-                <p className="text-xs">Try adjusting your filters</p>
-              </div>
-            </td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-  </div>
-</div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
         {/* Pagination */}
         {totalPages > 1 && (
@@ -529,7 +529,7 @@ const ManageCandidates = () => {
                 {totalPages > 5 && (
                   <>
                     <span className="px-2 text-gray-500">...</span>
-                    <button 
+                    <button
                       onClick={() => setCurrentPage(totalPages)}
                       className={`h-8 w-8 rounded-lg text-sm font-medium transition-colors ${
                         currentPage === totalPages
@@ -568,7 +568,7 @@ const ManageCandidates = () => {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            
+
             <div className="overflow-y-auto p-6 space-y-6">
               {/* Profile Header */}
               <div className="flex items-start gap-4 pb-6 border-b border-gray-200">
@@ -720,7 +720,7 @@ const ManageCandidates = () => {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            
+
             <div className="overflow-y-auto p-6 space-y-4">
               <div>
                 <label className="text-sm font-medium text-gray-900 mb-1.5 block">Name</label>
