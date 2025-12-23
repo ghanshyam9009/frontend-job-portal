@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Link, Outlet } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { 
@@ -15,18 +15,25 @@ import {
   Settings, 
   LogOut,
   Briefcase,
-  X
+  X,
+  Menu,
+  Sun,
+  Moon,
+  ChevronDown
 } from "lucide-react";
 import { adminService } from "../../services/adminService";
 import { contactService } from "../../services/contactService";
 import { demoService } from "../../services/demoService";
+import logo from "../../assets/favicon-icon.png";
 
-const AdminSidebar = ({ isOpen, onClose }) => {
+const IntegratedAdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  // const { theme } = useTheme();
-  const theme='dark'
+  const { theme, toggleTheme } = useTheme();
+  
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [pendingRecruiters, setPendingRecruiters] = useState(0);
   const [contactFormsCount, setContactFormsCount] = useState(0);
   const [homepageFormsCount, setHomepageFormsCount] = useState(0);
@@ -210,72 +217,157 @@ const AdminSidebar = ({ isOpen, onClose }) => {
 
   const handleNavigation = (path) => {
     navigate(path);
-    if (onClose) {
-      onClose();
-    }
+    setIsSidebarOpen(false);
   };
 
   const isActive = (path) => {
     return location.pathname === path;
   };
 
-  const handleLogout = () => {
-    if (logout) {
-      logout();
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/admin/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      navigate('/admin/login');
     }
-    navigate('/login');
   };
 
   return (
-    <>
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-slate-900' : 'bg-gray-50'}`}>
+      {/* Navbar */}
+      <header className={`fixed top-0 left-0 right-0 z-50 h-16 border-b ${
+        theme === 'dark' 
+          ? 'bg-slate-900 border-slate-800' 
+          : 'bg-white border-gray-200'
+      }`}>
+        <div className="flex items-center justify-between h-full px-4">
+          {/* Left Section */}
+          <div className="flex items-center gap-4">
+            <button 
+              className={`p-2 rounded-lg lg:hidden ${
+                theme === 'dark' 
+                  ? 'hover:bg-slate-800 text-white' 
+                  : 'hover:bg-gray-100 text-gray-800'
+              }`}
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+            
+            <Link to="/" className="flex items-center gap-2">
+              <img src={logo} alt="Logo" className="h-8 w-8" />
+              <span className={`text-xl font-bold hidden sm:block ${
+                theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
+                Big<span className="text-blue-500">sources</span>.in
+              </span>
+            </Link>
+          </div>
+
+          {/* Right Section */}
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={toggleTheme}
+              className={`p-2 rounded-lg ${
+                theme === 'dark' 
+                  ? 'hover:bg-slate-800 text-white' 
+                  : 'hover:bg-gray-100 text-gray-800'
+              }`}
+            >
+              {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+            </button>
+
+            <div className="relative">
+              <button
+                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+                  theme === 'dark' 
+                    ? 'hover:bg-slate-800' 
+                    : 'hover:bg-gray-100'
+                }`}
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white font-semibold text-sm">
+                  {(user?.name || user?.admin_name || 'Admin').charAt(0).toUpperCase()}
+                </div>
+                <ChevronDown className={`h-4 w-4 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`} />
+              </button>
+
+              {showProfileDropdown && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setShowProfileDropdown(false)}
+                  />
+                  <div className={`absolute right-0 mt-2 w-64 rounded-lg shadow-lg border z-50 ${
+                    theme === 'dark' 
+                      ? 'bg-slate-800 border-slate-700' 
+                      : 'bg-white border-gray-200'
+                  }`}>
+                    <div className="p-4 border-b border-slate-700">
+                      <p className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                        {user?.name || user?.admin_name || 'Admin User'}
+                      </p>
+                      <p className={`text-sm ${theme === 'dark' ? 'text-slate-400' : 'text-gray-500'}`}>
+                        {user?.email || 'admin@example.com'}
+                      </p>
+                    </div>
+                    <div className="p-2">
+                      <button className={`w-full text-left px-4 py-2 rounded ${
+                        theme === 'dark' 
+                          ? 'hover:bg-slate-700 text-slate-300' 
+                          : 'hover:bg-gray-100 text-gray-700'
+                      }`}>
+                        Profile Settings
+                      </button>
+                      <button className={`w-full text-left px-4 py-2 rounded ${
+                        theme === 'dark' 
+                          ? 'hover:bg-slate-700 text-slate-300' 
+                          : 'hover:bg-gray-100 text-gray-700'
+                      }`}>
+                        Account Settings
+                      </button>
+                      <button 
+                        onClick={handleLogout}
+                        className={`w-full text-left px-4 py-2 rounded ${
+                          theme === 'dark' 
+                            ? 'hover:bg-slate-700 text-red-400' 
+                            : 'hover:bg-gray-100 text-red-600'
+                        }`}
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
       {/* Mobile Overlay */}
-      {isOpen && (
+      {isSidebarOpen && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={onClose}
+          onClick={() => setIsSidebarOpen(false)}
         />
       )}
       
       {/* Sidebar */}
       <aside 
-        className={`fixed left-0 top-15 z-50 h-screen w-64 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        } ${theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'} border-r`}
+        className={`fixed left-0 top-16 z-50 h-[calc(100vh-4rem)] w-64 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } ${theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-gray-200'} border-r`}
       >
         <div className="flex h-full flex-col">
-          {/* Logo */}
-          <div className={`flex h-6 items-center justify-between border-b px-6 ${
-            theme === 'dark' ? 'border-slate-800' : 'border-slate-200'
-          }`}>
-            <div className="flex items-center gap-3">
-              {/* <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500">
-                <Briefcase className="h-5 w-5 text-white" />
-              </div> */}
-              <div>
-                {/* <h1 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
-                  JobPortal
-                </h1>
-                <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Admin Panel
-                </p> */}
-              </div>
-            </div>
-            
-            {/* Mobile Close Button */}
-            <button 
-              className="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-              onClick={onClose}
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
           {/* Navigation */}
           <nav className="flex-1 space-y-1 overflow-y-auto p-4">
             {menuSections.map((section, idx) => (
               <div key={idx} className="mb-6">
                 <p className={`mb-2 px-3 text-xs font-semibold uppercase tracking-wider ${
-                  theme === 'dark' ? 'text-slate-400' : 'text-slate-500'
+                  theme === 'dark' ? 'text-slate-400' : 'text-gray-500'
                 }`}>
                   {section.title}
                 </p>
@@ -289,7 +381,7 @@ const AdminSidebar = ({ isOpen, onClose }) => {
                           ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20'
                           : theme === 'dark'
                           ? 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -311,44 +403,17 @@ const AdminSidebar = ({ isOpen, onClose }) => {
               </div>
             ))}
           </nav>
-
-          {/* User Section */}
-          <div className={`border-t p-4 ${theme === 'dark' ? 'border-slate-800' : 'border-slate-200'}`}>
-            <div className={`flex items-center gap-3 rounded-lg p-3 ${
-              theme === 'dark' ? 'bg-slate-800' : 'bg-slate-50'
-            }`}>
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 text-white font-semibold text-sm">
-                {(user?.name || user?.admin_name || 'Admin').charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium truncate ${
-                  theme === 'dark' ? 'text-white' : 'text-slate-800'
-                }`}>
-                  {user?.name || user?.admin_name || 'Admin User'}
-                </p>
-                <p className={`text-xs truncate ${
-                  theme === 'dark' ? 'text-slate-400' : 'text-slate-500'
-                }`}>
-                  {user?.email || 'admin@example.com'}
-                </p>
-              </div>
-              <button 
-                onClick={handleLogout}
-                className={`rounded-lg p-2 transition-colors ${
-                  theme === 'dark' 
-                    ? 'text-slate-400 hover:bg-slate-700 hover:text-white' 
-                    : 'text-slate-500 hover:bg-slate-200 hover:text-slate-900'
-                }`}
-                title="Logout"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
         </div>
       </aside>
-    </>
+
+      {/* Main Content */}
+      <main className="pt-16 lg:pl-64">
+        <div className=" ">
+           <Outlet />
+        </div>
+      </main>
+    </div>
   );
 };
 
-export default AdminSidebar;
+export default IntegratedAdminLayout;
