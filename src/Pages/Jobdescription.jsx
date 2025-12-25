@@ -11,6 +11,7 @@ import Footer from "../Components/Footer";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import RecruiterNavbar from "../Components/Recruiter/RecruiterNavbar";
 
+
 const JobDescription = () => {
   // theme
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -533,8 +534,30 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
                   </div>
                 </div>
 
-                <div className="w-20 h-20 rounded-lg p-2 flex items-center justify-center bg-blue-50">
-                  <span className="text-3xl font-bold text-blue-600">{(job.company_name || "C")[0].toUpperCase()}</span>
+                <div className="w-20 h-20 rounded-lg p-2 flex items-center justify-center bg-blue-50 overflow-hidden">
+                  {(() => {
+                    const companyLogo = job.job_logo_url || job.job_logo || job.company_logo || job.logo;
+                    if (companyLogo) {
+                      return (
+                        <img
+                          src={companyLogo}
+                          alt={`${job.company_name} logo`}
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            e.target.src = `https://ui-avatars.com/api/?name=${job.company_name}&background=2563eb&color=fff&size=80`;
+                          }}
+                        />
+                      );
+                    } else {
+                      return (
+                        <img
+                          src={`https://ui-avatars.com/api/?name=${job.company_name}&background=2563eb&color=fff&size=80`}
+                          alt={`${job.company_name} logo`}
+                          className="w-full h-full object-contain rounded"
+                        />
+                      );
+                    }
+                  })()}
                 </div>
               </div>
 
@@ -701,10 +724,35 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
                 >
                   <div className="flex items-start gap-3">
                     {/* Company Avatar with gradient */}
-                    <div className={`flex-shrink-0 w-12 h-12 ${getCompanyColor(idx)} rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300`}>
-                      <span className="text-white font-bold text-lg">
-                        {(relJob.company_name || "C")[0].toUpperCase()}
-                      </span>
+                    <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300 overflow-hidden ${
+                      (() => {
+                        const companyLogo = relJob.job_logo_url || relJob.job_logo || relJob.company_logo || relJob.logo;
+                        return companyLogo ? 'bg-white' : getCompanyColor(idx);
+                      })()
+                    }`}>
+                      {(() => {
+                        const companyLogo = relJob.job_logo_url || relJob.job_logo || relJob.company_logo || relJob.logo;
+                        if (companyLogo) {
+                          return (
+                            <img
+                              src={companyLogo}
+                              alt={`${relJob.company_name} logo`}
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                e.target.src = `https://ui-avatars.com/api/?name=${relJob.company_name}&background=2563eb&color=fff&size=80`;
+                              }}
+                            />
+                          );
+                        } else {
+                          return (
+                            <img
+                              src={`https://ui-avatars.com/api/?name=${relJob.company_name}&background=2563eb&color=fff&size=80`}
+                              alt={`${relJob.company_name} logo`}
+                              className="w-full h-full object-contain rounded"
+                            />
+                          );
+                        }
+                      })()}
                     </div>
 
                     {/* Job Info */}

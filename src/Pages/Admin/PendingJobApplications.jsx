@@ -5,7 +5,6 @@ import { studentService } from "../../services/studentService";
 import { recruiterExternalService } from "../../services";
 import { Check, X, FileText, Download, ExternalLink } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
-
 const PendingJobApplications = () => {
   const { theme } = useTheme();
   const [pendingApplications, setPendingApplications] = useState([]);
@@ -13,7 +12,7 @@ const PendingJobApplications = () => {
   const [applicationDetails, setApplicationDetails] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Fetch pending applications with full details
+  // Fetch pending applications with full details and auto-approve new applications
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -21,15 +20,44 @@ const PendingJobApplications = () => {
 
         // Fetch pending applications
         const pendingTasks = await adminService.getPendingJobs();
-        const pendingApps = pendingTasks.filter(task =>
+        const newApplicationTasks = pendingTasks.filter(task =>
           task.category === 'newapplication' && task.status === 'pending'
         );
-        
-        setPendingApplications(pendingApps);
 
-        // Fetch detailed information for each application
-        if (pendingApps.length > 0) {
-          await fetchApplicationDetails(pendingApps);
+        // Auto-approve all new application tasks
+        if (newApplicationTasks.length > 0) {
+          for (const task of newApplicationTasks) {
+            try {
+              await adminService.approveJobApplicationByStudent(task.task_id);
+              console.log(`Auto-approved application task: ${task.task_id}`);
+            } catch (error) {
+              console.error(`Failed to auto-approve task ${task.task_id}:`, error);
+            }
+          }
+
+          // Re-fetch tasks after auto-approval
+          const updatedTasks = await adminService.getPendingJobs();
+          const remainingPendingApps = updatedTasks.filter(task =>
+            task.category === 'newapplication' && task.status === 'pending'
+          );
+
+          setPendingApplications(remainingPendingApps);
+
+          // Fetch detailed information for any remaining applications (should be none)
+          if (remainingPendingApps.length > 0) {
+            await fetchApplicationDetails(remainingPendingApps);
+          }
+        } else {
+          // No new application tasks to approve
+          const otherPendingTasks = pendingTasks.filter(task =>
+            !(task.category === 'newapplication' && task.status === 'pending')
+          );
+          setPendingApplications(otherPendingTasks);
+
+          // Fetch detailed information for other types of applications
+          if (otherPendingTasks.length > 0) {
+            await fetchApplicationDetails(otherPendingTasks);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch pending applications:', error);
@@ -238,8 +266,8 @@ const PendingJobApplications = () => {
   return (
     <div className={`${styles.mainContent} ${theme === 'dark' ? styles.dark : ''}`}>
       <div className={styles.contentHeader}>
-        <h1 className={styles.pageTitle}>Pending Job Applications</h1>
-        <p className={styles.pageSubtitle}>Review and manage job applications that require admin approval</p>
+        <h1 className={styles.pageTitle}>Job Applications Overview</h1>
+        <p className={styles.pageSubtitle}>Monitor job applications - new applications are automatically approved</p>
       </div>
 
       {/* Pending Applications Section */}
@@ -252,7 +280,7 @@ const PendingJobApplications = () => {
             </h2>
           </div>
           <p style={{ color: '#666', marginBottom: '20px' }}>
-            These applications need admin approval before recruiters can review them.
+            These applications require admin attention for other reasons.
           </p>
 
           <div style={{ display: 'grid', gap: '15px' }}>
@@ -460,8 +488,8 @@ const PendingJobApplications = () => {
       ) : (
         <div className={styles.emptyState}>
           <FileText className={styles.emptyIcon} />
-          <h3>No pending applications</h3>
-          <p>All applications have been reviewed.</p>
+          <h3>No applications requiring attention</h3>
+          <p>New applications are automatically approved. All other applications have been processed.</p>
         </div>
       )}
     </div>
