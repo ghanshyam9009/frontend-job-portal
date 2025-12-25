@@ -1,18 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../Contexts/AuthContext';
+import { useTheme } from '../../Contexts/ThemeContext';
 import { studentService } from '../../services/studentService';
-import {
-  ChevronLeft, ChevronRight, Check, User, MapPin, Briefcase,
-  GraduationCap, Award, AlertCircle, Edit, Mail, Phone, Calendar,
+import { 
+  ChevronLeft, ChevronRight, Check, User, MapPin, Briefcase, 
+  GraduationCap, Award, AlertCircle, Edit, Mail, Phone, Calendar, 
   Globe, FileText, Building, Camera, Upload, XCircle, CheckCircle,
   ArrowRight, Lock, TrendingUp, Shield
 } from 'lucide-react';
 
 const ProfileManagement = () => {
   const { user, updateUser } = useAuth();
+  const { theme } = useTheme();
   const todayForDateInput = new Date().toISOString().split("T")[0];
   const [currentStep, setCurrentStep] = useState(0);
   const [expandedStep, setExpandedStep] = useState(1);
+
+  // Theme-based styling
+  const isDark = theme === 'dark';
+  const bgColor = isDark ? 'bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800' : 'bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/20';
+  const cardBg = isDark ? 'bg-gray-800/50 backdrop-blur-sm' : 'bg-white/80 backdrop-blur-sm';
+  const textColor = isDark ? 'text-white' : 'text-gray-900';
+  const textSecondary = isDark ? 'text-gray-400' : 'text-gray-600';
+  const borderColor = isDark ? 'border-gray-700/50' : 'border-gray-200/50';
+  const inputBg = isDark ? 'bg-gray-700' : 'bg-white';
+  const inputBorder = isDark ? 'border-gray-600' : 'border-gray-200';
 
   // Helper function to get user initials
   const getInitials = (name) => {
@@ -51,55 +63,7 @@ const ProfileManagement = () => {
   const [completedSteps, setCompletedSteps] = useState([]);
   const [validationErrors, setValidationErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
-
-  const [isEditMode, setIsEditMode] = useState(() => {
-    // Initialize based on user context if available
-    if (user?.email) {
-      const hasName = user.full_name && user.full_name.trim();
-      const hasGender = user.gender && user.gender.trim();
-      const hasCity = user.address?.city && user.address.city.trim();
-      const hasState = user.address?.state && user.address.state.trim();
-      const hasCountry = user.address?.country && user.address.country.trim();
-      const hasBio = user.bio && user.bio.trim();
-      const hasSkills = user.skills && user.skills.trim();
-      const hasEducation = Array.isArray(user.education) && user.education.length > 0 &&
-        user.education.some(edu => edu.degree?.trim() && edu.institution?.trim());
-      const hasExperience = user.experienceLevel === 'Fresher' || (
-        Array.isArray(user.experience) && user.experience.length > 0 &&
-        user.experience.some(exp => exp.title?.trim() && exp.company?.trim())
-      );
-
-      const isComplete = hasName && hasGender && hasCity && hasState && hasCountry &&
-                         hasBio && hasSkills && hasEducation && hasExperience;
-
-      return !isComplete; // Start in edit mode if incomplete, view mode if complete
-    }
-    return true; // Default to edit mode if no user data
-  });
-
-  const [profileComplete, setProfileComplete] = useState(() => {
-    // Initialize based on user context if available
-    if (user?.email) {
-      const hasName = user.full_name && user.full_name.trim();
-      const hasGender = user.gender && user.gender.trim();
-      const hasCity = user.address?.city && user.address.city.trim();
-      const hasState = user.address?.state && user.address.state.trim();
-      const hasCountry = user.address?.country && user.address.country.trim();
-      const hasBio = user.bio && user.bio.trim();
-      const hasSkills = user.skills && user.skills.trim();
-      const hasEducation = Array.isArray(user.education) && user.education.length > 0 &&
-        user.education.some(edu => edu.degree?.trim() && edu.institution?.trim());
-      const hasExperience = user.experienceLevel === 'Fresher' || (
-        Array.isArray(user.experience) && user.experience.length > 0 &&
-        user.experience.some(exp => exp.title?.trim() && exp.company?.trim())
-      );
-
-      return hasName && hasGender && hasCity && hasState && hasCountry &&
-             hasBio && hasSkills && hasEducation && hasExperience;
-    }
-    return false; // Default to incomplete if no user data
-  });
-
+  const [profileComplete, setProfileComplete] = useState(false);
   const [currentSkillInput, setCurrentSkillInput] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const logoInputRef = useRef(null);
@@ -418,17 +382,18 @@ const ProfileManagement = () => {
             };
             setFormData(loadedData);
 
-            // Debug: Log profile data to help identify what's missing
-            console.log('Loaded profile data:', loadedData);
-
-            // Check if profile is complete and log the results
             const isComplete = checkProfileComplete(loadedData);
             setProfileComplete(isComplete);
             setCompletedSteps(isComplete ? [0, 1] : []);
-            // Always start in view mode if complete, regardless of initial state
-            setIsEditMode(false);
-          } else {
-            setExpandedStep(0);
+
+            // Auto-expand logic
+            if (!isComplete) {
+              setExpandedStep(1);
+            } else if (!loadedData.logo) {
+              setExpandedStep(2);
+            } else {
+              setExpandedStep(0);
+            }
           }
         } catch (error) {
           console.error('Error loading profile data:', error);
@@ -513,45 +478,10 @@ const ProfileManagement = () => {
       const uploadResponse = await studentService.uploadLogoFile(user.email, file);
 
       if (uploadResponse.success) {
-        // Debug the response structure
-        console.log('Full upload response:', uploadResponse);
-        console.log('Upload response data:', uploadResponse.data);
-        console.log('Data type:', typeof uploadResponse.data);
-        console.log('Data keys:', uploadResponse.data ? Object.keys(uploadResponse.data) : 'No data');
+        const uploadedLogoUrl = uploadResponse.data?.logoUrl || uploadResponse.data?.logo || uploadResponse.data?.profile?.logoUrl || uploadResponse.data?.profile?.logo || uploadResponse.data?.logoUrl || (typeof uploadResponse.data === 'string' ? uploadResponse.data : null);
 
-        // Try multiple extraction approaches - handle nested data structure from withErrorHandling
-        let uploadedLogoUrl;
-
-        // First try: nested data structure from service response
-        if (uploadResponse.data?.data?.logoUrl) {
-          uploadedLogoUrl = uploadResponse.data.data.logoUrl;
-          console.log('Found logo in uploadResponse.data.data.logoUrl');
-        } else if (uploadResponse.data?.data?.logo) {
-          uploadedLogoUrl = uploadResponse.data.data.logo;
-          console.log('Found logo in uploadResponse.data.data.logo');
-        }
-        // Second try: direct from data (fallback for different response structures)
-        else if (uploadResponse.data?.logo) {
-          uploadedLogoUrl = uploadResponse.data.logo;
-          console.log('Found logo in uploadResponse.data.logo');
-        } else if (uploadResponse.data?.logoUrl) {
-          uploadedLogoUrl = uploadResponse.data.logoUrl;
-          console.log('Found logo in uploadResponse.data.logoUrl');
-        }
-        // Third try: check if data itself is the URL (fallback)
-        else if (typeof uploadResponse.data === 'string' && uploadResponse.data.startsWith('http')) {
-          uploadedLogoUrl = uploadResponse.data;
-          console.log('Found logo as direct string in data');
-        }
-
-        console.log('Final extracted logo URL:', uploadedLogoUrl);
-
-        // Update logo URL in formData only (don't update user context to avoid triggering re-fetch)
         if (uploadedLogoUrl) {
-          console.log('Setting logo URL in formData:', uploadedLogoUrl);
           setFormData(prev => ({ ...prev, logo: uploadedLogoUrl, logoFile: null }));
-        } else {
-          console.error('No logo URL found! Data content:', uploadResponse.data);
         }
         setValidationErrors({ ...validationErrors, logo: '' });
         setSuccess('Profile image uploaded successfully');
@@ -681,13 +611,8 @@ const ProfileManagement = () => {
         dataForSubmission.resume = resume;
       }
 
-      // Always include logo URL if it's a string and a proper URL (not blob/data URL)
-      // This ensures newly uploaded logos are included in profile updates
       if (typeof logo === 'string' && logo && !logo.startsWith('data:') && !logo.startsWith('blob:')) {
         dataForSubmission.logo = logo;
-        console.log('Including logo in profile update:', logo);
-      } else {
-        console.log('Logo not included in update - logo value:', logo, 'type:', typeof logo);
       }
 
       const response = await studentService.updateProfileDetails(user.email, dataForSubmission);
@@ -784,8 +709,6 @@ const ProfileManagement = () => {
 
         const isComplete = checkProfileComplete(normalizedData);
         setProfileComplete(isComplete);
-        setCompletedSteps(isComplete ? [0, 1] : []);
-        // Keep in edit mode after saving, don't automatically switch to view mode
 
         setTimeout(() => {
           setSuccess('');
@@ -804,15 +727,15 @@ const ProfileManagement = () => {
 
   // Main render - Always show profile summary + editable form (like CompanyProfile)
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-24 px-4 pb-12">
+    <div className={`min-h-screen ${bgColor} pt-24 px-4 pb-12`}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">My Profile</h1>
-            <p className="text-gray-600 dark:text-gray-400">Manage your professional identity</p>
+            <h1 className={`text-3xl font-extrabold ${textColor}`}>My Profile</h1>
+            <p className={textSecondary}>Manage your professional identity</p>
           </div>
-          <div className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center gap-3 shadow-sm">
+          <div className={`px-4 py-2 rounded-xl border ${borderColor} ${cardBg} flex items-center gap-3 shadow-sm`}>
             <TrendingUp className={calculateProfileCompletion() === 100 ? "text-green-500" : "text-blue-500"} size={20} />
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Profile Strength</p>
@@ -826,14 +749,14 @@ const ProfileManagement = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Sidebar - Profile Summary (View Only) */}
           <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden sticky top-24">
+            <div className={`${cardBg} rounded-2xl shadow-xl border ${borderColor} overflow-hidden sticky top-24`}>
               <div className="h-24 bg-gradient-to-r from-blue-600 to-indigo-700 relative">
                 <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
-                  <div className="w-20 h-20 rounded-2xl bg-white dark:bg-gray-800 border-4 border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden flex items-center justify-center">
+                  <div className={`w-20 h-20 rounded-2xl ${cardBg} border-4 ${borderColor} shadow-lg overflow-hidden flex items-center justify-center`}>
                     {formData.logo ? (
                       <img src={formData.logo} className="w-full h-full object-cover" alt="Profile" />
                     ) : (
-                      <div className="w-full h-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-400 text-2xl font-bold">
+                      <div className={`w-full h-full ${isDark ? 'bg-blue-900' : 'bg-blue-100'} flex items-center justify-center ${isDark ? 'text-blue-400' : 'text-blue-600'} text-2xl font-bold`}>
                         {getInitials(formData.full_name)}
                       </div>
                     )}
@@ -843,10 +766,10 @@ const ProfileManagement = () => {
               <div className="pt-12 pb-6 px-6">
                 {/* Name and Status */}
                 <div className="text-center mb-6">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">{formData.full_name || "Your Name"}</h2>
+                  <h2 className={`text-xl font-bold ${textColor}`}>{formData.full_name || "Your Name"}</h2>
                   <p className="text-sm text-blue-500 font-medium">{formData.experienceLevel}</p>
                   {formData.address.city && formData.address.country && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <p className={`text-xs ${textSecondary} mt-1`}>
                       {formData.address.city}, {getCountryDisplayName(formData.address.country)}
                     </p>
                   )}
@@ -857,7 +780,7 @@ const ProfileManagement = () => {
                   {user?.email && (
                     <div className="flex items-start gap-2">
                       <Mail size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
-                      <a href={`mailto:${user.email}`} className="text-xs text-gray-900 dark:text-white hover:text-blue-500 transition-colors break-all">
+                      <a href={`mailto:${user.email}`} className={`text-xs ${textColor} hover:text-blue-500 transition-colors break-all`}>
                         {user.email}
                       </a>
                     </div>
@@ -866,7 +789,7 @@ const ProfileManagement = () => {
                   {formData.phone_number && (
                     <div className="flex items-start gap-2">
                       <Phone size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
-                      <a href={`tel:${formData.phone_number}`} className="text-xs text-gray-900 dark:text-white hover:text-blue-500 transition-colors">
+                      <a href={`tel:${formData.phone_number}`} className={`text-xs ${textColor} hover:text-blue-500 transition-colors`}>
                         {formData.phone_number}
                       </a>
                     </div>
@@ -875,7 +798,7 @@ const ProfileManagement = () => {
                   {(formData.address.street || formData.address.city || formData.address.state) && (
                     <div className="flex items-start gap-2">
                       <MapPin size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
-                      <p className="text-xs text-gray-900 dark:text-white">
+                      <p className={`text-xs ${textColor}`}>
                         {[formData.address.street, formData.address.city, formData.address.state, formData.address.zip]
                           .filter(Boolean)
                           .join(', ')}
@@ -886,7 +809,7 @@ const ProfileManagement = () => {
                   {formData.dob && (
                     <div className="flex items-start gap-2">
                       <Calendar size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
-                      <p className="text-xs text-gray-900 dark:text-white">
+                      <p className={`text-xs ${textColor}`}>
                         {new Date(formData.dob).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                       </p>
                     </div>
@@ -894,19 +817,19 @@ const ProfileManagement = () => {
                 </div>
 
                 {/* Profile Strength */}
-                <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50">
+                <div className={`p-4 rounded-xl ${isDark ? 'bg-gray-900/50' : 'bg-gray-50'}`}>
                   <div className="flex justify-between text-xs font-bold mb-2">
-                    <span className="text-gray-600 dark:text-gray-400">PROFILE STRENGTH</span>
+                    <span className={textSecondary}>PROFILE STRENGTH</span>
                     <span className={calculateProfileCompletion() === 100 ? "text-green-500" : "text-blue-500"}>
                       {calculateProfileCompletion()}%
                     </span>
                   </div>
-                  <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div
+                  <div className={`w-full h-2 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full overflow-hidden`}>
+                    <div 
                       className={`h-full transition-all duration-700 ${
                         calculateProfileCompletion() === 100 ? 'bg-green-500' : 'bg-blue-500'
                       }`}
-                      style={{ width: `${calculateProfileCompletion()}%` }}
+                      style={{ width: `${calculateProfileCompletion()}%` }} 
                     />
                   </div>
                 </div>
@@ -917,12 +840,12 @@ const ProfileManagement = () => {
                     <h3 className="text-xs font-bold uppercase text-gray-400 mb-2">Top Skills</h3>
                     <div className="flex flex-wrap gap-2">
                       {getSkillsArray().slice(0, 5).map((skill, index) => (
-                        <span key={index} className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-medium">
+                        <span key={index} className={`px-2 py-1 ${isDark ? 'bg-blue-900/20' : 'bg-blue-50'} ${isDark ? 'text-blue-400' : 'text-blue-600'} rounded-lg text-xs font-medium`}>
                           {skill}
                         </span>
                       ))}
                       {getSkillsArray().length > 5 && (
-                        <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-lg text-xs font-medium">
+                        <span className={`px-2 py-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} ${textSecondary} rounded-lg text-xs font-medium`}>
                           +{getSkillsArray().length - 5} more
                         </span>
                       )}
@@ -932,16 +855,16 @@ const ProfileManagement = () => {
 
                 {/* Resume Status */}
                 {formData.resume && (
-                  <div className="mt-6 p-3 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800">
+                  <div className={`mt-6 p-3 ${isDark ? 'bg-green-900/20' : 'bg-green-50'} rounded-xl border ${isDark ? 'border-green-800' : 'border-green-200'}`}>
                     <div className="flex items-center gap-2">
-                      <FileText size={16} className="text-green-600 dark:text-green-400" />
+                      <FileText size={16} className={isDark ? "text-green-400" : "text-green-600"} />
                       <div className="flex-1">
-                        <p className="text-xs font-bold text-green-800 dark:text-green-300">Resume Uploaded</p>
-                        <a
-                          href={formData.resume}
-                          target="_blank"
+                        <p className={`text-xs font-bold ${isDark ? 'text-green-300' : 'text-green-800'}`}>Resume Uploaded</p>
+                        <a 
+                          href={formData.resume} 
+                          target="_blank" 
                           rel="noopener noreferrer"
-                          className="text-xs text-green-600 dark:text-green-400 hover:underline"
+                          className={`text-xs ${isDark ? 'text-green-400' : 'text-green-600'} hover:underline`}
                         >
                           View/Download
                         </a>
@@ -953,10 +876,10 @@ const ProfileManagement = () => {
             </div>
 
             {/* Info Card */}
-            <div className="mt-6 p-5 rounded-2xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+            <div className={`mt-6 p-5 rounded-2xl ${isDark ? 'bg-blue-900/20' : 'bg-blue-50'} border ${isDark ? 'border-blue-800' : 'border-blue-100'}`}>
               <div className="flex gap-3">
                 <AlertCircle className="text-blue-500 shrink-0" size={18} />
-                <p className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
+                <p className={`text-xs ${isDark ? 'text-blue-200' : 'text-blue-800'} leading-relaxed`}>
                   Complete profiles receive 5x more interview opportunities from recruiters.
                 </p>
               </div>
@@ -966,40 +889,40 @@ const ProfileManagement = () => {
           {/* Right Content - Editable Form (Always Shown) */}
           <div className="lg:col-span-2 space-y-4">
             {/* Step 1: Basic Information */}
-            <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-lg border transition-all ${
-              expandedStep === 1 ? 'border-blue-500 ring-4 ring-blue-500/10' : 'border-gray-200 dark:border-gray-700'
+            <div className={`${cardBg} rounded-2xl shadow-lg border transition-all ${
+              expandedStep === 1 ? 'border-blue-500 ring-4 ring-blue-500/10' : borderColor
             }`}>
-              <button
-                onClick={() => setExpandedStep(expandedStep === 1 ? 0 : 1)}
+              <button 
+                onClick={() => setExpandedStep(expandedStep === 1 ? 0 : 1)} 
                 className="w-full p-6 flex items-center justify-between"
               >
                 <div className="flex items-center gap-4 text-left">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                    completedSteps.includes(0) ? 'bg-green-500 text-white' : 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
+                    completedSteps.includes(0) ? 'bg-green-500 text-white' : `${isDark ? 'bg-blue-900' : 'bg-blue-100'} ${isDark ? 'text-blue-400' : 'text-blue-600'}`
                   }`}>
                     {completedSteps.includes(0) ? <Check size={20} /> : '1'}
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Basic Information</h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Personal details and contact</p>
+                    <h3 className={`text-lg font-bold ${textColor}`}>Basic Information</h3>
+                    <p className={`text-xs ${textSecondary}`}>Personal details and contact</p>
                   </div>
                 </div>
                 <ChevronRight className={`transition-transform text-gray-400 ${expandedStep === 1 ? 'rotate-90' : ''}`} />
               </button>
-
+              
               {expandedStep === 1 && (
-                <div className="p-6 pt-0 border-t border-gray-50 dark:border-gray-700">
+                <div className={`p-6 pt-0 border-t ${isDark ? 'border-gray-700' : 'border-gray-50'}`}>
                   {error && (
-                    <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-3">
+                    <div className={`mb-4 p-4 ${isDark ? 'bg-red-900/20' : 'bg-red-50'} border ${isDark ? 'border-red-800' : 'border-red-200'} rounded-xl flex items-center gap-3`}>
                       <XCircle size={20} className="text-red-500 flex-shrink-0" />
-                      <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                      <p className={`text-sm ${isDark ? 'text-red-400' : 'text-red-600'}`}>{error}</p>
                     </div>
                   )}
 
                   {success && !showSuccessModal && (
-                    <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-center gap-3">
+                    <div className={`mb-4 p-4 ${isDark ? 'bg-green-900/20' : 'bg-green-50'} border ${isDark ? 'border-green-800' : 'border-green-200'} rounded-xl flex items-center gap-3`}>
                       <CheckCircle size={20} className="text-green-500 flex-shrink-0" />
-                      <p className="text-sm text-green-600 dark:text-green-400">{success}</p>
+                      <p className={`text-sm ${isDark ? 'text-green-400' : 'text-green-600'}`}>{success}</p>
                     </div>
                   )}
 
@@ -1009,7 +932,7 @@ const ProfileManagement = () => {
                       <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Profile Photo</label>
                       <div className="flex items-center gap-4">
                         <div className="relative group">
-                          <div className="w-24 h-24 rounded-2xl border-4 border-dashed border-gray-200 dark:border-gray-600 overflow-hidden flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                          <div className={`w-24 h-24 rounded-2xl border-4 border-dashed ${isDark ? 'border-gray-600' : 'border-gray-200'} overflow-hidden flex items-center justify-center ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
                             {formData.logo ? (
                               <img src={formData.logo} className="w-full h-full object-cover" alt="preview" />
                             ) : (
@@ -1018,24 +941,24 @@ const ProfileManagement = () => {
                               </div>
                             )}
                           </div>
-                          <button
+                          <button 
                             type="button"
-                            onClick={() => logoInputRef.current.click()}
+                            onClick={() => logoInputRef.current.click()} 
                             className="absolute -bottom-2 -right-2 p-2 bg-blue-600 text-white rounded-xl shadow-xl hover:scale-110 transition-transform"
                           >
                             <Camera size={18} />
                           </button>
                         </div>
-                        <input
-                          type="file"
-                          ref={logoInputRef}
-                          className="hidden"
-                          accept="image/*"
-                          onChange={handleLogoChange}
+                        <input 
+                          type="file" 
+                          ref={logoInputRef} 
+                          className="hidden" 
+                          accept="image/*" 
+                          onChange={handleLogoChange} 
                         />
                         <div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">Upload your photo</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Max 2MB (JPG, PNG, GIF)</p>
+                          <p className={`text-sm font-medium ${textColor}`}>Upload your photo</p>
+                          <p className={`text-xs ${textSecondary}`}>Max 2MB (JPG, PNG, GIF)</p>
                         </div>
                       </div>
                     </div>
@@ -1048,8 +971,8 @@ const ProfileManagement = () => {
                         value={formData.full_name}
                         onChange={handleInputChange}
                         className={`w-full p-3 rounded-xl border ${
-                          validationErrors.full_name ? 'border-red-500' : 'border-gray-200 dark:border-gray-600'
-                        } bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
+                          validationErrors.full_name ? 'border-red-500' : `${inputBorder}`
+                        } ${inputBg} ${textColor}`}
                         placeholder="Enter your full name"
                         required
                       />
@@ -1069,7 +992,7 @@ const ProfileManagement = () => {
                         type="tel"
                         value={formData.phone_number}
                         onChange={handleInputChange}
-                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        className={`w-full p-3 rounded-xl border ${inputBorder} ${inputBg} ${textColor}`}
                         placeholder="+1 (555) 123-4567"
                       />
                     </div>
@@ -1081,7 +1004,7 @@ const ProfileManagement = () => {
                         name="gender"
                         value={formData.gender}
                         onChange={handleInputChange}
-                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        className={`w-full p-3 rounded-xl border ${inputBorder} ${inputBg} ${textColor}`}
                       >
                         <option value="">Select Gender</option>
                         <option value="Male">Male</option>
@@ -1100,7 +1023,7 @@ const ProfileManagement = () => {
                         value={formData.dob}
                         onChange={handleInputChange}
                         max={todayForDateInput}
-                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        className={`w-full p-3 rounded-xl border ${inputBorder} ${inputBg} ${textColor}`}
                       />
                       {validationErrors.dob && (
                         <p className="mt-1 text-xs text-red-500">{validationErrors.dob}</p>
@@ -1114,7 +1037,7 @@ const ProfileManagement = () => {
                         name="street"
                         value={formData.address.street}
                         onChange={handleAddressChange}
-                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        className={`w-full p-3 rounded-xl border ${inputBorder} ${inputBg} ${textColor}`}
                         placeholder="123 Main St"
                       />
                     </div>
@@ -1125,7 +1048,7 @@ const ProfileManagement = () => {
                         name="city"
                         value={formData.address.city}
                         onChange={handleAddressChange}
-                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        className={`w-full p-3 rounded-xl border ${inputBorder} ${inputBg} ${textColor}`}
                         placeholder="New York"
                         required
                       />
@@ -1137,7 +1060,7 @@ const ProfileManagement = () => {
                         name="state"
                         value={formData.address.state}
                         onChange={handleAddressChange}
-                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        className={`w-full p-3 rounded-xl border ${inputBorder} ${inputBg} ${textColor}`}
                         placeholder="NY"
                         required
                       />
@@ -1149,7 +1072,7 @@ const ProfileManagement = () => {
                         name="zip"
                         value={formData.address.zip}
                         onChange={handleAddressChange}
-                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        className={`w-full p-3 rounded-xl border ${inputBorder} ${inputBg} ${textColor}`}
                         placeholder="10001"
                       />
                     </div>
@@ -1160,7 +1083,7 @@ const ProfileManagement = () => {
                         name="country"
                         value={formData.address.country}
                         onChange={handleAddressChange}
-                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        className={`w-full p-3 rounded-xl border ${inputBorder} ${inputBg} ${textColor}`}
                         required
                       >
                         <option value="">Select Country</option>
@@ -1181,7 +1104,7 @@ const ProfileManagement = () => {
                         value={formData.bio}
                         onChange={handleInputChange}
                         rows="4"
-                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        className={`w-full p-3 rounded-xl border ${inputBorder} ${inputBg} ${textColor}`}
                         placeholder="Tell us about your professional background..."
                         required
                       />
@@ -1202,7 +1125,7 @@ const ProfileManagement = () => {
                                 addSkill();
                               }
                             }}
-                            className="flex-1 p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            className={`flex-1 p-3 rounded-xl border ${inputBorder} ${inputBg} ${textColor}`}
                             placeholder="Type a skill and press Enter"
                           />
                           <button
@@ -1218,7 +1141,7 @@ const ProfileManagement = () => {
                           {getSkillsArray().map((skill, index) => (
                             <span
                               key={index}
-                              className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-medium flex items-center gap-2"
+                              className={`px-3 py-1.5 ${isDark ? 'bg-blue-900/20' : 'bg-blue-50'} ${isDark ? 'text-blue-400' : 'text-blue-600'} rounded-lg text-sm font-medium flex items-center gap-2`}
                             >
                               {skill}
                               <button
@@ -1238,14 +1161,14 @@ const ProfileManagement = () => {
                     <div className="md:col-span-2">
                       <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Resume/CV</label>
                       {formData.resume && (
-                        <div className="mb-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-center justify-between">
+                        <div className={`mb-3 p-3 ${isDark ? 'bg-green-900/20' : 'bg-green-50'} border ${isDark ? 'border-green-800' : 'border-green-200'} rounded-xl flex items-center justify-between`}>
                           <div className="flex items-center gap-2">
-                            <FileText size={16} className="text-green-600 dark:text-green-400" />
+                            <FileText size={16} className={isDark ? "text-green-400" : "text-green-600"} />
                             <a
                               href={formData.resume}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-sm text-green-600 dark:text-green-400 hover:underline"
+                              className={`text-sm ${isDark ? 'text-green-400' : 'text-green-600'} hover:underline`}
                             >
                               View Current Resume
                             </a>
@@ -1259,7 +1182,7 @@ const ProfileManagement = () => {
                           </button>
                         </div>
                       )}
-                      <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl p-8 text-center bg-gray-50 dark:bg-gray-900/30">
+                      <div className={`border-2 border-dashed ${isDark ? 'border-gray-700' : 'border-gray-200'} rounded-2xl p-8 text-center ${isDark ? 'bg-gray-900/30' : 'bg-gray-50'}`}>
                         <Upload className="mx-auto text-gray-300 mb-3" size={40} />
                         <input
                           type="file"
@@ -1293,68 +1216,68 @@ const ProfileManagement = () => {
             </div>
 
             {/* Step 2: Education & Experience */}
-            <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-lg border transition-all ${
-              expandedStep === 2 ? 'border-blue-500 ring-4 ring-blue-500/10' : 'border-gray-200 dark:border-gray-700'
+            <div className={`${cardBg} rounded-2xl shadow-lg border transition-all ${
+              expandedStep === 2 ? 'border-blue-500 ring-4 ring-blue-500/10' : borderColor
             }`}>
-              <button
-                onClick={() => setExpandedStep(expandedStep === 2 ? 0 : 2)}
+              <button 
+                onClick={() => setExpandedStep(expandedStep === 2 ? 0 : 2)} 
                 className="w-full p-6 flex items-center justify-between"
               >
                 <div className="flex items-center gap-4 text-left">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                    completedSteps.includes(1) ? 'bg-green-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'
+                    completedSteps.includes(1) ? 'bg-green-500 text-white' : `${isDark ? 'bg-gray-700' : 'bg-gray-100'} text-gray-400`
                   }`}>
                     {completedSteps.includes(1) ? <Check size={20} /> : '2'}
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Education & Experience</h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Academic and work background</p>
+                    <h3 className={`text-lg font-bold ${textColor}`}>Education & Experience</h3>
+                    <p className={`text-xs ${textSecondary}`}>Academic and work background</p>
                   </div>
                 </div>
                 <ChevronRight className={`transition-transform text-gray-400 ${expandedStep === 2 ? 'rotate-90' : ''}`} />
               </button>
-
+              
               {expandedStep === 2 && (
-                <div className="p-6 pt-0 border-t border-gray-50 dark:border-gray-700">
+                <div className={`p-6 pt-0 border-t ${isDark ? 'border-gray-700' : 'border-gray-50'}`}>
                   <form onSubmit={handleSubmit} className="space-y-6 mt-6">
                     {/* Education */}
                     <div>
-                      <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                      <h4 className={`text-sm font-bold ${textColor} mb-4 flex items-center gap-2`}>
                         <GraduationCap size={18} className="text-blue-500" />
                         Education
                       </h4>
                       {formData.education.map((edu, index) => (
-                        <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-xl">
+                        <div key={index} className={`grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 ${isDark ? 'bg-gray-900/30' : 'bg-gray-50'} rounded-xl`}>
                           <div>
-                            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Degree *</label>
+                            <label className={`text-xs font-medium ${textSecondary} mb-1 block`}>Degree *</label>
                             <input
                               name="degree"
                               value={edu.degree}
                               onChange={(e) => handleDynamicChange(e, index, 'education')}
-                              className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+                              className={`w-full p-2 rounded-lg border ${inputBorder} ${inputBg} text-sm ${textColor}`}
                               placeholder="B.S. Computer Science"
                               required
                             />
                           </div>
                           <div>
-                            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Institution *</label>
+                            <label className={`text-xs font-medium ${textSecondary} mb-1 block`}>Institution *</label>
                             <input
                               name="institution"
                               value={edu.institution}
                               onChange={(e) => handleDynamicChange(e, index, 'education')}
-                              className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+                              className={`w-full p-2 rounded-lg border ${inputBorder} ${inputBg} text-sm ${textColor}`}
                               placeholder="University Name"
                               required
                             />
                           </div>
                           <div className="flex gap-2">
                             <div className="flex-1">
-                              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Year</label>
+                              <label className={`text-xs font-medium ${textSecondary} mb-1 block`}>Year</label>
                               <input
                                 name="year"
                                 value={edu.year}
                                 onChange={(e) => handleDynamicChange(e, index, 'education')}
-                                className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+                                className={`w-full p-2 rounded-lg border ${inputBorder} ${inputBg} text-sm ${textColor}`}
                                 placeholder="2023"
                               />
                             </div>
@@ -1362,7 +1285,7 @@ const ProfileManagement = () => {
                               <button
                                 type="button"
                                 onClick={() => removeDynamicField(index, 'education')}
-                                className="self-end p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                                className={`self-end p-2 text-red-500 ${isDark ? 'hover:bg-red-900/20' : 'hover:bg-red-50'} rounded-lg`}
                               >
                                 <XCircle size={20} />
                               </button>
@@ -1386,7 +1309,7 @@ const ProfileManagement = () => {
                         name="experienceLevel"
                         value={formData.experienceLevel}
                         onChange={handleInputChange}
-                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        className={`w-full p-3 rounded-xl border ${inputBorder} ${inputBg} ${textColor}`}
                       >
                         <option value="Experienced">Experienced</option>
                         <option value="Fresher">Fresher</option>
@@ -1396,42 +1319,42 @@ const ProfileManagement = () => {
                     {/* Experience */}
                     {formData.experienceLevel === 'Experienced' && (
                       <div>
-                        <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <h4 className={`text-sm font-bold ${textColor} mb-4 flex items-center gap-2`}>
                           <Briefcase size={18} className="text-blue-500" />
                           Work Experience
                         </h4>
                         {formData.experience.map((exp, index) => (
-                          <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-xl">
+                          <div key={index} className={`grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 ${isDark ? 'bg-gray-900/30' : 'bg-gray-50'} rounded-xl`}>
                             <div>
-                              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Job Title *</label>
+                              <label className={`text-xs font-medium ${textSecondary} mb-1 block`}>Job Title *</label>
                               <input
                                 name="title"
                                 value={exp.title}
                                 onChange={(e) => handleDynamicChange(e, index, 'experience')}
-                                className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+                                className={`w-full p-2 rounded-lg border ${inputBorder} ${inputBg} text-sm ${textColor}`}
                                 placeholder="Software Developer"
                                 required
                               />
                             </div>
                             <div>
-                              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Company *</label>
+                              <label className={`text-xs font-medium ${textSecondary} mb-1 block`}>Company *</label>
                               <input
                                 name="company"
                                 value={exp.company}
                                 onChange={(e) => handleDynamicChange(e, index, 'experience')}
-                                className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+                                className={`w-full p-2 rounded-lg border ${inputBorder} ${inputBg} text-sm ${textColor}`}
                                 placeholder="Company Name"
                                 required
                               />
                             </div>
                             <div className="flex gap-2">
                               <div className="flex-1">
-                                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Duration</label>
+                                <label className={`text-xs font-medium ${textSecondary} mb-1 block`}>Duration</label>
                                 <input
                                   name="duration"
                                   value={exp.duration}
                                   onChange={(e) => handleDynamicChange(e, index, 'experience')}
-                                  className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+                                  className={`w-full p-2 rounded-lg border ${inputBorder} ${inputBg} text-sm ${textColor}`}
                                   placeholder="2020 - 2023"
                                 />
                               </div>
@@ -1439,7 +1362,7 @@ const ProfileManagement = () => {
                                 <button
                                   type="button"
                                   onClick={() => removeDynamicField(index, 'experience')}
-                                  className="self-end p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                                  className={`self-end p-2 text-red-500 ${isDark ? 'hover:bg-red-900/20' : 'hover:bg-red-50'} rounded-lg`}
                                 >
                                   <XCircle size={20} />
                                 </button>
@@ -1487,16 +1410,16 @@ const ProfileManagement = () => {
       {/* Success Modal */}
       {showSuccessModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl">
-            <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+          <div className={`${cardBg} p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl`}>
+            <div className={`w-20 h-20 ${isDark ? 'bg-green-900/30' : 'bg-green-100'} rounded-full flex items-center justify-center mx-auto mb-6`}>
               <CheckCircle className="text-green-500" size={40} />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Profile Saved!</h2>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mb-8">
+            <h2 className={`text-2xl font-bold ${textColor} mb-2`}>Profile Saved!</h2>
+            <p className={`${textSecondary} text-sm mb-8`}>
               Your profile has been updated successfully.
             </p>
-            <button
-              onClick={() => setShowSuccessModal(false)}
+            <button 
+              onClick={() => setShowSuccessModal(false)} 
               className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700"
             >
               Continue

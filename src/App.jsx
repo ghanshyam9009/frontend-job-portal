@@ -64,6 +64,8 @@ import PrivacyPolicy from './Pages/PrivacyPolicy'
 import TermsOfService from './Pages/TermsOfService'
 import PaymentSuccess from './Pages/PaymentSuccess'
 import ViewApplications from './Pages/Recruiter/ViewApplications';
+import IntegratedAdminLayout from './Components/Admin/IntegratedAdminLayout';
+// import JobListing from './Pages/default'
 
 function App() {
   return (
@@ -136,7 +138,7 @@ function App() {
             <Route path="/recruiter-settings" element={<RecruiterSettings />} />
           </Route>
           <Route path="/admin/login" element={<AdminLogin />} />
-          <Route element={<ProtectedRoute role="admin"><AdminLayout /></ProtectedRoute>}>
+          <Route element={<ProtectedRoute role="admin"><IntegratedAdminLayout /></ProtectedRoute>}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
            
             <Route path="/admin/candidates" element={<ManageCandidates />} />
