@@ -431,8 +431,14 @@ const ManageCandidates = () => {
                 </div>
               </div>
             </div>
-            <div className={styles.modalFooter}>
-              <button className={styles.cancelBtn} onClick={closeViewModal}>Close</button>
+
+            <div className="flex justify-end gap-3 p-6 border-t border-gray-200">
+              <button
+                onClick={closeViewModal}
+                className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
