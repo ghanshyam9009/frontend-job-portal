@@ -47,8 +47,8 @@ import ReportsAnalytics from './Pages/Admin/ReportsAnalytics'
 import ManageMembershipPlans from './Pages/Admin/ManageMembershipPlans'
 import HomepageForms from './Pages/Admin/HomepageForms'
 import ContactForms from './Pages/Admin/ContactForms'
-import GovernmentJobsManagement from './Pages/Admin/GovernmentJobsManagement'
-import JobApplicationReports from './Pages/Admin/JobApplicationReports'
+import GovernmentJobsManagement from './Pages/Admin/AdminGovernmentJobs'
+import JobApplicationReports from './Pages/Admin/AdminJobReports'
 import AdminPostJob from './Pages/Admin/AdminPostJob'
 import JobPostingManagement from './Pages/Admin/JobPostingManagement'
 import ResetPassword from './Pages/Auth/ResetPassword'
@@ -65,6 +65,16 @@ import TermsOfService from './Pages/TermsOfService'
 import PaymentSuccess from './Pages/PaymentSuccess'
 import ViewApplications from './Pages/Recruiter/ViewApplications';
 import IntegratedAdminLayout from './Components/Admin/IntegratedAdminLayout';
+import AdminJobApplications from './Pages/Admin/Adminjobapplications';
+import AdminJobs from './Pages/Admin/AdminManageJobs';
+import AdminJobReportApplications from './Pages/Admin/AdminJobReportApplications';
+import AdminJobReports from './Pages/Admin/AdminJobReports';
+import AdminGovernmentJobs from './Pages/Admin/AdminGovernmentJobs';
+import AdminPostGovernmentJob from './Pages/Admin/AdminPostGovernmentJob';
+import AdminCandidateProfile from './Pages/Admin/AdminCandidateProfile';
+import AdminCandidateApplications from './Pages/Admin/AdminCandidateApplications';
+import AdminEmployerProfile from './Pages/Admin/AdminEmployerProfile';
+import AdminEmployerJobs from './Pages/Admin/AdminEmployerJobs';
 // import JobListing from './Pages/default'
 
 function App() {
@@ -142,17 +152,29 @@ function App() {
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
            
             <Route path="/admin/candidates" element={<ManageCandidates />} />
+            <Route path="/admin/candidates/profile/:email" element={<AdminCandidateProfile />} />
+            <Route path="/admin/candidates/applications/:candidateId" element={<AdminCandidateApplications />} />
             <Route path="/admin/pending-applications" element={<PendingJobApplications />} />
             <Route path="/admin/employers" element={<ManageEmployers />} />
+            {/* <Route path="/admin/employers" element={<AdminEmployers />} /> */}
+<Route path="/admin/employers/profile/:email" element={<AdminEmployerProfile />} />
+<Route path="/admin/employers/jobs/:employerId" element={<AdminEmployerJobs />} />
             <Route path="/admin/jobs" element={<AdminManageJobs />} />
             <Route path="/admin/post-job" element={<AdminPostJob />} />
-            <Route path="/admin/job-posting" element={<JobPostingManagement />} />
+            <Route path="/admin/job-applications/:jobId" element={<AdminJobApplications />} />
+            <Route path="/admin/job-posting" element={<AdminJobs />} />
+            <Route path="/admin/edit-job/:jobId"   element={<AdminPostJob />} />
             <Route path="/admin/reports" element={<ReportsAnalytics />} />
             <Route path="/admin/membership" element={<ManageMembershipPlans />} />
             <Route path="/admin/homepage-forms" element={<HomepageForms />} />
             <Route path="/admin/contact-forms" element={<ContactForms />} />
-            <Route path="/admin/government-jobs" element={<GovernmentJobsManagement />} />
-            <Route path="/admin/job-application-reports" element={<JobApplicationReports />} />
+            <Route path="/admin/government-jobs" element={<AdminGovernmentJobs />} />
+<Route path="/admin/government-jobs/post" element={<AdminPostGovernmentJob />} />
+<Route path="/admin/government-jobs/edit/:jobId" element={<AdminPostGovernmentJob />} />
+            {/* <Route path="/admin/job-application-reports" element={<JobApplicationReports />} /> */}
+             <Route path="/admin/job-application-reports" element={<AdminJobReports />} />
+
+<Route path="/admin/job-reports/applications/:jobId" element={<AdminJobReportApplications />} />
           </Route>
         </Routes>
       </BrowserRouter>
