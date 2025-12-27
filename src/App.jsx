@@ -65,7 +65,7 @@ import TermsOfService from './Pages/TermsOfService'
 import PaymentSuccess from './Pages/PaymentSuccess'
 import ViewApplications from './Pages/Recruiter/ViewApplications';
 import IntegratedAdminLayout from './Components/Admin/IntegratedAdminLayout';
-import AdminJobApplications from './Pages/Admin/Adminjobapplications';
+import AdminJobApplications from './Pages/Admin/AdminJobApplications';
 import AdminJobs from './Pages/Admin/AdminManageJobs';
 import AdminJobReportApplications from './Pages/Admin/AdminJobReportApplications';
 import AdminJobReports from './Pages/Admin/AdminJobReports';
