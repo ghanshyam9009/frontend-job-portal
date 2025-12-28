@@ -41,6 +41,7 @@ import ltimindtreeLogo from "../assets/lit.jfif";
 import requestDemoImage from "../assets/Request free demo.png";
 import jobImage from "../assets/job.jfif";
 import axisBanner from "../assets/axis-banner.jpg";
+import vacancy from "../assets/vacancy.jpeg";
 import axisBanner1 from "../assets/carrericici.webp";
 import bannerSmall from "../assets/banner-small.png";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
@@ -738,7 +739,7 @@ const Homepage = () => {
   return (
     <> {/* Navigation */}
 
-    {console.log(user)}
+    
       {user? (user.company_name ?<RecruiterNavbar/>: <CandidateNavbar />) : <HomeNav />}
     <div className="">
      
@@ -950,7 +951,7 @@ const Homepage = () => {
                     <h3 className="text-white text-sm font-semibold mb-2">
                       {feature.title}
                     </h3>
-                    <div className="w-8 h-0.5 bg-white mb-3 mx-auto md:mx-0"></div>
+                    <div className="w-8 h-0.5 bg-white mb-3 mx-auto  " ></div>
                     <p className="text-white text-xs leading-relaxed opacity-90">
                       {feature.description}
                     </p>
@@ -961,6 +962,22 @@ const Homepage = () => {
           </div>
         </div>
       </div>
+
+      <div className={`transition-colors duration-300 ${bgColor}`}>
+        {/* Axis Banner */}
+        <section className={`${bgColor} mx-4 mt-4 transition-colors duration-300`}>
+          <div className="max-w-3xl mx-auto">
+            <div className="rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
+              <img 
+                src={vacancy} 
+                alt="Axis Bank Banner" 
+                className="w-full h-auto object-cover"
+                loading="lazy"
+              />
+            </div>
+          </div>
+        </section>
+  </div>
 
       {/* Action Cards Section */}
       <section className={`py-8 px-4 ${bgColor} transition-colors duration-300`}>
