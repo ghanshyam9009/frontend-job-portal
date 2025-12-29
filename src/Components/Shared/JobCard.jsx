@@ -99,7 +99,7 @@ const JobCard = ({
 
       {/* Company Logo and Title */}
       <div className="flex items-start gap-2 mb-3">
-        <div className="w-10 h-10 rounded-md bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden">
+        <div className="w-10 h-10 rounded-md bg-white flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden">
           {companyLogo ? (
             <img
               src={companyLogo}

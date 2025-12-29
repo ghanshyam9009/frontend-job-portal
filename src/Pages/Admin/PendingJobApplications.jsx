@@ -158,15 +158,25 @@ function PendingJobApplications() {
               details.studentEmail = studentApplication.student_email || studentApplication.email || '';
               details.resumeUrl = studentApplication.resume_url || studentApplication.resume || '';
               details.studentPhone = studentApplication.student_phone || '';
-              details.studentSkills = studentApplication.student_skills ?
-                studentApplication.student_skills.split(',').map(skill => skill.trim()) : [];
+              details.studentSkills = studentApplication.student_skills
+                ? (typeof studentApplication.student_skills === 'string'
+                    ? studentApplication.student_skills.split(',').map(skill => skill.trim())
+                    : Array.isArray(studentApplication.student_skills)
+                    ? studentApplication.student_skills
+                    : [])
+                : [];
 
               details.studentDetails = {
                 name: studentApplication.student_name || "Unknown",
                 email: studentApplication.student_email || studentApplication.email || null,
                 phone: studentApplication.student_phone || null,
-                skills: studentApplication.student_skills ? 
-                  studentApplication.student_skills.split(',').map(skill => skill.trim()) : [],
+                skills: studentApplication.student_skills
+                  ? (typeof studentApplication.student_skills === 'string'
+                      ? studentApplication.student_skills.split(',').map(skill => skill.trim())
+                      : Array.isArray(studentApplication.student_skills)
+                      ? studentApplication.student_skills
+                      : [])
+                  : [],
                 location: studentApplication.student_location || null,
                 experience: studentApplication.student_experience || null,
                 education: studentApplication.student_university ? [studentApplication.student_university] : [],
