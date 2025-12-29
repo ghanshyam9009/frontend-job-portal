@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { recruiterExternalService } from "../../services/recruiterExternalService";
@@ -35,6 +35,10 @@ const AdminEmployerJobs = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [viewingJob, setViewingJob] = useState(null);
   const [editingJob, setEditingJob] = useState(null);
+  const [viewingApplications, setViewingApplications] = useState(null);
+  const [applications, setApplications] = useState([]);
+  const [detailedEmployerInfo, setDetailedEmployerInfo] = useState(null);
+  const applicationsLoadingRef = useRef(false);
   const [editFormData, setEditFormData] = useState({
     job_title: "",
     location: "",
@@ -68,7 +72,9 @@ const AdminEmployerJobs = () => {
   useEffect(() => {
     const fetchJobsData = async () => {
       if (!employerId) return;
-      
+
+      console.log('AdminEmployerJobs: Fetching jobs data for employerId:', employerId);
+
       try {
         setLoading(true);
         setError(null);
@@ -80,7 +86,7 @@ const AdminEmployerJobs = () => {
         // Fetch jobs posted by this employer
         const jobsResponse = await recruiterExternalService.getAllPostedJobs(employerId);
         const jobsArray = jobsResponse?.jobs || [];
-        
+
         // Sort by created date (latest first)
         const sortedJobs = jobsArray.sort((a, b) => {
           const dateA = new Date(a.created_at || 0);
@@ -88,10 +94,11 @@ const AdminEmployerJobs = () => {
           return dateB - dateA;
         });
 
+        console.log('AdminEmployerJobs: Jobs fetched successfully:', jobsArray.length, 'jobs');
         setJobs(sortedJobs);
         setFilteredJobs(sortedJobs);
       } catch (error) {
-        console.error('Failed to fetch jobs:', error);
+        console.error('AdminEmployerJobs: Failed to fetch jobs:', error);
         setError('Failed to load jobs. Please try again.');
         setJobs([]);
         setFilteredJobs([]);
@@ -148,6 +155,55 @@ const AdminEmployerJobs = () => {
   const handleViewJob = (job) => {
     setViewingJob(job);
   };
+
+  const fetchDetailedEmployerInfo = async (email) => {
+    try {
+      // Using the API endpoint suggested by the user
+      const response = await fetch(`https://4x10ubol84.execute-api.ap-southeast-1.amazonaws.com/default/getemployerdetailed?email=${email}`);
+      if (response.ok) {
+        const data = await response.json();
+        return data;
+      }
+    } catch (error) {
+      console.error('Failed to fetch detailed employer info:', error);
+    }
+    return null;
+  };
+
+  const handleViewApplications = useCallback(async (job) => {
+    // Prevent multiple calls for the same job
+    if (viewingApplications?.job_id === job.job_id || applicationsLoadingRef.current) {
+      return;
+    }
+
+    applicationsLoadingRef.current = true;
+
+    try {
+      setViewingApplications(job); // Set modal first
+      setApplications([]); // Clear previous applications
+      setDetailedEmployerInfo(null); // Clear previous detailed info
+
+      // Fetch applications
+      const applicationsResponse = await adminService.getApplicationsForJob(job.job_id);
+      setApplications(Array.isArray(applicationsResponse) ? applicationsResponse : []);
+
+      // Fetch detailed employer info using the email from the first application or employer info
+      const employerEmail = employerInfo?.email || (applicationsResponse?.[0]?.recruiter_email) || job.recruiter_email;
+      if (employerEmail) {
+        const detailedInfo = await fetchDetailedEmployerInfo(employerEmail);
+        setDetailedEmployerInfo(detailedInfo);
+      }
+    } catch (error) {
+      console.error('Failed to fetch applications:', error);
+      setViewingApplications(null); // Close modal on error
+      setApplications([]); // Clear applications
+      setDetailedEmployerInfo(null); // Clear detailed info
+      setMessage({ type: 'error', text: 'Failed to load applications. Please try again.' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } finally {
+      applicationsLoadingRef.current = false;
+    }
+  }, [viewingApplications?.job_id, employerInfo?.email]);
 
   const handleEditJob = (job) => {
     setEditingJob(job);
@@ -558,34 +614,63 @@ const AdminEmployerJobs = () => {
 
                 {/* Action Buttons */}
                 <div className="flex flex-wrap gap-1.5">
+                  {/* Applications Button - Primary Action */}
                   <button
-                    onClick={() => handleViewJob(job)}
-                    className="flex-1 sm:flex-initial px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleViewApplications(job);
+                    }}
+                    className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-1 whitespace-nowrap"
                     style={{ fontSize: '0.7rem' }}
+                    title="View job applications"
                   >
-                    <Eye size={13} />
-                    View
+                    <Users size={13} />
+                    View Applications
                   </button>
+
+                  {/* View Job Details Button */}
                   <button
-                    onClick={() => handleEditJob(job)}
+                    onClick={() => {
+                      console.log('AdminEmployerJobs: DETAILS button clicked for job:', job.job_title);
+                      handleViewJob(job);
+                    }}
                     className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5`}
                     style={{ fontSize: '0.7rem' }}
+                    title="View job details"
+                  >
+                    <Eye size={13} />
+                    Details
+                  </button>
+
+                  {/* Edit Job Button */}
+                  <button
+                    onClick={() => {
+                      console.log('AdminEmployerJobs: EDIT button clicked for job:', job.job_title);
+                      handleEditJob(job);
+                    }}
+                    className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5`}
+                    style={{ fontSize: '0.7rem' }}
+                    title="Edit job posting"
                   >
                     <Edit size={13} />
                     Edit
                   </button>
+
+                  {/* Premium Toggle Button */}
                   <button
                     onClick={() => handleMarkPremium(job, !(job.premium_job || job.is_premium))}
                     disabled={actionLoading === `premium-${job.job_id}`}
                     className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50`}
                     style={{ fontSize: '0.7rem' }}
+                    title="Toggle premium status"
                   >
                     <Star size={13} />
-                    {actionLoading === `premium-${job.job_id}` 
-                      ? 'Updating...' 
-                      : (job.premium_job || job.is_premium) 
-                        ? 'Remove Premium' 
-                        : 'Mark Premium'
+                    {actionLoading === `premium-${job.job_id}`
+                      ? 'Updating...'
+                      : (job.premium_job || job.is_premium)
+                        ? 'Premium'
+                        : 'Make Premium'
                     }
                   </button>
                 </div>
@@ -1035,6 +1120,216 @@ const AdminEmployerJobs = () => {
                 ) : (
                   'Save Changes'
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Applications Modal */}
+      {viewingApplications && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`${cardBg} rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl`}>
+            <div className={`flex items-center justify-between p-6 border-b ${borderColor}`}>
+              <h2 className={`text-xl font-semibold ${textColor}`}>
+                Applications for "{viewingApplications.job_title}"
+              </h2>
+              <button
+                onClick={() => { setViewingApplications(null); setApplications([]); }}
+                className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors`}
+              >
+                <XCircle size={20} className={textColor} />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto p-6">
+              {applications.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users size={48} className={`mx-auto mb-4 ${textSecondary}`} />
+                  <h3 className={`text-lg font-semibold ${textColor} mb-2`}>No Applications Yet</h3>
+                  <p className={`${textSecondary} text-sm`}>
+                    No candidates have applied for this job yet.
+                  </p>
+                </div>
+              ) : (
+            <div className="space-y-4">
+                  {applications.map((application, index) => {
+                    // Use detailed employer info if available, fallback to basic info
+                    const logoUrl = detailedEmployerInfo?.logo || detailedEmployerInfo?.company_logo || employerInfo?.logo || employerInfo?.company_logo;
+                    const companyName = detailedEmployerInfo?.company_name || employerInfo?.company_name || 'Company not specified';
+                    const companyInitial = (companyName !== 'Company not specified' ? companyName.charAt(0).toUpperCase() : 'C');
+                    const industry = detailedEmployerInfo?.industry || 'Not specified';
+                    const companySize = detailedEmployerInfo?.company_size || 'Not specified';
+                    const location = detailedEmployerInfo?.location || detailedEmployerInfo?.city || 'Not specified';
+                    const foundedYear = detailedEmployerInfo?.founded_year || 'Not specified';
+                    const kycStatus = detailedEmployerInfo?.kyc_status || 'Not verified';
+                    const kycType = detailedEmployerInfo?.kyc_type || 'Not specified';
+                    const kycDocNumber = detailedEmployerInfo?.kyc_document_number || 'Not provided';
+                    const registrationDate = detailedEmployerInfo?.created_at || detailedEmployerInfo?.registration_date || 'Not available';
+
+                    return (
+                    <div
+                      key={application.application_id || index}
+                      className={`${cardBg} rounded-lg border ${borderColor} p-4 hover:shadow-md transition-shadow`}
+                    >
+                      <div className="flex items-start gap-4">
+                        {/* Recruiter Logo */}
+                        <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-blue-100 dark:bg-blue-900/30">
+                          {logoUrl ? (
+                            <img
+                              src={logoUrl}
+                              alt={companyName}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm">
+                              {companyInitial}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Employer Information */}
+                        <div className="flex-1 min-w-0">
+                          <div className="mb-3">
+                            <h4 className={`text-base font-semibold ${textColor} mb-1`}>{companyName}</h4>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div>
+                                <span className="font-medium text-gray-500 dark:text-gray-400">Industry:</span>
+                                <span className={`ml-1 ${textColor}`}>{industry}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-500 dark:text-gray-400">Size:</span>
+                                <span className={`ml-1 ${textColor}`}>{companySize}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-500 dark:text-gray-400">Location:</span>
+                                <span className={`ml-1 ${textColor}`}>{location}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-500 dark:text-gray-400">Founded:</span>
+                                <span className={`ml-1 ${textColor}`}>{foundedYear}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* KYC Information */}
+                          <div className="mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                                kycStatus.toLowerCase().includes('verified') || kycStatus.toLowerCase().includes('approved')
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                              }`}>
+                                KYC: {kycStatus}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 gap-1 text-xs text-gray-600 dark:text-gray-300">
+                              <div><span className="font-medium">Type:</span> {kycType}</div>
+                              <div><span className="font-medium">Doc:</span> {kycDocNumber}</div>
+                              <div><span className="font-medium">Registered:</span> {registrationDate !== 'Not available' ? formatDate(registrationDate) : registrationDate}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Application Details */}
+                      <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h5 className={`text-sm font-semibold ${textColor} truncate`}>
+                              {application.candidate_name || application.student_name || 'Unknown Candidate'}
+                            </h5>
+                            <p className={`text-xs ${textSecondary} truncate`}>
+                              {application.email || application.student_email || 'No email'}
+                            </p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              application.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                              application.status === 'rejected' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                              'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                            }`}>
+                              {application.status || 'pending'}
+                            </span>
+                            <span className={`text-xs ${textSecondary}`}>
+                              {application.applied_date ? formatDate(application.applied_date) : 'Applied recently'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Additional Info */}
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {application.phone && (
+                            <span className={`px-2 py-1 rounded text-xs ${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}>
+                              📞 {application.phone}
+                            </span>
+                          )}
+                          {application.experience && (
+                            <span className={`px-2 py-1 rounded text-xs ${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}>
+                              💼 {application.experience}
+                            </span>
+                          )}
+                          {application.location && (
+                            <span className={`px-2 py-1 rounded text-xs ${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}>
+                              📍 {application.location}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Application Message */}
+                        {application.cover_letter && (
+                          <div className="mt-3">
+                            <p className="text-xs font-bold uppercase text-gray-400 mb-1">Cover Letter</p>
+                            <p className={`text-sm ${textColor} line-clamp-3`}>
+                              {application.cover_letter}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                        <button
+                          onClick={() => {
+                            // TODO: Implement view full application details
+                            console.log('View full application:', application);
+                          }}
+                          className={`px-4 py-2 text-sm font-medium ${textColor} border ${borderColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors`}
+                        >
+                          View Details
+                        </button>
+                        <button
+                          onClick={() => {
+                            // TODO: Implement approve application
+                            console.log('Approve application:', application);
+                          }}
+                          className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => {
+                            // TODO: Implement reject application
+                            console.log('Reject application:', application);
+                          }}
+                          className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className={`flex justify-end p-6 border-t ${borderColor}`}>
+              <button
+                onClick={() => { setViewingApplications(null); setApplications([]); }}
+                className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                Close
               </button>
             </div>
           </div>

@@ -80,7 +80,7 @@ const AdminEmployerProfile = () => {
               description: data.description || '',
               founded_year: data.founded_year || '',
               location: data.location || '',
-              company_logo: data.company_logo || data.logo || '',
+              company_logo: data.logo || data.company_logo || '',
               full_name: data.full_name || '',
               hasadminapproved: data.hasadminapproved || false,
               status: data.status || 'active',
@@ -118,12 +118,31 @@ const AdminEmployerProfile = () => {
     try {
       const uploadResponse = await recruiterService.uploadLogoFile(email, file);
       if (uploadResponse.success) {
-        const uploadedLogoUrl = uploadResponse.data?.logoUrl || uploadResponse.data?.logo;
+        // Handle different response structures
+        let uploadedLogoUrl;
+
+        // Based on the user's response, try the direct logo property first
+        if (uploadResponse.logo) {
+          uploadedLogoUrl = uploadResponse.logo;
+          console.log('AdminEmployerProfile: Found logo in uploadResponse.logo');
+        } else if (uploadResponse.data?.logo) {
+          uploadedLogoUrl = uploadResponse.data.logo;
+          console.log('AdminEmployerProfile: Found logo in uploadResponse.data.logo');
+        } else if (uploadResponse.data?.logoUrl) {
+          uploadedLogoUrl = uploadResponse.data.logoUrl;
+          console.log('AdminEmployerProfile: Found logo in uploadResponse.data.logoUrl');
+        }
+
         if (uploadedLogoUrl) {
           setProfileData(prev => ({ ...prev, company_logo: uploadedLogoUrl }));
           setSuccess('Company logo uploaded successfully');
           setTimeout(() => setSuccess(''), 3000);
+        } else {
+          console.error('AdminEmployerProfile: No logo URL found in response');
+          setError('Logo uploaded but URL not found in response');
         }
+      } else {
+        setError(uploadResponse.error?.message || 'Failed to upload company logo');
       }
     } catch (error) {
       console.error('Logo upload error:', error);

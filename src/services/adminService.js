@@ -518,8 +518,36 @@ export const adminService = {
   async getAllRecruiters() {
     try {
       const response = await adminApiClient.get(API_ENDPOINTS.admin.getAllRecruiters);
-      return response.data;
+
+      // Handle different response structures
+      let recruitersArray = [];
+
+      if (response.data) {
+        // Check if response.data is already an array
+        if (Array.isArray(response.data)) {
+          recruitersArray = response.data;
+        }
+        // Check if response.data has a recruiters array
+        else if (response.data.recruiters && Array.isArray(response.data.recruiters)) {
+          recruitersArray = response.data.recruiters;
+        }
+        // Check if response.data has an employers array
+        else if (response.data.employers && Array.isArray(response.data.employers)) {
+          recruitersArray = response.data.employers;
+        }
+        // Check if response.data has a single employer object
+        else if (response.data.employer) {
+          recruitersArray = [response.data.employer];
+        }
+        // Check if response.data itself is the recruiter object
+        else if (response.data.email || response.data.employer_id) {
+          recruitersArray = [response.data];
+        }
+      }
+
+      return { recruiters: recruitersArray };
     } catch (error) {
+      console.error('Error fetching recruiters:', error);
       throw error;
     }
   },

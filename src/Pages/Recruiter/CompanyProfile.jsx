@@ -111,7 +111,7 @@ const CompanyProfile = () => {
               description: data.description || '',
               founded_year: data.founded_year || '',
               location: data.location || '',
-              company_logo: data.company_logo || data.logo || '',
+              company_logo: data.logo || data.company_logo || '',
               customIndustry: ''
             };
             setProfileData(fetchedProfileData);
@@ -185,45 +185,50 @@ const CompanyProfile = () => {
         console.log('Full upload response:', uploadResponse);
         console.log('Upload response data:', uploadResponse.data);
         console.log('Data type:', typeof uploadResponse.data);
-        console.log('Data keys:', uploadResponse.data ? Object.keys(uploadResponse.data) : 'No data');
 
-        // Try multiple extraction approaches - handle nested data structure from withErrorHandling
+        // Extract logo URL from response
         let uploadedLogoUrl;
 
-        // First try: nested data structure from service response
-        if (uploadResponse.data?.data?.logoUrl) {
-          uploadedLogoUrl = uploadResponse.data.data.logoUrl;
-          console.log('Found logo in uploadResponse.data.data.logoUrl');
-        } else if (uploadResponse.data?.data?.logo) {
-          uploadedLogoUrl = uploadResponse.data.data.logo;
-          console.log('Found logo in uploadResponse.data.data.logo');
-        }
-        // Second try: direct from data (fallback for different response structures)
-        else if (uploadResponse.data?.logo) {
+        // Handle different response structures
+        if (uploadResponse.logo) {
+          uploadedLogoUrl = uploadResponse.logo;
+          console.log('Found logo in uploadResponse.logo');
+        } else if (uploadResponse.data?.logo) {
           uploadedLogoUrl = uploadResponse.data.logo;
           console.log('Found logo in uploadResponse.data.logo');
         } else if (uploadResponse.data?.logoUrl) {
           uploadedLogoUrl = uploadResponse.data.logoUrl;
           console.log('Found logo in uploadResponse.data.logoUrl');
-        }
-        // Third try: check if data itself is the URL (fallback)
-        else if (typeof uploadResponse.data === 'string' && uploadResponse.data.startsWith('http')) {
+        } else if (uploadResponse.data?.data?.logo) {
+          uploadedLogoUrl = uploadResponse.data.data.logo;
+          console.log('Found logo in uploadResponse.data.data.logo');
+        } else if (uploadResponse.data?.data?.logoUrl) {
+          uploadedLogoUrl = uploadResponse.data.data.logoUrl;
+          console.log('Found logo in uploadResponse.data.data.logoUrl');
+        } else if (typeof uploadResponse.data === 'string' && uploadResponse.data.startsWith('http')) {
           uploadedLogoUrl = uploadResponse.data;
           console.log('Found logo as direct string in data');
         }
 
         console.log('Final extracted logo URL:', uploadedLogoUrl);
 
-        // Update logo URL in profileData only (don't update user context to avoid triggering re-fetch)
+        // Update logo URL in profileData
         if (uploadedLogoUrl) {
-          console.log('Setting logo URL in profileData:', uploadedLogoUrl);
           setProfileData(prev => ({
             ...prev,
             company_logo: uploadedLogoUrl,
             companyLogoFile: null
           }));
+          setSuccess('Company logo uploaded successfully');
+
+          // Also update the user context to persist the logo
+          updateUser({ company_logo: uploadedLogoUrl });
+
+          setTimeout(() => setSuccess(false), 3000);
+          setExpandedStep(2);
         } else {
           console.error('No logo URL found! Data content:', uploadResponse.data);
+          setError('Logo uploaded but URL not found in response. Please refresh the page.');
         }
         setSuccess('Company logo uploaded successfully');
         setTimeout(() => setSuccess(false), 3000);
