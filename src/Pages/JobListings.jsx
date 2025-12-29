@@ -14,6 +14,7 @@ import { candidateService } from "../services/candidateService";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import { Loader, ErrorBox, SkeletonJobCard, JobCard } from "../Components/Shared";
 import RecruiterNavbar from "../Components/Recruiter/RecruiterNavbar";
+import vacancy1 from "../assets/vacancy1.jpeg";
 
 const JobListings = () => {
   const { theme } = useTheme();
@@ -1102,7 +1103,20 @@ const JobListings = () => {
                 Know More
               </button>
             </div>
-          </div>
+              {/* Axis Banner */}
+                    <section className={` sticky top-80 mt-4 transition-colors duration-300`}>
+                      <div className="max-w-3xl mx-auto">
+                        <div className="rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
+                          <img 
+                            src={vacancy1} 
+                            alt="Axis Bank Banner" 
+                            className="w-full h-auto object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+                      </div>
+                    </section>
+   </div>
         </div>
       </div>
       <Footer />

@@ -3,9 +3,25 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import CandidateNavbar from "../../Components/Candidate/CandidateNavbar";
-import styles from "./AppliedJobs.module.css";
 import { candidateExternalService, recruiterExternalService } from "../../services";
-import { Briefcase, Eye, Calendar, PartyPopper, X, FileText, Check } from "lucide-react";
+import { 
+  Briefcase, 
+  Eye, 
+  Calendar, 
+  PartyPopper, 
+  X, 
+  FileText, 
+  Check,
+  MapPin,
+  DollarSign,
+  Clock,
+  ExternalLink,
+  TrendingUp,
+  AlertCircle,
+  Crown,
+  Building,
+  Search
+} from "lucide-react";
 import toast from "react-hot-toast";
 
 const AppliedJobs = () => {
@@ -18,6 +34,8 @@ const AppliedJobs = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [trackingInfo, setTrackingInfo] = useState(null);
   const [timeline, setTimeline] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
     const userId = user?.user_id || user?.id || "";
@@ -41,7 +59,7 @@ const AppliedJobs = () => {
               };
             } catch (error) {
               console.error(`Failed to fetch applicants for job ${job.job_id}`, error);
-              return job; // Return job without application_id if fetch fails
+              return job;
             }
           })
         );
@@ -63,16 +81,12 @@ const AppliedJobs = () => {
           is_premium: a.premium_job || false,
         }));
 
-        // Sort by applied date (latest first)
         const sorted = mapped.sort((a, b) => {
           const dateA = new Date(a.appliedDateTime || 0);
           const dateB = new Date(b.appliedDateTime || 0);
-
-          // Handle invalid dates
           const timeA = isNaN(dateA.getTime()) ? 0 : dateA.getTime();
           const timeB = isNaN(dateB.getTime()) ? 0 : dateB.getTime();
-
-          return timeB - timeA; // Latest first
+          return timeB - timeA;
         });
 
         setAppliedJobs(sorted);
@@ -91,36 +105,6 @@ const AppliedJobs = () => {
     });
   };
 
-  const getStatusColor = (status) => {
-    switch (status.toLowerCase()) {
-      case 'under review':
-        return styles.statusReview;
-      case 'interview scheduled':
-        return styles.statusInterview;
-      case 'offer received':
-        return styles.statusOffer;
-      case 'rejected':
-        return styles.statusRejected;
-      default:
-        return styles.statusDefault;
-    }
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status.toLowerCase()) {
-      case 'under review':
-        return <Eye size={14} />;
-      case 'interview scheduled':
-        return <Calendar size={14} />;
-      case 'offer received':
-        return <PartyPopper size={14} />;
-      case 'rejected':
-        return <X size={14} />;
-      default:
-        return <FileText size={14} />;
-    }
-  };
-
   const handleTrack = async (applicationId) => {
     if (!applicationId) {
       return toast.error(
@@ -131,7 +115,6 @@ const AppliedJobs = () => {
     try {
       const data = await candidateExternalService.getApplicationStatus(applicationId);
 
-      // Add a defensive check for the response data
       if (!data || typeof data.status !== 'string') {
         console.error("Invalid status data received:", data);
         toast.error("Could not retrieve valid tracking information.");
@@ -146,7 +129,6 @@ const AppliedJobs = () => {
       const currentIndex = statusOrder.indexOf(currentStatus);
 
       let timeline = [
-        // Ensure applied_date or created_at is used for the first step
         { stage: 'Application Sent', status: 'Pending', date: data.applied_date || data.created_at || null },
         { stage: 'Under Review', status: 'Pending', date: null },
         { stage: 'Shortlisted', status: 'Pending', date: null },
@@ -156,7 +138,6 @@ const AppliedJobs = () => {
       ];
 
       if (isRejected) {
-        // If rejected, mark 'Applied' as complete and add a 'Rejected' step.
         timeline[0].status = 'Completed';
         timeline.push({ 
           stage: 'Rejected', 
@@ -164,16 +145,13 @@ const AppliedJobs = () => {
           date: data.status_date || data.updated_at || new Date().toISOString() 
         });
       } else if (currentIndex > -1) {
-        // Mark all steps up to and including the current one as complete.
         for (let i = 0; i <= currentIndex; i++) {
           timeline[i].status = 'Completed';
-          // Put the date on the actual current step
           if (i === currentIndex) {
             timeline[i].date = data.status_date || data.updated_at || new Date().toISOString();
           }
         }
       } else {
-        // If the status is unknown but not rejected, just show 'Applied' as completed.
         timeline[0].status = 'Completed';
       }
 
@@ -198,87 +176,329 @@ const AppliedJobs = () => {
     setTimeline([]);
   };
 
+  const getStatusColor = (status) => {
+    switch (status.toLowerCase()) {
+      case 'under review':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-400';
+      case 'interview scheduled':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400';
+      case 'offer received':
+        return 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-400';
+      case 'rejected':
+        return 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-400';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-500/20 dark:text-gray-400';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status.toLowerCase()) {
+      case 'under review':
+        return <Eye size={14} />;
+      case 'interview scheduled':
+        return <Calendar size={14} />;
+      case 'offer received':
+        return <PartyPopper size={14} />;
+      case 'rejected':
+        return <X size={14} />;
+      default:
+        return <FileText size={14} />;
+    }
+  };
+
+  const getRelativeTime = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    return `${Math.floor(diffDays / 30)} months ago`;
+  };
+
+  // Filter jobs
+  const filteredJobs = appliedJobs.filter(job => {
+    const matchesSearch = 
+      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.location.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || job.status.toLowerCase() === statusFilter.toLowerCase();
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  // Get unique statuses for filter
+  const uniqueStatuses = [...new Set(appliedJobs.map(job => job.status))];
+
+  // Theme variables
+  const isDark = theme === 'dark';
+  const bgColor = isDark ? 'bg-gray-900' : 'bg-gray-50';
+  const cardBg = isDark ? 'bg-gray-800' : 'bg-white';
+  const textColor = isDark ? 'text-white' : 'text-gray-900';
+  const textSecondary = isDark ? 'text-gray-400' : 'text-gray-600';
+  const borderColor = isDark ? 'border-gray-700' : 'border-gray-200';
+
   return (
-    <div className={`${styles.dashboardContainer} ${theme === 'dark' ? styles.dark : ''}`}>
-      <CandidateNavbar darkMode={theme === 'dark'} toggleDarkMode={toggleTheme} />
-      <main className={styles.main}>
-        <section className={styles.jobsSection}>
-          <div className={styles.jobsHeader}>
-            <h2>Applied Jobs</h2>
-            <p>Track the status of your job applications</p>
+    <div className={`min-h-screen ${bgColor}`}>
+      <CandidateNavbar darkMode={isDark} toggleDarkMode={toggleTheme} />
+      
+      {/* Add padding-top to account for fixed navbar height - increased to prevent overlap */}
+      <main className="pt-32 px-4 sm:px-6 lg:px-8 pb-8">
+        {/* Removed mx-auto to left-align content, kept max-width for readability */}
+        <div className="max-w-full">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className={`text-3xl font-bold ${textColor} mb-2 flex items-center gap-3`}>
+              <Briefcase className="text-indigo-500" size={32} />
+              Applied Jobs
+            </h1>
+            <p className={`${textSecondary} text-lg`}>
+              Track the status of your {appliedJobs.length} job application{appliedJobs.length !== 1 ? 's' : ''}
+            </p>
           </div>
-          
+
+          {/* Stats Cards */}
+          {appliedJobs.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className={`${cardBg} border ${borderColor} rounded-lg p-4`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`text-xs font-semibold ${textSecondary} uppercase tracking-wider mb-1`}>
+                      Total Applied
+                    </p>
+                    <p className={`text-2xl font-bold ${textColor}`}>{appliedJobs.length}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-500/20 rounded-lg flex items-center justify-center">
+                    <Briefcase size={20} className="text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                </div>
+              </div>
+
+              <div className={`${cardBg} border ${borderColor} rounded-lg p-4`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`text-xs font-semibold ${textSecondary} uppercase tracking-wider mb-1`}>
+                      Under Review
+                    </p>
+                    <p className={`text-2xl font-bold ${textColor}`}>
+                      {appliedJobs.filter(j => j.status.toLowerCase() === 'under review').length}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                    <Eye size={20} className="text-yellow-600 dark:text-yellow-400" />
+                  </div>
+                </div>
+              </div>
+
+              <div className={`${cardBg} border ${borderColor} rounded-lg p-4`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`text-xs font-semibold ${textSecondary} uppercase tracking-wider mb-1`}>
+                      Interviews
+                    </p>
+                    <p className={`text-2xl font-bold ${textColor}`}>
+                      {appliedJobs.filter(j => j.status.toLowerCase() === 'interview scheduled').length}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-lg flex items-center justify-center">
+                    <Calendar size={20} className="text-blue-600 dark:text-blue-400" />
+                  </div>
+                </div>
+              </div>
+
+              <div className={`${cardBg} border ${borderColor} rounded-lg p-4`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`text-xs font-semibold ${textSecondary} uppercase tracking-wider mb-1`}>
+                      Offers
+                    </p>
+                    <p className={`text-2xl font-bold ${textColor}`}>
+                      {appliedJobs.filter(j => j.status.toLowerCase() === 'offer received').length}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-lg flex items-center justify-center">
+                    <PartyPopper size={20} className="text-green-600 dark:text-green-400" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Search and Filters */}
+          {appliedJobs.length > 0 && (
+            <div className={`${cardBg} border ${borderColor} rounded-lg p-4 mb-6`}>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`} />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search by job title, company, or location..."
+                    className={`w-full pl-10 pr-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+                  />
+                </div>
+                <div className="flex gap-2 overflow-x-auto">
+                  <button
+                    onClick={() => setStatusFilter('all')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                      statusFilter === 'all'
+                        ? 'bg-indigo-600 text-white'
+                        : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                    }`}
+                  >
+                    All
+                  </button>
+                  {uniqueStatuses.map(status => (
+                    <button
+                      key={status}
+                      onClick={() => setStatusFilter(status)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                        statusFilter === status
+                          ? 'bg-indigo-600 text-white'
+                          : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                      }`}
+                    >
+                      {status}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Loading State */}
           {loading && (
-            <div className={styles.emptyState}><h3>Loading applications…</h3></div>
+            <div className="flex items-center justify-center py-20">
+              <div className="text-center">
+                <div className="relative mb-6">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-t-4 border-indigo-500 mx-auto"></div>
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <Briefcase className="text-indigo-500" size={24} />
+                  </div>
+                </div>
+                <h3 className={`text-lg font-bold ${textColor}`}>Loading applications...</h3>
+              </div>
+            </div>
           )}
+
+          {/* Error State */}
           {error && (
-            <div className={styles.emptyState}><h3>{error}</h3></div>
+            <div className={`${cardBg} border border-red-200 dark:border-red-800 rounded-lg p-8 text-center`}>
+              <div className="w-16 h-16 bg-red-100 dark:bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="text-red-500" size={32} />
+              </div>
+              <h3 className={`text-lg font-bold ${textColor} mb-2`}>Error Loading Jobs</h3>
+              <p className={`${textSecondary}`}>{error}</p>
+            </div>
           )}
-          {appliedJobs.length === 0 ? (
-            <div className={styles.emptyState}>
-              <div className={styles.emptyIcon}><FileText size={48} /></div>
-              <h3>No applications yet</h3>
-              <p>Start applying to jobs to track your progress here.</p>
+
+          {/* Empty State */}
+          {!loading && !error && appliedJobs.length === 0 && (
+            <div className={`${cardBg} border ${borderColor} rounded-lg p-12 text-center`}>
+              <div className={`w-20 h-20 ${isDark ? 'bg-indigo-500/20' : 'bg-indigo-100'} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                <FileText size={40} className="text-indigo-500" />
+              </div>
+              <h3 className={`text-xl font-bold ${textColor} mb-2`}>No applications yet</h3>
+              <p className={`${textSecondary} mb-6`}>
+                Start applying to jobs to track your progress here.
+              </p>
               <button 
-                className={styles.primaryBtn}
                 onClick={() => navigate('/userjoblistings')}
+                className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center gap-2 mx-auto"
               >
+                <Search size={18} />
                 Browse Jobs
               </button>
             </div>
-          ) : (
-            <div className={styles.jobsGrid}>
-              {appliedJobs.map(job => (
-                <div key={job.id} className={styles.jobCard}>
+          )}
+
+          {/* Jobs Grid */}
+          {!loading && !error && filteredJobs.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredJobs.map(job => (
+                <div
+                  key={job.id}
+                  className={`${cardBg} border ${borderColor} rounded-xl p-5 hover:shadow-xl transition-all hover:border-indigo-300 dark:hover:border-indigo-700 relative group`}
+                >
+                  {/* Premium Badge */}
                   {job.is_premium && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '10px',
-                      right: '10px',
-                      background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                      color: '#000',
-                      padding: '4px 8px',
-                      borderRadius: '12px',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      zIndex: 1
-                    }}>
-                      <span>👑</span>
-                      Premium
+                    <div className="absolute top-4 right-4">
+                      <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-md">
+                        <Crown size={12} />
+                        PREMIUM
+                      </div>
                     </div>
                   )}
-                  <div className={styles.jobCardHeader}>
-                    <div className={styles.jobIcon}><Briefcase size={20} /></div>
-                    <div className={`${styles.jobStatus} ${getStatusColor(job.status)}`}>
-                      <span className={styles.statusIcon}>{getStatusIcon(job.status)}</span>
+
+                  {/* Status Badge */}
+                  <div className="mb-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 w-fit ${getStatusColor(job.status)}`}>
+                      {getStatusIcon(job.status)}
                       {job.status}
+                    </span>
+                  </div>
+
+                  {/* Job Info */}
+                  <div className="mb-4">
+                    <h3 className={`text-lg font-bold ${textColor} mb-2 pr-20 line-clamp-2`}>
+                      {job.title}
+                    </h3>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Building size={14} className={textSecondary} />
+                      <p className={`text-sm ${textColor} font-medium truncate`}>
+                        {job.company}
+                      </p>
+                    </div>
+                    {job.location && (
+                      <div className="flex items-center gap-2 mb-2">
+                        <MapPin size={14} className={textSecondary} />
+                        <p className={`text-sm ${textSecondary} truncate`}>
+                          {job.location}
+                        </p>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 mb-2">
+                      <DollarSign size={14} className={textSecondary} />
+                      <p className={`text-sm ${textSecondary} truncate`}>
+                        {job.salary}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock size={14} className={textSecondary} />
+                      <p className={`text-xs ${textSecondary}`}>
+                        Applied {getRelativeTime(job.appliedDateTime)} • {job.appliedDate}
+                      </p>
                     </div>
                   </div>
-                  <h3 className={styles.jobTitle}>{job.title}</h3>
-                  <p className={styles.jobCompany}>{job.company}</p>
-                  <p className={styles.jobSalary}>{job.salary}</p>
-                  <p className={styles.jobLocation}>{job.location}</p>
-                  <div className={styles.jobMeta}>
-                    <span className={styles.appliedDate}>Applied: {job.appliedDate}</span>
-                  </div>
+
+                  {/* Interview Info */}
                   {job.interviewDate && (
-                    <div className={styles.interviewInfo}>
-                      <span className={styles.interviewLabel}>Interview:</span>
-                      <span className={styles.interviewDate}>{job.interviewDate}</span>
+                    <div className={`${isDark ? 'bg-blue-500/20' : 'bg-blue-50'} border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4`}>
+                      <div className="flex items-center gap-2">
+                        <Calendar size={14} className="text-blue-600 dark:text-blue-400" />
+                        <span className="text-xs font-semibold text-blue-800 dark:text-blue-400">
+                          Interview: {job.interviewDate}
+                        </span>
+                      </div>
                     </div>
                   )}
-                  <div className={styles.jobButtons}>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <button 
-                      className={styles.viewBtn}
                       onClick={() => handleJobClick(job)}
+                      className="flex-1 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
                     >
-                      View Details
+                      <Eye size={14} />
+                      View
                     </button>
                     <button
-                      className={styles.trackBtn}
                       onClick={() => handleTrack(job.applicationId)}
                       disabled={!job.applicationId}
                       title={
@@ -286,37 +506,103 @@ const AppliedJobs = () => {
                           ? "Tracking information is not yet available for this application."
                           : "Track your application status"
                       }
+                      className={`flex-1 px-3 py-2 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2 ${
+                        job.applicationId
+                          ? `border ${borderColor} ${textColor} hover:bg-gray-100 dark:hover:bg-gray-700`
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                      }`}
                     >
-                      Track Application
+                      <TrendingUp size={14} />
+                      Track
                     </button>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </section>
+
+          {/* No Results from Filter */}
+          {!loading && !error && appliedJobs.length > 0 && filteredJobs.length === 0 && (
+            <div className={`${cardBg} border ${borderColor} rounded-lg p-12 text-center`}>
+              <div className={`w-16 h-16 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                <Search size={32} className={textSecondary} />
+              </div>
+              <h3 className={`text-lg font-bold ${textColor} mb-2`}>No matching applications</h3>
+              <p className={`${textSecondary}`}>
+                Try adjusting your search or filters
+              </p>
+            </div>
+          )}
+        </div>
       </main>
 
+      {/* Tracking Modal */}
       {isModalOpen && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>Application Status</h3>
-              <button onClick={closeModal} className={styles.closeButton}><X size={24} /></button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className={`${cardBg} rounded-xl max-w-2xl w-full shadow-2xl border ${borderColor}`}>
+            {/* Modal Header */}
+            <div className={`flex items-center justify-between p-6 border-b ${borderColor}`}>
+              <h2 className={`text-2xl font-bold ${textColor}`}>
+                Application Status
+              </h2>
+              <button
+                onClick={closeModal}
+                className={`${textSecondary} hover:${textColor} transition-colors p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg`}
+              >
+                <X size={24} />
+              </button>
             </div>
-            <ul className={styles.timeline}>
-              {timeline.map((item, index) => (
-                <li key={index} className={styles.timelineItem}>
-                  <div className={`${styles.timelineIcon} ${item.status === 'Completed' ? styles.completed : ''}`}>
-                    {item.status === 'Completed' && <Check size={14} />}
+
+            {/* Timeline */}
+            <div className="p-6">
+              <div className="relative">
+                {timeline.map((item, index) => (
+                  <div key={index} className="flex gap-4 relative pb-8 last:pb-0">
+                    {/* Vertical Line */}
+                    {index < timeline.length - 1 && (
+                      <div className={`absolute left-5 top-12 w-0.5 h-full ${
+                        item.status === 'Completed' ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+                      }`}></div>
+                    )}
+                    
+                    {/* Icon */}
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 z-10 ${
+                      item.status === 'Completed'
+                        ? 'bg-green-500 text-white'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-400'
+                    }`}>
+                      {item.status === 'Completed' ? (
+                        <Check size={18} />
+                      ) : (
+                        <Clock size={18} />
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 pt-1">
+                      <h4 className={`font-bold ${textColor} mb-1`}>{item.stage}</h4>
+                      <p className={`text-sm ${textSecondary}`}>
+                        {item.date ? new Date(item.date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        }) : 'Pending'}
+                      </p>
+                    </div>
                   </div>
-                  <div className={styles.timelineContent}>
-                    <h4>{item.stage}</h4>
-                    <p>{item.date ? new Date(item.date).toLocaleDateString() : 'Pending'}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                ))}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className={`flex justify-end p-6 border-t ${borderColor}`}>
+              <button
+                onClick={closeModal}
+                className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
