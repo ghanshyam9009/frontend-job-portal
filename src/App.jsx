@@ -70,7 +70,7 @@ import AdminJobs from './Pages/Admin/AdminManageJobs';
 import AdminJobReportApplications from './Pages/Admin/AdminJobReportApplications';
 import AdminJobReports from './Pages/Admin/AdminJobReports';
 import AdminGovernmentJobs from './Pages/Admin/AdminGovernmentJobs';
-import AdminPostGov6ernmentJob from './Pages/Admin/AdminPostGovernmentJob';
+import AdminPostGovernmentJob from './Pages/Admin/AdminPostGovernmentJob';
 import AdminCandidateProfile from './Pages/Admin/AdminCandidateProfile';
 import AdminCandidateApplications from './Pages/Admin/AdminCandidateApplications';
 import AdminEmployerProfile from './Pages/Admin/AdminEmployerProfile';
