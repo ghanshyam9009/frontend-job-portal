@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
-import { Search, Download, Users, Building, MapPin, Calendar, Eye, Briefcase, RefreshCw } from "lucide-react";
+import { Search, Download, Users, Building, MapPin, Calendar, Eye, Briefcase, RefreshCw, Trash2 } from "lucide-react";
 import * as XLSX from 'xlsx';
 
 const AdminJobReports = () => {
@@ -127,6 +127,49 @@ const AdminJobReports = () => {
     } catch (error) {
       console.error('Error exporting Excel:', error);
       alert('Error exporting Excel file. Please try again.');
+    }
+  };
+
+  const handleCloseJob = async (job) => {
+    if (!job || !job.id) return;
+
+    const confirmClose = window.confirm(
+      `Are you sure you want to close this job "${job.job_title}"? This will remove it from public display and no new applications will be accepted.`
+    );
+
+    if (!confirmClose) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Call the API to close the job
+      const response = await fetch(
+        `https://wxxi8h89m5.execute-api.ap-southeast-1.amazonaws.com/default/closedjobopening?job_id=${job.id}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Job closed successfully:', result);
+
+      alert('Job closed successfully! The job has been removed from public display.');
+      // Refresh the job reports list
+      await fetchJobReports();
+    } catch (error) {
+      console.error('Failed to close job:', error);
+      setError('Failed to close job. Please try again.');
+      alert('Failed to close job. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -324,6 +367,16 @@ const AdminJobReports = () => {
                     <Download size={13} />
                     <span className="hidden sm:inline">Export Excel</span>
                     <span className="sm:hidden">Export</span>
+                  </button>
+                  <button
+                    onClick={() => handleCloseJob(job)}
+                    className="flex-1 sm:flex-initial px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-1.5"
+                    style={{ fontSize: '0.7rem' }}
+                    disabled={loading}
+                  >
+                    <Trash2 size={13} />
+                    <span className="hidden sm:inline">Close Job</span>
+                    <span className="sm:hidden">Close</span>
                   </button>
                 </div>
               </div>

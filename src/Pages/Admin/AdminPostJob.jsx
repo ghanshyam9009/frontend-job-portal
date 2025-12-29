@@ -4,13 +4,13 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import { useAuth } from "../../Contexts/AuthContext";
 import { adminService } from "../../services/adminService";
 import { candidateExternalService } from "../../services/candidateExternalService";
-import { 
-  FileText, 
-  MapPin, 
-  Clock, 
-  Plus, 
-  Award, 
-  X, 
+import {
+  FileText,
+  MapPin,
+  Clock,
+  Plus,
+  Award,
+  X,
   ArrowLeft,
   Save
 } from "lucide-react";
@@ -294,6 +294,8 @@ const AdminPostJob = () => {
       skills_required: prev.skills_required.filter(skill => skill !== skillToRemove)
     }));
   };
+
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -816,7 +818,7 @@ const AdminPostJob = () => {
           <div className="flex gap-3 justify-end">
             <button
               type="button"
-              onClick={() => navigate('/admin/manage-jobs')}
+              onClick={() => navigate('/admin/job-posting')}
               className={`px-6 py-2.5 ${isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'} border rounded-md transition-colors font-medium text-sm`}
             >
               Cancel
