@@ -112,7 +112,7 @@ const JobCard = ({
               }}
             />
           ) : (
-            <span className="text-white text-sm font-bold">
+            <span className="text-black text-sm font-bold">
               {getInitials(job.company_name)}
             </span>
           )}

@@ -11,7 +11,6 @@ export const adminService = {
       throw error;
     }
   },
-
   async login(email, password) {
     try {
       const response = await adminApiClient.post(API_ENDPOINTS.admin.login, { email, password });
@@ -463,7 +462,9 @@ export const adminService = {
   async blockStudent(email) {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`https://api.bigsources.in/api/admin/block-student?email=${encodeURIComponent(email)}`, {
+      // Use URLSearchParams to properly encode the email
+      const params = new URLSearchParams({ email });
+      const response = await fetch(`https://api.bigsources.in/api/admin/block-student?${params.toString()}`, {
         method: 'GET',
         headers: {
           ...(token && { Authorization: `Bearer ${token}` })
@@ -471,7 +472,15 @@ export const adminService = {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -485,7 +494,9 @@ export const adminService = {
   async blockRecruiter(email) {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`https://api.bigsources.in/api/admin/block-recruiter?email=${encodeURIComponent(email)}`, {
+      // Use URLSearchParams to properly encode the email
+      const params = new URLSearchParams({ email });
+      const response = await fetch(`https://api.bigsources.in/api/admin/block-recruiter?${params.toString()}`, {
         method: 'GET',
         headers: {
           ...(token && { Authorization: `Bearer ${token}` })
@@ -493,7 +504,15 @@ export const adminService = {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();

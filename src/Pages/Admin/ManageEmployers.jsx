@@ -632,7 +632,7 @@ const ManageEmployers = () => {
                   {!recruiter.hasadminapproved && recruiter.status !== 'rejected' && recruiter.status !== 'inactive' && recruiter.status !== 'blocked' ? (
                     <>
                       <button
-                        onClick={() => handleApproveRecruiter(recruiter)}
+                        onClick={() => handleApproveEmployer(recruiter)}
                         disabled={actionLoading === `approve-${recruiter.employer_id}`}
                         className="flex-1 sm:flex-initial px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
                         style={{ fontSize: '0.7rem' }}

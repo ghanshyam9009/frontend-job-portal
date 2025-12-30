@@ -26,12 +26,18 @@ const AdminJobReports = () => {
       setError(null);
       const jobsData = await adminService.getJobsWithApplicationCounts();
 
-      // Filter out government jobs and sort by latest date first
+      // Filter to only show jobs posted by recruiters (not admin jobs)
+      // Also filter out government jobs and sort by latest date first
       const filteredData = jobsData
-        .filter(job => job.job_type !== "GOVERNMENT")
+        .filter(job => {
+          const postedBy = (job.posted_by || '').toUpperCase();
+          const isRecruiterJob = postedBy === 'RECRUITER' || postedBy === 'EMPLOYER';
+          const isNotGovernment = job.job_type !== "GOVERNMENT";
+          return isRecruiterJob && isNotGovernment;
+        })
         .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
-      console.log('Loaded job reports:', filteredData.length);
+      console.log('Loaded recruiter job reports:', filteredData.length);
       setJobs(filteredData);
       setFilteredJobs(filteredData);
     } catch (error) {
