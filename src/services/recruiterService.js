@@ -318,7 +318,7 @@ export const recruiterService = {
   async uploadLogoFile(email, logoFile) {
     try {
       // Use the correct relative path with apiClient (which handles authentication)
-      const endpoint = `/employers/profile/${email}/logo`;
+      const endpoint = `/Recruiter/profile/${email}/logo`;
 
       const formData = new FormData();
       // Based on the API response structure, the field name should be 'logo'
@@ -347,13 +347,6 @@ export const recruiterService = {
         } else if (response.profile?.logo) {
           logoUrl = response.profile.logo;
         }
-      }
-
-      if (!logoUrl) {
-        // Fallback to the S3 URL format from the example response
-        const timestamp = Date.now();
-        const emailPrefix = email.replace('@', '').replace('.', '_');
-        logoUrl = `https://student-profile-docs.s3.ap-southeast-1.amazonaws.com/logos/${emailPrefix}_${timestamp}.jpg`;
       }
 
       console.log('Extracted logo URL:', logoUrl);

@@ -1,10 +1,7 @@
 // Razorpay Configuration
 export const RAZORPAY_CONFIG = {
-  key_id: 'rzp_test_RNj6wvo7aRv2Zf', // Test Key ID provided by user
-  key_secret: 'KeySLEDDc94B7ZxlGCwS26G9', // Test Key Secret provided by user
-  // Note: For production, use environment variables and move to env files
-  // key_id: import.meta.env.VITE_RAZORPAY_KEY_ID,
-  // key_secret: import.meta.env.VITE_RAZORPAY_KEY_SECRET,
+  key_id: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_RNj6wvo7aRv2Zf', // Test Key ID as fallback
+  key_secret: import.meta.env.VITE_RAZORPAY_KEY_SECRET || 'KeySLEDDc94B7ZxlGCwS26G9', // Test Key Secret as fallback
 };
 
 // Razorpay Plan IDs (You need to create these in your Razorpay dashboard)
