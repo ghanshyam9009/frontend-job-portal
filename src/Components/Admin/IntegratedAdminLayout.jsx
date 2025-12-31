@@ -195,23 +195,6 @@ const IntegratedAdminLayout = () => {
           badge: contactFormsCount > 0 ? contactFormsCount : null
         }
       ]
-    },
-    {
-      title: "System",
-      items: [
-        {
-          id: 'reports',
-          label: 'Reports',
-          icon: BarChart3,
-          path: '/admin/reports'
-        },
-        {
-          id: 'settings',
-          label: 'Settings',
-          icon: Settings,
-          path: '/admin/settings'
-        }
-      ]
     }
   ];
 
@@ -314,20 +297,7 @@ const IntegratedAdminLayout = () => {
                       </p>
                     </div>
                     <div className="p-2">
-                      <button className={`w-full text-left px-4 py-2 rounded ${
-                        theme === 'dark' 
-                          ? 'hover:bg-slate-700 text-slate-300' 
-                          : 'hover:bg-gray-100 text-gray-700'
-                      }`}>
-                        Profile Settings
-                      </button>
-                      <button className={`w-full text-left px-4 py-2 rounded ${
-                        theme === 'dark' 
-                          ? 'hover:bg-slate-700 text-slate-300' 
-                          : 'hover:bg-gray-100 text-gray-700'
-                      }`}>
-                        Account Settings
-                      </button>
+                     
                       <button 
                         onClick={handleLogout}
                         className={`w-full text-left px-4 py-2 rounded ${
