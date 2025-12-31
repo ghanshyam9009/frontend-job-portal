@@ -14,7 +14,7 @@ import AboutUs from './Pages/AboutUs'
 import ContactUs from './Pages/ContactUs'
 import CandidateLogin from './Pages/Candidate/CandidateLogin'
 import CandidateHome from './Pages/Candidate/CandidateHome'
-import UserDashboard from './Pages/Candidate/UserDashboard'
+
 import UserJobListings from './Pages/Candidate/UserJobListings'
 import SavedJobs from './Pages/Candidate/SavedJobs'
 import AppliedJobs from './Pages/Candidate/AppliedJobs'
@@ -125,7 +125,7 @@ function App() {
             <Route path="/about" element={<AboutUs />} />
             <Route path="/contact" element={<ContactUs />} />
             <Route path="/membership" element={<Membership />} />
-            <Route path="/userdashboard" element={<UserDashboard />} />
+
             <Route path="/userjoblistings" element={<UserJobListings />} />
             <Route path="/saved-jobs" element={<SavedJobs />} />
             <Route path="/my-applications" element={<AppliedJobs />} />

@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "./Styles/utilities.css";
 
 html, body, #root {
   width: 100%;
