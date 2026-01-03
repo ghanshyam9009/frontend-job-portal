@@ -2,8 +2,28 @@ import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
 import { recruiterExternalService } from "../../services";
-import { Check, X, FileText, Download, ExternalLink } from "lucide-react";
-import styles from "../../Styles/AdminDashboard.module.css";
+import { 
+  Check, 
+  X, 
+  FileText, 
+  Download, 
+  ExternalLink,
+  Search,
+  Eye,
+  Clock,
+  Building,
+  MapPin,
+  Calendar,
+  Mail,
+  Phone,
+  Briefcase,
+  AlertCircle,
+  RefreshCw,
+  Filter,
+  GraduationCap
+} from "lucide-react";
+import * as XLSX from 'xlsx';
+
 const PendingJobApplications = () => {
   const { theme } = useTheme();
   const [pendingApplications, setPendingApplications] = useState([]);
@@ -17,61 +37,8 @@ const PendingJobApplications = () => {
   const [jobFilter, setJobFilter] = useState("all");
   // const [jobFilter, setJobFilter] = useState("all");
 
-  // Fetch pending applications with full details and auto-approve new applications
+  // Fetch pending applications with full details
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-
-        // Fetch pending applications
-        const pendingTasks = await adminService.getPendingJobs();
-        const newApplicationTasks = pendingTasks.filter(task =>
-          task.category === 'newapplication' && task.status === 'pending'
-        );
-
-        // Auto-approve all new application tasks
-        if (newApplicationTasks.length > 0) {
-          for (const task of newApplicationTasks) {
-            try {
-              await adminService.approveJobApplicationByStudent(task.task_id);
-              console.log(`Auto-approved application task: ${task.task_id}`);
-            } catch (error) {
-              console.error(`Failed to auto-approve task ${task.task_id}:`, error);
-            }
-          }
-
-          // Re-fetch tasks after auto-approval
-          const updatedTasks = await adminService.getPendingJobs();
-          const remainingPendingApps = updatedTasks.filter(task =>
-            task.category === 'newapplication' && task.status === 'pending'
-          );
-
-          setPendingApplications(remainingPendingApps);
-
-          // Fetch detailed information for any remaining applications (should be none)
-          if (remainingPendingApps.length > 0) {
-            await fetchApplicationDetails(remainingPendingApps);
-          }
-        } else {
-          // No new application tasks to approve
-          const otherPendingTasks = pendingTasks.filter(task =>
-            !(task.category === 'newapplication' && task.status === 'pending')
-          );
-          setPendingApplications(otherPendingTasks);
-
-          // Fetch detailed information for other types of applications
-          if (otherPendingTasks.length > 0) {
-            await fetchApplicationDetails(otherPendingTasks);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch pending applications:', error);
-        setPendingApplications([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
   }, []);
 
@@ -358,10 +325,67 @@ const PendingJobApplications = () => {
   const borderColor = isDark ? 'border-gray-700' : 'border-gray-200';
 
   return (
-    <div className={`${styles.mainContent} ${theme === 'dark' ? styles.dark : ''}`}>
-      <div className={styles.contentHeader}>
-        <h1 className={styles.pageTitle}>Job Applications Overview</h1>
-        <p className={styles.pageSubtitle}>Monitor job applications - new applications are automatically approved</p>
+    <div className={`min-h-screen ${bgColor}`}>
+      {/* Header */}
+      <div className={`${cardBg} border-b ${borderColor} sticky top-0 z-40`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col gap-4">
+            {/* Title and Actions */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <h1 className={`text-xl sm:text-2xl font-bold ${textColor} flex items-center gap-2`}>
+                  <Clock className="text-yellow-500" size={28} />
+                  Pending Job Applications
+                </h1>
+                <p className={`text-sm ${textSecondary} mt-1`}>
+                  Review and approve job applications requiring admin verification
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={fetchData}
+                  className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2 text-sm"
+                  title="Refresh applications"
+                >
+                  <RefreshCw size={16} />
+                  <span className="hidden sm:inline">Refresh</span>
+                </button>
+                <button
+                  onClick={handleExportToExcel}
+                  disabled={filteredApplications.length === 0}
+                  className="px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Download size={16} />
+                  <span className="hidden sm:inline">Export</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="flex flex-wrap gap-4">
+              <div className="px-4 py-2 rounded-lg bg-yellow-50 dark:bg-yellow-500/20 border border-yellow-200 dark:border-yellow-500/30">
+                <div className="flex items-center gap-2">
+                  <Clock size={16} className="text-yellow-600 dark:text-yellow-400" />
+                  <span className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">
+                    {filteredApplications.length}
+                  </span>
+                  <span className="text-xs text-yellow-600 dark:text-yellow-400">
+                    Pending Approval
+                  </span>
+                </div>
+              </div>
+              <div className={`px-4 py-2 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                <div className="flex items-center gap-2">
+                  <Building size={16} className={textSecondary} />
+                  <span className={`text-sm font-semibold ${textColor}`}>
+                    {uniqueCompanies.length}
+                  </span>
+                  <span className={`text-xs ${textSecondary}`}>Companies</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -495,9 +519,7 @@ const PendingJobApplications = () => {
               Showing <span className={`font-semibold ${textColor}`}>{filteredApplications.length}</span> pending {filteredApplications.length === 1 ? 'application' : 'applications'}
             </p>
           </div>
-          <p style={{ color: '#666', marginBottom: '20px' }}>
-            These applications require admin attention for other reasons.
-          </p>
+        )}
 
         {/* Applications - Compact Cards */}
         {!loading && filteredApplications.length > 0 && (
@@ -684,12 +706,251 @@ const PendingJobApplications = () => {
               );
             })}
           </div>
-        </div>
-      ) : (
-        <div className={styles.emptyState}>
-          <FileText className={styles.emptyIcon} />
-          <h3>No applications requiring attention</h3>
-          <p>New applications are automatically approved. All other applications have been processed.</p>
+        )}
+      </div>
+
+      {/* Candidate Details Modal */}
+      {showCandidateModal && selectedCandidate && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowCandidateModal(false)}
+        >
+          <div
+            className={`${cardBg} rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={`flex items-center justify-between p-5 border-b ${borderColor}`}>
+              <div className="flex items-center gap-3">
+                {/* Candidate Photo in Modal */}
+                <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700 border-2 border-yellow-400 dark:border-yellow-500">
+                  {selectedCandidate.details?.studentDetails?.logo ? (
+                    <img
+                      src={selectedCandidate.details.studentDetails.logo}
+                      alt={selectedCandidate.details?.studentName || 'Candidate'}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextElementSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div className={`w-full h-full bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center text-white font-bold text-xl ${selectedCandidate.details?.studentDetails?.logo ? 'hidden' : 'flex'}`}>
+                    {selectedCandidate.details?.studentName?.charAt(0)?.toUpperCase() || 'U'}
+                  </div>
+                </div>
+                <div>
+                  <h2 className={`text-xl font-bold ${textColor}`}>
+                    {selectedCandidate.details?.studentName || 'Unknown Candidate'}
+                  </h2>
+                  <p className={`text-sm ${textSecondary} flex items-center gap-1.5 mt-0.5`}>
+                    <Mail size={13} />
+                    {selectedCandidate.details?.studentEmail || 'No email'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCandidateModal(false)}
+                className={`${textSecondary} hover:${textColor} transition-colors p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg`}
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Pending Status Banner */}
+              <div className="bg-yellow-50 dark:bg-yellow-500/20 border-2 border-yellow-300 dark:border-yellow-500/50 rounded-lg p-4 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertCircle className="text-yellow-600 dark:text-yellow-400" size={22} />
+                  <h3 className="text-yellow-800 dark:text-yellow-300 font-bold text-lg">
+                    Pending Admin Approval Required
+                  </h3>
+                </div>
+                <p className="text-sm text-yellow-700 dark:text-yellow-400 mb-4">
+                  This application requires your approval before the recruiter can review it. Review the candidate's information below and take action.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      handleApproveApplication(selectedCandidate.task_id);
+                      setShowCandidateModal(false);
+                    }}
+                    disabled={loadingApplications[selectedCandidate.task_id]}
+                    className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold flex items-center gap-2 disabled:opacity-50 shadow-md"
+                  >
+                    <Check size={18} />
+                    {loadingApplications[selectedCandidate.task_id] ? 'Approving...' : 'Approve Application'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleRejectApplication(selectedCandidate.task_id);
+                      setShowCandidateModal(false);
+                    }}
+                    disabled={loadingApplications[selectedCandidate.task_id]}
+                    className="px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-semibold flex items-center gap-2 disabled:opacity-50 shadow-md"
+                  >
+                    <X size={18} />
+                    {loadingApplications[selectedCandidate.task_id] ? 'Rejecting...' : 'Reject Application'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Job Application Details */}
+              <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 border ${borderColor}`}>
+                <h3 className={`text-lg font-bold ${textColor} mb-3 flex items-center gap-2`}>
+                  <Briefcase size={18} className="text-blue-500" />
+                  Job Application Details
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-semibold ${textColor} mb-1.5 flex items-center gap-1.5`}>
+                      <Building size={14} className="text-purple-500" />
+                      Company
+                    </label>
+                    <p className={`text-sm ${textColor} font-medium bg-white dark:bg-gray-800 px-3 py-2 rounded border ${borderColor}`}>
+                      {selectedCandidate.details?.companyName || 'Not provided'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-semibold ${textColor} mb-1.5 flex items-center gap-1.5`}>
+                      <Briefcase size={14} className="text-blue-500" />
+                      Position
+                    </label>
+                    <p className={`text-sm ${textColor} font-medium bg-white dark:bg-gray-800 px-3 py-2 rounded border ${borderColor}`}>
+                      {selectedCandidate.details?.jobTitle || 'Not provided'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-semibold ${textColor} mb-1.5 flex items-center gap-1.5`}>
+                      <MapPin size={14} className="text-red-500" />
+                      Location
+                    </label>
+                    <p className={`text-sm ${textColor} font-medium bg-white dark:bg-gray-800 px-3 py-2 rounded border ${borderColor}`}>
+                      {selectedCandidate.details?.jobLocation || 'Not provided'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-semibold ${textColor} mb-1.5 flex items-center gap-1.5`}>
+                      <Calendar size={14} className="text-green-500" />
+                      Applied Date
+                    </label>
+                    <p className={`text-sm ${textColor} font-medium bg-white dark:bg-gray-800 px-3 py-2 rounded border ${borderColor}`}>
+                      {formatDate(selectedCandidate.details?.applicationDate)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Candidate Contact Information */}
+              <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 border ${borderColor}`}>
+                <h3 className={`text-lg font-bold ${textColor} mb-3 flex items-center gap-2`}>
+                  <Mail size={18} className="text-blue-500" />
+                  Contact Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-semibold ${textColor} mb-1.5 flex items-center gap-1.5`}>
+                      <Mail size={14} className="text-blue-500" />
+                      Email Address
+                    </label>
+                    <p className={`text-sm ${textColor} font-medium bg-white dark:bg-gray-800 px-3 py-2 rounded border ${borderColor}`}>
+                      {selectedCandidate.details?.studentEmail || 'Not provided'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-semibold ${textColor} mb-1.5 flex items-center gap-1.5`}>
+                      <Phone size={14} className="text-green-500" />
+                      Phone Number
+                    </label>
+                    <p className={`text-sm ${textColor} font-medium bg-white dark:bg-gray-800 px-3 py-2 rounded border ${borderColor}`}>
+                      {selectedCandidate.details?.studentPhone || 'Not provided'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-semibold ${textColor} mb-1.5 flex items-center gap-1.5`}>
+                      <Briefcase size={14} className="text-purple-500" />
+                      Experience
+                    </label>
+                    <p className={`text-sm ${textColor} font-medium bg-white dark:bg-gray-800 px-3 py-2 rounded border ${borderColor}`}>
+                      {selectedCandidate.details?.studentDetails?.experience || 'Not provided'}
+                    </p>
+                  </div>
+                  {selectedCandidate.details?.studentDetails?.education && 
+                   selectedCandidate.details.studentDetails.education.length > 0 && (
+                    <div>
+                      <label className={`block text-sm font-semibold ${textColor} mb-1.5 flex items-center gap-1.5`}>
+                        <GraduationCap size={14} className="text-indigo-500" />
+                        Education
+                      </label>
+                      <p className={`text-sm ${textColor} font-medium bg-white dark:bg-gray-800 px-3 py-2 rounded border ${borderColor}`}>
+                        {selectedCandidate.details.studentDetails.education.join(', ')}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Skills */}
+              {selectedCandidate.details?.studentSkills && selectedCandidate.details.studentSkills.length > 0 && (
+                <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 border ${borderColor}`}>
+                  <h4 className={`text-lg font-bold ${textColor} mb-3 flex items-center gap-2`}>
+                    <span className="text-yellow-500 text-xl">★</span>
+                    Skills & Expertise
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCandidate.details.studentSkills.map((skill, index) => (
+                      <span
+                        key={index}
+                        className={`px-4 py-2 ${isDark ? 'bg-blue-900/30 text-blue-400 border-2 border-blue-700' : 'bg-blue-50 text-blue-700 border-2 border-blue-200'} rounded-lg text-sm font-semibold shadow-sm`}
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Resume */}
+              {selectedCandidate.details?.resumeUrl && (
+                <div className={`${isDark ? 'bg-gray-700/50' : 'bg-blue-50'} rounded-lg p-4 border-2 ${isDark ? borderColor : 'border-blue-200'}`}>
+                  <h4 className={`text-lg font-bold ${textColor} mb-3 flex items-center gap-2`}>
+                    <FileText size={18} className="text-blue-500" />
+                    Resume/CV
+                  </h4>
+                  <p className={`text-sm ${textSecondary} mb-3`}>
+                    Download or view the candidate's resume to review their full qualifications and experience.
+                  </p>
+                  <div className="flex gap-3">
+                    <a
+                      href={selectedCandidate.details.resumeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold shadow-md"
+                    >
+                      <ExternalLink size={18} />
+                      View Resume
+                    </a>
+                    <a
+                      href={selectedCandidate.details.resumeUrl}
+                      download
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold shadow-md"
+                    >
+                      <Download size={18} />
+                      Download Resume
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className={`flex justify-end gap-2 p-5 border-t ${borderColor}`}>
+              <button
+                onClick={() => setShowCandidateModal(false)}
+                className={`px-6 py-2 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors`}
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

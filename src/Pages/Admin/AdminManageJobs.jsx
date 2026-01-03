@@ -250,36 +250,8 @@ const AdminJobs = () => {
               >
                 All ({jobs.length})
               </button>
-              <button
-                onClick={() => setStatusFilter('approved')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  statusFilter === 'approved'
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
-                    : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-                }`}
-              >
-                Approved ({jobs.filter(j => j.status === 'approved').length})
-              </button>
-              <button
-                onClick={() => setStatusFilter('pending')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  statusFilter === 'pending'
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
-                    : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-                }`}
-              >
-                Pending ({jobs.filter(j => j.status === 'pending').length})
-              </button>
-              <button
-                onClick={() => setStatusFilter('closed')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  statusFilter === 'closed'
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
-                    : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-                }`}
-              >
-                Closed ({jobs.filter(j => j.status === 'closed').length})
-              </button>
+             
+             
             </div>
           </div>
         </div>
@@ -421,7 +393,7 @@ const AdminJobs = () => {
                     style={{ fontSize: '0.7rem' }}
                   >
                     <Trash2 size={13} />
-                    <span className="hidden sm:inline">Close</span>
+                    <span className="hidden sm:inline">Delete</span>
                   </button>
                 </div>
               </div>

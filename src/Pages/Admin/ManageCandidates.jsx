@@ -415,7 +415,7 @@ const ManageCandidates = () => {
                     style={{ fontSize: '0.7rem' }}
                   >
                     <Trash2 size={13} />
-                    Block
+                 Delete
                   </button>
                 </div>
               </div>

@@ -693,7 +693,7 @@ const ManageEmployers = () => {
                         style={{ fontSize: '0.7rem' }}
                       >
                         <Trash2 size={13} />
-                        {actionLoading === recruiter.employer_id ? 'Blocking...' : 'Block'}
+                        {actionLoading === recruiter.employer_id ? 'Deleting...' : 'Delete'}
                       </button>
                     </>
                   )}
