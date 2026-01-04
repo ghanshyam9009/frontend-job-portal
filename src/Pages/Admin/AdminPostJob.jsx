@@ -4,13 +4,13 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import { useAuth } from "../../Contexts/AuthContext";
 import { adminService } from "../../services/adminService";
 import { candidateExternalService } from "../../services/candidateExternalService";
-import { 
-  FileText, 
-  MapPin, 
-  Clock, 
-  Plus, 
-  Award, 
-  X, 
+import {
+  FileText,
+  MapPin,
+  Clock,
+  Plus,
+  Award,
+  X,
   ArrowLeft,
   Save
 } from "lucide-react";
@@ -69,15 +69,22 @@ const AdminPostJob = () => {
       const jobsData = await candidateExternalService.getAllJobs();
       const currentAdminId = user?.admin_id || user?.id || user?.user_id;
       
+      // Filter to only show admin-posted jobs
+      const adminJobs = (jobsData?.jobs || []).filter(j => {
+        const postedBy = (j.posted_by || '').toLowerCase();
+        return postedBy === 'admin';
+      });
+      
       console.log('=== EDIT JOB DEBUG INFO ===');
       console.log('JobId from URL:', jobId);
       console.log('Current Admin ID:', currentAdminId);
       console.log('User object:', JSON.stringify(user, null, 2));
       console.log('Total jobs fetched:', jobsData?.jobs?.length);
+      console.log('Admin-posted jobs:', adminJobs.length);
       
-      // Log all jobs to see what's available
-      if (jobsData?.jobs && jobsData.jobs.length > 0) {
-        console.log('All available jobs (first 5):', jobsData.jobs.slice(0, 5).map(j => ({
+      // Log admin jobs to see what's available
+      if (adminJobs && adminJobs.length > 0) {
+        console.log('Admin-posted jobs (first 5):', adminJobs.slice(0, 5).map(j => ({
           job_id: j.job_id,
           id: j.id,
           title: j.job_title,
@@ -87,11 +94,11 @@ const AdminPostJob = () => {
         })));
       }
       
-      // Very flexible job finding - try multiple approaches
+      // Find job - only search in admin-posted jobs
       let job = null;
       
-      // Approach 1: Try exact match with admin_id
-      job = jobsData?.jobs?.find(j => {
+      // Approach 1: Try exact match with admin_id and job ID
+      job = adminJobs.find(j => {
         const jobIdMatch = (j.job_id == jobId || j.id == jobId); // Use == for type coercion
         const adminIdMatch = (j.admin_id == currentAdminId);
         return jobIdMatch && adminIdMatch;
@@ -99,33 +106,31 @@ const AdminPostJob = () => {
       
       console.log('Approach 1 (exact admin_id match):', job ? 'FOUND' : 'NOT FOUND');
       
-      // Approach 2: If not found, try matching just by job ID and posted_by admin
+      // Approach 2: If not found, try matching just by job ID (must be admin-posted)
       if (!job) {
-        job = jobsData?.jobs?.find(j => {
-          const jobIdMatch = (j.job_id == jobId || j.id == jobId);
-          const isAdminJob = j.posted_by?.toLowerCase() === 'admin';
-          return jobIdMatch && isAdminJob;
-        });
-        console.log('Approach 2 (job_id + posted_by admin):', job ? 'FOUND' : 'NOT FOUND');
-      }
-      
-      // Approach 3: If still not found, try just job ID match (least restrictive)
-      if (!job) {
-        job = jobsData?.jobs?.find(j => {
+        job = adminJobs.find(j => {
           return (j.job_id == jobId || j.id == jobId);
         });
-        console.log('Approach 3 (job_id only):', job ? 'FOUND' : 'NOT FOUND');
+        console.log('Approach 2 (job_id in admin jobs):', job ? 'FOUND' : 'NOT FOUND');
       }
       
       if (!job) {
         console.error('=== JOB NOT FOUND ===');
         console.log('Searched for job with ID:', jobId);
-        console.log('Available job IDs:', jobsData?.jobs?.map(j => ({
+        console.log('Available admin job IDs:', adminJobs.map(j => ({
           job_id: j.job_id,
           id: j.id,
-          title: j.job_title
+          title: j.job_title,
+          posted_by: j.posted_by
         })).slice(0, 10));
-        setError('Job not found. The job may have been deleted or you may not have permission to edit it.');
+        setError('Job not found. Only jobs posted by admin can be edited. This job may have been posted by a recruiter or may not exist.');
+        return;
+      }
+      
+      // Double-check that the job is posted by admin
+      const postedBy = (job.posted_by || '').toLowerCase();
+      if (postedBy !== 'admin') {
+        setError('You can only edit jobs posted by admin. This job was posted by: ' + (job.posted_by || 'unknown'));
         return;
       }
 
@@ -294,6 +299,8 @@ const AdminPostJob = () => {
       skills_required: prev.skills_required.filter(skill => skill !== skillToRemove)
     }));
   };
+
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -816,7 +823,7 @@ const AdminPostJob = () => {
           <div className="flex gap-3 justify-end">
             <button
               type="button"
-              onClick={() => navigate('/admin/manage-jobs')}
+              onClick={() => navigate('/admin/job-posting')}
               className={`px-6 py-2.5 ${isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'} border rounded-md transition-colors font-medium text-sm`}
             >
               Cancel

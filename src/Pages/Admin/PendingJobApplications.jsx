@@ -2,29 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
 import { recruiterExternalService } from "../../services";
-import { 
-  Check, 
-  X, 
-  FileText, 
-  Download, 
-  ExternalLink,
-  Search,
-  Eye,
-  Clock,
-  Building,
-  MapPin,
-  Calendar,
-  Mail,
-  Phone,
-  Briefcase,
-  AlertCircle,
-  RefreshCw,
-  Filter,
-  GraduationCap
-} from "lucide-react";
-import * as XLSX from 'xlsx';
+import { Check, X, FileText, Download, ExternalLink, Search, Briefcase, Building, Clock, Mail, Phone, Calendar, Eye, MapPin } from "lucide-react";
+import styles from "../../Styles/AdminDashboard.module.css";
 
-const PendingJobApplications = () => {
+function PendingJobApplications() {
   const { theme } = useTheme();
   const [pendingApplications, setPendingApplications] = useState([]);
   const [loadingApplications, setLoadingApplications] = useState({});
@@ -37,7 +18,7 @@ const PendingJobApplications = () => {
   const [jobFilter, setJobFilter] = useState("all");
   // const [jobFilter, setJobFilter] = useState("all");
 
-  // Fetch pending applications with full details
+  // Fetch pending applications
   useEffect(() => {
     fetchData();
   }, []);
@@ -66,13 +47,13 @@ const PendingJobApplications = () => {
     }
   };
 
-  // Function to fetch complete application details
+  // Function to fetch complete application details with optimized API calls
   const fetchApplicationDetails = async (applications) => {
     const detailsMap = {};
 
-    for (const app of applications) {
+    // Process applications in parallel to reduce total time
+    const promises = applications.map(async (app) => {
       try {
-        console.log('Processing application:', app);
         const details = {
           studentName: 'Loading...',
           studentEmail: '',
@@ -86,70 +67,73 @@ const PendingJobApplications = () => {
           studentDetails: null
         };
 
-        // Fetch job details
-        if (app.job_id) {
-          try {
-            const jobResponse = await fetch(
-              `https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs?job_id=${app.job_id}`
-            );
-            if (jobResponse.ok) {
-              const jobData = await jobResponse.json();
-              const job = Array.isArray(jobData.jobs)
-                ? jobData.jobs.find(j => j.job_id === app.job_id) || jobData.jobs[0]
-                : jobData.job || jobData;
+        // Parallel fetch job details and application details
+        const [jobData, applicationsResponse] = await Promise.allSettled([
+          app.job_id ? fetch(`https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs?job_id=${app.job_id}`)
+            .then(res => res.ok ? res.json() : null)
+            .catch(() => null) : Promise.resolve(null),
+          app.job_id ? adminService.getApplicationsForJob(app.job_id)
+            .catch(() => ({ applications: [] })) : Promise.resolve({ applications: [] })
+        ]);
 
-              if (job) {
-                details.jobTitle = job.job_title || job.title || 'Not specified';
-                details.jobLocation = job.location || 'Not specified';
-                details.companyName = job.company_name || 'Not specified';
-              }
-            }
-          } catch (err) {
-            console.warn(`Failed to fetch job ${app.job_id}:`, err);
+        // Process job data
+        if (jobData.status === 'fulfilled' && jobData.value) {
+          const job = Array.isArray(jobData.value.jobs)
+            ? jobData.value.jobs.find(j => j.job_id === app.job_id) || jobData.value.jobs[0]
+            : jobData.value.job || jobData.value;
+
+          if (job) {
+            details.jobTitle = job.job_title || job.title || 'Not specified';
+            details.jobLocation = job.location || 'Not specified';
+            details.companyName = job.company_name || 'Not specified';
           }
         }
 
-        // Fetch application details for the job to get student data
-        if (app.job_id) {
-          try {
-            const applicationsResponse = await adminService.getApplicationsForJob(app.job_id);
-            const applications = applicationsResponse.applications || [];
+        // Process application data
+        if (applicationsResponse.status === 'fulfilled') {
+          const applications = applicationsResponse.value.applications || [];
+          const studentApplication = applications.find(a =>
+            a.student_id?.toString() === app.student_id?.toString()
+          ) || applications[0];
 
-            const studentApplication = applications.find(a =>
-              a.student_id?.toString() === app.student_id?.toString()
-            ) || applications[0];
+          if (studentApplication) {
+            details.studentName = studentApplication.student_name || `Student ${app.student_id}`;
+            details.studentEmail = studentApplication.student_email || studentApplication.email || '';
+            details.resumeUrl = studentApplication.resume_url || studentApplication.resume || '';
+            details.studentPhone = studentApplication.student_phone || '';
+            details.studentSkills = studentApplication.student_skills
+              ? (typeof studentApplication.student_skills === 'string'
+                  ? studentApplication.student_skills.split(',').map(skill => skill.trim())
+                  : Array.isArray(studentApplication.student_skills)
+                  ? studentApplication.student_skills
+                  : [])
+              : [];
 
-            if (studentApplication) {
-              details.studentName = studentApplication.student_name || `Student ${app.student_id}`;
-              details.studentEmail = studentApplication.student_email || studentApplication.email || '';
-              details.resumeUrl = studentApplication.resume_url || studentApplication.resume || '';
-              details.studentPhone = studentApplication.student_phone || '';
-              details.studentSkills = studentApplication.student_skills ?
-                studentApplication.student_skills.split(',').map(skill => skill.trim()) : [];
-
-              details.studentDetails = {
-                name: studentApplication.student_name || "Unknown",
-                email: studentApplication.student_email || studentApplication.email || null,
-                phone: studentApplication.student_phone || null,
-                skills: studentApplication.student_skills ? 
-                  studentApplication.student_skills.split(',').map(skill => skill.trim()) : [],
-                location: studentApplication.student_location || null,
-                experience: studentApplication.student_experience || null,
-                education: studentApplication.student_university ? [studentApplication.student_university] : [],
-                experience_years: studentApplication.student_experience_years || null,
-                bio: studentApplication.student_bio || null,
-                resumeUrl: studentApplication.resume_url || studentApplication.student_profile?.resume || null,
-                department: studentApplication.student_department || null,
-                cgpa: studentApplication.student_cgpa || null,
-                logo: studentApplication.student_profile?.logo || studentApplication.student_profile?.profile_image || null
-              };
-            }
-          } catch (error) {
-            console.error(`Failed to fetch application details:`, error);
+            details.studentDetails = {
+              name: studentApplication.student_name || "Unknown",
+              email: studentApplication.student_email || studentApplication.email || null,
+              phone: studentApplication.student_phone || null,
+              skills: studentApplication.student_skills
+                ? (typeof studentApplication.student_skills === 'string'
+                    ? studentApplication.student_skills.split(',').map(skill => skill.trim())
+                    : Array.isArray(studentApplication.student_skills)
+                    ? studentApplication.student_skills
+                    : [])
+                : [],
+              location: studentApplication.student_location || null,
+              experience: studentApplication.student_experience || null,
+              education: studentApplication.student_university ? [studentApplication.student_university] : [],
+              experience_years: studentApplication.student_experience_years || null,
+              bio: studentApplication.student_bio || null,
+              resumeUrl: studentApplication.resume_url || studentApplication.student_profile?.resume || null,
+              department: studentApplication.student_department || null,
+              cgpa: studentApplication.student_cgpa || null,
+              logo: studentApplication.student_profile?.logo || studentApplication.student_profile?.profile_image || null
+            };
           }
         }
 
-        // Fetch company name if recruiter_id is available
+        // Fetch company name if still needed
         if (app.recruiter_id && details.companyName === 'Loading...') {
           try {
             const recruiterData = await recruiterExternalService.getRecruiterCompanyName(app.recruiter_id);
@@ -171,7 +155,7 @@ const PendingJobApplications = () => {
 
         detailsMap[app.task_id] = details;
       } catch (error) {
-        console.error(`Error fetching details:`, error);
+        console.error(`Error fetching details for app ${app.task_id}:`, error);
         detailsMap[app.task_id] = {
           studentName: `Student ${app.student_id || 'Unknown'}`,
           studentEmail: '',
@@ -185,8 +169,9 @@ const PendingJobApplications = () => {
           studentDetails: null
         };
       }
-    }
+    });
 
+    await Promise.all(promises);
     setApplicationDetails(detailsMap);
   };
 
@@ -227,51 +212,7 @@ const PendingJobApplications = () => {
   };
 
   const handleExportToExcel = () => {
-    if (!pendingApplications || pendingApplications.length === 0) {
-      alert('No pending applications to export.');
-      return;
-    }
-
-    try {
-      const exportData = pendingApplications.map(app => {
-        const details = applicationDetails[app.task_id] || {};
-        return {
-          'Task ID': app.task_id || 'N/A',
-          'Company Name': details.companyName || 'N/A',
-          'Job Title': details.jobTitle || 'N/A',
-          'Job Location': details.jobLocation || 'N/A',
-          'Candidate Name': details.studentName || 'Unknown',
-          'Email': details.studentEmail || 'N/A',
-          'Phone': details.studentPhone || 'N/A',
-          'Skills': Array.isArray(details.studentSkills) ? details.studentSkills.join(', ') : 'N/A',
-          'Experience': details.studentDetails?.experience || 'N/A',
-          'Application Date': formatDate(details.applicationDate),
-          'Status': 'Pending Admin Approval',
-          'Resume URL': details.resumeUrl || 'N/A'
-        };
-      });
-
-      const ws = XLSX.utils.json_to_sheet(exportData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Pending Applications');
-
-      const filename = `Pending_Job_Applications_${new Date().toISOString().split('T')[0]}.xlsx`;
-
-      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error exporting Excel:', error);
-      alert('Error exporting Excel file. Please try again.');
-    }
+    alert('Export functionality is temporarily disabled.');
   };
 
   const formatDate = (dateString) => {
@@ -324,64 +265,26 @@ const PendingJobApplications = () => {
   const textSecondary = isDark ? 'text-gray-400' : 'text-gray-600';
   const borderColor = isDark ? 'border-gray-700' : 'border-gray-200';
 
+  const mainContentClass = `${styles.mainContent} ${theme === 'dark' ? styles.dark : ''}`;
+  const searchFilterClass = `${cardBg} rounded-lg border ${borderColor} p-4 mb-6 shadow-sm`;
+  const searchInputClass = `w-full pl-10 pr-4 py-3 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`;
+  const searchIconClass = `absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`;
+
   return (
     <div className={`min-h-screen ${bgColor}`}>
       {/* Header */}
       <div className={`${cardBg} border-b ${borderColor} sticky top-0 z-40`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col gap-4">
-            {/* Title and Actions */}
-            <div className="flex items-center justify-between gap-4">
+            {/* Back button and title */}
+            <div className="flex items-center gap-4">
               <div className="flex-1">
-                <h1 className={`text-xl sm:text-2xl font-bold ${textColor} flex items-center gap-2`}>
-                  <Clock className="text-yellow-500" size={28} />
+                <h1 className={`text-xl sm:text-2xl font-bold ${textColor}`}>
                   Pending Job Applications
                 </h1>
                 <p className={`text-sm ${textSecondary} mt-1`}>
-                  Review and approve job applications requiring admin verification
+                  Review pending job applications and approve or reject them before they reach recruiters
                 </p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={fetchData}
-                  className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2 text-sm"
-                  title="Refresh applications"
-                >
-                  <RefreshCw size={16} />
-                  <span className="hidden sm:inline">Refresh</span>
-                </button>
-                <button
-                  onClick={handleExportToExcel}
-                  disabled={filteredApplications.length === 0}
-                  className="px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Download size={16} />
-                  <span className="hidden sm:inline">Export</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div className="flex flex-wrap gap-4">
-              <div className="px-4 py-2 rounded-lg bg-yellow-50 dark:bg-yellow-500/20 border border-yellow-200 dark:border-yellow-500/30">
-                <div className="flex items-center gap-2">
-                  <Clock size={16} className="text-yellow-600 dark:text-yellow-400" />
-                  <span className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">
-                    {filteredApplications.length}
-                  </span>
-                  <span className="text-xs text-yellow-600 dark:text-yellow-400">
-                    Pending Approval
-                  </span>
-                </div>
-              </div>
-              <div className={`px-4 py-2 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                <div className="flex items-center gap-2">
-                  <Building size={16} className={textSecondary} />
-                  <span className={`text-sm font-semibold ${textColor}`}>
-                    {uniqueCompanies.length}
-                  </span>
-                  <span className={`text-xs ${textSecondary}`}>Companies</span>
-                </div>
               </div>
             </div>
           </div>
@@ -389,93 +292,52 @@ const PendingJobApplications = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Search and Filter */}
-        <div className={`${cardBg} rounded-lg border ${borderColor} p-4 mb-6 shadow-sm`}>
-          <div className="flex flex-col gap-3">
-            {/* Search Bar */}
-            <div className="relative flex-1">
-              <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`} />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by candidate, email, company, or job title..."
-                className={`w-full pl-10 pr-4 py-3 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
-              />
+        {/* Filters on Top */}
+        <div className={`${cardBg} rounded-lg border ${borderColor} p-4 mb-6`}>
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1">
+              <div className="relative">
+                <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`} />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by name, email, company, or job title..."
+                  className={`w-full pl-10 pr-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+                />
+              </div>
             </div>
-            
-            {/* Filter Row */}
-            <div className="flex flex-wrap gap-3">
-              {/* Job Filter */}
-              {uniqueJobs.length > 1 && (
-                <div className="relative flex-1 min-w-[200px]">
-                  <Briefcase size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`} />
-                  <select
-                    value={jobFilter}
-                    onChange={(e) => {
-                      setJobFilter(e.target.value);
-                      setCompanyFilter("all"); // Reset company filter when job is selected
-                    }}
-                    className={`w-full pl-10 pr-8 py-3 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
-                  >
-                    <option value="all">All Job Positions ({pendingApplications.length})</option>
-                    {uniqueJobs.map(jobKey => {
-                      const [jobTitle, companyName] = jobKey.split('|');
-                      const count = pendingApplications.filter(app => {
-                        const details = applicationDetails[app.task_id];
-                        return details?.jobTitle === jobTitle && details?.companyName === companyName;
-                      }).length;
-                      return (
-                        <option key={jobKey} value={jobKey}>
-                          {jobTitle} - {companyName} ({count})
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-              )}
-              
-              {/* Company Filter */}
-              {uniqueCompanies.length > 1 && (
-                <div className="relative flex-1 min-w-[200px]">
-                  <Building size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`} />
-                  <select
-                    value={companyFilter}
-                    onChange={(e) => {
-                      setCompanyFilter(e.target.value);
-                      setJobFilter("all"); // Reset job filter when company is selected
-                    }}
-                    className={`w-full pl-10 pr-8 py-3 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
-                  >
-                    <option value="all">All Companies ({pendingApplications.length})</option>
-                    {uniqueCompanies.map(company => {
-                      const count = pendingApplications.filter(app => 
-                        applicationDetails[app.task_id]?.companyName === company
-                      ).length;
-                      return (
-                        <option key={company} value={company}>
-                          {company} ({count})
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-              )}
-              
-              {/* Clear Filters Button */}
-              {(companyFilter !== "all" || jobFilter !== "all" || searchQuery) && (
-                <button
-                  onClick={() => {
-                    setCompanyFilter("all");
-                    setJobFilter("all");
-                    setSearchQuery("");
-                  }}
-                  className={`px-4 py-3 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium flex items-center gap-2`}
-                >
-                  <X size={16} />
-                  Clear Filters
-                </button>
-              )}
+
+            {/* Company Filter */}
+            <div className="w-full lg:w-48">
+              <select
+                value={companyFilter}
+                onChange={(e) => setCompanyFilter(e.target.value)}
+                className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+              >
+                <option value="all">All Companies</option>
+                {uniqueCompanies.map(company => (
+                  <option key={company} value={company}>{company}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Job Filter */}
+            <div className="w-full lg:w-48">
+              <select
+                value={jobFilter}
+                onChange={(e) => setJobFilter(e.target.value)}
+                className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+              >
+                <option value="all">All Jobs</option>
+                {uniqueJobs.map(jobKey => {
+                  const [title, company] = jobKey.split('|');
+                  return (
+                    <option key={jobKey} value={jobKey}>{title} - {company}</option>
+                  );
+                })}
+              </select>
             </div>
           </div>
         </div>
@@ -484,31 +346,40 @@ const PendingJobApplications = () => {
         {loading && (
           <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center`}>
             <div className="relative mb-6">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-t-4 border-yellow-500 mx-auto"></div>
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-t-4 border-blue-500 mx-auto"></div>
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <Clock className="text-yellow-500" size={24} />
+                <FileText className="text-blue-500" size={24} />
               </div>
             </div>
-            <h3 className={`text-lg font-bold ${textColor}`}>Loading pending applications...</h3>
-            <p className={`${textSecondary} mt-2`}>Please wait</p>
+            <h3 className={`text-lg font-bold ${textColor}`}>Loading applications...</h3>
+            <p className={`${textSecondary} mt-2`}>Please wait while we fetch pending applications</p>
           </div>
         )}
 
         {/* Empty State */}
         {!loading && filteredApplications.length === 0 && (
           <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center`}>
-            <div className={`w-16 h-16 ${isDark ? 'bg-green-500/20' : 'bg-green-100'} rounded-full flex items-center justify-center mx-auto mb-4`}>
-              <Check size={32} className="text-green-500" />
+            <div className={`w-16 h-16 ${isDark ? 'bg-blue-500/20' : 'bg-blue-100'} rounded-full flex items-center justify-center mx-auto mb-4`}>
+              <FileText size={32} className="text-blue-500" />
             </div>
-            <h3 className={`text-lg font-semibold ${textColor} mb-2`}>
-              {searchQuery || companyFilter !== "all" || jobFilter !== "all" ? "No matching applications" : "All caught up!"}
-            </h3>
+            <h3 className={`text-lg font-semibold ${textColor} mb-2`}>No pending applications found</h3>
             <p className={`${textSecondary} mb-6`}>
-              {searchQuery || companyFilter !== "all" || jobFilter !== "all"
-                ? "Try adjusting your search or filters" 
-                : "There are no pending applications requiring approval at this time."
-              }
+              {searchQuery || companyFilter !== 'all' || jobFilter !== 'all'
+                ? "Try adjusting your filters or search query"
+                : "All applications have been processed"}
             </p>
+            {(searchQuery || companyFilter !== 'all' || jobFilter !== 'all') && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setCompanyFilter('all');
+                  setJobFilter('all');
+                }}
+                className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                Clear Filters
+              </button>
+            )}
           </div>
         )}
 
@@ -521,185 +392,138 @@ const PendingJobApplications = () => {
           </div>
         )}
 
-        {/* Applications - Compact Cards */}
+        {/* Applications List */}
         {!loading && filteredApplications.length > 0 && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {filteredApplications.map((application) => {
               const details = applicationDetails[application.task_id] || {};
+              const isLoadingAction = loadingApplications[application.task_id];
+
               return (
                 <div
                   key={application.task_id}
-                  className={`${cardBg} border ${borderColor} rounded-lg p-3 hover:border-yellow-400 dark:hover:border-yellow-500 transition-all shadow-sm hover:shadow-md ring-1 ring-yellow-300 dark:ring-yellow-500/50`}
+                  className={`${cardBg} border ${borderColor} rounded-lg p-6 hover:border-blue-300 dark:hover:border-blue-500 transition-colors`}
                 >
-                  {/* Application Header */}
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex items-start gap-2.5 flex-1 min-w-0">
-                      {/* Candidate Photo/Avatar */}
-                      <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700 border-2 border-yellow-400 dark:border-yellow-500">
-                        {details.studentDetails?.logo ? (
-                          <img
-                            src={details.studentDetails.logo}
-                            alt={details.studentName || 'Candidate'}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.nextElementSibling.style.display = 'flex';
-                            }}
-                          />
-                        ) : null}
-                        <div className={`w-full h-full bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center text-white font-bold text-lg ${details.studentDetails?.logo ? 'hidden' : 'flex'}`}>
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
+                        <div className={`w-full h-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg`}>
                           {details.studentName?.charAt(0)?.toUpperCase() || 'U'}
                         </div>
                       </div>
-                      
-                      {/* Candidate Info */}
                       <div className="min-w-0 flex-1">
-                        <h4 className={`text-base font-bold ${textColor} leading-tight mb-1`}>
+                        <h3 className={`text-lg font-bold ${textColor} truncate`}>
                           {details.studentName || 'Unknown Candidate'}
-                        </h4>
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          <Mail size={13} className={textSecondary} />
-                          <p className={`text-xs ${textSecondary} truncate`}>
-                            {details.studentEmail || 'No email provided'}
-                          </p>
-                        </div>
-                        {details.studentPhone && (
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <Phone size={13} className={textSecondary} />
-                            <p className={`text-xs ${textSecondary}`}>
-                              {details.studentPhone}
-                            </p>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1.5">
-                          <Calendar size={13} className={textSecondary} />
-                          <span className={`text-xs ${textSecondary}`}>
+                        </h3>
+                        <p className={`text-sm ${textSecondary} truncate`}>
+                          {details.studentEmail || 'No email provided'}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-3 mt-2">
+                          <span className={`text-sm ${textSecondary} flex items-center gap-1`}>
+                            <Calendar size={14} />
                             Applied: {formatDate(details.applicationDate)}
+                          </span>
+                          <span className={`text-sm ${textSecondary} flex items-center gap-1`}>
+                            <MapPin size={14} />
+                            {details.jobLocation || 'Location not specified'}
                           </span>
                         </div>
                       </div>
                     </div>
-                    
-                    {/* Status Badge */}
-                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold border bg-yellow-50 text-yellow-700 border-yellow-300 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/50 flex items-center gap-1 whitespace-nowrap">
-                      <Clock size={13} />
-                      PENDING
-                    </span>
-                  </div>
-
-                  {/* Job & Company Information */}
-                  <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-2.5 mb-3 border ${borderColor}`}>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      {/* Company */}
-                      <div>
-                        <h5 className={`text-xs font-semibold ${textColor} mb-1 flex items-center gap-1`}>
-                          <Building size={13} className="text-purple-500" />
-                          Company
-                        </h5>
-                        <p className={`text-sm ${textColor} font-medium`}>
-                          {details.companyName || 'Unknown'}
-                        </p>
-                      </div>
-
-                      {/* Job Title */}
-                      <div>
-                        <h5 className={`text-xs font-semibold ${textColor} mb-1 flex items-center gap-1`}>
-                          <Briefcase size={13} className="text-blue-500" />
-                          Position
-                        </h5>
-                        <p className={`text-sm ${textColor} font-medium`}>
-                          {details.jobTitle || 'Not specified'}
-                        </p>
-                      </div>
-
-                      {/* Location */}
-                      {details.jobLocation && (
-                        <div>
-                          <h5 className={`text-xs font-semibold ${textColor} mb-1 flex items-center gap-1`}>
-                            <MapPin size={13} className="text-red-500" />
-                            Location
-                          </h5>
-                          <p className={`text-sm ${textColor} font-medium`}>
-                            {details.jobLocation}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Experience */}
-                      {details.studentDetails?.experience && (
-                        <div>
-                          <h5 className={`text-xs font-semibold ${textColor} mb-1 flex items-center gap-1`}>
-                            <Briefcase size={13} className="text-green-500" />
-                            Experience
-                          </h5>
-                          <p className={`text-sm ${textColor} font-medium`}>
-                            {details.studentDetails.experience}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Skills */}
-                      {details.studentSkills && details.studentSkills.length > 0 && (
-                        <div className="sm:col-span-2">
-                          <h5 className={`text-xs font-semibold ${textColor} mb-1.5 flex items-center gap-1`}>
-                            <span className="text-yellow-500">★</span>
-                            Skills & Expertise
-                          </h5>
-                          <div className="flex flex-wrap gap-1.5">
-                            {details.studentSkills.map((skill, index) => (
-                              <span
-                                key={index}
-                                className={`px-2 py-0.5 ${isDark ? 'bg-blue-900/30 text-blue-400 border border-blue-700' : 'bg-blue-50 text-blue-700 border border-blue-200'} rounded text-xs font-medium`}
-                              >
-                                {skill}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                    <div className="flex flex-col items-end gap-2">
+                      <span className={`px-3 py-1 rounded-full text-sm font-semibold border bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30`}>
+                        Pending Review
+                      </span>
                     </div>
                   </div>
 
+                  {/* Job Details */}
+                  <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 mb-4`}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h4 className={`text-sm font-semibold ${textColor} mb-1 flex items-center gap-2`}>
+                          <Briefcase size={16} />
+                          Job Position
+                        </h4>
+                        <p className={`text-sm ${textSecondary}`}>{details.jobTitle}</p>
+                      </div>
+                      <div>
+                        <h4 className={`text-sm font-semibold ${textColor} mb-1 flex items-center gap-2`}>
+                          <Building size={16} />
+                          Company
+                        </h4>
+                        <p className={`text-sm ${textSecondary}`}>{details.companyName}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Skills */}
+                  {details.studentSkills && details.studentSkills.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className={`text-sm font-semibold ${textColor} mb-2`}>Skills</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {details.studentSkills.slice(0, 6).map((skill, index) => (
+                          <span
+                            key={index}
+                            className={`px-3 py-1 ${isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-600'} rounded-full text-sm font-medium`}
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                        {details.studentSkills.length > 6 && (
+                          <span className={`text-sm ${textSecondary}`}>
+                            +{details.studentSkills.length - 6} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Action Buttons */}
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <button
                       onClick={() => handleViewCandidateDetails(application, details)}
-                      className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-1.5 shadow-sm"
+                      className={`px-4 py-2 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium flex items-center gap-2`}
                     >
-                      <Eye size={14} />
+                      <Eye size={16} />
                       View Details
                     </button>
-                    
                     {details.resumeUrl && (
                       <a
                         href={details.resumeUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={`px-3 py-1.5 border ${isDark ? 'border-gray-600 hover:border-gray-500' : 'border-gray-300 hover:border-gray-400'} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium flex items-center gap-1.5`}
+                        className={`px-4 py-2 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium flex items-center gap-2`}
                       >
-                        <Download size={14} />
+                        <Download size={16} />
                         Resume
                       </a>
                     )}
-
                     <div className="flex-1"></div>
-
-                    <button
-                      onClick={() => handleApproveApplication(application.task_id)}
-                      disabled={loadingApplications[application.task_id]}
-                      className="px-3.5 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                    >
-                      <Check size={15} />
-                      {loadingApplications[application.task_id] ? 'Approving...' : 'Approve'}
-                    </button>
-                    
                     <button
                       onClick={() => handleRejectApplication(application.task_id)}
-                      disabled={loadingApplications[application.task_id]}
-                      className="px-3.5 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-semibold flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                      disabled={isLoadingAction}
+                      className={`px-4 py-2 border border-red-300 text-red-700 bg-red-50 hover:bg-red-100 dark:border-red-500/30 dark:text-red-400 dark:bg-red-500/20 dark:hover:bg-red-500/30 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                      <X size={15} />
-                      {loadingApplications[application.task_id] ? 'Rejecting...' : 'Reject'}
+                      {isLoadingAction ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500"></div>
+                      ) : (
+                        <X size={16} />
+                      )}
+                      Reject
+                    </button>
+                    <button
+                      onClick={() => handleApproveApplication(application.task_id)}
+                      disabled={isLoadingAction}
+                      className={`px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      {isLoadingAction ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      ) : (
+                        <Check size={16} />
+                      )}
+                      Approve
                     </button>
                   </div>
                 </div>
@@ -720,187 +544,66 @@ const PendingJobApplications = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className={`flex items-center justify-between p-5 border-b ${borderColor}`}>
-              <div className="flex items-center gap-3">
-                {/* Candidate Photo in Modal */}
-                <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700 border-2 border-yellow-400 dark:border-yellow-500">
-                  {selectedCandidate.details?.studentDetails?.logo ? (
-                    <img
-                      src={selectedCandidate.details.studentDetails.logo}
-                      alt={selectedCandidate.details?.studentName || 'Candidate'}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextElementSibling.style.display = 'flex';
-                      }}
-                    />
-                  ) : null}
-                  <div className={`w-full h-full bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center text-white font-bold text-xl ${selectedCandidate.details?.studentDetails?.logo ? 'hidden' : 'flex'}`}>
-                    {selectedCandidate.details?.studentName?.charAt(0)?.toUpperCase() || 'U'}
-                  </div>
-                </div>
-                <div>
-                  <h2 className={`text-xl font-bold ${textColor}`}>
-                    {selectedCandidate.details?.studentName || 'Unknown Candidate'}
-                  </h2>
-                  <p className={`text-sm ${textSecondary} flex items-center gap-1.5 mt-0.5`}>
-                    <Mail size={13} />
-                    {selectedCandidate.details?.studentEmail || 'No email'}
-                  </p>
-                </div>
-              </div>
+              <h2 className={`text-xl font-bold ${textColor}`}>Candidate Details</h2>
               <button
                 onClick={() => setShowCandidateModal(false)}
-                className={`${textSecondary} hover:${textColor} transition-colors p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg`}
+                className={`${textSecondary} hover:${textColor} transition-colors`}
               >
                 <X size={24} />
               </button>
             </div>
 
             <div className="p-5 space-y-4">
-              {/* Pending Status Banner */}
-              <div className="bg-yellow-50 dark:bg-yellow-500/20 border-2 border-yellow-300 dark:border-yellow-500/50 rounded-lg p-4 shadow-sm">
-                <div className="flex items-center gap-2 mb-3">
-                  <AlertCircle className="text-yellow-600 dark:text-yellow-400" size={22} />
-                  <h3 className="text-yellow-800 dark:text-yellow-300 font-bold text-lg">
-                    Pending Admin Approval Required
-                  </h3>
-                </div>
-                <p className="text-sm text-yellow-700 dark:text-yellow-400 mb-4">
-                  This application requires your approval before the recruiter can review it. Review the candidate's information below and take action.
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => {
-                      handleApproveApplication(selectedCandidate.task_id);
-                      setShowCandidateModal(false);
-                    }}
-                    disabled={loadingApplications[selectedCandidate.task_id]}
-                    className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold flex items-center gap-2 disabled:opacity-50 shadow-md"
-                  >
-                    <Check size={18} />
-                    {loadingApplications[selectedCandidate.task_id] ? 'Approving...' : 'Approve Application'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleRejectApplication(selectedCandidate.task_id);
-                      setShowCandidateModal(false);
-                    }}
-                    disabled={loadingApplications[selectedCandidate.task_id]}
-                    className="px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-semibold flex items-center gap-2 disabled:opacity-50 shadow-md"
-                  >
-                    <X size={18} />
-                    {loadingApplications[selectedCandidate.task_id] ? 'Rejecting...' : 'Reject Application'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Job Application Details */}
-              <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 border ${borderColor}`}>
-                <h3 className={`text-lg font-bold ${textColor} mb-3 flex items-center gap-2`}>
-                  <Briefcase size={18} className="text-blue-500" />
-                  Job Application Details
+              {/* Basic Info */}
+              <div>
+                <h3 className={`text-lg font-bold ${textColor} mb-2`}>
+                  {selectedCandidate.details?.studentName || 'Unknown Candidate'}
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className={`block text-sm font-semibold ${textColor} mb-1.5 flex items-center gap-1.5`}>
-                      <Building size={14} className="text-purple-500" />
-                      Company
-                    </label>
-                    <p className={`text-sm ${textColor} font-medium bg-white dark:bg-gray-800 px-3 py-2 rounded border ${borderColor}`}>
-                      {selectedCandidate.details?.companyName || 'Not provided'}
-                    </p>
+                    <label className={`block text-sm font-semibold ${textColor} mb-1`}>Email</label>
+                    <p className={`text-sm ${textSecondary}`}>{selectedCandidate.details?.studentEmail || 'Not provided'}</p>
                   </div>
                   <div>
-                    <label className={`block text-sm font-semibold ${textColor} mb-1.5 flex items-center gap-1.5`}>
-                      <Briefcase size={14} className="text-blue-500" />
-                      Position
-                    </label>
-                    <p className={`text-sm ${textColor} font-medium bg-white dark:bg-gray-800 px-3 py-2 rounded border ${borderColor}`}>
-                      {selectedCandidate.details?.jobTitle || 'Not provided'}
-                    </p>
+                    <label className={`block text-sm font-semibold ${textColor} mb-1`}>Phone</label>
+                    <p className={`text-sm ${textSecondary}`}>{selectedCandidate.details?.studentPhone || 'Not provided'}</p>
                   </div>
                   <div>
-                    <label className={`block text-sm font-semibold ${textColor} mb-1.5 flex items-center gap-1.5`}>
-                      <MapPin size={14} className="text-red-500" />
-                      Location
-                    </label>
-                    <p className={`text-sm ${textColor} font-medium bg-white dark:bg-gray-800 px-3 py-2 rounded border ${borderColor}`}>
-                      {selectedCandidate.details?.jobLocation || 'Not provided'}
-                    </p>
+                    <label className={`block text-sm font-semibold ${textColor} mb-1`}>Location</label>
+                    <p className={`text-sm ${textSecondary}`}>{selectedCandidate.details?.studentDetails?.location || 'Not provided'}</p>
                   </div>
                   <div>
-                    <label className={`block text-sm font-semibold ${textColor} mb-1.5 flex items-center gap-1.5`}>
-                      <Calendar size={14} className="text-green-500" />
-                      Applied Date
-                    </label>
-                    <p className={`text-sm ${textColor} font-medium bg-white dark:bg-gray-800 px-3 py-2 rounded border ${borderColor}`}>
-                      {formatDate(selectedCandidate.details?.applicationDate)}
-                    </p>
+                    <label className={`block text-sm font-semibold ${textColor} mb-1`}>Experience</label>
+                    <p className={`text-sm ${textSecondary}`}>{selectedCandidate.details?.studentDetails?.experience || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-semibold ${textColor} mb-1`}>Application Date</label>
+                    <p className={`text-sm ${textSecondary}`}>{formatDate(selectedCandidate.details?.applicationDate)}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Candidate Contact Information */}
-              <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 border ${borderColor}`}>
-                <h3 className={`text-lg font-bold ${textColor} mb-3 flex items-center gap-2`}>
-                  <Mail size={18} className="text-blue-500" />
-                  Contact Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className={`block text-sm font-semibold ${textColor} mb-1.5 flex items-center gap-1.5`}>
-                      <Mail size={14} className="text-blue-500" />
-                      Email Address
-                    </label>
-                    <p className={`text-sm ${textColor} font-medium bg-white dark:bg-gray-800 px-3 py-2 rounded border ${borderColor}`}>
-                      {selectedCandidate.details?.studentEmail || 'Not provided'}
-                    </p>
+              {/* Education */}
+              {selectedCandidate.details?.studentDetails?.education && selectedCandidate.details.studentDetails.education.length > 0 && (
+                <div>
+                  <h4 className={`text-md font-bold ${textColor} mb-2`}>Education</h4>
+                  <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-3 border ${borderColor}`}>
+                    {selectedCandidate.details.studentDetails.education.map((edu, index) => (
+                      <p key={index} className={`text-sm ${textSecondary}`}>{edu}</p>
+                    ))}
                   </div>
-                  <div>
-                    <label className={`block text-sm font-semibold ${textColor} mb-1.5 flex items-center gap-1.5`}>
-                      <Phone size={14} className="text-green-500" />
-                      Phone Number
-                    </label>
-                    <p className={`text-sm ${textColor} font-medium bg-white dark:bg-gray-800 px-3 py-2 rounded border ${borderColor}`}>
-                      {selectedCandidate.details?.studentPhone || 'Not provided'}
-                    </p>
-                  </div>
-                  <div>
-                    <label className={`block text-sm font-semibold ${textColor} mb-1.5 flex items-center gap-1.5`}>
-                      <Briefcase size={14} className="text-purple-500" />
-                      Experience
-                    </label>
-                    <p className={`text-sm ${textColor} font-medium bg-white dark:bg-gray-800 px-3 py-2 rounded border ${borderColor}`}>
-                      {selectedCandidate.details?.studentDetails?.experience || 'Not provided'}
-                    </p>
-                  </div>
-                  {selectedCandidate.details?.studentDetails?.education && 
-                   selectedCandidate.details.studentDetails.education.length > 0 && (
-                    <div>
-                      <label className={`block text-sm font-semibold ${textColor} mb-1.5 flex items-center gap-1.5`}>
-                        <GraduationCap size={14} className="text-indigo-500" />
-                        Education
-                      </label>
-                      <p className={`text-sm ${textColor} font-medium bg-white dark:bg-gray-800 px-3 py-2 rounded border ${borderColor}`}>
-                        {selectedCandidate.details.studentDetails.education.join(', ')}
-                      </p>
-                    </div>
-                  )}
                 </div>
-              </div>
+              )}
 
               {/* Skills */}
-              {selectedCandidate.details?.studentSkills && selectedCandidate.details.studentSkills.length > 0 && (
-                <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 border ${borderColor}`}>
-                  <h4 className={`text-lg font-bold ${textColor} mb-3 flex items-center gap-2`}>
-                    <span className="text-yellow-500 text-xl">★</span>
-                    Skills & Expertise
-                  </h4>
+              {selectedCandidate.details?.studentDetails?.skills && selectedCandidate.details.studentDetails.skills.length > 0 && (
+                <div>
+                  <h4 className={`text-md font-bold ${textColor} mb-2`}>Skills</h4>
                   <div className="flex flex-wrap gap-2">
-                    {selectedCandidate.details.studentSkills.map((skill, index) => (
+                    {selectedCandidate.details.studentDetails.skills.map((skill, index) => (
                       <span
                         key={index}
-                        className={`px-4 py-2 ${isDark ? 'bg-blue-900/30 text-blue-400 border-2 border-blue-700' : 'bg-blue-50 text-blue-700 border-2 border-blue-200'} rounded-lg text-sm font-semibold shadow-sm`}
+                        className={`px-3 py-1 ${isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-600'} rounded-full text-sm font-medium`}
                       >
                         {skill}
                       </span>
@@ -909,35 +612,29 @@ const PendingJobApplications = () => {
                 </div>
               )}
 
+              {/* Bio */}
+              {selectedCandidate.details?.studentDetails?.bio && (
+                <div>
+                  <h4 className={`text-md font-bold ${textColor} mb-2`}>Bio</h4>
+                  <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-3 border ${borderColor}`}>
+                    <p className={`text-sm ${textSecondary} whitespace-pre-wrap`}>{selectedCandidate.details.studentDetails.bio}</p>
+                  </div>
+                </div>
+              )}
+
               {/* Resume */}
               {selectedCandidate.details?.resumeUrl && (
-                <div className={`${isDark ? 'bg-gray-700/50' : 'bg-blue-50'} rounded-lg p-4 border-2 ${isDark ? borderColor : 'border-blue-200'}`}>
-                  <h4 className={`text-lg font-bold ${textColor} mb-3 flex items-center gap-2`}>
-                    <FileText size={18} className="text-blue-500" />
-                    Resume/CV
-                  </h4>
-                  <p className={`text-sm ${textSecondary} mb-3`}>
-                    Download or view the candidate's resume to review their full qualifications and experience.
-                  </p>
-                  <div className="flex gap-3">
-                    <a
-                      href={selectedCandidate.details.resumeUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold shadow-md"
-                    >
-                      <ExternalLink size={18} />
-                      View Resume
-                    </a>
-                    <a
-                      href={selectedCandidate.details.resumeUrl}
-                      download
-                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold shadow-md"
-                    >
-                      <Download size={18} />
-                      Download Resume
-                    </a>
-                  </div>
+                <div>
+                  <h4 className={`text-md font-bold ${textColor} mb-2`}>Resume</h4>
+                  <a
+                    href={selectedCandidate.details.resumeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Download size={16} />
+                    Download Resume
+                  </a>
                 </div>
               )}
             </div>

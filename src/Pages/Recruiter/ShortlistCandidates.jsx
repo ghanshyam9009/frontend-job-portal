@@ -64,6 +64,7 @@ const ShortlistCandidates = () => {
             student_name: studentProfile.full_name || app.student_name || "Unknown Candidate",
             student_email: studentProfile.email || app.student_email || "Unknown Email",
             resume_url: resumeUrl, // Use the resume URL from student profile
+            student_profile: studentProfile, // Store the full profile for image access
           };
         });
 
@@ -182,7 +183,6 @@ const ShortlistCandidates = () => {
               </div>
               <h3 className={`text-lg font-bold ${textColor}`}>Filter Candidates</h3>
             </div>
-            
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               {/* Job Filter Dropdown */}
               <div className="flex items-center gap-3 flex-1">
@@ -273,9 +273,9 @@ const ShortlistCandidates = () => {
                       <div className="flex items-start gap-4 mb-4">
                         {/* Profile Avatar */}
                         <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700 ring-4 ring-amber-100 dark:ring-amber-500/20">
-                          {studentProfile.logo || studentProfile.profile_image ? (
+                          {candidate.student_profile?.logo || candidate.student_profile?.profile_image ? (
                             <img
-                              src={studentProfile.logo || studentProfile.profile_image}
+                              src={candidate.student_profile?.logo || candidate.student_profile?.profile_image}
                               alt={candidate.student_name || 'Candidate'}
                               className="w-full h-full object-cover"
                               onError={(e) => {
@@ -284,7 +284,7 @@ const ShortlistCandidates = () => {
                               }}
                             />
                           ) : null}
-                          <div className={`w-full h-full bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-white font-bold text-2xl ${studentProfile.logo || studentProfile.profile_image ? 'hidden' : 'flex'}`}>
+                          <div className={`w-full h-full bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-white font-bold text-2xl ${candidate.student_profile?.logo || candidate.student_profile?.profile_image ? 'hidden' : 'flex'}`}>
                             {candidate.student_name?.charAt(0)?.toUpperCase() || 'U'}
                           </div>
                         </div>

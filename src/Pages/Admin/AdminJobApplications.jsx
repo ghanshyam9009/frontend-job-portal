@@ -89,7 +89,13 @@ const AdminJobApplications = () => {
                 name: app.student_name || "Unknown",
                 email: app.student_email || app.email || null,
                 phone: app.student_phone || null,
-                skills: app.student_skills ? app.student_skills.split(',').map(skill => skill.trim()) : [],
+                skills: app.student_skills
+                  ? (typeof app.student_skills === 'string'
+                      ? app.student_skills.split(',').map(skill => skill.trim())
+                      : Array.isArray(app.student_skills)
+                      ? app.student_skills
+                      : [])
+                  : [],
                 location: app.student_location || null,
                 experience: app.student_experience || null,
                 education: app.student_university ? [app.student_university] : [],
@@ -97,7 +103,8 @@ const AdminJobApplications = () => {
                 bio: app.student_bio || null,
                 resumeUrl: app.resume_url || app.student_profile?.resume || null,
                 department: app.student_department || null,
-                cgpa: app.student_cgpa || null
+                cgpa: app.student_cgpa || null,
+                logo: app.student_profile?.logo || app.student_profile?.profile_image || null
               }
             };
           }
@@ -117,7 +124,8 @@ const AdminJobApplications = () => {
               bio: null,
               resumeUrl: app.resume_url || null,
               department: null,
-              cgpa: null
+              cgpa: null,
+              logo: app.student_profile?.logo || app.student_profile?.profile_image || null
             }
           };
         });
@@ -358,7 +366,18 @@ const AdminJobApplications = () => {
                 <div className="flex items-start justify-between gap-2.5 mb-2.5">
                   <div className="flex items-start gap-2 flex-1 min-w-0">
                     <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
-                      <div className={`w-full h-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs`}>
+                      {application.student_details?.logo ? (
+                        <img
+                          src={application.student_details.logo}
+                          alt={application.student_details.name || 'Candidate'}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextElementSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <div className={`w-full h-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs ${application.student_details?.logo ? 'hidden' : 'flex'}`}>
                         {application.student_details?.name?.charAt(0)?.toUpperCase() || 'U'}
                       </div>
                     </div>

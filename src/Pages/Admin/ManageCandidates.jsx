@@ -14,7 +14,9 @@ import {
   Briefcase,
   MapPin,
   Mail,
-  Phone
+  Phone,
+  CheckCircle,
+  XCircle
 } from "lucide-react";
 
 const ManageCandidates = () => {
@@ -26,6 +28,8 @@ const ManageCandidates = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState({ type: '', text: '' });
+  const [actionLoading, setActionLoading] = useState(null);
   const candidatesPerPage = 10;
 
   // Fetch candidates data from API
@@ -106,7 +110,11 @@ const ManageCandidates = () => {
   };
 
   const handleBlockStudent = async (candidate) => {
-    if (!candidate || !candidate.email) return;
+    if (!candidate || !candidate.email) {
+      setMessage({ type: 'error', text: 'Invalid candidate data' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      return;
+    }
 
     const confirmBlock = window.confirm(
       `Are you sure you want to block ${candidate.name}? This will remove them from the system.`
@@ -115,6 +123,7 @@ const ManageCandidates = () => {
     if (!confirmBlock) return;
 
     try {
+      setActionLoading(candidate.id || candidate.user_id);
       await adminService.blockStudent(candidate.email);
 
       const updatedCandidates = candidates.filter(c => c.email !== candidate.email);
@@ -130,10 +139,14 @@ const ManageCandidates = () => {
         return true;
       }));
 
-      alert(`${candidate.name} has been blocked and removed from the system.`);
+      setMessage({ type: 'success', text: `${candidate.name} has been blocked and removed from the system.` });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } catch (error) {
       console.error('Error blocking student:', error);
-      alert('Failed to block student. Please try again.');
+      setMessage({ type: 'error', text: error.message || 'Failed to block student. Please try again.' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -233,6 +246,24 @@ const ManageCandidates = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Message Display */}
+        {message.text && (
+          <div className={`mb-6 rounded-lg p-4 ${
+            message.type === 'success' 
+              ? 'bg-green-50 text-green-700 border border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' 
+              : 'bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800'
+          }`}>
+            <div className="flex items-center gap-2">
+              {message.type === 'success' ? (
+                <CheckCircle className="h-5 w-5" />
+              ) : (
+                <XCircle className="h-5 w-5" />
+              )}
+              <p className="font-medium">{message.text}</p>
+            </div>
+          </div>
+        )}
+
         {/* Filters on Top */}
         <div className={`${cardBg} rounded-lg border ${borderColor} p-4 mb-6`}>
           <div className="flex flex-col lg:flex-row gap-4">
@@ -411,11 +442,12 @@ const ManageCandidates = () => {
                   </button>
                   <button
                     onClick={() => handleBlockStudent(candidate)}
-                    className={`flex-1 sm:flex-initial px-3 py-1.5 border border-red-300 dark:border-red-800 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center gap-1.5`}
+                    disabled={actionLoading === (candidate.id || candidate.user_id)}
+                    className={`flex-1 sm:flex-initial px-3 py-1.5 border border-red-300 dark:border-red-800 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50`}
                     style={{ fontSize: '0.7rem' }}
                   >
                     <Trash2 size={13} />
-                 Delete
+                    {actionLoading === (candidate.id || candidate.user_id) ? 'Blocking...' : 'Block'}
                   </button>
                 </div>
               </div>

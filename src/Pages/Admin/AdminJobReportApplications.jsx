@@ -15,7 +15,9 @@ import {
   Mail,
   Phone,
   Briefcase,
-  GraduationCap
+  GraduationCap,
+  Check,
+  Trash2
 } from "lucide-react";
 import * as XLSX from 'xlsx';
 
@@ -31,6 +33,9 @@ const AdminJobReportApplications = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [showCandidateModal, setShowCandidateModal] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all"); // Default to all to show both pending and approved
+  const [loadingActions, setLoadingActions] = useState({});
+  const [pendingTasks, setPendingTasks] = useState([]); // Store pending tasks for approval
 
   useEffect(() => {
     fetchApplications();
@@ -47,9 +52,23 @@ const AdminJobReportApplications = () => {
       setLoading(true);
       setError("");
 
-      // Fetch job details
+      // Fetch job details - Only show jobs posted by recruiters
       const jobsData = await adminService.getJobsWithApplicationCounts();
-      const job = jobsData.find(j => j.id === parseInt(jobId));
+      // Filter to only show recruiter-posted jobs
+      const recruiterJobs = jobsData.filter(j => {
+        const postedBy = (j.posted_by || '').toUpperCase();
+        return postedBy === 'RECRUITER' || postedBy === 'EMPLOYER';
+      });
+      const job = recruiterJobs.find(j => {
+        const idMatch = j.id === parseInt(jobId) || j.job_id === jobId || j.id === jobId;
+        return idMatch;
+      });
+
+      if (!job) {
+        setError("Job not found. Only jobs posted by recruiters are shown in the application report.");
+        setLoading(false);
+        return;
+      }
 
       if (job) {
         setJobDetails({
@@ -62,19 +81,58 @@ const AdminJobReportApplications = () => {
         });
       }
 
-      // Fetch applications
+      // Fetch pending tasks for this job (applications waiting for admin approval)
+      const pendingTasksData = await adminService.getPendingJobs();
+      const jobPendingTasks = pendingTasksData.filter(task => 
+        task.category === 'newapplication' && 
+        task.status === 'pending' && 
+        task.job_id === jobId
+      );
+      setPendingTasks(jobPendingTasks);
+
+      // Fetch all candidates once to use for matching student details
+      let allCandidates = [];
+      try {
+        allCandidates = await adminService.getCandidates();
+      } catch (candidateErr) {
+        console.warn('Failed to fetch candidates for student details:', candidateErr);
+      }
+
+      // Fetch applications (these are already approved and visible to recruiters)
       const applicationsData = await adminService.getApplicationsForJob(jobId);
       const applicationsList = applicationsData.applications || [];
 
-      // Enrich applications with student data
+      // Create a map of task_id by student_id and application_id for matching
+      const taskMap = {};
+      jobPendingTasks.forEach(task => {
+        const key = `${task.student_id}_${task.application_id || ''}`;
+        taskMap[key] = task.task_id;
+      });
+
+      // Enrich applications with student data and task information
       const applicationsWithDetails = applicationsList.map((app) => {
+        // Try to find matching task
+        const taskKey = `${app.student_id || app.student_email}_${app.application_id || ''}`;
+        const matchingTask = jobPendingTasks.find(task => 
+          (task.student_id && task.student_id.toString() === (app.student_id || '').toString()) ||
+          (task.application_id && task.application_id.toString() === (app.application_id || '').toString())
+        );
+
         return {
           ...app,
+          task_id: matchingTask?.task_id || null, // Add task_id if pending approval
+          needs_approval: !!matchingTask, // Flag if this application needs admin approval
           student_details: {
             name: app.student_name || "Unknown",
             email: app.student_email || app.email || null,
             phone: app.student_phone || null,
-            skills: app.student_skills ? app.student_skills.split(',').map(skill => skill.trim()) : [],
+            skills: app.student_skills
+              ? (typeof app.student_skills === 'string'
+                  ? app.student_skills.split(',').map(skill => skill.trim())
+                  : Array.isArray(app.student_skills)
+                  ? app.student_skills
+                  : [])
+              : [],
             location: app.student_location || null,
             experience: app.student_experience || null,
             education: app.student_university ? [app.student_university] : [],
@@ -88,7 +146,130 @@ const AdminJobReportApplications = () => {
         };
       });
 
-      setApplications(applicationsWithDetails);
+      // Also add pending applications that haven't been approved yet (not in applications list)
+      // Fetch details for pending applications
+      const pendingApplicationsPromises = jobPendingTasks.map(async (task) => {
+        // Try to find if this task already has an application
+        const existingApp = applicationsList.find(app => 
+          (task.student_id && task.student_id.toString() === (app.student_id || '').toString()) ||
+          (task.application_id && task.application_id.toString() === (app.application_id || '').toString())
+        );
+
+        // If not found, fetch application and student details
+        if (!existingApp && task.job_id) {
+          try {
+            // Try to get application details from the job applications
+            const appDetails = await adminService.getApplicationsForJob(task.job_id);
+            const matchingApp = (appDetails.applications || []).find(app =>
+              (task.student_id && task.student_id.toString() === (app.student_id || '').toString()) ||
+              (task.application_id && task.application_id.toString() === (app.application_id || '').toString())
+            );
+
+            if (matchingApp) {
+              return {
+                ...matchingApp,
+                task_id: task.task_id,
+                needs_approval: true,
+                status: 'pending',
+                student_details: {
+                  name: matchingApp.student_name || `Student ${task.student_id || 'Unknown'}`,
+                  email: matchingApp.student_email || matchingApp.email || null,
+                  phone: matchingApp.student_phone || null,
+                  skills: matchingApp.student_skills
+                    ? (typeof matchingApp.student_skills === 'string'
+                        ? matchingApp.student_skills.split(',').map(skill => skill.trim())
+                        : Array.isArray(matchingApp.student_skills)
+                        ? matchingApp.student_skills
+                        : [])
+                    : [],
+                  location: matchingApp.student_location || null,
+                  experience: matchingApp.student_experience || null,
+                  education: matchingApp.student_university ? [matchingApp.student_university] : [],
+                  experience_years: matchingApp.student_experience_years || null,
+                  bio: matchingApp.student_bio || null,
+                  resumeUrl: matchingApp.resume_url || matchingApp.student_profile?.resume || null,
+                  department: matchingApp.student_department || null,
+                  cgpa: matchingApp.student_cgpa || null,
+                  logo: matchingApp.student_profile?.logo || matchingApp.student_profile?.profile_image || null
+                }
+              };
+            }
+
+            // If not found in applications, try to fetch student details from pre-fetched candidates
+            if (task.student_id && allCandidates.length > 0) {
+              try {
+                const studentCandidate = allCandidates.find(c => 
+                  (c.id && c.id.toString() === task.student_id.toString()) ||
+                  (c.user_id && c.user_id.toString() === task.student_id.toString())
+                );
+
+                if (studentCandidate) {
+                  return {
+                    application_id: task.application_id || `pending_${task.task_id}`,
+                    task_id: task.task_id,
+                    needs_approval: true,
+                    status: 'pending',
+                    student_id: task.student_id,
+                    created_at: task.created_at || task.posted_date,
+                    student_details: {
+                      name: studentCandidate.name || `Student ${task.student_id || 'Unknown'}`,
+                      email: studentCandidate.email || null,
+                      phone: studentCandidate.phone || null,
+                      skills: Array.isArray(studentCandidate.skills) ? studentCandidate.skills : [],
+                      location: studentCandidate.location || studentCandidate.city || null,
+                      experience: studentCandidate.experience || null,
+                      education: studentCandidate.education || [],
+                      experience_years: null,
+                      bio: studentCandidate.bio || null,
+                      resumeUrl: studentCandidate.resume || null,
+                      department: null,
+                      cgpa: null,
+                      logo: studentCandidate.logo || studentCandidate.profile_image || null
+                    }
+                  };
+                }
+              } catch (candidateErr) {
+                console.warn(`Failed to fetch candidate details for student_id ${task.student_id}:`, candidateErr);
+              }     
+            }
+          } catch (err) {
+            console.warn(`Failed to fetch details for pending task ${task.task_id}:`, err);
+          }
+
+          // Fallback: create basic pending application entry
+          return {
+            application_id: task.application_id || `pending_${task.task_id}`,
+            task_id: task.task_id,
+            needs_approval: true,
+            status: 'pending',
+            student_id: task.student_id,
+            created_at: task.created_at || task.posted_date,
+            student_details: {
+              name: `Student ${task.student_id || 'Unknown'}`,
+              email: null,
+              phone: null,
+              skills: [],
+              location: null,
+              experience: null,
+              education: [],
+              experience_years: null,
+              bio: null,
+              resumeUrl: null,
+              department: null,
+              cgpa: null,
+              logo: null
+            }
+          };
+        }
+        return null;
+      });
+
+      const pendingApplications = (await Promise.all(pendingApplicationsPromises)).filter(Boolean);
+
+      // Combine approved and pending applications
+      const allApplications = [...applicationsWithDetails, ...pendingApplications];
+
+      setApplications(allApplications);
     } catch (e) {
       console.error(e);
       setError(typeof e === "string" ? e : e?.message || "Failed to load applications");
@@ -153,6 +334,105 @@ const AdminJobReportApplications = () => {
     }
   };
 
+  const handleApproveApplication = async (application) => {
+    const taskId = application.task_id;
+    if (!taskId) {
+      alert('Cannot approve: Task ID not found. This application may already be approved.');
+      return;
+    }
+
+    const confirmApprove = window.confirm(
+      `Are you sure you want to approve this application? Once approved, it will be visible to the recruiter.`
+    );
+    if (!confirmApprove) return;
+
+    try {
+      setLoadingActions(prev => ({ ...prev, [application.application_id]: true }));
+
+      // Use adminService to approve the application
+      await adminService.approveJobApplicationByStudent(taskId);
+
+      alert('Application approved successfully! The application is now visible to the recruiter.');
+      
+      // Refresh applications to update status and fetch newly approved applications
+      await fetchApplications();
+      
+      // Find and show the approved candidate details if available
+      await fetchApplications(); // Fetch again to get updated data
+      const updatedApps = await adminService.getApplicationsForJob(jobId);
+      const updatedApp = (updatedApps.applications || []).find(app => 
+        app.application_id === application.application_id ||
+        (app.student_id && app.student_id.toString() === (application.student_id || '').toString())
+      );
+      
+      if (updatedApp) {
+        // Enrich with student details
+        const enrichedApp = {
+          ...updatedApp,
+          student_details: {
+            name: updatedApp.student_name || "Unknown",
+            email: updatedApp.student_email || updatedApp.email || null,
+            phone: updatedApp.student_phone || null,
+            skills: updatedApp.student_skills
+              ? (typeof updatedApp.student_skills === 'string'
+                  ? updatedApp.student_skills.split(',').map(skill => skill.trim())
+                  : Array.isArray(updatedApp.student_skills)
+                  ? updatedApp.student_skills
+                  : [])
+              : [],
+            location: updatedApp.student_location || null,
+            experience: updatedApp.student_experience || null,
+            education: updatedApp.student_university ? [updatedApp.student_university] : [],
+            experience_years: updatedApp.student_experience_years || null,
+            bio: updatedApp.student_bio || null,
+            resumeUrl: updatedApp.resume_url || updatedApp.student_profile?.resume || null,
+            department: updatedApp.student_department || null,
+            cgpa: updatedApp.student_cgpa || null,
+            logo: updatedApp.student_profile?.logo || updatedApp.student_profile?.profile_image || null
+          }
+        };
+        handleViewCandidateDetails(enrichedApp);
+      }
+    } catch (error) {
+      console.error('Failed to approve application:', error);
+      alert(error.message || 'Failed to approve application. Please try again.');
+    } finally {
+      setLoadingActions(prev => ({ ...prev, [application.application_id]: false }));
+    }
+  };
+
+  const handleRejectApplication = async (application) => {
+    const taskId = application.task_id;
+    if (!taskId) {
+      alert('Cannot reject: Task ID not found. This application may already be processed.');
+      return;
+    }
+
+    const confirmReject = window.confirm(
+      'Are you sure you want to reject this application? It will be removed and the candidate will not be visible to the recruiter.'
+    );
+    if (!confirmReject) return;
+
+    try {
+      setLoadingActions(prev => ({ ...prev, [application.application_id]: true }));
+
+      // Use adminService to reject the application (rejectJob uses taskId)
+      await adminService.rejectJob(taskId);
+
+      alert('Application rejected successfully.');
+      
+      // Refresh applications to update the list
+      await fetchApplications();
+    } catch (error) {
+      console.error('Failed to reject application:', error);
+      alert(error.message || 'Failed to reject application. Please try again.');
+    } finally {
+      setLoadingActions(prev => ({ ...prev, [application.application_id]: false }));
+    }
+  };
+
+
+
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -162,15 +442,31 @@ const AdminJobReportApplications = () => {
     });
   };
 
-  const filteredApplications = applications.filter(app =>
-    app.student_details?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    app.student_details?.email?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredApplications = applications.filter(app => {
+    // Determine actual status: if needs_approval is true, it's pending
+    const actualStatus = app.needs_approval ? 'pending' : (app.status || 'approved');
+    
+    // Filter by status
+    const matchesStatus = statusFilter === "all" || actualStatus.toLowerCase() === statusFilter.toLowerCase();
 
-  const getStatusColor = (status) => {
+    // Then filter by search query
+    const matchesSearch = !searchQuery ||
+      app.student_details?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      app.student_details?.email?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesStatus && matchesSearch;
+  });
+
+  const getStatusColor = (status, needsApproval) => {
+    // If needs approval, it's pending regardless of status
+    if (needsApproval) {
+      return 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30';
+    }
+    
     const statusLower = status?.toLowerCase() || '';
     switch (statusLower) {
       case 'shortlisted':
+      case 'approved':
         return 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30';
       case 'pending':
         return 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30';
@@ -179,6 +475,13 @@ const AdminJobReportApplications = () => {
       default:
         return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30';
     }
+  };
+
+  const getStatusLabel = (status, needsApproval) => {
+    if (needsApproval) {
+      return 'Pending Admin Approval';
+    }
+    return status || 'Approved';
   };
 
   const isDark = theme === 'dark';
@@ -253,17 +556,56 @@ const AdminJobReportApplications = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Search Filter on Top */}
+        {/* Search and Filter on Top */}
         <div className={`${cardBg} rounded-lg border ${borderColor} p-4 mb-6`}>
-          <div className="relative">
-            <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`} />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by candidate name or email..."
-              className={`w-full pl-10 pr-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
-            />
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1">
+              <div className="relative">
+                <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`} />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by candidate name or email..."
+                  className={`w-full pl-10 pr-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+                />
+              </div>
+            </div>
+
+            {/* Status Filters */}
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setStatusFilter('all')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  statusFilter === 'all'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
+                    : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                }`}
+              >
+                All ({applications.length})
+              </button>
+              <button
+                onClick={() => setStatusFilter('pending')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  statusFilter === 'pending'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
+                    : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                }`}
+              >
+                Pending Approval ({applications.filter(app => app.needs_approval).length})
+              </button>
+              <button
+                onClick={() => setStatusFilter('approved')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  statusFilter === 'approved'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
+                    : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                }`}
+              >
+                Approved ({applications.filter(app => !app.needs_approval).length})
+              </button>
+            </div>
           </div>
         </div>
 
@@ -355,8 +697,8 @@ const AdminJobReportApplications = () => {
                       </div>
                     </div>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${getStatusColor(application.status)}`} style={{ fontSize: '0.65rem' }}>
-                    {application.status || 'Pending'}
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${getStatusColor(application.status, application.needs_approval)}`} style={{ fontSize: '0.65rem' }}>
+                    {getStatusLabel(application.status, application.needs_approval)}
                   </span>
                 </div>
 
@@ -433,6 +775,38 @@ const AdminJobReportApplications = () => {
                       Resume
                     </a>
                   )}
+
+                  {/* Approve/Reject buttons for pending applications that need admin approval */}
+                  {application.needs_approval && (
+                    <>
+                      <button
+                        onClick={() => handleApproveApplication(application)}
+                        disabled={loadingActions[application.application_id] || !application.task_id}
+                        className="px-2.5 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-medium flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ fontSize: '0.7rem' }}
+                      >
+                        {loadingActions[application.application_id] ? (
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                        ) : (
+                          <Check size={12} />
+                        )}
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleRejectApplication(application)}
+                        disabled={loadingActions[application.application_id] || !application.task_id}
+                        className="px-2.5 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ fontSize: '0.7rem' }}
+                      >
+                        {loadingActions[application.application_id] ? (
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                        ) : (
+                          <Trash2 size={12} />
+                        )}
+                        Reject
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
@@ -485,8 +859,8 @@ const AdminJobReportApplications = () => {
                   </div>
                   <div>
                     <label className={`block text-sm font-semibold ${textColor} mb-1`}>Application Status</label>
-                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold border ${getStatusColor(selectedCandidate.status)}`}>
-                      {selectedCandidate.status || 'Pending'}
+                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold border ${getStatusColor(selectedCandidate.status, selectedCandidate.needs_approval)}`}>
+                      {getStatusLabel(selectedCandidate.status, selectedCandidate.needs_approval)}
                     </span>
                   </div>
                   <div>

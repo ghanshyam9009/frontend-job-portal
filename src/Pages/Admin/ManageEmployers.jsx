@@ -41,13 +41,12 @@ const ManageEmployers = () => {
     try {
       setLoading(true);
       const response = await adminService.getAllRecruiters();
-      const recruitersData = response.recruiters || [];
+      const recruitersData = response.recruiters || response.data || response || [];
       const sortedRecruiters = recruitersData.sort((a, b) => {
         const dateA = new Date(a.created_at || a.createdAt || 0);
         const dateB = new Date(b.created_at || b.createdAt || 0);
         return dateB - dateA;
       });
-      console.log('Loaded employers:', sortedRecruiters.length);
       setRecruiters(sortedRecruiters);
       setFilteredRecruiters(sortedRecruiters);
     } catch (error) {
@@ -563,13 +562,13 @@ const ManageEmployers = () => {
               <div className="p-3">
                 {/* Employer Header */}
                 <div className="flex items-start justify-between gap-3 mb-2.5">
-                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-blue-100 dark:bg-blue-900/30">
-                      {recruiter.company_logo ? (
-                        <img 
-                          src={recruiter.company_logo} 
-                          alt={recruiter.company_name || 'Company'} 
-                          className="w-full h-full object-cover" 
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-blue-100 dark:bg-blue-900/30">
+                      {(recruiter.logo || recruiter.company_logo) ? (
+                        <img
+                          src={recruiter.logo || recruiter.company_logo}
+                          alt={recruiter.company_name || 'Company'}
+                          className="w-full h-full object-cover"
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm">
@@ -633,7 +632,7 @@ const ManageEmployers = () => {
                   {!recruiter.hasadminapproved && recruiter.status !== 'rejected' && recruiter.status !== 'inactive' && recruiter.status !== 'blocked' ? (
                     <>
                       <button
-                        onClick={() => handleApproveRecruiter(recruiter)}
+                        onClick={() => handleApproveEmployer(recruiter)}
                         disabled={actionLoading === `approve-${recruiter.employer_id}`}
                         className="flex-1 sm:flex-initial px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
                         style={{ fontSize: '0.7rem' }}

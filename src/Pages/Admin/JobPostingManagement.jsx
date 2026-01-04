@@ -319,7 +319,13 @@ const JobPostingManagement = () => {
             name: app.student_name || "Unknown",
             email: app.student_email || app.email || null,
             phone: app.student_phone || null,
-            skills: app.student_skills ? app.student_skills.split(',').map(skill => skill.trim()) : [],
+            skills: app.student_skills
+              ? (typeof app.student_skills === 'string'
+                  ? app.student_skills.split(',').map(skill => skill.trim())
+                  : Array.isArray(app.student_skills)
+                  ? app.student_skills
+                  : [])
+              : [],
             location: app.student_location || null,
             experience: app.student_experience || null,
             education: app.student_university ? [app.student_university] : [],

@@ -63,16 +63,21 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
       if (user?.email) {
         try {
           const response = await recruiterService.getProfile(user.email, true);
+
           if (response.success && response.data) {
             const profileData = response.data.employer || response.data.profile || response.data;
+            const logoUrl = profileData.logo || profileData.company_logo || profileData.profile_image;
+
             setRecruiterProfile(prev => ({
               ...prev,
               ...profileData,
-              company_logo: profileData.company_logo || profileData.logo || profileData.profile_image || prev?.company_logo
+              company_logo: logoUrl || prev?.company_logo
             }));
+          } else {
+            console.log('Navbar: Profile fetch failed or no data');
           }
         } catch (err) {
-          console.error('Failed to fetch recruiter profile:', err);
+          console.error('Navbar: Failed to fetch recruiter profile:', err);
         }
       }
     };
@@ -80,7 +85,9 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
     fetchRecruiterProfile();
   }, [user?.email]);
 
-  // Fetch application count dynamically
+  // Temporarily disabled application count fetching due to API issues
+  // TODO: Re-enable when API CORS and 500 errors are fixed
+  /*
   useEffect(() => {
     const fetchApplicationCount = async () => {
       if (user?.employer_id || user?.id) {
@@ -94,13 +101,16 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
               const applicationsData = await recruiterExternalService.getAllApplicants(job.job_id);
               totalApplications += (applicationsData.applications || []).length;
             } catch (err) {
-              console.error(`Failed to fetch applications for job ${job.job_id}:`, err);
+              // Log error but continue with other jobs
+              console.warn(`Failed to fetch applications for job ${job.job_id}:`, err.message);
             }
           }
 
           setApplicationCount(totalApplications);
         } catch (err) {
-          console.error('Failed to fetch application count:', err);
+          // Log error but don't break the navbar
+          console.warn('Failed to fetch application count:', err.message);
+          setApplicationCount(0); // Set to 0 to avoid showing stale data
         }
       }
     };
@@ -109,6 +119,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
     const interval = setInterval(fetchApplicationCount, 30000);
     return () => clearInterval(interval);
   }, [user?.employer_id, user?.id]);
+  */
 
   // Update current path on navigation
   useEffect(() => {
