@@ -791,26 +791,7 @@ const ManageJobs = () => {
                       <X size={12} />
                       Reject
                     </button>
-
-                    <button
-                      className={`px-3 py-1.5 border ${borderColor} ${textColor} rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-xs font-medium flex items-center gap-1`}
-                      onClick={() => {
-                        const appTask = tasks.find(t => t.category === 'newapplication' || t.category === 'change status of application');
-                        if (appTask) {
-                          setEditingTask(appTask);
-                        } else {
-                          setEditingTask({
-                            job_id: job.job_id,
-                            recruiter_id: tasks[0]?.recruiter_id || null,
-                            category: 'view_applications'
-                          });
-                        }
-                      }}
-                    >
-                      <Eye size={12} />
-                      Applications
-                    </button>
-
+                    
                     <button
                       className={`px-3 py-1.5 border ${borderColor} ${textColor} rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-xs font-medium flex items-center gap-1 disabled:opacity-50`}
                       disabled={!tasks.some(task => task.category === 'editjob' || task.category === 'postnewjob')}

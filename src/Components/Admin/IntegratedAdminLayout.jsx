@@ -129,11 +129,18 @@ const IntegratedAdminLayout = () => {
         },
         {
           id: 'employers',
-          label: 'Manage Employer',
+          label: 'Manage Recruiters',
           icon: Building,
           path: '/admin/employers',
           badge: pendingRecruiters > 0 ? pendingRecruiters : null
         },
+        
+      ]
+    },
+    {
+
+      title: "Job Management",
+      items: [
         {
           id: 'job-posting',
           label: 'Job Admin Posting',
@@ -142,21 +149,11 @@ const IntegratedAdminLayout = () => {
         },
         {
           id: 'jobs',
-          label: 'Employers Jobs',
+          label: 'Pending Jobs',
           icon: Briefcase,
           path: '/admin/jobs'
-        }
-      ]
-    },
-    {
-      title: "Job Management",
-      items: [
-        {
-          id: 'pending-applications',
-          label: 'Pending Jobs',
-          icon: Clock,
-          path: '/admin/pending-applications'
         },
+       
         {
           id: 'government-jobs',
           label: 'Government Jobs',
@@ -165,14 +162,44 @@ const IntegratedAdminLayout = () => {
         },
         {
           id: 'job-application-reports',
-          label: 'Job Application Reports',
+          label: 'Recruiter Jobs',
           icon: BarChart3,
           path: '/admin/job-application-reports'
         }
       ]
     },
+    {title: "Applied",
+      items: [
+         {
+          id: 'pending-applications',
+          label: 'Applied Candidates',
+          icon: Clock,
+          path: '/admin/pending-applications'
+        },
+      ]
+
+    },
     {
-      title: "Forms & Plans",
+      title: "Forms & Leads",
+      items: [
+       
+        {
+          id: 'homepage-forms',
+          label: 'Homepage Leads',
+          icon: FileText,
+          path: '/admin/homepage-forms',
+          badge: homepageFormsCount > 0 ? homepageFormsCount : null
+        },
+        {
+          id: 'contact-forms',
+          label: 'Contact Queries',
+          icon: Phone,
+          path: '/admin/contact-forms',
+          badge: contactFormsCount > 0 ? contactFormsCount : null
+        }
+      ]
+    }, {
+      title: "Payment & Plans",
       items: [
         {
           id: 'membership',
@@ -180,20 +207,7 @@ const IntegratedAdminLayout = () => {
           icon: CreditCard,
           path: '/admin/membership'
         },
-        {
-          id: 'homepage-forms',
-          label: 'Homepage Forms',
-          icon: FileText,
-          path: '/admin/homepage-forms',
-          badge: homepageFormsCount > 0 ? homepageFormsCount : null
-        },
-        {
-          id: 'contact-forms',
-          label: 'Contact Forms',
-          icon: Phone,
-          path: '/admin/contact-forms',
-          badge: contactFormsCount > 0 ? contactFormsCount : null
-        }
+       
       ]
     }
   ];

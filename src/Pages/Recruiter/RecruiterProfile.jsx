@@ -1163,7 +1163,7 @@ const CompanyProfile = () => {
                             value={kycData.additionalNotes}
                             onChange={handleKycInputChange}
                             rows="3"
-                            className={`w-full px-4 py-3 border ${inputBorder} rounded-xl ${inputBg} ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none`}
+                            className={`w-full px-4 py-3 border ${inputBorder} rounded-xl ${inputBg} ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all `}
                             placeholder="Add any clarifications for the verification team..."
                           />
                         </div>

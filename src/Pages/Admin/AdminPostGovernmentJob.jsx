@@ -442,7 +442,8 @@ const AdminPostGovernmentJob = () => {
                 placeholder="Provide detailed information about the government job position, responsibilities, eligibility criteria, and selection process..."
                 rows={8}
                 required
-                className={`w-full px-3 py-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none`}
+                className={`w-full px-3 py-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm
+                `}
               />
               <p className={`text-xs ${textSecondary} mt-1`}>Include eligibility criteria, qualifications, age limits, and other important details</p>
             </div>

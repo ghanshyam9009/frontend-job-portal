@@ -12,7 +12,7 @@ export const recruiterExternalService = {
   async getAllPostedJobs(employerId) {
     const response = await axios.get(JOBS_URL, { params: { employer_id: employerId } });
     const jobsData = response.data;
-
+   
     // Optimize by getting all application counts in parallel instead of sequential calls
     if (jobsData && jobsData.jobs) {
         const applicationCountPromises = jobsData.jobs.map(job =>

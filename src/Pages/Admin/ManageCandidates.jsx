@@ -447,7 +447,7 @@ const ManageCandidates = () => {
                     style={{ fontSize: '0.7rem' }}
                   >
                     <Trash2 size={13} />
-                    {actionLoading === (candidate.id || candidate.user_id) ? 'Blocking...' : 'Block'}
+                    {actionLoading === (candidate.id || candidate.user_id) ? 'Deleting...' : 'Delete'}
                   </button>
                 </div>
               </div>

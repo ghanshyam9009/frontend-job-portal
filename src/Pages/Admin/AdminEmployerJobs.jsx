@@ -615,19 +615,7 @@ const AdminEmployerJobs = () => {
                 {/* Action Buttons */}
                 <div className="flex flex-wrap gap-1.5">
                   {/* Applications Button - Primary Action */}
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleViewApplications(job);
-                    }}
-                    className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-1 whitespace-nowrap"
-                    style={{ fontSize: '0.7rem' }}
-                    title="View job applications"
-                  >
-                    <Users size={13} />
-                    View Applications
-                  </button>
+                 
 
                   {/* View Job Details Button */}
                   <button
