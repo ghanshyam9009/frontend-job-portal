@@ -919,7 +919,7 @@ const AdminJobReportApplications = () => {
                 onClick={() => setShowCandidateModal(false)}
                 className={`px-6 py-2 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors`}
               >
-                Close
+               Close 
               </button>
             </div>
           </div>

@@ -75,6 +75,7 @@ const ManageJobs = () => {
     qualifications: "",
     application_deadline: "",
     contact_email: "",
+    contact_number: "",
     job_status: "open",
   });
 
@@ -183,13 +184,15 @@ const ManageJobs = () => {
           }
 
           let jobsData = jobDataCache[editingTask.recruiter_id];
+         
           if (!jobsData) {
             jobsData = await recruiterExternalService.getAllPostedJobs(editingTask.recruiter_id);
             setJobDataCache(prev => ({ ...prev, [editingTask.recruiter_id]: jobsData }));
+            
           }
 
           const job = jobsData?.jobs?.find(j => j.job_id === editingTask.job_id);
-
+     console.log(job)
           if (job) {
             setJobData({
               job_title: job.job_title || "",
@@ -198,13 +201,13 @@ const ManageJobs = () => {
               employment_type: job.employment_type || "Full-Time",
               work_mode: job.work_mode || "On-site",
               salary_range: {
-                min: job.salary_range?.min || "",
-                max: job.salary_range?.max || "",
+                min: job.salary_range?.min ? String(job.salary_range.min) : "",
+                max: job.salary_range?.max ? String(job.salary_range.max) : "",
                 currency: job.salary_range?.currency || "INR",
               },
               experience_required: {
-                min_years: job.experience_required?.min_years || "",
-                max_years: job.experience_required?.max_years || "",
+                min_years: job.experience_required?.min_years ? String(job.experience_required.min_years) : "",
+                max_years: job.experience_required?.max_years ? String(job.experience_required.max_years) : "",
               },
               skills_required: job.skills_required || [],
               description: job.description || "",
@@ -212,6 +215,7 @@ const ManageJobs = () => {
               qualifications: Array.isArray(job.qualifications) ? job.qualifications.join("\n") : job.qualifications || "",
               application_deadline: job.application_deadline || "",
               contact_email: job.contact_email || "",
+              // contact_number: job.contact_number || "",
               job_status: job.job_status || "open",
             });
           } else {
@@ -486,6 +490,7 @@ const ManageJobs = () => {
         qualifications: "",
         application_deadline: "",
         contact_email: "",
+        contact_number: "",
         job_status: "open",
       });
       setRecruiterDetails(null);
@@ -725,7 +730,7 @@ const ManageJobs = () => {
               const tasks = job.tasks || [];
               const pendingTasks = tasks.filter(task => task.status === 'pending');
               const fulfilledTasks = tasks.filter(task => task.status === 'fulfilled');
-
+          
               return (
                 <div
                   key={job.job_id || job.id}
@@ -791,6 +796,7 @@ const ManageJobs = () => {
                       <X size={12} />
                       Reject
                     </button>
+
                     
                     <button
                       className={`px-3 py-1.5 border ${borderColor} ${textColor} rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-xs font-medium flex items-center gap-1 disabled:opacity-50`}
@@ -886,6 +892,7 @@ const ManageJobs = () => {
                   {(editingTask.category === 'newapplication' || editingTask.category === 'change status of application') && applicantDetails && (
                     <div className="space-y-6">
                       {/* Recruiter Profile Card */}
+                      
                       <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 border ${borderColor}`}>
                         <div className="flex items-start gap-4">
                           <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0 border-2 border-blue-400">
@@ -1010,6 +1017,7 @@ const ManageJobs = () => {
                   {/* Job Edit Form */}
                   {!(editingTask.category === 'newapplication' || editingTask.category === 'change status of application') && (
                     <form onSubmit={handleEditJobSubmit} className="space-y-6">
+                      {console.log(jobData)}
                       {/* Basic Information */}
                       <div>
                         <h3 className={`text-lg font-semibold ${textColor} mb-4 flex items-center gap-2`}>
@@ -1080,6 +1088,16 @@ const ManageJobs = () => {
                               type="email"
                               value={jobData.contact_email}
                               onChange={(e) => handleInputChange('contact_email', e.target.value)}
+                              className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+                            />
+                          </div>
+                          <div>
+                            <label className={`text-xs font-semibold ${textSecondary} mb-1 block`}>Contact Number</label>
+                            <input
+                              type="tel"
+                              value={jobData.contact_number}
+                              onChange={(e) => handleInputChange('contact_number', e.target.value)}
+                              placeholder="+91 XXXXX XXXXX"
                               className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
                             />
                           </div>

@@ -6,7 +6,7 @@ import { applicationService } from "../services/applicationService";
 import { candidateExternalService } from "../services/candidateExternalService";
 import { studentService } from "../services/studentService";
 import HomeNav from "../Components/HomeNav";
-import { Bookmark, Briefcase, MapPin, Sparkles, TrendingUp } from "lucide-react";
+import { Bookmark, Briefcase, Contact, Contact2, MapPin, Sparkles, TrendingUp } from "lucide-react";
 import Footer from "../Components/Footer";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import RecruiterNavbar from "../Components/Recruiter/RecruiterNavbar";
@@ -563,8 +563,9 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
 
               <div className="mt-4 border-t pt-4 flex flex-wrap gap-6 text-sm text-gray-600">
                 <div>📅 Posted: <strong className="text-gray-800">{formatPostedDate(job.created_at)}</strong></div>
-                <div>👥 {job.openings || 1} Openings</div>
-                <div>📊 {job.applicants || "0"} Applicants</div>
+                <div>📧 Contact Email: <strong className="text-gray-800">{job.contact_email}</strong></div>
+               
+            
               </div>
 
               {/* alerts */}

@@ -12,7 +12,10 @@ import {
   Award,
   X,
   ArrowLeft,
-  Save
+  Save,
+  Phone,
+  Mail,
+  Users
 } from "lucide-react";
 
 const AdminPostJob = () => {
@@ -38,7 +41,11 @@ const AdminPostJob = () => {
     company_name: "",
     description: "",
     location: "",
-    salary_range: "",
+    salary_range: {
+      min: "",
+      max: "",
+      currency: "INR",
+    },
     employment_type: "Full-Time",
     work_mode: "On-site",
     experience_required: {
@@ -51,6 +58,7 @@ const AdminPostJob = () => {
     qualifications: "",
     application_deadline: "",
     contact_email: "",
+    contact_number: "",
     is_premium: false
   });
 
@@ -160,17 +168,26 @@ const AdminPostJob = () => {
       }
 
       // Format salary_range
-      let salaryRange = "";
+      let salaryRangeObj = {
+        min: "",
+        max: "",
+        currency: "INR",
+      };
+      
       if (job.salary_range) {
-        if (typeof job.salary_range === 'string') {
-          salaryRange = job.salary_range;
-        } else if (typeof job.salary_range === 'object') {
-          const min = job.salary_range.min || '';
-          const max = job.salary_range.max || '';
-          const currency = job.salary_range.currency || 'INR';
-          if (min || max) {
-            salaryRange = `${currency} ${min} - ${max}`.trim();
-          }
+        if (typeof job.salary_range === 'object') {
+          salaryRangeObj = {
+            min: job.salary_range.min?.toString() || "",
+            max: job.salary_range.max?.toString() || "",
+            currency: job.salary_range.currency || "INR",
+          };
+        } else if (typeof job.salary_range === 'string') {
+          // Try to parse string format "INR 500000 - 800000" or "₹5,00,000 - ₹8,00,000"
+          salaryRangeObj = {
+            min: "",
+            max: "",
+            currency: "INR",
+          };
         }
       }
 
@@ -231,7 +248,7 @@ const AdminPostJob = () => {
         company_name: job.company_name || "",
         description: job.description || "",
         location: job.location || "",
-        salary_range: salaryRange,
+        salary_range: salaryRangeObj,
         employment_type: job.employment_type || "Full-Time",
         work_mode: job.work_mode || "On-site",
         experience_required: experienceRequired,
@@ -241,6 +258,7 @@ const AdminPostJob = () => {
         qualifications: qualificationsText,
         application_deadline: deadlineDate,
         contact_email: job.contact_email || "",
+        contact_number: job.contact_number || "",
         is_premium: job.is_premium || false
       };
 
@@ -323,6 +341,7 @@ const AdminPostJob = () => {
         category: formData.category || null,
         application_deadline: formData.application_deadline || null,
         contact_email: formData.contact_email || null,
+        contact_number: formData.contact_number || null,
         status: "Open",
         is_premium: formData.is_premium,
         posted_by: "admin",
@@ -613,81 +632,59 @@ const AdminPostJob = () => {
                 </div>
               </div>
 
-              <div>
-                <label className={`block text-sm font-medium ${textColor} mb-2`}>
-                  Contact Email <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  value={formData.contact_email}
-                  onChange={(e) => handleInputChange('contact_email', e.target.value)}
-                  required
-                  placeholder="contact@company.com"
-                  className={`w-full px-3 py-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
-                />
-              </div>
-
               <div className="md:col-span-2">
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
                   Salary Range
                 </label>
-                <input
-                  type="text"
-                  value={formData.salary_range}
-                  onChange={(e) => handleInputChange('salary_range', e.target.value)}
-                  placeholder="e.g., ₹5,00,000 - ₹8,00,000 per annum"
-                  className={`w-full px-3 py-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
-                />
+                <div className="flex items-center gap-2">
+                  <select
+                    value={formData.salary_range.currency}
+                    onChange={(e) => handleInputChange("salary_range.currency", e.target.value)}
+                    className={`px-3 py-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  >
+                    <option value="INR">INR (₹)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="GBP">GBP (£)</option>
+                  </select>
+                  <input
+                    type="number"
+                    value={formData.salary_range.min}
+                    onChange={(e) => handleInputChange("salary_range.min", e.target.value)}
+                    placeholder="Min"
+                    className={`flex-1 px-3 py-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  />
+                  <span className={textSecondary}>-</span>
+                  <input
+                    type="number"
+                    value={formData.salary_range.max}
+                    onChange={(e) => handleInputChange("salary_range.max", e.target.value)}
+                    placeholder="Max"
+                    className={`flex-1 px-3 py-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  />
+                </div>
               </div>
 
               <div className="md:col-span-2">
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
                   Experience Required (Years)
                 </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  <select
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
                     value={formData.experience_required.min_years}
                     onChange={(e) => handleInputChange("experience_required.min_years", e.target.value)}
-                    className={`px-3 py-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
-                  >
-                    <option value="">Min Experience</option>
-                    <option value="0">0 years</option>
-                    <option value="1">1 year</option>
-                    <option value="2">2 years</option>
-                    <option value="3">3 years</option>
-                    <option value="4">4 years</option>
-                    <option value="5">5 years</option>
-                    <option value="6">6 years</option>
-                    <option value="7">7 years</option>
-                    <option value="8">8 years</option>
-                    <option value="9">9 years</option>
-                    <option value="10">10 years</option>
-                    <option value="12">12 years</option>
-                    <option value="15">15 years</option>
-                    <option value="20">20+ years</option>
-                  </select>
-                  <select
+                    placeholder="Min"
+                    className={`flex-1 px-3 py-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  />
+                  <span className={textSecondary}>-</span>
+                  <input
+                    type="number"
                     value={formData.experience_required.max_years}
                     onChange={(e) => handleInputChange("experience_required.max_years", e.target.value)}
-                    className={`px-3 py-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
-                  >
-                    <option value="">Max Experience</option>
-                    <option value="1">1 year</option>
-                    <option value="2">2 years</option>
-                    <option value="3">3 years</option>
-                    <option value="4">4 years</option>
-                    <option value="5">5 years</option>
-                    <option value="6">6 years</option>
-                    <option value="7">7 years</option>
-                    <option value="8">8 years</option>
-                    <option value="9">9 years</option>
-                    <option value="10">10 years</option>
-                    <option value="12">12 years</option>
-                    <option value="15">15 years</option>
-                    <option value="20">20 years</option>
-                    <option value="25">25 years</option>
-                    <option value="30">30+ years</option>
-                  </select>
+                    placeholder="Max"
+                    className={`flex-1 px-3 py-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  />
                 </div>
               </div>
 
@@ -702,6 +699,52 @@ const AdminPostJob = () => {
                   />
                   Mark as Premium Job (will appear first in search results)
                 </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Contact Information */}
+          <div className={`rounded-lg shadow-sm border ${borderColor} ${cardBg} p-5`}>
+            <div className="flex items-center gap-2 mb-4">
+              <Users className={isDark ? 'text-indigo-400' : 'text-indigo-500'} size={20} />
+              <h2 className={`text-lg font-bold ${textColor}`}>Contact Information</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Contact Email <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Mail className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${textSecondary}`} size={16} />
+                  <input
+                    type="email"
+                    value={formData.contact_email}
+                    onChange={(e) => handleInputChange('contact_email', e.target.value)}
+                    required
+                    placeholder="contact@company.com"
+                    className={`w-full pl-10 pr-3 py-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Contact Number
+                </label>
+                <div className="relative">
+                  <Phone className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${textSecondary}`} size={16} />
+                  <input
+                    type="tel"
+                    value={formData.contact_number}
+                    onChange={(e) => handleInputChange('contact_number', e.target.value)}
+                    placeholder="+91 98765 43210"
+                    className={`w-full pl-10 pr-3 py-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  />
+                </div>
+                <p className={`text-xs ${textSecondary} mt-1`}>
+                  Optional: Provide a contact number for applicants to reach you
+                </p>
               </div>
             </div>
           </div>
@@ -722,41 +765,39 @@ const AdminPostJob = () => {
                   value={formData.description}
                   onChange={(e) => handleInputChange("description", e.target.value)}
                   placeholder="Provide a detailed job description..."
-                  rows={6}
+                  rows={14}
                   required
                   className={`w-full px-3 py-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm `}
                 />
                
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className={`block text-sm font-medium ${textColor} mb-2`}>
-                    Responsibilities <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    value={formData.responsibilities}
-                    onChange={(e) => handleInputChange("responsibilities", e.target.value)}
-                    placeholder="List key responsibilities (one per line)..."
-                    rows={6}
-                    required
-                    className={`w-full px-3 py-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm `}
-                  />
-                </div>
+              <div>
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Responsibilities <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={formData.responsibilities}
+                  onChange={(e) => handleInputChange("responsibilities", e.target.value)}
+                  placeholder="List key responsibilities (one per line)..."
+                  rows={6}
+                  required
+                  className={`w-full px-3 py-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm `}
+                />
+              </div>
 
-                <div>
-                  <label className={`block text-sm font-medium ${textColor} mb-2`}>
-                    Qualifications <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    value={formData.qualifications}
-                    onChange={(e) => handleInputChange("qualifications", e.target.value)}
-                    placeholder="List required qualifications (one per line)..."
-                    rows={6}
-                    required
-                    className={`w-full px-3 py-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm `}
-                  />
-                </div>
+              <div>
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Qualifications <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={formData.qualifications}
+                  onChange={(e) => handleInputChange("qualifications", e.target.value)}
+                  placeholder="List required qualifications (one per line)..."
+                  rows={6}
+                  required
+                  className={`w-full px-3 py-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm `}
+                />
               </div>
             </div>
           </div>

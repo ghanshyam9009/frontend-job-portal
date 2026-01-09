@@ -364,7 +364,7 @@ const AdminJobReports = () => {
                     <Eye size={13} />
                     View Applications ({job.application_count || 0})
                   </button>
-                  <button
+                  {/* <button
                     onClick={() => handleQuickExport(job)}
                     className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5`}
                     style={{ fontSize: '0.7rem' }}
@@ -373,7 +373,7 @@ const AdminJobReports = () => {
                     <Download size={13} />
                     <span className="hidden sm:inline">Export Excel</span>
                     <span className="sm:hidden">Export</span>
-                  </button>
+                  </button> */}
                   <button
                     onClick={() => handleCloseJob(job)}
                     className="flex-1 sm:flex-initial px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-1.5"
@@ -381,8 +381,8 @@ const AdminJobReports = () => {
                     disabled={loading}
                   >
                     <Trash2 size={13} />
-                    <span className="hidden sm:inline">Close Job</span>
-                    <span className="sm:hidden">Close</span>
+                    <span className="hidden sm:inline">Delete Job</span>
+                    <span className="sm:hidden">Delete</span>
                   </button>
                 </div>
               </div>

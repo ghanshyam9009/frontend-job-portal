@@ -979,7 +979,7 @@ const JobListings = () => {
                   />
                 ))}
               </div>
-              {console.log(jobs)}
+             
 
               {/* Pagination - COMPACT */}
               {!loading && totalPages > 1 && (

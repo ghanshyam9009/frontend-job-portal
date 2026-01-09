@@ -6,7 +6,8 @@ import {
   Clock,
   DollarSign,
   Briefcase,
-  Bookmark
+  Bookmark,
+  IndianRupee
 } from 'lucide-react';
 
 const JobCard = ({
@@ -144,7 +145,7 @@ const JobCard = ({
         )}
         {job.salary_range && (
           <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2 py-1 rounded`}>
-            <DollarSign className="w-3 h-3 text-blue-600 flex-shrink-0" />
+            <IndianRupee className="w-3 h-3 text-blue-600 flex-shrink-0" />
             <span className={`${textSecondary} font-medium`}>{formatSalary(job.salary_range)}</span>
           </div>
         )}

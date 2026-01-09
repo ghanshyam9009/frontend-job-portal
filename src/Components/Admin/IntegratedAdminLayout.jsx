@@ -341,7 +341,7 @@ const IntegratedAdminLayout = () => {
       
       {/* Sidebar */}
       <aside 
-        className={`fixed left-0 top-16 z-50 h-[calc(100vh-4rem)] w-64 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed left-0 top-16 z-50 h-[calc(100vh-4rem)] w-68 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } ${theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-gray-200'} border-r`}
       >

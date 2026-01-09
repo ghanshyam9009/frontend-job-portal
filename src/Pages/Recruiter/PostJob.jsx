@@ -17,7 +17,9 @@ import {
   Users, 
   Award,
   X,
-  Plus
+  Plus,
+  Phone,
+  Mail
 } from "lucide-react";
 
 const PostJob = () => {
@@ -35,7 +37,11 @@ const PostJob = () => {
     location: "",
     employment_type: "Full-Time",
     work_mode: "On-site",
-    salary_range: "",
+    salary_range: {
+      min: "",
+      max: "",
+      currency: "INR",
+    },
     experience_required: {
       min_years: "",
       max_years: "",
@@ -46,6 +52,7 @@ const PostJob = () => {
     qualifications: "",
     application_deadline: "",
     contact_email: user?.email || "",
+    contact_number: user?.contact_number || user?.phone_number || "",
     job_status: "open",
   });
   const [logoFile, setLogoFile] = useState(null);
@@ -86,6 +93,14 @@ const PostJob = () => {
           if (response.success && response.data) {
             const profileData = response.data.employer || response.data.profile || response.data;
             setRecruiterProfile(profileData);
+            
+            // Update contact number from profile if available
+            if (profileData.contact_number || profileData.phone_number) {
+              setJobData(prev => ({
+                ...prev,
+                contact_number: profileData.contact_number || profileData.phone_number || prev.contact_number
+              }));
+            }
           }
         } catch (err) {
           console.error('Failed to fetch recruiter profile:', err);
@@ -140,7 +155,7 @@ const PostJob = () => {
       const jobPayload = {
         ...jobData,
         employer_id: user.employer_id,
-        company_logo: recruiterProfile?.company_logo || recruiterProfile?.logo || null, // Include company logo from profile
+        company_logo: recruiterProfile?.company_logo || recruiterProfile?.logo || null,
         responsibilities: jobData.responsibilities.split("\n"),
         qualifications: jobData.qualifications.split("\n"),
       };
@@ -153,10 +168,8 @@ const PostJob = () => {
       if (logoFile && jobId) {
         try {
           await jobService.uploadJobLogo(jobId, logoFile);
-          // Note: Logo upload API automatically updates the job record with logo URL
         } catch (logoErr) {
           console.error('Failed to upload job logo:', logoErr);
-          // Don't fail the entire job posting if logo upload fails
         }
       }
 
@@ -168,6 +181,11 @@ const PostJob = () => {
         location: "",
         employment_type: "Full-Time",
         work_mode: "On-site",
+        salary_range: {
+          min: "",
+          max: "",
+          currency: "INR",
+        },
         experience_required: {
           min_years: "",
           max_years: "",
@@ -178,9 +196,10 @@ const PostJob = () => {
         qualifications: "",
         application_deadline: "",
         contact_email: user?.email || "",
+        contact_number: user?.contact_number || user?.phone_number || "",
         job_status: "open",
       });
-      setLogoFile(null); // Clear the logo file
+      setLogoFile(null);
     } catch (err) {
       setError("Failed to post job. Please try again.");
       console.error(err);
@@ -316,15 +335,13 @@ const PostJob = () => {
                   onChange={(e) => {
                     const file = e.target.files[0];
                     if (file) {
-                      // Validate file size (5MB max)
-                      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+                      const maxSize = 5 * 1024 * 1024;
                       if (file.size > maxSize) {
                         alert('File size must be less than 5MB');
                         e.target.value = '';
                         setLogoFile(null);
                         return;
                       }
-                      // Validate file type
                       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
                       if (!allowedTypes.includes(file.type)) {
                         alert('Please select a valid image file (JPG, PNG, or GIF)');
@@ -413,65 +430,103 @@ const PostJob = () => {
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
                   Salary Range
                 </label>
-                <input
-                  type="text"
-                  value={jobData.salary_range}
-                  onChange={(e) => handleInputChange('salary_range', e.target.value)}
-                  placeholder="e.g., ₹5,00,000 - ₹8,00,000 per annum"
-                  className={`w-full px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
-                />
+                <div className="flex items-center gap-2">
+                  <select
+                    value={jobData.salary_range.currency}
+                    onChange={(e) => handleInputChange("salary_range.currency", e.target.value)}
+                    className={`px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  >
+                    <option value="INR">INR (₹)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="GBP">GBP (£)</option>
+                  </select>
+                  <input
+                    type="number"
+                    value={jobData.salary_range.min}
+                    onChange={(e) => handleInputChange("salary_range.min", e.target.value)}
+                    placeholder="Min"
+                    className={`flex-1 px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  />
+                  <span className={textSecondary}>-</span>
+                  <input
+                    type="number"
+                    value={jobData.salary_range.max}
+                    onChange={(e) => handleInputChange("salary_range.max", e.target.value)}
+                    placeholder="Max"
+                    className={`flex-1 px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  />
+                </div>
               </div>
 
-                  <div className="md:col-span-2">
-                    <label className={`block text-sm font-medium ${textColor} mb-2`}>
-                      Experience Required (Years)
-                    </label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      <select
-                        value={jobData.experience_required.min_years}
-                        onChange={(e) => handleInputChange("experience_required.min_years", e.target.value)}
-                        className={`px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
-                      >
-                        <option value="">Min Experience</option>
-                        <option value="0">0 years</option>
-                        <option value="1">1 year</option>
-                        <option value="2">2 years</option>
-                        <option value="3">3 years</option>
-                        <option value="4">4 years</option>
-                        <option value="5">5 years</option>
-                        <option value="6">6 years</option>
-                        <option value="7">7 years</option>
-                        <option value="8">8 years</option>
-                        <option value="9">9 years</option>
-                        <option value="10">10 years</option>
-                        <option value="12">12 years</option>
-                        <option value="15">15 years</option>
-                        <option value="20">20+ years</option>
-                      </select>
-                      <select
-                        value={jobData.experience_required.max_years}
-                        onChange={(e) => handleInputChange("experience_required.max_years", e.target.value)}
-                        className={`px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
-                      >
-                        <option value="">Max Experience</option>
-                        <option value="1">1 year</option>
-                        <option value="2">2 years</option>
-                        <option value="3">3 years</option>
-                        <option value="4">4 years</option>
-                        <option value="5">5 years</option>
-                        <option value="6">6 years</option>
-                        <option value="7">7 years</option>
-                        <option value="8">8 years</option>
-                        <option value="9">9 years</option>
-                        <option value="10">10 years</option>
-                        <option value="12">12 years</option>
-                        <option value="15">15 years</option>
-                        <option value="20">20 years</option>
-                        <option value="25">25 years</option>
-                        <option value="30">30+ years</option>
-                      </select>
-                    </div>
-                  </div>
+              <div className="md:col-span-2">
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Experience Required (Years)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={jobData.experience_required.min_years}
+                    onChange={(e) => handleInputChange("experience_required.min_years", e.target.value)}
+                    placeholder="Min"
+                    className={`flex-1 px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  />
+                  <span className={textSecondary}>-</span>
+                  <input
+                    type="number"
+                    value={jobData.experience_required.max_years}
+                    onChange={(e) => handleInputChange("experience_required.max_years", e.target.value)}
+                    placeholder="Max"
+                    className={`flex-1 px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Contact Information */}
+          <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-5`}>
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="text-indigo-500" size={20} />
+              <h2 className={`text-lg font-bold ${textColor}`}>Contact Information</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Contact Email <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Mail className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${textSecondary}`} size={16} />
+                  <input
+                    type="email"
+                    value={jobData.contact_email}
+                    onChange={(e) => handleInputChange('contact_email', e.target.value)}
+                    placeholder="recruiter@company.com"
+                    required
+                    className={`w-full pl-10 pr-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Contact Number
+                </label>
+                <div className="relative">
+                  <Phone className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${textSecondary}`} size={16} />
+                  <input
+                    type="tel"
+                    value={jobData.contact_number}
+                    onChange={(e) => handleInputChange('contact_number', e.target.value)}
+                    placeholder="+91 98765 43210"
+                    className={`w-full pl-10 pr-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  />
+                </div>
+                <p className={`text-xs ${textSecondary} mt-1`}>
+                  Optional: Provide a contact number for applicants to reach you
+                </p>
+              </div>
             </div>
           </div>
 
@@ -491,40 +546,38 @@ const PostJob = () => {
                   value={jobData.description}
                   onChange={(e) => handleInputChange("description", e.target.value)}
                   placeholder="Provide a detailed job description..."
+                  rows={14}
+                  required
+                  className={`w-full px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm `}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Responsibilities <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={jobData.responsibilities}
+                  onChange={(e) => handleInputChange("responsibilities", e.target.value)}
+                  placeholder="List key responsibilities (one per line)..."
                   rows={6}
                   required
                   className={`w-full px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm `}
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className={`block text-sm font-medium ${textColor} mb-2`}>
-                    Responsibilities <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    value={jobData.responsibilities}
-                    onChange={(e) => handleInputChange("responsibilities", e.target.value)}
-                    placeholder="List key responsibilities (one per line)..."
-                    rows={6}
-                    required
-                    className={`w-full px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm `}
-                  />
-                </div>
-
-                <div>
-                  <label className={`block text-sm font-medium ${textColor} mb-2`}>
-                    Qualifications <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    value={jobData.qualifications}
-                    onChange={(e) => handleInputChange("qualifications", e.target.value)}
-                    placeholder="List required qualifications (one per line)..."
-                    rows={6}
-                    required
-                    className={`w-full px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm `}
-                  />
-                </div>
+              <div>
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Qualifications <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={jobData.qualifications}
+                  onChange={(e) => handleInputChange("qualifications", e.target.value)}
+                  placeholder="List required qualifications (one per line)..."
+                  rows={6}
+                  required
+                  className={`w-full px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm `}
+                />
               </div>
             </div>
           </div>
