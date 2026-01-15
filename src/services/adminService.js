@@ -462,13 +462,13 @@ export const adminService = {
   async blockStudent(email) {
     try {
       const token = localStorage.getItem('authToken');
-      // Use URLSearchParams to properly encode the email
-      const params = new URLSearchParams({ email });
-      const response = await fetch(`https://api.bigsources.in/api/admin/block-student?${params.toString()}`, {
-        method: 'GET',
+      const response = await fetch(`https://api.bigsources.in/api/admin/block-student`, {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` })
-        }
+        },
+        body: JSON.stringify({ email })
       });
 
       if (!response.ok) {
@@ -494,15 +494,14 @@ export const adminService = {
   async blockRecruiter(email) {
     try {
       const token = localStorage.getItem('authToken');
-      // Use URLSearchParams to properly encode the email
-      const params = new URLSearchParams({ email });
-      const response = await fetch(`https://api.bigsources.in/api/admin/block-recruiter?${params.toString()}`, {
-        method: 'GET',
+      const response = await fetch(`https://api.bigsources.in/api/admin/block-recruiter`, {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` })
-        }
+        },
+        body: JSON.stringify({ email })
       });
-
       if (!response.ok) {
         let errorMessage = `HTTP error! status: ${response.status}`;
         try {

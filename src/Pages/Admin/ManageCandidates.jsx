@@ -41,7 +41,14 @@ const ManageCandidates = () => {
     try {
       setLoading(true);
       const candidatesData = await adminService.getCandidates();
-      const sortedCandidates = candidatesData.sort((a, b) => 
+      // Filter out blocked candidates where is_admin_closed is true
+      const activeCandidates = candidatesData.filter(candidate =>
+        candidate.is_admin_closed !== true &&
+        candidate.is_admin_closed !== "true" &&
+        candidate.is_admin_closed !== 1 &&
+        candidate.is_admin_closed !== "1"
+      );
+      const sortedCandidates = activeCandidates.sort((a, b) =>
         new Date(b.created_at) - new Date(a.created_at)
       );
       console.log('Loaded candidates:', sortedCandidates.length);
@@ -128,7 +135,7 @@ const ManageCandidates = () => {
 
       const updatedCandidates = candidates.filter(c => c.email !== candidate.email);
       setCandidates(updatedCandidates);
-      setFilteredCandidates(updatedCandidates.filter(c => {
+      const filtered = updatedCandidates.filter(c => {
         if (searchTerm) {
           return (c.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                  (c.email?.toLowerCase() || '').includes(searchTerm.toLowerCase());
@@ -137,7 +144,9 @@ const ManageCandidates = () => {
           return c.status === statusFilter;
         }
         return true;
-      }));
+      });
+      setFilteredCandidates(filtered);
+      setCurrentPage(1);
 
       setMessage({ type: 'success', text: `${candidate.name} has been blocked and removed from the system.` });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
@@ -302,16 +311,6 @@ const ManageCandidates = () => {
                 }`}
               >
                 Active ({activeCount})
-              </button>
-              <button
-                onClick={() => setStatusFilter('inactive')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  statusFilter === 'inactive'
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
-                    : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-                }`}
-              >
-                Inactive ({inactiveCount})
               </button>
             </div>
           </div>

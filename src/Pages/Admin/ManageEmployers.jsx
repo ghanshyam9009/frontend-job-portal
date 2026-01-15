@@ -42,7 +42,14 @@ const ManageEmployers = () => {
       setLoading(true);
       const response = await adminService.getAllRecruiters();
       const recruitersData = response.recruiters || response.data || response || [];
-      const sortedRecruiters = recruitersData.sort((a, b) => {
+      // Filter out blocked recruiters where is_admin_closed is true
+      const activeRecruiters = recruitersData.filter(recruiter =>
+        recruiter.is_admin_closed !== true &&
+        recruiter.is_admin_closed !== "true" &&
+        recruiter.is_admin_closed !== 1 &&
+        recruiter.is_admin_closed !== "1"
+      );
+      const sortedRecruiters = activeRecruiters.sort((a, b) => {
         const dateA = new Date(a.created_at || a.createdAt || 0);
         const dateB = new Date(b.created_at || b.createdAt || 0);
         return dateB - dateA;
@@ -268,9 +275,9 @@ const ManageEmployers = () => {
 
       const updatedRecruiters = recruiters.filter(r => r.email !== recruiter.email);
       setRecruiters(updatedRecruiters);
-      setFilteredRecruiters(updatedRecruiters.filter(r => {
+      const filtered = updatedRecruiters.filter(r => {
         let matches = true;
-        
+
         if (searchTerm) {
           matches = matches && (
             (r.company_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
@@ -279,17 +286,19 @@ const ManageEmployers = () => {
             (r.industry?.toLowerCase() || '').includes(searchTerm.toLowerCase())
           );
         }
-        
+
         if (approvalFilter === "pending") {
-          matches = matches && r.hasadminapproved === false && r.status !== 'rejected';
+          matches = matches && r.hasadminapproved === false && r.status !== 'rejected' && r.status !== 'inactive' && r.status !== 'blocked';
         } else if (approvalFilter === "approved") {
           matches = matches && r.hasadminapproved === true;
         } else if (approvalFilter === "rejected") {
           matches = matches && (r.status === 'rejected' || r.status === 'inactive' || r.status === 'blocked');
         }
-        
+
         return matches;
-      }));
+      });
+      setFilteredRecruiters(filtered);
+      setCurrentPage(1);
 
       setMessage({ type: 'success', text: `${recruiter.company_name} has been blocked and removed from the system.` });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
@@ -517,16 +526,6 @@ const ManageEmployers = () => {
                 }`}
               >
                 Approved ({approvedCount})
-              </button>
-              <button
-                onClick={() => setApprovalFilter('rejected')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  approvalFilter === 'rejected'
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
-                    : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-                }`}
-              >
-                Rejected ({rejectedCount})
               </button>
             </div>
           </div>
