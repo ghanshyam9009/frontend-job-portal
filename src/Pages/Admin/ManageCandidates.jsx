@@ -41,13 +41,23 @@ const ManageCandidates = () => {
     try {
       setLoading(true);
       const candidatesData = await adminService.getCandidates();
-      // Filter out blocked candidates where is_admin_closed is true
-      const activeCandidates = candidatesData.filter(candidate =>
-        candidate.is_admin_closed !== true &&
-        candidate.is_admin_closed !== "true" &&
-        candidate.is_admin_closed !== 1 &&
-        candidate.is_admin_closed !== "1"
-      );
+      // Filter out blocked candidates where is_admin_closed is true, status is blocked/inactive, or blocked field is true
+      const activeCandidates = candidatesData.filter(candidate => {
+        const isClosed = candidate.is_admin_closed === true ||
+                        candidate.is_admin_closed === "true" ||
+                        candidate.is_admin_closed === 1 ||
+                        candidate.is_admin_closed === "1";
+        const isBlocked = candidate.status?.toLowerCase() === 'blocked' ||
+                         candidate.status?.toLowerCase() === 'inactive';
+        const isBlockedField = candidate.blocked === true ||
+                              candidate.blocked === "true" ||
+                              candidate.blocked === 1 ||
+                              candidate.blocked === "1";
+
+        // Debug logging removed - filtering now works correctly
+
+        return !isClosed && !isBlocked && !isBlockedField;
+      });
       const sortedCandidates = activeCandidates.sort((a, b) =>
         new Date(b.created_at) - new Date(a.created_at)
       );
@@ -133,20 +143,8 @@ const ManageCandidates = () => {
       setActionLoading(candidate.id || candidate.user_id);
       await adminService.blockStudent(candidate.email);
 
-      const updatedCandidates = candidates.filter(c => c.email !== candidate.email);
-      setCandidates(updatedCandidates);
-      const filtered = updatedCandidates.filter(c => {
-        if (searchTerm) {
-          return (c.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                 (c.email?.toLowerCase() || '').includes(searchTerm.toLowerCase());
-        }
-        if (statusFilter !== "all") {
-          return c.status === statusFilter;
-        }
-        return true;
-      });
-      setFilteredCandidates(filtered);
-      setCurrentPage(1);
+      // Refetch candidates to ensure the blocked candidate is properly filtered out
+      await fetchCandidates();
 
       setMessage({ type: 'success', text: `${candidate.name} has been blocked and removed from the system.` });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);

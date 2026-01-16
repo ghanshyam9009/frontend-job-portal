@@ -51,6 +51,15 @@ function PendingJobApplications() {
   const fetchApplicationDetails = async (applications) => {
     const detailsMap = {};
 
+    // First, fetch all candidates data to get proper student information
+    let allCandidates = [];
+    try {
+      allCandidates = await adminService.getCandidates();
+    } catch (error) {
+      console.warn('Failed to fetch candidates data:', error);
+      allCandidates = [];
+    }
+
     // Process applications in parallel to reduce total time
     const promises = applications.map(async (app) => {
       try {
@@ -67,20 +76,97 @@ function PendingJobApplications() {
           studentDetails: null
         };
 
-        // Parallel fetch job details and application details
-        const [jobData, applicationsResponse] = await Promise.allSettled([
+        // Find student from candidates data
+        const studentData = allCandidates.find(candidate =>
+          candidate.id?.toString() === app.student_id?.toString() ||
+          candidate.candidate_id?.toString() === app.student_id?.toString() ||
+          candidate.user_id?.toString() === app.student_id?.toString()
+        );
+
+        if (studentData) {
+          details.studentName = studentData.name || studentData.full_name || `Student ${app.student_id}`;
+          details.studentEmail = studentData.email || '';
+          details.resumeUrl = studentData.resume || studentData.resumeUrl || '';
+          details.studentPhone = studentData.phone || studentData.phone_number || '';
+          details.studentSkills = studentData.skills || [];
+
+          details.studentDetails = {
+            name: studentData.name || studentData.full_name || "Unknown",
+            email: studentData.email || null,
+            phone: studentData.phone || studentData.phone_number || null,
+            skills: studentData.skills || [],
+            location: studentData.city || studentData.location || null,
+            experience: studentData.experience || null,
+            education: studentData.education || [],
+            experience_years: studentData.experience_years || null,
+            bio: studentData.bio || null,
+            resumeUrl: studentData.resume || studentData.resumeUrl || null,
+            department: studentData.department || null,
+            cgpa: studentData.cgpa || null,
+            logo: studentData.logo || studentData.profile_image || null
+          };
+        } else {
+          // Fallback to application data if student not found in candidates
+          const [applicationsResponse] = await Promise.allSettled([
+            app.job_id ? adminService.getApplicationsForJob(app.job_id)
+              .catch(() => ({ applications: [] })) : Promise.resolve({ applications: [] })
+          ]);
+
+          if (applicationsResponse.status === 'fulfilled') {
+            const applications = applicationsResponse.value.applications || [];
+            const studentApplication = applications.find(a =>
+              a.student_id?.toString() === app.student_id?.toString()
+            ) || applications[0];
+
+            if (studentApplication) {
+              details.studentName = studentApplication.student_name || `Student ${app.student_id}`;
+              details.studentEmail = studentApplication.student_email || studentApplication.email || '';
+              details.resumeUrl = studentApplication.resume_url || studentApplication.resume || '';
+              details.studentPhone = studentApplication.student_phone || '';
+              details.studentSkills = studentApplication.student_skills
+                ? (typeof studentApplication.student_skills === 'string'
+                    ? studentApplication.student_skills.split(',').map(skill => skill.trim())
+                    : Array.isArray(studentApplication.student_skills)
+                    ? studentApplication.student_skills
+                    : [])
+                : [];
+
+              details.studentDetails = {
+                name: studentApplication.student_name || "Unknown",
+                email: studentApplication.student_email || studentApplication.email || null,
+                phone: studentApplication.student_phone || null,
+                skills: studentApplication.student_skills
+                  ? (typeof studentApplication.student_skills === 'string'
+                      ? studentApplication.student_skills.split(',').map(skill => skill.trim())
+                      : Array.isArray(studentApplication.student_skills)
+                      ? studentApplication.student_skills
+                      : [])
+                  : [],
+                location: studentApplication.student_location || null,
+                experience: studentApplication.student_experience || null,
+                education: studentApplication.student_university ? [studentApplication.student_university] : [],
+                experience_years: studentApplication.student_experience_years || null,
+                bio: studentApplication.student_bio || null,
+                resumeUrl: studentApplication.resume_url || studentApplication.student_profile?.resume || null,
+                department: studentApplication.student_department || null,
+                cgpa: studentApplication.student_cgpa || null,
+                logo: studentApplication.student_profile?.logo || studentApplication.student_profile?.profile_image || null
+              };
+            }
+          }
+        }
+
+        // Fetch job details
+        const jobData = await Promise.resolve(
           app.job_id ? fetch(`https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs?job_id=${app.job_id}`)
             .then(res => res.ok ? res.json() : null)
-            .catch(() => null) : Promise.resolve(null),
-          app.job_id ? adminService.getApplicationsForJob(app.job_id)
-            .catch(() => ({ applications: [] })) : Promise.resolve({ applications: [] })
-        ]);
+            .catch(() => null) : null
+        );
 
-        // Process job data
-        if (jobData.status === 'fulfilled' && jobData.value) {
-          const job = Array.isArray(jobData.value.jobs)
-            ? jobData.value.jobs.find(j => j.job_id === app.job_id) || jobData.value.jobs[0]
-            : jobData.value.job || jobData.value;
+        if (jobData) {
+          const job = Array.isArray(jobData.jobs)
+            ? jobData.jobs.find(j => j.job_id === app.job_id) || jobData.jobs[0]
+            : jobData.job || jobData;
 
           if (job) {
             details.jobTitle = job.job_title || job.title || 'Not specified';
@@ -89,52 +175,8 @@ function PendingJobApplications() {
           }
         }
 
-        // Process application data
-        if (applicationsResponse.status === 'fulfilled') {
-          const applications = applicationsResponse.value.applications || [];
-          const studentApplication = applications.find(a =>
-            a.student_id?.toString() === app.student_id?.toString()
-          ) || applications[0];
-
-          if (studentApplication) {
-            details.studentName = studentApplication.student_name || `Student ${app.student_id}`;
-            details.studentEmail = studentApplication.student_email || studentApplication.email || '';
-            details.resumeUrl = studentApplication.resume_url || studentApplication.resume || '';
-            details.studentPhone = studentApplication.student_phone || '';
-            details.studentSkills = studentApplication.student_skills
-              ? (typeof studentApplication.student_skills === 'string'
-                  ? studentApplication.student_skills.split(',').map(skill => skill.trim())
-                  : Array.isArray(studentApplication.student_skills)
-                  ? studentApplication.student_skills
-                  : [])
-              : [];
-
-            details.studentDetails = {
-              name: studentApplication.student_name || "Unknown",
-              email: studentApplication.student_email || studentApplication.email || null,
-              phone: studentApplication.student_phone || null,
-              skills: studentApplication.student_skills
-                ? (typeof studentApplication.student_skills === 'string'
-                    ? studentApplication.student_skills.split(',').map(skill => skill.trim())
-                    : Array.isArray(studentApplication.student_skills)
-                    ? studentApplication.student_skills
-                    : [])
-                : [],
-              location: studentApplication.student_location || null,
-              experience: studentApplication.student_experience || null,
-              education: studentApplication.student_university ? [studentApplication.student_university] : [],
-              experience_years: studentApplication.student_experience_years || null,
-              bio: studentApplication.student_bio || null,
-              resumeUrl: studentApplication.resume_url || studentApplication.student_profile?.resume || null,
-              department: studentApplication.student_department || null,
-              cgpa: studentApplication.student_cgpa || null,
-              logo: studentApplication.student_profile?.logo || studentApplication.student_profile?.profile_image || null
-            };
-          }
-        }
-
         // Fetch company name if still needed
-        if (app.recruiter_id && details.companyName === 'Loading...') {
+        if (app.recruiter_id && (!details.companyName || details.companyName === 'Loading...')) {
           try {
             const recruiterData = await recruiterExternalService.getRecruiterCompanyName(app.recruiter_id);
             if (recruiterData && recruiterData.company_name) {
@@ -145,12 +187,15 @@ function PendingJobApplications() {
           }
         }
 
-        // Fallbacks
-        if (details.studentName === 'Loading...' || !details.studentName) {
+        // Final fallbacks
+        if (!details.studentName || details.studentName === 'Loading...') {
           details.studentName = `Student ${app.student_id || 'Unknown'}`;
         }
-        if (details.companyName === 'Loading...' || !details.companyName) {
+        if (!details.companyName || details.companyName === 'Loading...') {
           details.companyName = app.company_name || 'Unknown Company';
+        }
+        if (!details.jobTitle || details.jobTitle === 'Loading...') {
+          details.jobTitle = app.title || 'Not specified';
         }
 
         detailsMap[app.task_id] = details;

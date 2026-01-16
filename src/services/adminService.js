@@ -427,6 +427,7 @@ export const adminService = {
           experience: normalizeExperience(),
           skills: normalizeSkills(candidate.skills),
           status: candidate.status || 'active',
+          is_admin_closed: candidate.is_admin_closed, // Include the blocking field
           created_at: candidate.created_at || candidate.registration_date || new Date().toISOString(),
           profile_image: candidate.profile_image || null,
           logo: candidate.profile_image || candidate.logo || null, // Include logo field for compatibility
