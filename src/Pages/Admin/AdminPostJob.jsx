@@ -4,6 +4,7 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import { useAuth } from "../../Contexts/AuthContext";
 import { adminService } from "../../services/adminService";
 import { candidateExternalService } from "../../services/candidateExternalService";
+import { jobService } from "../../services/jobService";
 import {
   FileText,
   MapPin,
@@ -26,6 +27,7 @@ const AdminPostJob = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [skillInput, setSkillInput] = useState("");
+  const [logoFile, setLogoFile] = useState(null);
 
   // Check if we should bypass permission checks (for debugging)
   const searchParams = new URLSearchParams(window.location.search);
@@ -59,7 +61,8 @@ const AdminPostJob = () => {
     application_deadline: "",
     contact_email: "",
     contact_number: "",
-    is_premium: false
+    is_premium: false,
+    additional_benefits: []
   });
 
   // Fetch job details if editing
@@ -318,6 +321,15 @@ const AdminPostJob = () => {
     }));
   };
 
+  const handleBenefitChange = (benefit) => {
+    setFormData(prev => ({
+      ...prev,
+      additional_benefits: prev.additional_benefits.includes(benefit)
+        ? prev.additional_benefits.filter(b => b !== benefit)
+        : [...prev.additional_benefits, benefit]
+    }));
+  };
+
 
 
   const handleSubmit = async (e) => {
@@ -342,6 +354,7 @@ const AdminPostJob = () => {
         application_deadline: formData.application_deadline || null,
         contact_email: formData.contact_email || null,
         contact_number: formData.contact_number || null,
+        additional_benefits: formData.additional_benefits || [],
         status: "Open",
         is_premium: formData.is_premium,
         posted_by: "admin",
@@ -361,6 +374,18 @@ const AdminPostJob = () => {
         alert('Job posted successfully!');
       }
 
+      // If logo file is selected and job was created successfully, upload the logo
+      if (logoFile && (jobResult?.job_id || jobId)) {
+        try {
+          const targetJobId = jobId || jobResult.job_id;
+          await jobService.uploadJobLogo(targetJobId, logoFile);
+          console.log('Job logo uploaded successfully');
+        } catch (logoErr) {
+          console.error('Failed to upload job logo:', logoErr);
+          alert('Job saved successfully, but failed to upload logo. You can try again later.');
+        }
+      }
+
       // Mark job as premium if checkbox was checked
       if (formData.is_premium) {
         try {
@@ -372,6 +397,9 @@ const AdminPostJob = () => {
           alert('Job saved successfully, but failed to mark as premium. You can try again later.');
         }
       }
+
+      // Clear logo file after successful submission
+      setLogoFile(null);
 
       // Navigate back to manage jobs
       navigate('/admin/job-posting');
@@ -565,6 +593,42 @@ const AdminPostJob = () => {
                   required
                   className={`w-full px-3 py-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
                 />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Job Logo
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const maxSize = 5 * 1024 * 1024;
+                      if (file.size > maxSize) {
+                        alert('File size must be less than 5MB');
+                        e.target.value = '';
+                        setLogoFile(null);
+                        return;
+                      }
+                      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                      if (!allowedTypes.includes(file.type)) {
+                        alert('Please select a valid image file (JPG, PNG, or GIF)');
+                        e.target.value = '';
+                        setLogoFile(null);
+                        return;
+                      }
+                      setLogoFile(file);
+                    } else {
+                      setLogoFile(null);
+                    }
+                  }}
+                  className={`w-full px-3 py-2 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100`}
+                />
+                <p className={`text-xs ${textSecondary} mt-1`}>
+                  Upload a logo for this job posting (optional). Max size: 5MB. Supported formats: JPG, PNG, GIF
+                </p>
               </div>
 
               <div>
@@ -852,6 +916,41 @@ const AdminPostJob = () => {
                 ))}
               </div>
             </div>
+          </div>
+
+          {/* Additional Benefits */}
+          <div className={`rounded-lg shadow-sm border ${borderColor} ${cardBg} p-5`}>
+            <div className="flex items-center gap-2 mb-4">
+              <Award className={isDark ? 'text-yellow-400' : 'text-yellow-500'} size={20} />
+              <h2 className={`text-lg font-bold ${textColor}`}>Additional Benefits</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {[
+                'PF & ESIC',
+                'Health Insurance',
+                'Performance Bonus',
+                'Flexible Working Hours',
+                'Work From Home',
+                'Paid Leaves',
+                'Travelling Allowance',
+                'Dearness Allowance'
+              ].map((benefit) => (
+                <label key={benefit} className={`flex items-center gap-3 ${textColor} text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-md`}>
+                  <input
+                    type="checkbox"
+                    checked={formData.additional_benefits.includes(benefit)}
+                    onChange={() => handleBenefitChange(benefit)}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                  />
+                  <span className="font-medium">{benefit}</span>
+                </label>
+              ))}
+            </div>
+
+            <p className={`text-xs ${textSecondary} mt-3`}>
+              Select the additional benefits offered by this job posting
+            </p>
           </div>
 
           {/* Error Message */}

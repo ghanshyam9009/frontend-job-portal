@@ -397,8 +397,8 @@ const JobListings = () => {
   };
 
   const handleJobClick = (job) => {
-    const jobSlug = job.job_title?.toLowerCase().replace(/\s+/g, '-') || job.id;
-    navigate(`/job/${jobSlug}`, {
+    const jobId = job.id || job.job_id;
+    navigate(`/job/${jobId}`, {
       state: { job }
     });
   };

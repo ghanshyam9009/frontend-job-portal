@@ -7,7 +7,7 @@ import styles from "../../Styles/AdminDashboard.module.css";
 
 function PendingJobApplications() {
   const { theme } = useTheme();
-  const [pendingApplications, setPendingApplications] = useState([]);
+  const [allApplications, setAllApplications] = useState([]);
   const [loadingApplications, setLoadingApplications] = useState({});
   const [applicationDetails, setApplicationDetails] = useState({});
   const [loading, setLoading] = useState(true);
@@ -16,35 +16,80 @@ function PendingJobApplications() {
   const [showCandidateModal, setShowCandidateModal] = useState(false);
   const [companyFilter, setCompanyFilter] = useState("all");
   const [jobFilter, setJobFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("pending");
+  const [jobTypes, setJobTypes] = useState({});
   // const [jobFilter, setJobFilter] = useState("all");
 
-  // Fetch pending applications
+  // Fetch applications based on status filter
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [statusFilter]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
 
-      // Fetch pending applications
-      const pendingTasks = await adminService.getPendingJobs();
-      const pendingApps = pendingTasks.filter(task =>
-        task.category === 'newapplication' && task.status === 'pending'
-      );
-      
-      setPendingApplications(pendingApps);
+      let filteredApps = [];
+
+      // Fetch only the data needed based on status filter
+      if (statusFilter === 'pending') {
+        // Only fetch pending applications
+        const pendingTasks = await adminService.getPendingJobs();
+        filteredApps = pendingTasks.filter(task =>
+          task.category === 'newapplication' && task.status === 'pending'
+        );
+      } else if (statusFilter === 'approved') {
+        // Only fetch approved applications
+        const allTasks = await adminService.getPendingJobs(); // Assuming this returns all tasks
+        filteredApps = allTasks.filter(task =>
+          task.category === 'newapplication' && task.status === 'fulfilled'
+        );
+      } else if (statusFilter === 'rejected') {
+        // Only fetch rejected applications
+        const allTasks = await adminService.getPendingJobs(); // Assuming this returns all tasks
+        filteredApps = allTasks.filter(task =>
+          task.category === 'newapplication' && task.status === 'rejected'
+        );
+      } else if (statusFilter === 'all') {
+        // Fetch all applications
+        const allTasks = await adminService.getPendingJobs();
+        filteredApps = allTasks.filter(task => task.category === 'newapplication');
+      }
+
+      // Initialize status for each application
+      const appsWithStatus = filteredApps.map(app => ({
+        ...app,
+        applicationStatus: app.status === 'fulfilled' ? 'approved' :
+                         app.status === 'rejected' ? 'rejected' : 'pending'
+      }));
+
+      setAllApplications(appsWithStatus);
 
       // Fetch detailed information for each application
-      if (pendingApps.length > 0) {
-        await fetchApplicationDetails(pendingApps);
+      if (appsWithStatus.length > 0) {
+        await fetchApplicationDetails(appsWithStatus);
+        determineJobTypes(appsWithStatus);
       }
     } catch (error) {
-      console.error('Failed to fetch pending applications:', error);
-      setPendingApplications([]);
+      console.error('Failed to fetch applications:', error);
+      setAllApplications([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Function to determine job types from existing task data (no API calls needed)
+  const determineJobTypes = (applications) => {
+    const jobTypeMap = {};
+
+    // Determine job type based on recruiter_id in task data
+    applications.forEach(app => {
+      if (app.job_id && !jobTypeMap[app.job_id]) {
+        jobTypeMap[app.job_id] = app.recruiter_id ? 'Recruiter Job' : 'Admin Private Job';
+      }
+    });
+
+    setJobTypes(jobTypeMap);
   };
 
   // Function to fetch complete application details with optimized API calls
@@ -225,7 +270,19 @@ function PendingJobApplications() {
       setLoadingApplications(prev => ({ ...prev, [taskId]: true }));
       await adminService.approveJobApplicationByStudent(taskId);
       alert('Application approved successfully! The recruiter can now review this application.');
-      await fetchData();
+
+      // Update application status in frontend
+      setAllApplications(prev => prev.map(app =>
+        app.task_id === taskId
+          ? { ...app, applicationStatus: 'approved', status: 'fulfilled' }
+          : app
+      ));
+
+      // Reset filters if they were set to ensure clean state
+      setSearchQuery('');
+      setCompanyFilter('all');
+      setJobFilter('all');
+      setStatusFilter('pending');
     } catch (error) {
       console.error('Failed to approve application:', error);
       alert('Failed to approve application. Please try again.');
@@ -242,7 +299,19 @@ function PendingJobApplications() {
       setLoadingApplications(prev => ({ ...prev, [taskId]: true }));
       await adminService.rejectJob(taskId);
       alert('Application rejected successfully.');
-      await fetchData();
+
+      // Update application status in frontend
+      setAllApplications(prev => prev.map(app =>
+        app.task_id === taskId
+          ? { ...app, applicationStatus: 'rejected', status: 'rejected' }
+          : app
+      ));
+
+      // Reset filters if they were set to ensure clean state
+      setSearchQuery('');
+      setCompanyFilter('all');
+      setJobFilter('all');
+      setStatusFilter('pending');
     } catch (error) {
       console.error('Failed to reject application:', error);
       alert('Failed to reject application. Please try again.');
@@ -271,36 +340,39 @@ function PendingJobApplications() {
 
   // Get unique companies for filter
   const uniqueCompanies = [...new Set(
-    pendingApplications.map(app => applicationDetails[app.task_id]?.companyName).filter(Boolean)
+    allApplications.map(app => applicationDetails[app.task_id]?.companyName).filter(Boolean)
   )];
 
   // Get unique jobs for filter
   const uniqueJobs = [...new Set(
-    pendingApplications.map(app => {
+    allApplications.map(app => {
       const details = applicationDetails[app.task_id];
       return details ? `${details.jobTitle}|${details.companyName}` : null;
     }).filter(Boolean)
   )];
 
   // Filter applications
-  const filteredApplications = pendingApplications.filter(app => {
+  const filteredApplications = allApplications.filter(app => {
     const details = applicationDetails[app.task_id] || {};
-    
+
+    // Status filter
+    const matchesStatus = statusFilter === "all" || app.applicationStatus === statusFilter;
+
     // Search filter
-    const matchesSearch = 
+    const matchesSearch =
       details.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       details.studentEmail?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       details.companyName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       details.jobTitle?.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     // Company filter
     const matchesCompany = companyFilter === "all" || details.companyName === companyFilter;
-    
+
     // Job filter
     const jobKey = `${details.jobTitle}|${details.companyName}`;
     const matchesJob = jobFilter === "all" || jobKey === jobFilter;
-    
-    return matchesSearch && matchesCompany && matchesJob;
+
+    return matchesStatus && matchesSearch && matchesCompany && matchesJob;
   });
 
   const isDark = theme === 'dark';
@@ -325,10 +397,10 @@ function PendingJobApplications() {
             <div className="flex items-center gap-4">
               <div className="flex-1">
                 <h1 className={`text-xl sm:text-2xl font-bold ${textColor}`}>
-                  Pending Job Applications
+                  Job Applications Management
                 </h1>
                 <p className={`text-sm ${textSecondary} mt-1`}>
-                  Review pending job applications and approve or reject them before they reach recruiters
+                  Review and manage all job applications - approve, reject, or view details
                 </p>
               </div>
             </div>
@@ -352,6 +424,20 @@ function PendingJobApplications() {
                   className={`w-full pl-10 pr-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
                 />
               </div>
+            </div>
+
+            {/* Status Filter */}
+            <div className="w-full lg:w-40">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+              >
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
             </div>
 
             {/* Company Filter */}
@@ -397,7 +483,7 @@ function PendingJobApplications() {
               </div>
             </div>
             <h3 className={`text-lg font-bold ${textColor}`}>Loading applications...</h3>
-            <p className={`${textSecondary} mt-2`}>Please wait while we fetch pending applications</p>
+            <p className={`${textSecondary} mt-2`}>Please wait while we fetch all applications</p>
           </div>
         )}
 
@@ -407,18 +493,19 @@ function PendingJobApplications() {
             <div className={`w-16 h-16 ${isDark ? 'bg-blue-500/20' : 'bg-blue-100'} rounded-full flex items-center justify-center mx-auto mb-4`}>
               <FileText size={32} className="text-blue-500" />
             </div>
-            <h3 className={`text-lg font-semibold ${textColor} mb-2`}>No pending applications found</h3>
+            <h3 className={`text-lg font-semibold ${textColor} mb-2`}>No applications found</h3>
             <p className={`${textSecondary} mb-6`}>
-              {searchQuery || companyFilter !== 'all' || jobFilter !== 'all'
+              {searchQuery || companyFilter !== 'all' || jobFilter !== 'all' || statusFilter !== 'pending'
                 ? "Try adjusting your filters or search query"
-                : "All applications have been processed"}
+                : "No applications match the current criteria"}
             </p>
-            {(searchQuery || companyFilter !== 'all' || jobFilter !== 'all') && (
+            {(searchQuery || companyFilter !== 'all' || jobFilter !== 'all' || statusFilter !== 'pending') && (
               <button
                 onClick={() => {
                   setSearchQuery('');
                   setCompanyFilter('all');
                   setJobFilter('all');
+                  setStatusFilter('pending');
                 }}
                 className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
@@ -432,7 +519,8 @@ function PendingJobApplications() {
         {!loading && filteredApplications.length > 0 && (
           <div className="mb-4">
             <p className={`text-sm ${textSecondary}`}>
-              Showing <span className={`font-semibold ${textColor}`}>{filteredApplications.length}</span> pending {filteredApplications.length === 1 ? 'application' : 'applications'}
+              Showing <span className={`font-semibold ${textColor}`}>{filteredApplications.length}</span> {filteredApplications.length === 1 ? 'application' : 'applications'}
+              {statusFilter !== 'all' && ` with status "${statusFilter}"`}
             </p>
           </div>
         )}
@@ -473,13 +561,35 @@ function PendingJobApplications() {
                             <MapPin size={14} />
                             {details.jobLocation || 'Location not specified'}
                           </span>
+                          <span className={`text-sm ${textSecondary} flex items-center gap-1`}>
+                            Student ID: {application.student_id || 'N/A'}
+                          </span>
+                          <span className={`text-sm ${textSecondary} flex items-center gap-1`}>
+                            Job ID: {application.job_id || 'N/A'}
+                          </span>
                         </div>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <span className={`px-3 py-1 rounded-full text-sm font-semibold border bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30`}>
-                        Pending Review
+                      <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${
+                        application.applicationStatus === 'approved'
+                          ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30'
+                          : application.applicationStatus === 'rejected'
+                          ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30'
+                          : 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30'
+                      }`}>
+                        {application.applicationStatus === 'approved' ? 'Approved' :
+                         application.applicationStatus === 'rejected' ? 'Rejected' : 'Pending Review'}
                       </span>
+                      {jobTypes[application.job_id] && (
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          jobTypes[application.job_id] === 'Admin Private Job'
+                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400'
+                            : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'
+                        }`}>
+                          {jobTypes[application.job_id]}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -546,30 +656,46 @@ function PendingJobApplications() {
                       </a>
                     )}
                     <div className="flex-1"></div>
-                    <button
-                      onClick={() => handleRejectApplication(application.task_id)}
-                      disabled={isLoadingAction}
-                      className={`px-4 py-2 border border-red-300 text-red-700 bg-red-50 hover:bg-red-100 dark:border-red-500/30 dark:text-red-400 dark:bg-red-500/20 dark:hover:bg-red-500/30 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      {isLoadingAction ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500"></div>
-                      ) : (
-                        <X size={16} />
-                      )}
-                      Reject
-                    </button>
-                    <button
-                      onClick={() => handleApproveApplication(application.task_id)}
-                      disabled={isLoadingAction}
-                      className={`px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      {isLoadingAction ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      ) : (
+                    {application.applicationStatus === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => handleRejectApplication(application.task_id)}
+                          disabled={isLoadingAction}
+                          className={`px-4 py-2 border border-red-300 text-red-700 bg-red-50 hover:bg-red-100 dark:border-red-500/30 dark:text-red-400 dark:bg-red-500/20 dark:hover:bg-red-500/30 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {isLoadingAction ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500"></div>
+                          ) : (
+                            <X size={16} />
+                          )}
+                          Reject
+                        </button>
+                        <button
+                          onClick={() => handleApproveApplication(application.task_id)}
+                          disabled={isLoadingAction}
+                          className={`px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {isLoadingAction ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          ) : (
+                            <Check size={16} />
+                          )}
+                          Approve
+                        </button>
+                      </>
+                    )}
+                    {application.applicationStatus === 'approved' && (
+                      <span className="px-4 py-2 text-green-700 dark:text-green-400 text-sm font-medium flex items-center gap-2">
                         <Check size={16} />
-                      )}
-                      Approve
-                    </button>
+                        Approved
+                      </span>
+                    )}
+                    {application.applicationStatus === 'rejected' && (
+                      <span className="px-4 py-2 text-red-700 dark:text-red-400 text-sm font-medium flex items-center gap-2">
+                        <X size={16} />
+                        Rejected
+                      </span>
+                    )}
                   </div>
                 </div>
               );

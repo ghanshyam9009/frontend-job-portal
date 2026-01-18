@@ -2,13 +2,12 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { candidateExternalService } from "../../services";
-import { 
-  Briefcase, 
-  Eye, 
-  Calendar, 
-  X, 
-  FileText, 
-  Check, 
+import {
+  Briefcase,
+  Calendar,
+  X,
+  FileText,
+  Check,
   ArrowLeft,
   MapPin,
   Building,
@@ -76,12 +75,6 @@ const AdminCandidateApplications = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleJobClick = (job) => {
-    navigate(`/job/${job.title.toLowerCase().replace(/\s+/g, '-')}`, {
-      state: { job }
-    });
   };
 
   const getStatusColor = (status) => {
@@ -349,27 +342,7 @@ const AdminCandidateApplications = () => {
                   </span>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    onClick={() => handleJobClick(job)}
-                    className="flex-1 sm:flex-initial px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5"
-                    style={{ fontSize: '0.7rem' }}
-                  >
-                    <Eye size={13} />
-                    View Job
-                  </button>
-                  <button
-                    onClick={() => handleTrack(job.applicationId)}
-                    disabled={!job.applicationId}
-                    className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed`}
-                    style={{ fontSize: '0.7rem' }}
-                    title={!job.applicationId ? "Tracking information not available" : "Track application status"}
-                  >
-                    <Calendar size={13} />
-                    Track Status
-                  </button>
-                </div>
+
               </div>
             </div>
           ))}

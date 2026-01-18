@@ -99,7 +99,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/jobs" element={<JobListings/>} />
           <Route path="/government-jobs" element={<GovernmentJobs />} />
-          <Route path="/job/:slug" element={<Jobdescription />} />
+          <Route path="/job/:id" element={<Jobdescription />} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/contact" element={<ContactUs />} />
           <Route path="/membership" element={<Membership />} />

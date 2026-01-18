@@ -100,7 +100,8 @@ const AppliedJobs = () => {
   }, [user]);
 
   const handleJobClick = (job) => {
-    navigate(`/job/${job.title.toLowerCase().replace(/\s+/g, '-')}`, {
+    const jobId = job.id || job.job_id;
+    navigate(`/job/${jobId}`, {
       state: { job }
     });
   };

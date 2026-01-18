@@ -78,8 +78,8 @@ const GovernmentJobs = () => {
   }, [searchTerm, locationFilter, departmentFilter, jobs]);
 
   const handleJobClick = (job) => {
-    const jobSlug = job.job_title?.toLowerCase().replace(/\s+/g, '-') || job.id;
-    navigate(`/job/${jobSlug}`, {
+    const jobId = job.id || job.job_id;
+    navigate(`/job/${jobId}`, {
       state: { job }
     });
   };
@@ -99,8 +99,8 @@ const GovernmentJobs = () => {
     }
 
     // If authenticated, proceed with application or redirect to job details
-    const jobSlug = job.job_title?.toLowerCase().replace(/\s+/g, '-') || job.id;
-    navigate(`/job/${jobSlug}`, {
+    const jobId = job.id || job.job_id;
+    navigate(`/job/${jobId}`, {
       state: { job, apply: true }
     });
   };

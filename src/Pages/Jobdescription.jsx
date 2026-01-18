@@ -26,7 +26,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
   const [hasApplied, setHasApplied] = useState(false);
   const [relatedJobs, setRelatedJobs] = useState([]);
  const textSecondary = isDarkMode ? 'text-gray-300' : 'text-gray-600';
-  const { slug } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
 
@@ -167,14 +167,14 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
      }
    };
 
-  // Since we're now using job IDs directly in the URL, slug is the job ID
-  const jobId = slug;
+  // Since we're now using job IDs directly in the URL, id is the job ID
+  const jobId = id;
 
   // fetch job details
   useEffect(() => {
     fetchJobDetails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug]);
+  }, [id]);
 
   // check whether user already applied
   useEffect(() => {
@@ -220,24 +220,12 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
         throw new Error("Invalid response format");
       }
 
-      // try match by id first
+      // match by id
       let foundJob = jobsArray.find(
         (j) =>
           (String(j.job_id || j.id) === String(jobId)) ||
           (j.job_id || j.id) === parseInt(jobId)
       );
-
-      // fallback: match by slugified title
-      if (!foundJob && slug) {
-        const titleSlug = slug.toLowerCase().replace(/-\d+$/, "");
-        foundJob = jobsArray.find((j) =>
-          ((j.job_title || j.title) || "")
-            .toString()
-            .toLowerCase()
-            .replace(/\s+/g, "-")
-            .includes(titleSlug)
-        );
-      }
 
       if (!foundJob) {
         throw new Error("Job not found");
