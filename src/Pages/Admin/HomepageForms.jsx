@@ -14,7 +14,8 @@ import {
   RefreshCw,
   AlertCircle,
   CheckCircle,
-  Filter
+  Filter,
+  ArrowUpDown
 } from 'lucide-react';
 import { demoService } from '../../services/demoService';
 
@@ -27,6 +28,8 @@ const HomepageForms = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedForm, setSelectedForm] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [dateFilter, setDateFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
 
   // Fetch homepage demo forms from API
   useEffect(() => {
@@ -80,12 +83,56 @@ const HomepageForms = () => {
     fetchDemoForms();
   }, []);
 
-  const filteredForms = forms.filter(form => {
-    const matchesFilter = filter === 'all' || form.userType === filter;
-    const matchesSearch = form.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         form.email.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
+  // Date filter logic
+  const filterByDate = (form) => {
+    if (dateFilter === 'all') return true;
+    
+    const now = new Date();
+    const formDate = new Date(form.submittedAt);
+    const diffTime = Math.abs(now - formDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    switch (dateFilter) {
+      case 'today':
+        return diffDays <= 1;
+      case 'week':
+        return diffDays <= 7;
+      case 'month':
+        return diffDays <= 30;
+      case 'older':
+        return diffDays > 30;
+      default:
+        return true;
+    }
+  };
+
+  // Sort logic
+  const sortForms = (formsToSort) => {
+    const sorted = [...formsToSort];
+    
+    switch (sortBy) {
+      case 'newest':
+        return sorted.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+      case 'oldest':
+        return sorted.sort((a, b) => new Date(a.submittedAt) - new Date(b.submittedAt));
+      case 'nameAZ':
+        return sorted.sort((a, b) => a.fullName.localeCompare(b.fullName));
+      case 'nameZA':
+        return sorted.sort((a, b) => b.fullName.localeCompare(a.fullName));
+      default:
+        return sorted;
+    }
+  };
+
+  const filteredForms = sortForms(
+    forms.filter(form => {
+      const matchesFilter = filter === 'all' || form.userType === filter;
+      const matchesSearch = form.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           form.email.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesDate = filterByDate(form);
+      return matchesFilter && matchesSearch && matchesDate;
+    })
+  );
 
   const handleViewDetails = (form) => {
     setSelectedForm(form);
@@ -215,7 +262,8 @@ const HomepageForms = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Search and Filters */}
         <div className={`${cardBg} rounded-lg border ${borderColor} p-4 mb-6`}>
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col gap-3">
+            {/* Search Bar */}
             <div className="relative flex-1">
               <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`} />
               <input
@@ -226,7 +274,9 @@ const HomepageForms = () => {
                 className={`w-full pl-10 pr-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
               />
             </div>
-            <div className="flex gap-2">
+
+            {/* User Type Filters */}
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setFilter('all')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -258,6 +308,46 @@ const HomepageForms = () => {
                 Recruiters
               </button>
             </div>
+
+            {/* Date and Sort Filters */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Date Filter */}
+              <div className="flex-1">
+                <label className={`text-xs font-semibold ${textSecondary} mb-1.5 flex items-center gap-1.5`}>
+                  <Calendar size={12} />
+                  Date Filter
+                </label>
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="week">Last 7 Days</option>
+                  <option value="month">Last 30 Days</option>
+                  <option value="older">Older than 30 Days</option>
+                </select>
+              </div>
+
+              {/* Sort By */}
+              <div className="flex-1">
+                <label className={`text-xs font-semibold ${textSecondary} mb-1.5 flex items-center gap-1.5`}>
+                  <ArrowUpDown size={12} />
+                  Sort By
+                </label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="nameAZ">Name (A-Z)</option>
+                  <option value="nameZA">Name (Z-A)</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -269,7 +359,7 @@ const HomepageForms = () => {
             </div>
             <h3 className={`text-lg font-semibold ${textColor} mb-2`}>No forms found</h3>
             <p className={`${textSecondary}`}>
-              {searchTerm || filter !== 'all' ? "Try adjusting your filters" : "No homepage demo forms match your current filters."}
+              {searchTerm || filter !== 'all' || dateFilter !== 'all' ? "Try adjusting your filters" : "No homepage demo forms match your current filters."}
             </p>
           </div>
         ) : (

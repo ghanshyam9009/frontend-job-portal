@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
-import { Search, Download, Users, Building, MapPin, Calendar, Eye, Briefcase, RefreshCw, Trash2 } from "lucide-react";
+import { Search, Download, Users, Building, MapPin, Calendar, Eye, Briefcase, RefreshCw, Trash2, ArrowUpDown } from "lucide-react";
 import * as XLSX from 'xlsx';
 
 const AdminJobReports = () => {
@@ -11,6 +11,8 @@ const AdminJobReports = () => {
   const [jobs, setJobs] = useState([]);
   const [filteredJobs, setFilteredJobs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -50,16 +52,119 @@ const AdminJobReports = () => {
     }
   };
 
-  // Filter jobs based on search term
+  // Helper function to filter jobs by date
+  const filterJobsByDate = (jobs, dateFilter) => {
+    if (dateFilter === "all") return jobs;
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    return jobs.filter(job => {
+      const jobDate = new Date(job.created_at);
+      const jobDateOnly = new Date(jobDate.getFullYear(), jobDate.getMonth(), jobDate.getDate());
+
+      switch (dateFilter) {
+        case "today":
+          return jobDateOnly.getTime() === today.getTime();
+        case "yesterday": {
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          return jobDateOnly.getTime() === yesterday.getTime();
+        }
+        case "last7days": {
+          const weekAgo = new Date(today);
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          return jobDateOnly >= weekAgo;
+        }
+        case "last30days": {
+          const monthAgo = new Date(today);
+          monthAgo.setDate(monthAgo.getDate() - 30);
+          return jobDateOnly >= monthAgo;
+        }
+        case "thisMonth": {
+          return jobDate.getMonth() === now.getMonth() && 
+                 jobDate.getFullYear() === now.getFullYear();
+        }
+        case "lastMonth": {
+          const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          return jobDate.getMonth() === lastMonth.getMonth() && 
+                 jobDate.getFullYear() === lastMonth.getFullYear();
+        }
+        default:
+          return true;
+      }
+    });
+  };
+
+  // Helper function to sort jobs
+  const sortJobs = (jobs, sortBy) => {
+    const sorted = [...jobs];
+    
+    switch (sortBy) {
+      case "newest":
+        sorted.sort((a, b) => {
+          const dateA = new Date(a.created_at || 0);
+          const dateB = new Date(b.created_at || 0);
+          return dateB - dateA;
+        });
+        break;
+      case "oldest":
+        sorted.sort((a, b) => {
+          const dateA = new Date(a.created_at || 0);
+          const dateB = new Date(b.created_at || 0);
+          return dateA - dateB;
+        });
+        break;
+      case "mostApplications":
+        sorted.sort((a, b) => (b.application_count || 0) - (a.application_count || 0));
+        break;
+      case "leastApplications":
+        sorted.sort((a, b) => (a.application_count || 0) - (b.application_count || 0));
+        break;
+      case "companyAZ":
+        sorted.sort((a, b) => 
+          (a.company_name || '').localeCompare(b.company_name || '')
+        );
+        break;
+      case "companyZA":
+        sorted.sort((a, b) => 
+          (b.company_name || '').localeCompare(a.company_name || '')
+        );
+        break;
+      case "titleAZ":
+        sorted.sort((a, b) => 
+          (a.job_title || '').localeCompare(b.job_title || '')
+        );
+        break;
+      case "titleZA":
+        sorted.sort((a, b) => 
+          (b.job_title || '').localeCompare(a.job_title || '')
+        );
+        break;
+      default:
+        break;
+    }
+    
+    return sorted;
+  };
+
+  // Filter jobs based on search term, date, and sort
   useEffect(() => {
     let filtered = jobs.filter(job =>
       job.job_title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.location?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    // Apply date filter
+    filtered = filterJobsByDate(filtered, dateFilter);
+
+    // Apply sorting
+    filtered = sortJobs(filtered, sortBy);
+
     setFilteredJobs(filtered);
     setCurrentPage(1);
-  }, [searchTerm, jobs]);
+  }, [searchTerm, dateFilter, sortBy, jobs]);
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -266,17 +371,62 @@ const AdminJobReports = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Search Filter on Top */}
+        {/* Search and Filters */}
         <div className={`${cardBg} rounded-lg border ${borderColor} p-4 mb-6`}>
-          <div className="relative">
-            <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`} />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by job title, company, or location..."
-              className={`w-full pl-10 pr-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
-            />
+          <div className="flex flex-col gap-4">
+            {/* Search Bar */}
+            <div className="flex-1">
+              <div className="relative">
+                <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`} />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by job title, company, or location..."
+                  className={`w-full pl-10 pr-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+                />
+              </div>
+            </div>
+
+            {/* Date and Sort Filters Row */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Date Filter Dropdown */}
+              <div className="flex items-center gap-2">
+                <Calendar size={18} className={textSecondary} />
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className={`px-4 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="last7days">Last 7 Days</option>
+                  <option value="last30days">Last 30 Days</option>
+                  <option value="thisMonth">This Month</option>
+                  <option value="lastMonth">Last Month</option>
+                </select>
+              </div>
+
+              {/* Sort By Dropdown */}
+              <div className="flex items-center gap-2">
+                <ArrowUpDown size={18} className={textSecondary} />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className={`px-4 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="mostApplications">Most Applications</option>
+                  <option value="leastApplications">Least Applications</option>
+                  <option value="companyAZ">Company (A-Z)</option>
+                  <option value="companyZA">Company (Z-A)</option>
+                  <option value="titleAZ">Job Title (A-Z)</option>
+                  <option value="titleZA">Job Title (Z-A)</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -291,6 +441,11 @@ const AdminJobReports = () => {
         <div className="mb-4">
           <p className={`text-sm ${textSecondary}`}>
             Showing <span className={`font-semibold ${textColor}`}>{filteredJobs.length}</span> {filteredJobs.length === 1 ? 'job' : 'jobs'}
+            {dateFilter !== 'all' && (
+              <span className="ml-2">
+                ({dateFilter.replace(/([A-Z])/g, ' $1').trim()})
+              </span>
+            )}
           </p>
         </div>
 
@@ -302,7 +457,7 @@ const AdminJobReports = () => {
             </div>
             <h3 className={`text-lg font-semibold ${textColor} mb-2`}>No job reports found</h3>
             <p className={`${textSecondary} mb-6`}>
-              {searchTerm ? "Try adjusting your search query" : "No jobs available for reporting"}
+              {searchTerm || dateFilter !== 'all' ? "Try adjusting your filters" : "No jobs available for reporting"}
             </p>
           </div>
         )}

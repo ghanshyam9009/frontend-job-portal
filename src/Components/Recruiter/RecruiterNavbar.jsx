@@ -315,7 +315,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={handleProfileClick}
-                className="w-10 h-10 rounded-full bg-[#2271B5] text-white flex items-center justify-center font-bold hover:bg-[#1a5a8f] transition-colors overflow-hidden"
+                className="w-10 h-10 rounded-full bg-white text-white flex items-center justify-center font-bold hover:bg-white transition-colors  overflow-hidden"
               >
                 {recruiterProfile?.company_logo ? (
                   <img
@@ -379,7 +379,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
               {/* Profile Info */}
               <div className={`mb-6 p-4 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-[#2271B5] text-white flex items-center justify-center text-xl font-bold overflow-hidden">
+                  <div className="w-12 h-12 rounded-full bg-white text-white flex items-center justify-center text-xl font-bold overflow-hidden">
                     {recruiterProfile?.company_logo ? (
                       <img
                         src={recruiterProfile.company_logo}

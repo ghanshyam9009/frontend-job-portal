@@ -21,6 +21,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
   const [applicationError, setApplicationError] = useState("");
   const [applicationSuccess, setApplicationSuccess] = useState("");
   const [job, setJob] = useState(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hasApplied, setHasApplied] = useState(false);
@@ -494,7 +495,6 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
     <div className={`${isDarkMode ? "bg-slate-900 text-slate-100" : "bg-gray-100 text-slate-900"} lg:mt-18 min-h-screen font-sans`}>
       {/* header */}
 
-
       {/* main */}
       <div className="max-w-5xl  mx-auto px-4 py-8">
         <div className="grid  lg:grid-cols-12 gap-6">
@@ -503,7 +503,6 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
             <div className={`lg:sticky lg:top-24 bg-white ${isDarkMode ? "dark:bg-slate-800" : ""} rounded-xl p-6 shadow`}>
               <div className="flex justify-between items-start gap-4">
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-2xl font-bold mb-2">{job.job_title || job.title || "Job Title"}</h1>
 
                   <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
                     <span className="font-semibold text-base text-slate-800 dark:text-black">{job.company_name || "Company"}</span>
@@ -552,6 +551,7 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
               <div className="mt-4 border-t pt-4 flex flex-wrap gap-6 text-sm text-gray-600">
                 <div>📅 Posted: <strong className="text-gray-800">{formatPostedDate(job.created_at)}</strong></div>
                 <div>📧 Contact Email: <strong className="text-gray-800">{job.contact_email}</strong></div>
+              
                
             
               </div>

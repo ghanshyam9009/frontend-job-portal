@@ -4,7 +4,7 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import { useAuth } from "../../Contexts/AuthContext";
 import { adminService } from "../../services/adminService";
 import { candidateExternalService } from "../../services/candidateExternalService";
-import { Building2, Edit, Trash2, Search, RefreshCw, Eye, Users, Plus, MapPin, Calendar, Briefcase, Award } from "lucide-react";
+import { Building2, Edit, Trash2, Search, RefreshCw, Eye, Users, Plus, MapPin, Calendar, Briefcase, Award, ArrowUpDown } from "lucide-react";
 
 const AdminJobs = () => {
   const navigate = useNavigate();
@@ -14,6 +14,8 @@ const AdminJobs = () => {
   const [filteredJobs, setFilteredJobs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -60,7 +62,51 @@ const AdminJobs = () => {
     fetchJobs();
   }, []);
 
-  // Filter jobs based on search and status
+  // Helper function to filter by date
+  const filterByDate = (job) => {
+    const dateString = job.created_at || job.posted_date;
+    if (!dateString) return false;
+    
+    const jobDate = new Date(dateString);
+    const now = new Date();
+    
+    switch (dateFilter) {
+      case "today":
+        return jobDate.toDateString() === now.toDateString();
+      
+      case "yesterday":
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return jobDate.toDateString() === yesterday.toDateString();
+      
+      case "last7days":
+        const last7Days = new Date(now);
+        last7Days.setDate(last7Days.getDate() - 7);
+        return jobDate >= last7Days;
+      
+      case "last30days":
+        const last30Days = new Date(now);
+        last30Days.setDate(last30Days.getDate() - 30);
+        return jobDate >= last30Days;
+      
+      case "thisMonth":
+        return jobDate.getMonth() === now.getMonth() && 
+               jobDate.getFullYear() === now.getFullYear();
+      
+      case "lastMonth":
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+        return jobDate >= lastMonth && jobDate <= lastMonthEnd;
+      
+      case "thisYear":
+        return jobDate.getFullYear() === now.getFullYear();
+      
+      default:
+        return true;
+    }
+  };
+
+  // Filter jobs based on search, status, date, and sort
   useEffect(() => {
     let filtered = jobs;
 
@@ -76,9 +122,45 @@ const AdminJobs = () => {
       filtered = filtered.filter(job => job.status === statusFilter);
     }
 
-    setFilteredJobs(filtered);
+    if (dateFilter !== "all") {
+      filtered = filtered.filter(filterByDate);
+    }
+
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      const dateA = new Date(a.created_at || a.posted_date || 0);
+      const dateB = new Date(b.created_at || b.posted_date || 0);
+      
+      switch (sortBy) {
+        case "newest":
+          return dateB - dateA;
+        
+        case "oldest":
+          return dateA - dateB;
+        
+        case "titleAZ":
+          return (a.job_title || '').localeCompare(b.job_title || '');
+        
+        case "titleZA":
+          return (b.job_title || '').localeCompare(a.job_title || '');
+        
+        case "companyAZ":
+          return (a.company_name || '').localeCompare(b.company_name || '');
+        
+        case "companyZA":
+          return (b.company_name || '').localeCompare(a.company_name || '');
+        
+        case "applications":
+          return (b.application_count || 0) - (a.application_count || 0);
+        
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredJobs(sorted);
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, jobs]);
+  }, [searchTerm, statusFilter, dateFilter, sortBy, jobs]);
 
   const getStatusColor = (status) => {
     const statusLower = status?.toLowerCase() || '';
@@ -223,7 +305,7 @@ const AdminJobs = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Filters on Top */}
         <div className={`${cardBg} rounded-lg border ${borderColor} p-4 mb-6`}>
-          <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex flex-col gap-4">
             {/* Search */}
             <div className="flex-1">
               <div className="relative">
@@ -238,20 +320,58 @@ const AdminJobs = () => {
               </div>
             </div>
 
-            {/* Status Filters */}
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setStatusFilter('all')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  statusFilter === 'all'
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
-                    : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-                }`}
-              >
-                All ({jobs.length})
-              </button>
-             
-             
+            {/* Status, Date, and Sort Filters Row */}
+            <div className="flex flex-col lg:flex-row gap-4">
+              {/* Status Filters */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    statusFilter === 'all'
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
+                      : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                  }`}
+                >
+                  All ({jobs.length})
+                </button>
+              </div>
+
+              {/* Date Filter Dropdown */}
+              <div className="flex items-center gap-2">
+                <Calendar size={18} className={textSecondary} />
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className={`px-4 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="last7days">Last 7 Days</option>
+                  <option value="last30days">Last 30 Days</option>
+                  <option value="thisMonth">This Month</option>
+                  <option value="lastMonth">Last Month</option>
+                  <option value="thisYear">This Year</option>
+                </select>
+              </div>
+
+              {/* Sort By Dropdown */}
+              <div className="flex items-center gap-2">
+                <ArrowUpDown size={18} className={textSecondary} />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className={`px-4 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="titleAZ">Job Title (A-Z)</option>
+                  <option value="titleZA">Job Title (Z-A)</option>
+                  <option value="companyAZ">Company (A-Z)</option>
+                  <option value="companyZA">Company (Z-A)</option>
+                  <option value="applications">Most Applications</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -267,6 +387,11 @@ const AdminJobs = () => {
         <div className="mb-4">
           <p className={`text-sm ${textSecondary}`}>
             Showing <span className={`font-semibold ${textColor}`}>{filteredJobs.length}</span> {filteredJobs.length === 1 ? 'job' : 'jobs'}
+            {dateFilter !== 'all' && (
+              <span className="ml-2">
+                ({dateFilter.replace(/([A-Z])/g, ' $1').trim()})
+              </span>
+            )}
           </p>
         </div>
 
@@ -278,22 +403,23 @@ const AdminJobs = () => {
             </div>
             <h3 className={`text-lg font-semibold ${textColor} mb-2`}>No jobs found</h3>
             <p className={`${textSecondary} mb-6`}>
-              {statusFilter === 'all' && searchTerm === ''
+              {statusFilter === 'all' && searchTerm === '' && dateFilter === 'all'
                 ? "Start by posting your first job opening."
                 : "Try adjusting your filters or search query"}
             </p>
             <button
               onClick={() => {
-                if (statusFilter !== 'all' || searchTerm !== '') {
+                if (statusFilter !== 'all' || searchTerm !== '' || dateFilter !== 'all') {
                   setStatusFilter('all');
                   setSearchTerm('');
+                  setDateFilter('all');
                 } else {
                   navigate('/admin/post-job');
                 }
               }}
               className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
-              {statusFilter !== 'all' || searchTerm !== '' ? 'Clear Filters' : 'Post Your First Job'}
+              {statusFilter !== 'all' || searchTerm !== '' || dateFilter !== 'all' ? 'Clear Filters' : 'Post Your First Job'}
             </button>
           </div>
         )}

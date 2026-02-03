@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
 import { recruiterExternalService } from "../../services";
-import { Check, X, FileText, Download, ExternalLink, Search, Briefcase, Building, Clock, Mail, Phone, Calendar, Eye, MapPin } from "lucide-react";
+import { Check, X, FileText, Download, ExternalLink, Search, Briefcase, Building, Clock, Mail, Phone, Calendar, Eye, MapPin, ArrowUpDown } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 function PendingJobApplications() {
@@ -17,8 +17,9 @@ function PendingJobApplications() {
   const [companyFilter, setCompanyFilter] = useState("all");
   const [jobFilter, setJobFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("pending");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
   const [jobTypes, setJobTypes] = useState({});
-  // const [jobFilter, setJobFilter] = useState("all");
 
   // Fetch applications based on status filter
   useEffect(() => {
@@ -265,6 +266,108 @@ function PendingJobApplications() {
     setApplicationDetails(detailsMap);
   };
 
+  // Helper function to filter applications by date
+  const filterApplicationsByDate = (applications, dateFilter) => {
+    if (dateFilter === "all") return applications;
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    return applications.filter(app => {
+      const details = applicationDetails[app.task_id];
+      const appDateString = details?.applicationDate || app.created_at || app.posted_date;
+      if (!appDateString) return false;
+
+      const appDate = new Date(appDateString);
+      const appDateOnly = new Date(appDate.getFullYear(), appDate.getMonth(), appDate.getDate());
+
+      switch (dateFilter) {
+        case "today":
+          return appDateOnly.getTime() === today.getTime();
+        case "yesterday": {
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          return appDateOnly.getTime() === yesterday.getTime();
+        }
+        case "last7days": {
+          const weekAgo = new Date(today);
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          return appDateOnly >= weekAgo;
+        }
+        case "last30days": {
+          const monthAgo = new Date(today);
+          monthAgo.setDate(monthAgo.getDate() - 30);
+          return appDateOnly >= monthAgo;
+        }
+        case "thisMonth": {
+          return appDate.getMonth() === now.getMonth() && 
+                 appDate.getFullYear() === now.getFullYear();
+        }
+        case "lastMonth": {
+          const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          return appDate.getMonth() === lastMonth.getMonth() && 
+                 appDate.getFullYear() === lastMonth.getFullYear();
+        }
+        default:
+          return true;
+      }
+    });
+  };
+
+  // Helper function to sort applications
+  const sortApplications = (applications, sortBy) => {
+    const sorted = [...applications];
+    
+    switch (sortBy) {
+      case "newest":
+        sorted.sort((a, b) => {
+          const dateA = new Date(applicationDetails[a.task_id]?.applicationDate || a.created_at || 0);
+          const dateB = new Date(applicationDetails[b.task_id]?.applicationDate || b.created_at || 0);
+          return dateB - dateA;
+        });
+        break;
+      case "oldest":
+        sorted.sort((a, b) => {
+          const dateA = new Date(applicationDetails[a.task_id]?.applicationDate || a.created_at || 0);
+          const dateB = new Date(applicationDetails[b.task_id]?.applicationDate || b.created_at || 0);
+          return dateA - dateB;
+        });
+        break;
+      case "nameAZ":
+        sorted.sort((a, b) => {
+          const nameA = applicationDetails[a.task_id]?.studentName || '';
+          const nameB = applicationDetails[b.task_id]?.studentName || '';
+          return nameA.localeCompare(nameB);
+        });
+        break;
+      case "nameZA":
+        sorted.sort((a, b) => {
+          const nameA = applicationDetails[a.task_id]?.studentName || '';
+          const nameB = applicationDetails[b.task_id]?.studentName || '';
+          return nameB.localeCompare(nameA);
+        });
+        break;
+      case "companyAZ":
+        sorted.sort((a, b) => {
+          const companyA = applicationDetails[a.task_id]?.companyName || '';
+          const companyB = applicationDetails[b.task_id]?.companyName || '';
+          return companyA.localeCompare(companyB);
+        });
+        break;
+      case "companyZA":
+        sorted.sort((a, b) => {
+          const companyA = applicationDetails[a.task_id]?.companyName || '';
+          const companyB = applicationDetails[b.task_id]?.companyName || '';
+          return companyB.localeCompare(companyA);
+        });
+        break;
+      default:
+        break;
+    }
+    
+    return sorted;
+  };
+
   const handleApproveApplication = async (taskId) => {
     try {
       setLoadingApplications(prev => ({ ...prev, [taskId]: true }));
@@ -352,7 +455,7 @@ function PendingJobApplications() {
   )];
 
   // Filter applications
-  const filteredApplications = allApplications.filter(app => {
+  let filteredApplications = allApplications.filter(app => {
     const details = applicationDetails[app.task_id] || {};
 
     // Status filter
@@ -374,6 +477,12 @@ function PendingJobApplications() {
 
     return matchesStatus && matchesSearch && matchesCompany && matchesJob;
   });
+
+  // Apply date filter
+  filteredApplications = filterApplicationsByDate(filteredApplications, dateFilter);
+
+  // Apply sorting
+  filteredApplications = sortApplications(filteredApplications, sortBy);
 
   const isDark = theme === 'dark';
   const bgColor = isDark ? 'bg-gray-900' : 'bg-gray-50';
@@ -411,7 +520,7 @@ function PendingJobApplications() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Filters on Top */}
         <div className={`${cardBg} rounded-lg border ${borderColor} p-4 mb-6`}>
-          <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex flex-col gap-4">
             {/* Search */}
             <div className="flex-1">
               <div className="relative">
@@ -426,49 +535,87 @@ function PendingJobApplications() {
               </div>
             </div>
 
-            {/* Status Filter */}
-            <div className="w-full lg:w-40">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
-              >
-                <option value="all">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-              </select>
-            </div>
+            {/* Filters Row */}
+            <div className="flex flex-col lg:flex-row gap-4">
+              {/* Status Filter */}
+              <div className="w-full lg:w-40">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
 
-            {/* Company Filter */}
-            <div className="w-full lg:w-48">
-              <select
-                value={companyFilter}
-                onChange={(e) => setCompanyFilter(e.target.value)}
-                className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
-              >
-                <option value="all">All Companies</option>
-                {uniqueCompanies.map(company => (
-                  <option key={company} value={company}>{company}</option>
-                ))}
-              </select>
-            </div>
+              {/* Company Filter */}
+              <div className="w-full lg:w-48">
+                <select
+                  value={companyFilter}
+                  onChange={(e) => setCompanyFilter(e.target.value)}
+                  className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+                >
+                  <option value="all">All Companies</option>
+                  {uniqueCompanies.map(company => (
+                    <option key={company} value={company}>{company}</option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Job Filter */}
-            <div className="w-full lg:w-48">
-              <select
-                value={jobFilter}
-                onChange={(e) => setJobFilter(e.target.value)}
-                className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
-              >
-                <option value="all">All Jobs</option>
-                {uniqueJobs.map(jobKey => {
-                  const [title, company] = jobKey.split('|');
-                  return (
-                    <option key={jobKey} value={jobKey}>{title} - {company}</option>
-                  );
-                })}
-              </select>
+              {/* Job Filter */}
+              <div className="w-full lg:w-48">
+                <select
+                  value={jobFilter}
+                  onChange={(e) => setJobFilter(e.target.value)}
+                  className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+                >
+                  <option value="all">All Jobs</option>
+                  {uniqueJobs.map(jobKey => {
+                    const [title, company] = jobKey.split('|');
+                    return (
+                      <option key={jobKey} value={jobKey}>{title} - {company}</option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              {/* Date Filter */}
+              <div className="flex items-center gap-2">
+                <Calendar size={18} className={textSecondary} />
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className={`px-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="last7days">Last 7 Days</option>
+                  <option value="last30days">Last 30 Days</option>
+                  <option value="thisMonth">This Month</option>
+                  <option value="lastMonth">Last Month</option>
+                </select>
+              </div>
+
+              {/* Sort By */}
+              <div className="flex items-center gap-2">
+                <ArrowUpDown size={18} className={textSecondary} />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className={`px-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="nameAZ">Name (A-Z)</option>
+                  <option value="nameZA">Name (Z-A)</option>
+                  <option value="companyAZ">Company (A-Z)</option>
+                  <option value="companyZA">Company (Z-A)</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -495,17 +642,18 @@ function PendingJobApplications() {
             </div>
             <h3 className={`text-lg font-semibold ${textColor} mb-2`}>No applications found</h3>
             <p className={`${textSecondary} mb-6`}>
-              {searchQuery || companyFilter !== 'all' || jobFilter !== 'all' || statusFilter !== 'pending'
+              {searchQuery || companyFilter !== 'all' || jobFilter !== 'all' || statusFilter !== 'pending' || dateFilter !== 'all'
                 ? "Try adjusting your filters or search query"
                 : "No applications match the current criteria"}
             </p>
-            {(searchQuery || companyFilter !== 'all' || jobFilter !== 'all' || statusFilter !== 'pending') && (
+            {(searchQuery || companyFilter !== 'all' || jobFilter !== 'all' || statusFilter !== 'pending' || dateFilter !== 'all') && (
               <button
                 onClick={() => {
                   setSearchQuery('');
                   setCompanyFilter('all');
                   setJobFilter('all');
                   setStatusFilter('pending');
+                  setDateFilter('all');
                 }}
                 className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
@@ -521,6 +669,11 @@ function PendingJobApplications() {
             <p className={`text-sm ${textSecondary}`}>
               Showing <span className={`font-semibold ${textColor}`}>{filteredApplications.length}</span> {filteredApplications.length === 1 ? 'application' : 'applications'}
               {statusFilter !== 'all' && ` with status "${statusFilter}"`}
+              {dateFilter !== 'all' && (
+                <span className="ml-2">
+                  ({dateFilter.replace(/([A-Z])/g, ' $1').trim()})
+                </span>
+              )}
             </p>
           </div>
         )}

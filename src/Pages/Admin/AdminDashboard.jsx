@@ -63,10 +63,25 @@ const AdminDashboard = () => {
 
       // Fetch candidates data first (usually fastest)
       const candidatesPromise = adminService.getCandidates()
-        .then(data => {
-          const candidates = Array.isArray(data) ? data : [];
+        .then(candidatesData => {
+          // Filter out blocked candidates where is_admin_closed is true, status is blocked/inactive, or blocked field is true
+          const activeCandidates = candidatesData.filter(candidate => {
+            const isClosed = candidate.is_admin_closed === true ||
+                            candidate.is_admin_closed === "true" ||
+                            candidate.is_admin_closed === 1 ||
+                            candidate.is_admin_closed === "1";
+            const isBlocked = candidate.status?.toLowerCase() === 'blocked' ||
+                             candidate.status?.toLowerCase() === 'inactive';
+            const isBlockedField = candidate.blocked === true ||
+                                  candidate.blocked === "true" ||
+                                  candidate.blocked === 1 ||
+                                  candidate.blocked === "1";
+
+            return !isClosed && !isBlocked && !isBlockedField;
+          });
+          console.log('Candidates data:', activeCandidates.length, 'active candidates found');
           setLoadingStates(prev => ({ ...prev, candidates: false }));
-          return candidates;
+          return activeCandidates;
         })
         .catch(err => {
           console.error('Candidates fetch error:', err);
@@ -77,9 +92,17 @@ const AdminDashboard = () => {
       // Fetch recruiters data
       const recruitersPromise = adminService.getAllRecruiters()
         .then(response => {
-          const recruitersData = response.recruiters || [];
+          const recruitersData = response.recruiters || response.data || response || [];
+          // Filter out blocked recruiters where is_admin_closed is true
+          const activeRecruiters = recruitersData.filter(recruiter =>
+            recruiter.is_admin_closed !== true &&
+            recruiter.is_admin_closed !== "true" &&
+            recruiter.is_admin_closed !== 1 &&
+            recruiter.is_admin_closed !== "1"
+          );
+          console.log('Recruiters data:', activeRecruiters.length, 'active recruiters found');
           setLoadingStates(prev => ({ ...prev, recruiters: false }));
-          return recruitersData;
+          return activeRecruiters;
         })
         .catch(err => {
           console.error('Recruiters fetch error:', err);
@@ -123,13 +146,25 @@ const AdminDashboard = () => {
         tasksPromise
       ]);
 
-      // Calculate total applications from jobs
-      const totalApps = jobs.reduce((sum, job) => sum + (job.application_count || 0), 0);
+      // Debug logging
+      console.log('=== Dashboard Data Summary ===');
+      console.log('Total Candidates:', candidates.length);
+      console.log('Total Recruiters:', recruitersData.length);
+      console.log('Total Jobs:', jobs.length);
+      console.log('Sample Candidate:', candidates[0]);
+      console.log('Sample Recruiter:', recruitersData[0]);
+      console.log('==============================');
 
-      // Calculate active jobs
-      const activeJobsCount = jobs.filter(j => 
-        j.status === 'active' || j.status === 'pending' || !j.status
-      ).length;
+      // Calculate total applications from jobs
+      const totalApps = jobs.reduce((sum, job) => sum + (parseInt(job.application_count) || 0), 0);
+
+      // Calculate active jobs - Check for multiple possible status formats
+      const activeJobsCount = jobs.filter(j => {
+        const status = (j.status || '').toLowerCase();
+        const isApproved = j.isadminapproved === true || j.isadminapproved === 1;
+        // Consider a job active if it's approved OR if status is 'active' or 'pending' or empty/null
+        return isApproved || status === 'active' || status === 'pending' || !status;
+      }).length;
 
       // Calculate growth percentages
       const now = new Date();
@@ -165,16 +200,26 @@ const AdminDashboard = () => {
         ? Math.round((jobsThisMonth / jobs.length) * 100)
         : 0;
 
+      // Calculate application growth if we have historical data
+      const appsLastMonth = jobs.reduce((sum, job) => {
+        if (!job.created_at || new Date(job.created_at) >= lastMonthDate) return sum;
+        return sum + (parseInt(job.application_count) || 0);
+      }, 0);
+      
+      const applicationGrowth = appsLastMonth > 0
+        ? Math.round(((totalApps - appsLastMonth) / appsLastMonth) * 100)
+        : totalApps > 0 ? 100 : 0;
+
       // Set dashboard stats
       setDashboardStats({
         totalCandidates: candidates.length,
         totalRecruiters: recruitersData.length,
         activeJobs: activeJobsCount,
         totalApplications: totalApps,
-        candidateGrowth: candidateGrowth || 12,
-        recruiterGrowth: recruiterGrowth || 8,
-        jobGrowth: jobGrowth || 15,
-        applicationGrowth: 24
+        candidateGrowth: candidateGrowth,
+        recruiterGrowth: recruiterGrowth,
+        jobGrowth: jobGrowth,
+        applicationGrowth: applicationGrowth
       });
 
       // Get recent candidates (last 5, sorted by created date)

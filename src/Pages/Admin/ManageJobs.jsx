@@ -29,7 +29,8 @@ import {
   ChevronRight,
   AlertCircle,
   CheckCircle,
-  XCircle
+  XCircle,
+  ArrowUpDown
 } from "lucide-react";
 
 const ManageJobs = () => {
@@ -38,6 +39,8 @@ const ManageJobs = () => {
   const [filteredJobs, setFilteredJobs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all"); // New state for date filter
+  const [sortBy, setSortBy] = useState("newest"); // New state for sorting
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -114,6 +117,93 @@ const ManageJobs = () => {
     fetchJobs();
   }, []);
 
+  // Helper function to filter jobs by date
+  const filterJobsByDate = (jobs, dateFilter) => {
+    if (dateFilter === "all") return jobs;
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    return jobs.filter(job => {
+      const jobDate = new Date(job.posted_date);
+      const jobDateOnly = new Date(jobDate.getFullYear(), jobDate.getMonth(), jobDate.getDate());
+
+      switch (dateFilter) {
+        case "today":
+          return jobDateOnly.getTime() === today.getTime();
+        case "yesterday": {
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          return jobDateOnly.getTime() === yesterday.getTime();
+        }
+        case "last7days": {
+          const weekAgo = new Date(today);
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          return jobDateOnly >= weekAgo;
+        }
+        case "last30days": {
+          const monthAgo = new Date(today);
+          monthAgo.setDate(monthAgo.getDate() - 30);
+          return jobDateOnly >= monthAgo;
+        }
+        case "thisMonth": {
+          return jobDate.getMonth() === now.getMonth() && 
+                 jobDate.getFullYear() === now.getFullYear();
+        }
+        case "lastMonth": {
+          const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          return jobDate.getMonth() === lastMonth.getMonth() && 
+                 jobDate.getFullYear() === lastMonth.getFullYear();
+        }
+        default:
+          return true;
+      }
+    });
+  };
+
+  // Helper function to sort jobs
+  const sortJobs = (jobs, sortBy) => {
+    const sorted = [...jobs];
+    
+    switch (sortBy) {
+      case "newest":
+        sorted.sort((a, b) => {
+          const dateA = new Date(a.posted_date || 0);
+          const dateB = new Date(b.posted_date || 0);
+          return dateB - dateA;
+        });
+        break;
+      case "oldest":
+        sorted.sort((a, b) => {
+          const dateA = new Date(a.posted_date || 0);
+          const dateB = new Date(b.posted_date || 0);
+          return dateA - dateB;
+        });
+        break;
+      case "company_asc":
+        sorted.sort((a, b) => 
+          (a.company_name || '').localeCompare(b.company_name || '')
+        );
+        break;
+      case "company_desc":
+        sorted.sort((a, b) => 
+          (b.company_name || '').localeCompare(a.company_name || '')
+        );
+        break;
+      case "updated":
+        sorted.sort((a, b) => {
+          const dateA = new Date(a.updated_date || 0);
+          const dateB = new Date(b.updated_date || 0);
+          return dateB - dateA;
+        });
+        break;
+      default:
+        break;
+    }
+    
+    return sorted;
+  };
+
   // Group and filter jobs
   useEffect(() => {
     let tasks = Array.isArray(jobs) ? jobs : [];
@@ -139,12 +229,15 @@ const ManageJobs = () => {
     });
 
     let filtered = Object.values(groupedJobs).filter(job => !hiddenJobs.has(job.job_id));
-    filtered.sort((a, b) => {
-      const dateA = new Date(a.posted_date || 0);
-      const dateB = new Date(b.posted_date || 0);
-      return dateB - dateA;
-    });
 
+    // Apply status filter first (before search)
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(job =>
+        job.tasks.some(task => task.status === statusFilter)
+      );
+    }
+
+    // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(job =>
         job.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -153,15 +246,15 @@ const ManageJobs = () => {
       );
     }
 
-    if (statusFilter !== "all") {
-      filtered = filtered.filter(job =>
-        job.tasks.some(task => task.status === statusFilter)
-      );
-    }
+    // Apply date filter
+    filtered = filterJobsByDate(filtered, dateFilter);
+
+    // Apply sorting
+    filtered = sortJobs(filtered, sortBy);
 
     setFilteredJobs(filtered);
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, jobs, premiumOverrides, hiddenJobs]);
+  }, [searchTerm, statusFilter, dateFilter, sortBy, jobs, premiumOverrides, hiddenJobs]);
 
   // Fetch edit data
   useEffect(() => {
@@ -520,6 +613,37 @@ const ManageJobs = () => {
   const endIndex = startIndex + jobsPerPage;
   const currentJobs = safeFilteredJobs.slice(startIndex, endIndex);
 
+  // Calculate counts for all jobs (not just filtered)
+  const allGroupedJobs = React.useMemo(() => {
+    let tasks = Array.isArray(jobs) ? jobs : [];
+    const groupedJobs = {};
+
+    tasks.forEach(task => {
+      const jobId = task.job_id || `no-job-${task.id}`;
+
+      if (!groupedJobs[jobId]) {
+        groupedJobs[jobId] = {
+          id: task.id,
+          job_id: jobId,
+          company_name: task.company_name || 'N/A',
+          title: task.title || task.category,
+          posted_date: task.posted_date,
+          updated_date: task.updated_date,
+          is_premium: premiumOverrides[task.job_id] !== undefined ? premiumOverrides[task.job_id] : (task.is_premium || task.premium_job || false),
+          tasks: []
+        };
+      }
+
+      groupedJobs[jobId].tasks.push(task);
+    });
+
+    return Object.values(groupedJobs).filter(job => !hiddenJobs.has(job.job_id));
+  }, [jobs, premiumOverrides, hiddenJobs]);
+
+  const totalJobsCount = allGroupedJobs.length;
+  const pendingJobsCount = allGroupedJobs.filter(j => j.tasks?.some(t => t.status === 'pending')).length;
+  const fulfilledJobsCount = allGroupedJobs.filter(j => j.tasks?.some(t => t.status === 'fulfilled')).length;
+
   // Theme variables
   const isDark = theme === 'dark';
   const bgColor = isDark ? 'bg-gray-900' : 'bg-gray-50';
@@ -628,50 +752,104 @@ const ManageJobs = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Search and Filters */}
         <div className={`${cardBg} rounded-lg border ${borderColor} p-4 mb-6`}>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`} />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by job title, company, or ID..."
-                className={`w-full pl-10 pr-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
-              />
+          <div className="flex flex-col gap-4">
+            {/* Search Bar */}
+            <div className="flex-1">
+              <div className="relative">
+                <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`} />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by job title, company, or ID..."
+                  className={`w-full pl-10 pr-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+                />
+              </div>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setStatusFilter('all')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  statusFilter === 'all'
-                    ? 'bg-blue-600 text-white'
-                    : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setStatusFilter('pending')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  statusFilter === 'pending'
-                    ? 'bg-yellow-600 text-white'
-                    : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-                }`}
-              >
-                Pending
-              </button>
-              <button
-                onClick={() => setStatusFilter('fulfilled')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  statusFilter === 'fulfilled'
-                    ? 'bg-green-600 text-white'
-                    : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-                }`}
-              >
-                Fulfilled
-              </button>
+
+            {/* Status, Date, and Sort Filters Row */}
+            <div className="flex flex-col lg:flex-row gap-4">
+              {/* Status Filters */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    statusFilter === 'all'
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
+                      : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                  }`}
+                >
+                  All ({totalJobsCount})
+                </button>
+                <button
+                  onClick={() => setStatusFilter('pending')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    statusFilter === 'pending'
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
+                      : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                  }`}
+                >
+                  Pending ({pendingJobsCount})
+                </button>
+                <button
+                  onClick={() => setStatusFilter('fulfilled')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    statusFilter === 'fulfilled'
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
+                      : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                  }`}
+                >
+                  Fulfilled ({fulfilledJobsCount})
+                </button>
+              </div>
+
+              {/* Date Filter Dropdown */}
+              <div className="flex items-center gap-2">
+                <Calendar size={18} className={textSecondary} />
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className={`px-4 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="last7days">Last 7 Days</option>
+                  <option value="last30days">Last 30 Days</option>
+                  <option value="thisMonth">This Month</option>
+                  <option value="lastMonth">Last Month</option>
+                </select>
+              </div>
+
+              {/* Sort By Dropdown */}
+              <div className="flex items-center gap-2">
+                <ArrowUpDown size={18} className={textSecondary} />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className={`px-4 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="updated">Recently Updated</option>
+                  <option value="company_asc">Company (A-Z)</option>
+                  <option value="company_desc">Company (Z-A)</option>
+                </select>
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* Results Header */}
+        <div className="mb-4">
+          <p className={`text-sm ${textSecondary}`}>
+            Showing <span className={`font-semibold ${textColor}`}>{safeFilteredJobs.length}</span> {safeFilteredJobs.length === 1 ? 'job' : 'jobs'}
+            {dateFilter !== 'all' && (
+              <span className="ml-2">
+                ({dateFilter.replace(/([A-Z])/g, ' $1').trim()})
+              </span>
+            )}
+          </p>
         </div>
 
         {/* Jobs List */}
@@ -682,7 +860,7 @@ const ManageJobs = () => {
             </div>
             <h3 className={`text-lg font-semibold ${textColor} mb-2`}>No jobs found</h3>
             <p className={`${textSecondary}`}>
-              {searchTerm || statusFilter !== 'all' ? "Try adjusting your filters" : "No jobs match your current filters."}
+              {searchTerm || statusFilter !== 'all' || dateFilter !== 'all' ? "Try adjusting your filters" : "No jobs match your current filters."}
             </p>
           </div>
         ) : (

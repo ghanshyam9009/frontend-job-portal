@@ -16,7 +16,9 @@ import {
   Mail,
   Phone,
   CheckCircle,
-  XCircle
+  XCircle,
+  Calendar,
+  ArrowUpDown
 } from "lucide-react";
 
 const ManageCandidates = () => {
@@ -26,6 +28,8 @@ const ManageCandidates = () => {
   const [filteredCandidates, setFilteredCandidates] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -54,8 +58,6 @@ const ManageCandidates = () => {
                               candidate.blocked === 1 ||
                               candidate.blocked === "1";
 
-        // Debug logging removed - filtering now works correctly
-
         return !isClosed && !isBlocked && !isBlockedField;
       });
       const sortedCandidates = activeCandidates.sort((a, b) =>
@@ -73,23 +75,99 @@ const ManageCandidates = () => {
     }
   };
 
-  // Filter candidates based on search and status
+  // Helper function to filter by date
+  const filterByDate = (candidate) => {
+    if (!candidate.created_at) return false;
+    
+    const candidateDate = new Date(candidate.created_at);
+    const now = new Date();
+    
+    switch (dateFilter) {
+      case "today":
+        return candidateDate.toDateString() === now.toDateString();
+      
+      case "yesterday":
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return candidateDate.toDateString() === yesterday.toDateString();
+      
+      case "last7days":
+        const last7Days = new Date(now);
+        last7Days.setDate(last7Days.getDate() - 7);
+        return candidateDate >= last7Days;
+      
+      case "last30days":
+        const last30Days = new Date(now);
+        last30Days.setDate(last30Days.getDate() - 30);
+        return candidateDate >= last30Days;
+      
+      case "thisMonth":
+        return candidateDate.getMonth() === now.getMonth() && 
+               candidateDate.getFullYear() === now.getFullYear();
+      
+      case "lastMonth":
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+        return candidateDate >= lastMonth && candidateDate <= lastMonthEnd;
+      
+      case "thisYear":
+        return candidateDate.getFullYear() === now.getFullYear();
+      
+      default:
+        return true;
+    }
+  };
+
+  // Filter candidates based on search, status, and date
   useEffect(() => {
     let filtered = candidates;
+    
     if (searchTerm) {
       filtered = filtered.filter(candidate =>
         (candidate.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (candidate.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
       );
     }
+    
     if (statusFilter !== "all") {
       filtered = filtered.filter(candidate =>
         candidate.status?.toLowerCase() === statusFilter.toLowerCase()
       );
     }
-    setFilteredCandidates(filtered);
+    
+    if (dateFilter !== "all") {
+      filtered = filtered.filter(filterByDate);
+    }
+    
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+          return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        
+        case "oldest":
+          return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+        
+        case "nameAZ":
+          return (a.name || '').localeCompare(b.name || '');
+        
+        case "nameZA":
+          return (b.name || '').localeCompare(a.name || '');
+        
+        case "emailAZ":
+          return (a.email || '').localeCompare(b.email || '');
+        
+        case "emailZA":
+          return (b.email || '').localeCompare(a.email || '');
+        
+        default:
+          return 0;
+      }
+    });
+    
+    setFilteredCandidates(sorted);
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, candidates]);
+  }, [searchTerm, statusFilter, dateFilter, sortBy, candidates]);
 
   const getInitials = (name) => {
     if (!name) return 'U';
@@ -273,7 +351,7 @@ const ManageCandidates = () => {
 
         {/* Filters on Top */}
         <div className={`${cardBg} rounded-lg border ${borderColor} p-4 mb-6`}>
-          <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex flex-col gap-4">
             {/* Search */}
             <div className="flex-1">
               <div className="relative">
@@ -288,28 +366,67 @@ const ManageCandidates = () => {
               </div>
             </div>
 
-            {/* Status Filters */}
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setStatusFilter('all')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  statusFilter === 'all'
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
-                    : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-                }`}
-              >
-                All ({candidates.length})
-              </button>
-              <button
-                onClick={() => setStatusFilter('active')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  statusFilter === 'active'
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
-                    : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-                }`}
-              >
-                Active ({activeCount})
-              </button>
+            {/* Status and Date Filters Row */}
+            <div className="flex flex-col lg:flex-row gap-4">
+              {/* Status Filters */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    statusFilter === 'all'
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
+                      : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                  }`}
+                >
+                  All ({candidates.length})
+                </button>
+                <button
+                  onClick={() => setStatusFilter('active')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    statusFilter === 'active'
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
+                      : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                  }`}
+                >
+                  Active ({activeCount})
+                </button>
+              </div>
+
+              {/* Date Filter Dropdown */}
+              <div className="flex items-center gap-2">
+                <Calendar size={18} className={textSecondary} />
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className={`px-4 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="last7days">Last 7 Days</option>
+                  <option value="last30days">Last 30 Days</option>
+                  <option value="thisMonth">This Month</option>
+                  <option value="lastMonth">Last Month</option>
+                  <option value="thisYear">This Year</option>
+                </select>
+              </div>
+
+              {/* Sort By Dropdown */}
+              <div className="flex items-center gap-2">
+                <ArrowUpDown size={18} className={textSecondary} />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className={`px-4 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="nameAZ">Name (A-Z)</option>
+                  <option value="nameZA">Name (Z-A)</option>
+                  <option value="emailAZ">Email (A-Z)</option>
+                  <option value="emailZA">Email (Z-A)</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -318,6 +435,11 @@ const ManageCandidates = () => {
         <div className="mb-4">
           <p className={`text-sm ${textSecondary}`}>
             Showing <span className={`font-semibold ${textColor}`}>{filteredCandidates.length}</span> {filteredCandidates.length === 1 ? 'candidate' : 'candidates'}
+            {dateFilter !== 'all' && (
+              <span className="ml-2">
+                ({dateFilter.replace(/([A-Z])/g, ' $1').trim()})
+              </span>
+            )}
           </p>
         </div>
 
@@ -329,7 +451,7 @@ const ManageCandidates = () => {
             </div>
             <h3 className={`text-lg font-semibold ${textColor} mb-2`}>No candidates found</h3>
             <p className={`${textSecondary} mb-6`}>
-              {searchTerm || statusFilter !== 'all' ? "Try adjusting your filters" : "No candidates registered yet"}
+              {searchTerm || statusFilter !== 'all' || dateFilter !== 'all' ? "Try adjusting your filters" : "No candidates registered yet"}
             </p>
           </div>
         )}

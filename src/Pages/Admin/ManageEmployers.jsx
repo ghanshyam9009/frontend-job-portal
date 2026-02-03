@@ -16,7 +16,9 @@ import {
   MapPin,
   Mail,
   Phone,
-  Briefcase
+  Briefcase,
+  Calendar,
+  ArrowUpDown
 } from "lucide-react";
 
 const ManageEmployers = () => {
@@ -26,6 +28,8 @@ const ManageEmployers = () => {
   const [filteredRecruiters, setFilteredRecruiters] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [approvalFilter, setApprovalFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -65,7 +69,51 @@ const ManageEmployers = () => {
     }
   };
 
-  // Filter recruiters based on search and filters
+  // Helper function to filter by date
+  const filterByDate = (recruiter) => {
+    const dateString = recruiter.created_at || recruiter.createdAt || recruiter.date_created;
+    if (!dateString) return false;
+    
+    const recruiterDate = new Date(dateString);
+    const now = new Date();
+    
+    switch (dateFilter) {
+      case "today":
+        return recruiterDate.toDateString() === now.toDateString();
+      
+      case "yesterday":
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return recruiterDate.toDateString() === yesterday.toDateString();
+      
+      case "last7days":
+        const last7Days = new Date(now);
+        last7Days.setDate(last7Days.getDate() - 7);
+        return recruiterDate >= last7Days;
+      
+      case "last30days":
+        const last30Days = new Date(now);
+        last30Days.setDate(last30Days.getDate() - 30);
+        return recruiterDate >= last30Days;
+      
+      case "thisMonth":
+        return recruiterDate.getMonth() === now.getMonth() && 
+               recruiterDate.getFullYear() === now.getFullYear();
+      
+      case "lastMonth":
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+        return recruiterDate >= lastMonth && recruiterDate <= lastMonthEnd;
+      
+      case "thisYear":
+        return recruiterDate.getFullYear() === now.getFullYear();
+      
+      default:
+        return true;
+    }
+  };
+
+  // Filter recruiters based on search, approval status, date, and sort
   useEffect(() => {
     let filtered = recruiters;
     
@@ -97,9 +145,43 @@ const ManageEmployers = () => {
       );
     }
     
-    setFilteredRecruiters(filtered);
+    // Apply date filter
+    if (dateFilter !== "all") {
+      filtered = filtered.filter(filterByDate);
+    }
+    
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      const dateA = new Date(a.created_at || a.createdAt || 0);
+      const dateB = new Date(b.created_at || b.createdAt || 0);
+      
+      switch (sortBy) {
+        case "newest":
+          return dateB - dateA;
+        
+        case "oldest":
+          return dateA - dateB;
+        
+        case "companyAZ":
+          return (a.company_name || '').localeCompare(b.company_name || '');
+        
+        case "companyZA":
+          return (b.company_name || '').localeCompare(a.company_name || '');
+        
+        case "emailAZ":
+          return (a.email || '').localeCompare(b.email || '');
+        
+        case "emailZA":
+          return (b.email || '').localeCompare(a.email || '');
+        
+        default:
+          return 0;
+      }
+    });
+    
+    setFilteredRecruiters(sorted);
     setCurrentPage(1);
-  }, [searchTerm, approvalFilter, recruiters]);
+  }, [searchTerm, approvalFilter, dateFilter, sortBy, recruiters]);
 
   const getInitials = (name) => {
     if (!name) return 'C';
@@ -153,28 +235,6 @@ const ManageEmployers = () => {
         return dateB - dateA;
       });
       setRecruiters(sortedRecruiters);
-      setFilteredRecruiters(sortedRecruiters.filter(r => {
-        let matches = true;
-        
-        if (searchTerm) {
-          matches = matches && (
-            (r.company_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-            (r.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-            (r.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-            (r.industry?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-          );
-        }
-        
-        if (approvalFilter === "pending") {
-          matches = matches && r.hasadminapproved === false && r.status !== 'rejected' && r.status !== 'inactive' && r.status !== 'blocked';
-        } else if (approvalFilter === "approved") {
-          matches = matches && r.hasadminapproved === true;
-        } else if (approvalFilter === "rejected") {
-          matches = matches && (r.status === 'rejected' || r.status === 'inactive' || r.status === 'blocked');
-        }
-        
-        return matches;
-      }));
 
       setMessage({ type: 'success', text: `${recruiter.company_name} approved successfully!` });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
@@ -214,28 +274,6 @@ const ManageEmployers = () => {
         return dateB - dateA;
       });
       setRecruiters(sortedRecruiters);
-      setFilteredRecruiters(sortedRecruiters.filter(r => {
-        let matches = true;
-        
-        if (searchTerm) {
-          matches = matches && (
-            (r.company_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-            (r.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-            (r.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-            (r.industry?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-          );
-        }
-        
-        if (approvalFilter === "pending") {
-          matches = matches && r.hasadminapproved === false && r.status !== 'rejected' && r.status !== 'inactive' && r.status !== 'blocked';
-        } else if (approvalFilter === "approved") {
-          matches = matches && r.hasadminapproved === true;
-        } else if (approvalFilter === "rejected") {
-          matches = matches && (r.status === 'rejected' || r.status === 'inactive' || r.status === 'blocked');
-        }
-        
-        return matches;
-      }));
 
       setMessage({ type: 'success', text: `${recruiter.company_name} rejected successfully!` });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
@@ -275,29 +313,6 @@ const ManageEmployers = () => {
 
       const updatedRecruiters = recruiters.filter(r => r.email !== recruiter.email);
       setRecruiters(updatedRecruiters);
-      const filtered = updatedRecruiters.filter(r => {
-        let matches = true;
-
-        if (searchTerm) {
-          matches = matches && (
-            (r.company_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-            (r.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-            (r.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-            (r.industry?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-          );
-        }
-
-        if (approvalFilter === "pending") {
-          matches = matches && r.hasadminapproved === false && r.status !== 'rejected' && r.status !== 'inactive' && r.status !== 'blocked';
-        } else if (approvalFilter === "approved") {
-          matches = matches && r.hasadminapproved === true;
-        } else if (approvalFilter === "rejected") {
-          matches = matches && (r.status === 'rejected' || r.status === 'inactive' || r.status === 'blocked');
-        }
-
-        return matches;
-      });
-      setFilteredRecruiters(filtered);
       setCurrentPage(1);
 
       setMessage({ type: 'success', text: `${recruiter.company_name} has been blocked and removed from the system.` });
@@ -480,7 +495,7 @@ const ManageEmployers = () => {
 
         {/* Filters on Top */}
         <div className={`${cardBg} rounded-lg border ${borderColor} p-4 mb-6`}>
-          <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex flex-col gap-4">
             {/* Search */}
             <div className="flex-1">
               <div className="relative">
@@ -495,38 +510,77 @@ const ManageEmployers = () => {
               </div>
             </div>
 
-            {/* Approval Filters */}
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setApprovalFilter('all')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  approvalFilter === 'all'
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
-                    : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-                }`}
-              >
-                All ({recruiters.length})
-              </button>
-              <button
-                onClick={() => setApprovalFilter('pending')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  approvalFilter === 'pending'
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
-                    : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-                }`}
-              >
-                Pending ({pendingCount})
-              </button>
-              <button
-                onClick={() => setApprovalFilter('approved')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  approvalFilter === 'approved'
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
-                    : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-                }`}
-              >
-                Approved ({approvedCount})
-              </button>
+            {/* Approval, Date, and Sort Filters Row */}
+            <div className="flex flex-col lg:flex-row gap-4">
+              {/* Approval Filters */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setApprovalFilter('all')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    approvalFilter === 'all'
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
+                      : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                  }`}
+                >
+                  All ({recruiters.length})
+                </button>
+                <button
+                  onClick={() => setApprovalFilter('pending')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    approvalFilter === 'pending'
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
+                      : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                  }`}
+                >
+                  Pending ({pendingCount})
+                </button>
+                <button
+                  onClick={() => setApprovalFilter('approved')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    approvalFilter === 'approved'
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
+                      : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                  }`}
+                >
+                  Approved ({approvedCount})
+                </button>
+              </div>
+
+              {/* Date Filter Dropdown */}
+              <div className="flex items-center gap-2">
+                <Calendar size={18} className={textSecondary} />
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className={`px-4 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="last7days">Last 7 Days</option>
+                  <option value="last30days">Last 30 Days</option>
+                  <option value="thisMonth">This Month</option>
+                  <option value="lastMonth">Last Month</option>
+                  <option value="thisYear">This Year</option>
+                </select>
+              </div>
+
+              {/* Sort By Dropdown */}
+              <div className="flex items-center gap-2">
+                <ArrowUpDown size={18} className={textSecondary} />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className={`px-4 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="companyAZ">Company (A-Z)</option>
+                  <option value="companyZA">Company (Z-A)</option>
+                  <option value="emailAZ">Email (A-Z)</option>
+                  <option value="emailZA">Email (Z-A)</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -535,6 +589,11 @@ const ManageEmployers = () => {
         <div className="mb-4">
           <p className={`text-sm ${textSecondary}`}>
             Showing <span className={`font-semibold ${textColor}`}>{filteredRecruiters.length}</span> {filteredRecruiters.length === 1 ? 'employer' : 'employers'}
+            {dateFilter !== 'all' && (
+              <span className="ml-2">
+                ({dateFilter.replace(/([A-Z])/g, ' $1').trim()})
+              </span>
+            )}
           </p>
         </div>
 
@@ -546,7 +605,7 @@ const ManageEmployers = () => {
             </div>
             <h3 className={`text-lg font-semibold ${textColor} mb-2`}>No employers found</h3>
             <p className={`${textSecondary} mb-6`}>
-              {searchTerm || approvalFilter !== 'all' ? "Try adjusting your filters" : "No employers registered yet"}
+              {searchTerm || approvalFilter !== 'all' || dateFilter !== 'all' ? "Try adjusting your filters" : "No employers registered yet"}
             </p>
           </div>
         )}

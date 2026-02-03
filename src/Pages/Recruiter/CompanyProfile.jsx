@@ -909,42 +909,56 @@ const CompanyProfile = () => {
                         )}
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5"> 
-  <div> 
-    <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Document Type</label> 
-    <select 
-      name="documentType" 
-      value={kycData.documentType} 
-      onChange={handleKycInputChange} 
-      className={`w-full p-3 rounded-xl border ${borderColor} ${inputBg} ${textColor}`}
-    > 
-      <option value="">Select Document Type</option>
-      <option value="GST">Company GST Certificate</option> 
-      <option value="PAN">Company PAN Card</option> 
-      <option value="FSSAI">FSSAI License</option>
-      <option value="INCORPORATION">Company Incorporation Certificate</option> 
-      <option value="SHOP_ESTABLISHMENT">Shop & Establishment Certificate</option>
-      <option value="MSME">MSME Registration Certificate</option> 
-      <option value="ID_CARD">ID Card</option>
-      <option value="OFFER_LETTER">Offer Letter</option>
-      <option value="Aadhar_Card">Aadhar Card</option>
-      <option value="CUSTOM">Custom Document</option>
-    </select> 
-  </div>
-  
-  {kycData.documentType === "CUSTOM" && (
-    <div>
-      <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Custom Document Name</label>
-      <input
-        type="text"
-        name="customDocumentName"
-        value={kycData.customDocumentName || ''}
-        onChange={handleKycInputChange}
-        placeholder="Enter document name"
-        className={`w-full p-3 rounded-xl border ${borderColor} ${inputBg} ${textColor}`}
-      />
-    </div>
-  )}
-</div>
+                          <div> 
+                            <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Document Type *</label> 
+                            <select 
+                              name="documentType" 
+                              value={kycData.documentType} 
+                              onChange={handleKycInputChange} 
+                              className={`w-full p-3 rounded-xl border ${borderColor} ${inputBg} ${textColor}`}
+                              required
+                            > 
+                              <option value="">Select Document Type</option>
+                              <option value="GST">Company GST Certificate</option> 
+                              <option value="PAN">Company PAN Card</option> 
+                              <option value="FSSAI">FSSAI License</option>
+                              <option value="INCORPORATION">Company Incorporation Certificate</option> 
+                              <option value="SHOP_ESTABLISHMENT">Shop & Establishment Certificate</option>
+                              <option value="MSME">MSME Registration Certificate</option> 
+                              <option value="ID_CARD">ID Card</option>
+                              <option value="OFFER_LETTER">Offer Letter</option>
+                              <option value="Aadhar_Card">Aadhar Card</option>
+                              <option value="CUSTOM">Custom Document</option>
+                            </select> 
+                          </div>
+                          
+                          <div>
+                            <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Document Number *</label>
+                            <input
+                              type="text"
+                              name="documentNumber"
+                              value={kycData.documentNumber}
+                              onChange={handleKycInputChange}
+                              placeholder="Enter document number"
+                              className={`w-full p-3 rounded-xl border ${borderColor} ${inputBg} ${textColor}`}
+                              required
+                            />
+                          </div>
+                          
+                          {kycData.documentType === "CUSTOM" && (
+                            <div className="md:col-span-2">
+                              <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Custom Document Name</label>
+                              <input
+                                type="text"
+                                name="customDocumentName"
+                                value={kycData.customDocumentName || ''}
+                                onChange={handleKycInputChange}
+                                placeholder="Enter document name"
+                                className={`w-full p-3 rounded-xl border ${borderColor} ${inputBg} ${textColor}`}
+                              />
+                            </div>
+                          )}
+                        </div>
 
                         <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl p-10 text-center bg-gray-50 dark:bg-gray-900/30">
                           <Upload className="mx-auto text-gray-300 mb-4" size={48} />
