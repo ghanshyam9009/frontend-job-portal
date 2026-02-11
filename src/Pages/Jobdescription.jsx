@@ -433,9 +433,27 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
 
   const parseJobDescription = (description) => {
     if (!description) return "";
+    
+    // Handle array inputs
+    if (Array.isArray(description)) {
+      return description
+        .map(item => {
+          const cleanLine = String(item).trim().replace(/^•\s*/, '');
+          return `<p class="text-gray-900 dark:text-black leading-relaxed mb-4">${cleanLine}</p>`;
+        })
+        .join('');
+    }
+    
+    // Handle object inputs
+    if (typeof description === 'object') {
+      return "";
+    }
+    
+    // Convert to string if it's not already
+    const descStr = String(description);
 
     // Simple parsing - just convert line breaks to paragraphs
-    return description
+    return descStr
       .split('\n')
       .filter(line => line.trim())
       .map(line => {
@@ -551,9 +569,9 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
               <div className="mt-4 border-t pt-4 flex flex-wrap gap-6 text-sm text-gray-600">
                 <div>📅 Posted: <strong className="text-gray-800">{formatPostedDate(job.created_at)}</strong></div>
                 <div>📧 Contact Email: <strong className="text-gray-800">{job.contact_email}</strong></div>
-              
-               
-            
+                {job.contact_number && (
+                  <div>📞 Contact Number: <strong className="text-gray-800">{job.contact_number}</strong></div>
+                )}
               </div>
 
               {/* alerts */}
@@ -666,14 +684,22 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
               )}
 
               {/* benefits */}
-              {(job.benefits?.length > 0 || job.benefits_string) && (
+              {(job.benefits?.length > 0 || job.benefits_string || job.additional_benefits) && (
                 <div className="mt-6">
                   <h3 className="font-semibold mb-2">Benefits & Perks</h3>
                   <div className="text-gray-900 dark:text-black leading-relaxed space-y-2">
                     {job.benefits?.length > 0 ? (
                       job.benefits.map((b, i) => <p key={i}>{cleanBulletPoints(b)}</p>)
-                    ) : (
+                    ) : job.benefits_string ? (
                       <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.benefits_string) }} />
+                    ) : null}
+                    
+                    {/* Additional Benefits */}
+                    {job.additional_benefits && (
+                      <div className="mt-3">
+                        <h4 className="font-medium text-sm mb-2">Additional Benefits:</h4>
+                        <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.additional_benefits) }} />
+                      </div>
                     )}
                   </div>
                 </div>

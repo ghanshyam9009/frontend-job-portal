@@ -1271,7 +1271,7 @@ const Homepage = () => {
               </div>
 
               {/* Axis Banner */}
-              <section className="hidden lg:block my-6 pt-6 transition-colors duration-300">
+              {/* <section className="hidden lg:block my-6 pt-6 transition-colors duration-300">
                 <div className="max-w-4xl mx-auto">
                   
                   <div className="">
@@ -1284,7 +1284,7 @@ const Homepage = () => {
                    
                   </div>
                 </div>
-              </section>
+              </section> */}
             </div>
           </div>
         </div>

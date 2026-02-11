@@ -37,6 +37,26 @@ const ViewApplications = () => {
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
+  // Helper function to normalize status from API
+  const normalizeStatus = (status, isShortlisted) => {
+    // If we have explicit shortlisted field, use it
+    if (typeof isShortlisted === 'boolean') {
+      return isShortlisted ? 'Shortlisted' : 'Pending';
+    }
+    
+    // Otherwise normalize the status string
+    if (!status) return 'Pending';
+    const statusLower = String(status).toLowerCase().trim();
+    
+    if (statusLower === 'shortlisted' || statusLower === 'approved' || statusLower === 'accepted') {
+      return 'Shortlisted';
+    }
+    if (statusLower === 'rejected' || statusLower === 'declined') {
+      return 'Rejected';
+    }
+    return 'Pending';
+  };
+
   useEffect(() => {
     const fetchApplications = async () => {
       if (!jobId) {
@@ -95,6 +115,12 @@ const ViewApplications = () => {
           // Get resume URL from student profile
           const resumeUrl = studentProfile.resumeUrl || studentProfile.resume || app.resume_url;
 
+          // Normalize status - check multiple possible fields
+          const normalizedStatus = normalizeStatus(
+            app.status || app.application_status,
+            app.is_shortlisted || app.shortlisted
+          );
+
           return {
             ...app,
             student_name: studentProfile.full_name || app.student_name || "Unknown Candidate",
@@ -103,7 +129,8 @@ const ViewApplications = () => {
             experience: experienceString,
             phone_number: studentProfile.phone_number || app.student_phone || "Not provided",
             skills: Array.isArray(studentProfile.skills) ? studentProfile.skills : (app.student_skills ? [app.student_skills] : []),
-            resume_url: resumeUrl, // Use the resume URL from student profile
+            resume_url: resumeUrl,
+            status: normalizedStatus, // Use normalized status
             // Include other student profile data but exclude complex objects that might cause React rendering issues
             student_profile: {
               ...studentProfile,
@@ -129,22 +156,38 @@ const ViewApplications = () => {
   const handleUpdateApplicationStatus = async (applicationId, statusBool) => {
     try {
       setActionLoading(true);
-      await recruiterExternalService.changeApplicationStatus(applicationId, statusBool);
-     
-      const updatedApplications = applications.map(app =>
-        app.application_id === applicationId
-          ? { ...app, status: statusBool ? 'Shortlisted' : 'Pending' }
-          : app
+      
+      // Call the API to update status
+      const response = await recruiterExternalService.changeApplicationStatus(applicationId, statusBool);
+      
+      console.log('Status update response:', response); // Debug log
+      
+      // Determine the new status based on the boolean
+      const newStatus = statusBool ? 'Shortlisted' : 'Pending';
+      
+      // Update local state immediately
+      setApplications(prevApplications =>
+        prevApplications.map(app =>
+          app.application_id === applicationId
+            ? { 
+                ...app, 
+                status: newStatus,
+                is_shortlisted: statusBool,
+                application_status: newStatus
+              }
+            : app
+        )
       );
-     
-      setApplications(updatedApplications);
      
       // Show success message
       const message = statusBool ? 'Application shortlisted successfully' : 'Application moved to pending';
       alert(message);
     } catch (e) {
-      console.error(e);
+      console.error('Error updating status:', e);
       alert('Failed to update application status');
+      
+      // Optionally refetch applications to ensure data consistency
+      window.location.reload();
     } finally {
       setActionLoading(false);
     }
@@ -157,20 +200,33 @@ const ViewApplications = () => {
    
     try {
       setActionLoading(true);
+      
       // Update status to rejected
-      await recruiterExternalService.changeApplicationStatus(applicationId, false);
+      const response = await recruiterExternalService.changeApplicationStatus(applicationId, false);
+      
+      console.log('Reject response:', response); // Debug log
      
-      const updatedApplications = applications.map(app =>
-        app.application_id === applicationId
-          ? { ...app, status: 'Rejected' }
-          : app
+      // Update local state
+      setApplications(prevApplications =>
+        prevApplications.map(app =>
+          app.application_id === applicationId
+            ? { 
+                ...app, 
+                status: 'Rejected',
+                is_shortlisted: false,
+                application_status: 'Rejected'
+              }
+            : app
+        )
       );
-     
-      setApplications(updatedApplications);
+      
       alert('Application rejected successfully');
     } catch (e) {
-      console.error(e);
+      console.error('Error rejecting application:', e);
       alert('Failed to reject application');
+      
+      // Optionally refetch applications to ensure data consistency
+      window.location.reload();
     } finally {
       setActionLoading(false);
     }

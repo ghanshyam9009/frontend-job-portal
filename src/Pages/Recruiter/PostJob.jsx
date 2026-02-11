@@ -54,6 +54,7 @@ const PostJob = () => {
     contact_email: user?.email || "",
     contact_number: user?.contact_number || user?.phone_number || "",
     job_status: "open",
+    additional_benefits: []
   });
   const [logoFile, setLogoFile] = useState(null);
 
@@ -146,6 +147,15 @@ const PostJob = () => {
     }));
   };
 
+  const handleBenefitChange = (benefit) => {
+    setJobData(prev => ({
+      ...prev,
+      additional_benefits: prev.additional_benefits.includes(benefit)
+        ? prev.additional_benefits.filter(b => b !== benefit)
+        : [...prev.additional_benefits, benefit]
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -156,8 +166,9 @@ const PostJob = () => {
         ...jobData,
         employer_id: user.employer_id,
         company_logo: recruiterProfile?.company_logo || recruiterProfile?.logo || null,
-        responsibilities: jobData.responsibilities.split("\n"),
-        qualifications: jobData.qualifications.split("\n"),
+        responsibilities: jobData.responsibilities.split("\n").filter(r => r.trim()),
+        qualifications: jobData.qualifications.split("\n").filter(q => q.trim()),
+        additional_benefits: jobData.additional_benefits || [],
       };
 
       // Create the job first
@@ -198,6 +209,7 @@ const PostJob = () => {
         contact_email: user?.email || "",
         contact_number: user?.contact_number || user?.phone_number || "",
         job_status: "open",
+        additional_benefits: []
       });
       setLogoFile(null);
     } catch (err) {
@@ -632,6 +644,41 @@ const PostJob = () => {
                 ))}
               </div>
             </div>
+          </div>
+
+          {/* Additional Benefits */}
+          <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-5`}>
+            <div className="flex items-center gap-2 mb-4">
+              <Award className={isDark ? 'text-yellow-400' : 'text-yellow-500'} size={20} />
+              <h2 className={`text-lg font-bold ${textColor}`}>Additional Benefits</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {[
+                'PF & ESIC',
+                'Health Insurance',
+                'Performance Bonus',
+                'Flexible Working Hours',
+                'Work From Home',
+                'Paid Leaves',
+                'Travelling Allowance',
+                'Dearness Allowance'
+              ].map((benefit) => (
+                <label key={benefit} className={`flex items-center gap-3 ${textColor} text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-md`}>
+                  <input
+                    type="checkbox"
+                    checked={jobData.additional_benefits.includes(benefit)}
+                    onChange={() => handleBenefitChange(benefit)}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                  />
+                  <span className="font-medium">{benefit}</span>
+                </label>
+              ))}
+            </div>
+
+            <p className={`text-xs ${textSecondary} mt-3`}>
+              Select the additional benefits offered by this job posting
+            </p>
           </div>
 
           {/* Error Message */}

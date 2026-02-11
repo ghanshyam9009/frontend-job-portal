@@ -424,7 +424,30 @@ function PendingJobApplications() {
   };
 
   const handleViewCandidateDetails = (application, details) => {
-    setSelectedCandidate({ ...application, details });
+    console.log('Opening modal for application:', application);
+    console.log('Application details:', details);
+    
+    // Create a comprehensive candidate object
+    const candidateData = {
+      ...application,
+      details: {
+        ...details,
+        studentDetails: details.studentDetails || {
+          name: details.studentName,
+          email: details.studentEmail,
+          phone: details.studentPhone,
+          skills: details.studentSkills || [],
+          location: null,
+          experience: null,
+          education: [],
+          bio: null,
+          resumeUrl: details.resumeUrl
+        }
+      }
+    };
+    
+    console.log('Setting candidate data:', candidateData);
+    setSelectedCandidate(candidateData);
     setShowCandidateModal(true);
   };
 
@@ -678,9 +701,9 @@ function PendingJobApplications() {
           </div>
         )}
 
-        {/* Applications List */}
+        {/* Applications List - Compact Cards */}
         {!loading && filteredApplications.length > 0 && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {filteredApplications.map((application) => {
               const details = applicationDetails[application.task_id] || {};
               const isLoadingAction = loadingApplications[application.task_id];
@@ -688,167 +711,176 @@ function PendingJobApplications() {
               return (
                 <div
                   key={application.task_id}
-                  className={`${cardBg} border ${borderColor} rounded-lg p-6 hover:border-blue-300 dark:hover:border-blue-500 transition-colors`}
+                  className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all`}
                 >
-                  {/* Header */}
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
-                        <div className={`w-full h-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg`}>
-                          {details.studentName?.charAt(0)?.toUpperCase() || 'U'}
+                  <div className="p-3">
+                    {/* Application Header */}
+                    <div className="flex items-start justify-between gap-3 mb-2.5">
+                      <div className="flex items-start gap-2 flex-1 min-w-0">
+                        <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
+                          <div className={`w-full h-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm`}>
+                            {details.studentName?.charAt(0)?.toUpperCase() || 'U'}
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className={`text-base font-bold ${textColor} leading-tight mb-1`}>
+                            {details.studentName || 'Unknown Candidate'}
+                          </h3>
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                            <span className="flex items-center gap-1 truncate">
+                              <Mail size={13} className="flex-shrink-0" />
+                              {details.studentEmail || 'No email'}
+                            </span>
+                            {details.studentPhone && (
+                              <span className="flex items-center gap-1">
+                                <Phone size={13} className="flex-shrink-0" />
+                                {details.studentPhone}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className={`text-lg font-bold ${textColor} truncate`}>
-                          {details.studentName || 'Unknown Candidate'}
-                        </h3>
-                        <p className={`text-sm ${textSecondary} truncate`}>
-                          {details.studentEmail || 'No email provided'}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-3 mt-2">
-                          <span className={`text-sm ${textSecondary} flex items-center gap-1`}>
-                            <Calendar size={14} />
-                            Applied: {formatDate(details.applicationDate)}
-                          </span>
-                          <span className={`text-sm ${textSecondary} flex items-center gap-1`}>
-                            <MapPin size={14} />
-                            {details.jobLocation || 'Location not specified'}
-                          </span>
-                          <span className={`text-sm ${textSecondary} flex items-center gap-1`}>
-                            Student ID: {application.student_id || 'N/A'}
-                          </span>
-                          <span className={`text-sm ${textSecondary} flex items-center gap-1`}>
-                            Job ID: {application.job_id || 'N/A'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${
-                        application.applicationStatus === 'approved'
-                          ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30'
-                          : application.applicationStatus === 'rejected'
-                          ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30'
-                          : 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30'
-                      }`}>
-                        {application.applicationStatus === 'approved' ? 'Approved' :
-                         application.applicationStatus === 'rejected' ? 'Rejected' : 'Pending Review'}
-                      </span>
-                      {jobTypes[application.job_id] && (
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          jobTypes[application.job_id] === 'Admin Private Job'
-                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400'
-                            : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'
-                        }`}>
-                          {jobTypes[application.job_id]}
+                      <div className="flex flex-col items-end gap-1.5">
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${
+                          application.applicationStatus === 'approved'
+                            ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30'
+                            : application.applicationStatus === 'rejected'
+                            ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30'
+                            : 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30'
+                        }`} style={{ fontSize: '0.7rem' }}>
+                          {application.applicationStatus === 'approved' ? 'Approved' :
+                           application.applicationStatus === 'rejected' ? 'Rejected' : 'Pending'}
                         </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Job Details */}
-                  <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 mb-4`}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <h4 className={`text-sm font-semibold ${textColor} mb-1 flex items-center gap-2`}>
-                          <Briefcase size={16} />
-                          Job Position
-                        </h4>
-                        <p className={`text-sm ${textSecondary}`}>{details.jobTitle}</p>
-                      </div>
-                      <div>
-                        <h4 className={`text-sm font-semibold ${textColor} mb-1 flex items-center gap-2`}>
-                          <Building size={16} />
-                          Company
-                        </h4>
-                        <p className={`text-sm ${textSecondary}`}>{details.companyName}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Skills */}
-                  {details.studentSkills && details.studentSkills.length > 0 && (
-                    <div className="mb-4">
-                      <h4 className={`text-sm font-semibold ${textColor} mb-2`}>Skills</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {details.studentSkills.slice(0, 6).map((skill, index) => (
-                          <span
-                            key={index}
-                            className={`px-3 py-1 ${isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-600'} rounded-full text-sm font-medium`}
-                          >
-                            {skill}
-                          </span>
-                        ))}
-                        {details.studentSkills.length > 6 && (
-                          <span className={`text-sm ${textSecondary}`}>
-                            +{details.studentSkills.length - 6} more
+                        {jobTypes[application.job_id] && (
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            jobTypes[application.job_id] === 'Admin Private Job'
+                              ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400'
+                              : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'
+                          }`} style={{ fontSize: '0.65rem' }}>
+                            {jobTypes[application.job_id]}
                           </span>
                         )}
                       </div>
                     </div>
-                  )}
 
-                  {/* Action Buttons */}
-                  <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <button
-                      onClick={() => handleViewCandidateDetails(application, details)}
-                      className={`px-4 py-2 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium flex items-center gap-2`}
-                    >
-                      <Eye size={16} />
-                      View Details
-                    </button>
-                    {details.resumeUrl && (
-                      <a
-                        href={details.resumeUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`px-4 py-2 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium flex items-center gap-2`}
+                    {/* Job Details */}
+                    <div className={`flex flex-wrap items-center gap-2 text-xs mb-2.5 ${textSecondary}`}>
+                      <span className="flex items-center gap-1">
+                        <Briefcase size={13} className="flex-shrink-0" />
+                        {details.jobTitle}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Building size={13} className="flex-shrink-0" />
+                        {details.companyName}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MapPin size={13} className="flex-shrink-0" />
+                        {details.jobLocation || 'Not specified'}
+                      </span>
+                    </div>
+
+                    {/* Application Info Bar */}
+                    <div className={`flex flex-wrap gap-1.5 mb-2.5`}>
+                      <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'} flex items-center gap-1`} style={{ fontSize: '0.7rem' }}>
+                        <Calendar size={12} />
+                        Applied: {formatDate(details.applicationDate)}
+                      </span>
+                      <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`} style={{ fontSize: '0.7rem' }}>
+                        Student ID: {application.student_id || 'N/A'}
+                      </span>
+                      <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`} style={{ fontSize: '0.7rem' }}>
+                        Job ID: {application.job_id || 'N/A'}
+                      </span>
+                    </div>
+
+                    {/* Skills */}
+                    {details.studentSkills && details.studentSkills.length > 0 && (
+                      <div className="mb-2.5">
+                        <div className="flex flex-wrap gap-1.5">
+                          {details.studentSkills.slice(0, 4).map((skill, index) => (
+                            <span
+                              key={index}
+                              className={`px-2 py-1 ${isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-600'} rounded-full text-xs font-medium`}
+                              style={{ fontSize: '0.7rem' }}
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                          {details.studentSkills.length > 4 && (
+                            <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.7rem' }}>
+                              +{details.studentSkills.length - 4} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        onClick={() => handleViewCandidateDetails(application, details)}
+                        className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5`}
+                        style={{ fontSize: '0.7rem' }}
                       >
-                        <Download size={16} />
-                        Resume
-                      </a>
-                    )}
-                    <div className="flex-1"></div>
-                    {application.applicationStatus === 'pending' && (
-                      <>
-                        <button
-                          onClick={() => handleRejectApplication(application.task_id)}
-                          disabled={isLoadingAction}
-                          className={`px-4 py-2 border border-red-300 text-red-700 bg-red-50 hover:bg-red-100 dark:border-red-500/30 dark:text-red-400 dark:bg-red-500/20 dark:hover:bg-red-500/30 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+                        <Eye size={13} />
+                        <span className="hidden sm:inline">View Details</span>
+                        <span className="sm:hidden">View</span>
+                      </button>
+                      {details.resumeUrl && (
+                        <a
+                          href={details.resumeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5`}
+                          style={{ fontSize: '0.7rem' }}
                         >
-                          {isLoadingAction ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500"></div>
-                          ) : (
-                            <X size={16} />
-                          )}
-                          Reject
-                        </button>
-                        <button
-                          onClick={() => handleApproveApplication(application.task_id)}
-                          disabled={isLoadingAction}
-                          className={`px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                          {isLoadingAction ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          ) : (
-                            <Check size={16} />
-                          )}
-                          Approve
-                        </button>
-                      </>
-                    )}
-                    {application.applicationStatus === 'approved' && (
-                      <span className="px-4 py-2 text-green-700 dark:text-green-400 text-sm font-medium flex items-center gap-2">
-                        <Check size={16} />
-                        Approved
-                      </span>
-                    )}
-                    {application.applicationStatus === 'rejected' && (
-                      <span className="px-4 py-2 text-red-700 dark:text-red-400 text-sm font-medium flex items-center gap-2">
-                        <X size={16} />
-                        Rejected
-                      </span>
-                    )}
+                          <Download size={13} />
+                          Resume
+                        </a>
+                      )}
+                      {application.applicationStatus === 'pending' && (
+                        <>
+                          <button
+                            onClick={() => handleRejectApplication(application.task_id)}
+                            disabled={isLoadingAction}
+                            className={`flex-1 sm:flex-initial px-3 py-1.5 border border-red-300 text-red-700 bg-red-50 hover:bg-red-100 dark:border-red-500/30 dark:text-red-400 dark:bg-red-500/20 dark:hover:bg-red-500/30 rounded-lg transition-colors text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed`}
+                            style={{ fontSize: '0.7rem' }}
+                          >
+                            {isLoadingAction ? (
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-500"></div>
+                            ) : (
+                              <X size={13} />
+                            )}
+                            Reject
+                          </button>
+                          <button
+                            onClick={() => handleApproveApplication(application.task_id)}
+                            disabled={isLoadingAction}
+                            className={`flex-1 sm:flex-initial px-3 py-1.5 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed`}
+                            style={{ fontSize: '0.7rem' }}
+                          >
+                            {isLoadingAction ? (
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                            ) : (
+                              <Check size={13} />
+                            )}
+                            Approve
+                          </button>
+                        </>
+                      )}
+                      {application.applicationStatus === 'approved' && (
+                        <span className="flex-1 sm:flex-initial px-3 py-1.5 text-green-700 dark:text-green-400 text-xs font-medium flex items-center justify-center gap-1.5" style={{ fontSize: '0.7rem' }}>
+                          <Check size={13} />
+                          Approved
+                        </span>
+                      )}
+                      {application.applicationStatus === 'rejected' && (
+                        <span className="flex-1 sm:flex-initial px-3 py-1.5 text-red-700 dark:text-red-400 text-xs font-medium flex items-center justify-center gap-1.5" style={{ fontSize: '0.7rem' }}>
+                          <X size={13} />
+                          Rejected
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -864,70 +896,108 @@ function PendingJobApplications() {
           onClick={() => setShowCandidateModal(false)}
         >
           <div
-            className={`${cardBg} rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto`}
+            className={`${cardBg} rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl`}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className={`flex items-center justify-between p-5 border-b ${borderColor}`}>
+            {/* Modal Header */}
+            <div className={`sticky top-0 flex items-center justify-between p-5 border-b ${borderColor} ${cardBg} z-10`}>
               <h2 className={`text-xl font-bold ${textColor}`}>Candidate Details</h2>
               <button
                 onClick={() => setShowCandidateModal(false)}
-                className={`${textSecondary} hover:${textColor} transition-colors`}
+                className={`${textSecondary} hover:text-red-500 transition-colors p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded`}
               >
                 <X size={24} />
               </button>
             </div>
 
-            <div className="p-5 space-y-4">
-              {/* Basic Info */}
-              <div>
-                <h3 className={`text-lg font-bold ${textColor} mb-2`}>
-                  {selectedCandidate.details?.studentName || 'Unknown Candidate'}
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className={`block text-sm font-semibold ${textColor} mb-1`}>Email</label>
-                    <p className={`text-sm ${textSecondary}`}>{selectedCandidate.details?.studentEmail || 'Not provided'}</p>
+            <div className="p-5 space-y-5">
+              {/* Candidate Header */}
+              <div className={`${isDark ? 'bg-gradient-to-r from-purple-900/20 to-blue-900/20' : 'bg-gradient-to-r from-purple-50 to-blue-50'} rounded-lg p-4 border ${borderColor}`}>
+                <div className="flex items-start gap-4">
+                  <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
+                    <div className={`w-full h-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl`}>
+                      {selectedCandidate.details?.studentName?.charAt(0)?.toUpperCase() || 'U'}
+                    </div>
                   </div>
-                  <div>
-                    <label className={`block text-sm font-semibold ${textColor} mb-1`}>Phone</label>
-                    <p className={`text-sm ${textSecondary}`}>{selectedCandidate.details?.studentPhone || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <label className={`block text-sm font-semibold ${textColor} mb-1`}>Location</label>
-                    <p className={`text-sm ${textSecondary}`}>{selectedCandidate.details?.studentDetails?.location || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <label className={`block text-sm font-semibold ${textColor} mb-1`}>Experience</label>
-                    <p className={`text-sm ${textSecondary}`}>{selectedCandidate.details?.studentDetails?.experience || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <label className={`block text-sm font-semibold ${textColor} mb-1`}>Application Date</label>
-                    <p className={`text-sm ${textSecondary}`}>{formatDate(selectedCandidate.details?.applicationDate)}</p>
+                  <div className="flex-1">
+                    <h3 className={`text-2xl font-bold ${textColor} mb-2`}>
+                      {selectedCandidate.details?.studentName || 'Unknown Candidate'}
+                    </h3>
+                    <div className="flex flex-wrap gap-3 text-sm">
+                      {selectedCandidate.details?.studentEmail && (
+                        <span className={`flex items-center gap-1.5 ${textSecondary}`}>
+                          <Mail size={16} className="text-blue-500" />
+                          {selectedCandidate.details.studentEmail}
+                        </span>
+                      )}
+                      {selectedCandidate.details?.studentPhone && (
+                        <span className={`flex items-center gap-1.5 ${textSecondary}`}>
+                          <Phone size={16} className="text-green-500" />
+                          {selectedCandidate.details.studentPhone}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Education */}
-              {selectedCandidate.details?.studentDetails?.education && selectedCandidate.details.studentDetails.education.length > 0 && (
-                <div>
-                  <h4 className={`text-md font-bold ${textColor} mb-2`}>Education</h4>
-                  <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-3 border ${borderColor}`}>
-                    {selectedCandidate.details.studentDetails.education.map((edu, index) => (
-                      <p key={index} className={`text-sm ${textSecondary}`}>{edu}</p>
-                    ))}
+              {/* Application Info */}
+              <div>
+                <h4 className={`text-lg font-bold ${textColor} mb-3 flex items-center gap-2`}>
+                  <Briefcase size={20} className="text-blue-500" />
+                  Application Information
+                </h4>
+                <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 border ${borderColor}`}>
+                  <div>
+                    <label className={`block text-xs font-semibold ${textSecondary} mb-1 uppercase`}>Job Position</label>
+                    <p className={`text-sm ${textColor} font-medium`}>{selectedCandidate.details?.jobTitle || 'Not specified'}</p>
                   </div>
+                  <div>
+                    <label className={`block text-xs font-semibold ${textSecondary} mb-1 uppercase`}>Company</label>
+                    <p className={`text-sm ${textColor} font-medium`}>{selectedCandidate.details?.companyName || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-semibold ${textSecondary} mb-1 uppercase`}>Location</label>
+                    <p className={`text-sm ${textColor} font-medium`}>
+                      {selectedCandidate.details?.jobLocation || selectedCandidate.details?.studentDetails?.location || 'Not specified'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-semibold ${textSecondary} mb-1 uppercase`}>Application Date</label>
+                    <p className={`text-sm ${textColor} font-medium`}>{formatDate(selectedCandidate.details?.applicationDate)}</p>
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-semibold ${textSecondary} mb-1 uppercase`}>Student ID</label>
+                    <p className={`text-sm ${textColor} font-medium`}>{selectedCandidate.student_id || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-semibold ${textSecondary} mb-1 uppercase`}>Job ID</label>
+                    <p className={`text-sm ${textColor} font-medium`}>{selectedCandidate.job_id || 'N/A'}</p>
+                  </div>
+                  {selectedCandidate.details?.studentDetails?.experience && (
+                    <div>
+                      <label className={`block text-xs font-semibold ${textSecondary} mb-1 uppercase`}>Experience</label>
+                      <p className={`text-sm ${textColor} font-medium`}>{selectedCandidate.details.studentDetails.experience}</p>
+                    </div>
+                  )}
+                  {selectedCandidate.details?.studentDetails?.experience_years && (
+                    <div>
+                      <label className={`block text-xs font-semibold ${textSecondary} mb-1 uppercase`}>Years of Experience</label>
+                      <p className={`text-sm ${textColor} font-medium`}>{selectedCandidate.details.studentDetails.experience_years} years</p>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
 
               {/* Skills */}
-              {selectedCandidate.details?.studentDetails?.skills && selectedCandidate.details.studentDetails.skills.length > 0 && (
+              {selectedCandidate.details?.studentSkills && selectedCandidate.details.studentSkills.length > 0 && (
                 <div>
-                  <h4 className={`text-md font-bold ${textColor} mb-2`}>Skills</h4>
+                  <h4 className={`text-lg font-bold ${textColor} mb-3`}>Skills</h4>
                   <div className="flex flex-wrap gap-2">
-                    {selectedCandidate.details.studentDetails.skills.map((skill, index) => (
+                    {selectedCandidate.details.studentSkills.map((skill, index) => (
                       <span
                         key={index}
-                        className={`px-3 py-1 ${isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-600'} rounded-full text-sm font-medium`}
+                        className={`px-3 py-1.5 ${isDark ? 'bg-blue-900/30 text-blue-400 border border-blue-500/30' : 'bg-blue-100 text-blue-700 border border-blue-200'} rounded-full text-sm font-medium`}
                       >
                         {skill}
                       </span>
@@ -936,12 +1006,51 @@ function PendingJobApplications() {
                 </div>
               )}
 
+              {/* Education */}
+              {selectedCandidate.details?.studentDetails?.education && selectedCandidate.details.studentDetails.education.length > 0 && (
+                <div>
+                  <h4 className={`text-lg font-bold ${textColor} mb-3`}>Education</h4>
+                  <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 border ${borderColor} space-y-2`}>
+                    {selectedCandidate.details.studentDetails.education.map((edu, index) => (
+                      <div key={index} className="flex items-start gap-2">
+                        <div className={`w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0`}></div>
+                        <p className={`text-sm ${textColor}`}>{edu}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Department & CGPA */}
+              {(selectedCandidate.details?.studentDetails?.department || selectedCandidate.details?.studentDetails?.cgpa) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {selectedCandidate.details?.studentDetails?.department && (
+                    <div>
+                      <h4 className={`text-lg font-bold ${textColor} mb-2`}>Department</h4>
+                      <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-3 border ${borderColor}`}>
+                        <p className={`text-sm ${textColor}`}>{selectedCandidate.details.studentDetails.department}</p>
+                      </div>
+                    </div>
+                  )}
+                  {selectedCandidate.details?.studentDetails?.cgpa && (
+                    <div>
+                      <h4 className={`text-lg font-bold ${textColor} mb-2`}>CGPA</h4>
+                      <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-3 border ${borderColor}`}>
+                        <p className={`text-sm ${textColor} font-semibold`}>{selectedCandidate.details.studentDetails.cgpa}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Bio */}
               {selectedCandidate.details?.studentDetails?.bio && (
                 <div>
-                  <h4 className={`text-md font-bold ${textColor} mb-2`}>Bio</h4>
-                  <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-3 border ${borderColor}`}>
-                    <p className={`text-sm ${textSecondary} whitespace-pre-wrap`}>{selectedCandidate.details.studentDetails.bio}</p>
+                  <h4 className={`text-lg font-bold ${textColor} mb-3`}>About</h4>
+                  <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 border ${borderColor}`}>
+                    <p className={`text-sm ${textColor} whitespace-pre-wrap leading-relaxed`}>
+                      {selectedCandidate.details.studentDetails.bio}
+                    </p>
                   </div>
                 </div>
               )}
@@ -949,24 +1058,51 @@ function PendingJobApplications() {
               {/* Resume */}
               {selectedCandidate.details?.resumeUrl && (
                 <div>
-                  <h4 className={`text-md font-bold ${textColor} mb-2`}>Resume</h4>
+                  <h4 className={`text-lg font-bold ${textColor} mb-3`}>Resume</h4>
                   <a
                     href={selectedCandidate.details.resumeUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="inline-flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg font-medium"
                   >
-                    <Download size={16} />
+                    <Download size={18} />
                     Download Resume
                   </a>
                 </div>
               )}
+
+              {/* Application Status */}
+              <div>
+                <h4 className={`text-lg font-bold ${textColor} mb-3`}>Application Status</h4>
+                <div className="flex items-center gap-3">
+                  <span className={`px-4 py-2 rounded-lg text-sm font-semibold border ${
+                    selectedCandidate.applicationStatus === 'approved'
+                      ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30'
+                      : selectedCandidate.applicationStatus === 'rejected'
+                      ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30'
+                      : 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30'
+                  }`}>
+                    {selectedCandidate.applicationStatus === 'approved' ? '✓ Approved' :
+                     selectedCandidate.applicationStatus === 'rejected' ? '✗ Rejected' : '⏳ Pending Review'}
+                  </span>
+                  {jobTypes[selectedCandidate.job_id] && (
+                    <span className={`px-3 py-2 rounded-lg text-sm font-medium border ${
+                      jobTypes[selectedCandidate.job_id] === 'Admin Private Job'
+                        ? 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/20 dark:text-purple-400 dark:border-purple-500/30'
+                        : 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
+                    }`}>
+                      {jobTypes[selectedCandidate.job_id]}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className={`flex justify-end gap-2 p-5 border-t ${borderColor}`}>
+            {/* Modal Footer */}
+            <div className={`sticky bottom-0 flex justify-end gap-3 p-5 border-t ${borderColor} ${cardBg}`}>
               <button
                 onClick={() => setShowCandidateModal(false)}
-                className={`px-6 py-2 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors`}
+                className={`px-6 py-2.5 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium`}
               >
                 Close
               </button>
