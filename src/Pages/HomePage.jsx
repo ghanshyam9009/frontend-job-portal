@@ -965,7 +965,7 @@ const Homepage = () => {
 
       <div className={`transition-colors duration-300 ${bgColor}`}>
         {/* Axis Banner */}
-        <section className={`${bgColor} mx-4 mt-4 transition-colors duration-300`}>
+        {/* <section className={`${bgColor} mx-4 mt-4 transition-colors duration-300`}>
           <div className="max-w-3xl mx-auto">
             <div className="rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
               <img 
@@ -976,7 +976,7 @@ const Homepage = () => {
               />
             </div>
           </div>
-        </section>
+        </section> */}
   </div>
 
       {/* Action Cards Section */}
@@ -1271,7 +1271,7 @@ const Homepage = () => {
               </div>
 
               {/* Axis Banner */}
-              {/* <section className="hidden lg:block my-6 pt-6 transition-colors duration-300">
+              <section className="hidden lg:block my-6 pt-6 transition-colors duration-300">
                 <div className="max-w-4xl mx-auto">
                   
                   <div className="">
@@ -1284,7 +1284,7 @@ const Homepage = () => {
                    
                   </div>
                 </div>
-              </section> */}
+              </section>
             </div>
           </div>
         </div>

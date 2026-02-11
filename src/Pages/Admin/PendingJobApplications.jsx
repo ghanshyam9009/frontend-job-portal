@@ -1006,17 +1006,28 @@ function PendingJobApplications() {
                 </div>
               )}
 
-              {/* Education */}
-              {selectedCandidate.details?.studentDetails?.education && selectedCandidate.details.studentDetails.education.length > 0 && (
+              {/* Education - FIXED */}
+              {selectedCandidate.details?.studentDetails?.education && 
+               Array.isArray(selectedCandidate.details.studentDetails.education) && 
+               selectedCandidate.details.studentDetails.education.length > 0 && (
                 <div>
                   <h4 className={`text-lg font-bold ${textColor} mb-3`}>Education</h4>
                   <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 border ${borderColor} space-y-2`}>
-                    {selectedCandidate.details.studentDetails.education.map((edu, index) => (
-                      <div key={index} className="flex items-start gap-2">
-                        <div className={`w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0`}></div>
-                        <p className={`text-sm ${textColor}`}>{edu}</p>
-                      </div>
-                    ))}
+                    {selectedCandidate.details.studentDetails.education.map((edu, index) => {
+                      // Handle different data types - convert objects to strings
+                      const eduText = typeof edu === 'string' 
+                        ? edu 
+                        : typeof edu === 'object' && edu !== null
+                          ? (edu.institution || edu.university || edu.degree || JSON.stringify(edu))
+                          : String(edu);
+                      
+                      return (
+                        <div key={index} className="flex items-start gap-2">
+                          <div className={`w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0`}></div>
+                          <p className={`text-sm ${textColor}`}>{eduText}</p>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
