@@ -57,7 +57,7 @@ const AdminEmployerJobs = () => {
   const [newSkill, setNewSkill] = useState("");
   const [actionLoading, setActionLoading] = useState(null);
   
-  const jobsPerPage = 10;
+  const jobsPerPage = 25;
 
   const isDark = theme === 'dark';
   const bgColor = isDark ? 'bg-gray-900' : 'bg-gray-50';

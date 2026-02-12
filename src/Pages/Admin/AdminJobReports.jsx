@@ -16,7 +16,7 @@ const AdminJobReports = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const jobsPerPage = 10;
+  const jobsPerPage = 25;
 
   useEffect(() => {
     fetchJobReports();
@@ -29,19 +29,74 @@ const AdminJobReports = () => {
       const jobsData = await adminService.getJobsWithApplicationCounts();
 
       // Filter to only show jobs posted by recruiters (not admin jobs)
-      // Also filter out government jobs and sort by latest date first
-      const filteredData = jobsData
+      // Also filter out government jobs
+      const recruiterJobs = jobsData
         .filter(job => {
           const postedBy = (job.posted_by || '').toUpperCase();
           const isRecruiterJob = postedBy === 'RECRUITER' || postedBy === 'EMPLOYER';
           const isNotGovernment = job.job_type !== "GOVERNMENT";
           return isRecruiterJob && isNotGovernment;
-        })
-        .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        });
 
-      console.log('Loaded recruiter job reports:', filteredData.length);
-      setJobs(filteredData);
-      setFilteredJobs(filteredData);
+      console.log('Filtered recruiter jobs:', recruiterJobs.length);
+
+      // Fetch pending tasks to count pending applications
+      let pendingTasksData = [];
+      try {
+        pendingTasksData = await adminService.getPendingJobs();
+      } catch (err) {
+        console.warn('Failed to fetch pending tasks:', err);
+      }
+
+      // Fetch actual application counts for each job
+      const jobsWithActualCounts = await Promise.all(
+        recruiterJobs.map(async (job) => {
+          try {
+            // Fetch applications for this specific job
+            const applicationsData = await adminService.getApplicationsForJob(job.id);
+            const applications = applicationsData.applications || [];
+            
+            // Count pending applications for this job
+            const pendingApplicationsForJob = pendingTasksData.filter(task => 
+              task.category === 'newapplication' && 
+              task.status === 'pending' && 
+              task.job_id === job.id
+            );
+
+            // Total count = approved applications + pending applications
+            const totalCount = applications.length + pendingApplicationsForJob.length;
+            
+            console.log(`Job: ${job.job_title}, ID: ${job.id}, Approved: ${applications.length}, Pending: ${pendingApplicationsForJob.length}, Total: ${totalCount}`);
+            
+            return {
+              ...job,
+              application_count: totalCount,
+              approved_count: applications.length,
+              pending_count: pendingApplicationsForJob.length
+            };
+          } catch (error) {
+            console.error(`Failed to fetch applications for job ${job.id}:`, error);
+            // Return job with original count or 0
+            return {
+              ...job,
+              application_count: job.application_count || 0,
+              approved_count: 0,
+              pending_count: 0
+            };
+          }
+        })
+      );
+
+      // Sort by latest date first
+      const sortedJobs = jobsWithActualCounts.sort((a, b) => 
+        new Date(b.created_at || 0) - new Date(a.created_at || 0)
+      );
+
+      console.log('Loaded recruiter job reports with actual counts:', sortedJobs.length);
+      console.log('Total applications across all jobs:', sortedJobs.reduce((sum, job) => sum + (job.application_count || 0), 0));
+      
+      setJobs(sortedJobs);
+      setFilteredJobs(sortedJobs);
     } catch (error) {
       console.error('Failed to fetch job application reports:', error);
       setError('Failed to fetch job application reports. Please try again.');
@@ -185,7 +240,13 @@ const AdminJobReports = () => {
   };
 
   const handleViewApplications = (job) => {
-    navigate(`/admin/job-reports/applications/${job.id}`);
+    navigate(`/admin/job-reports/applications/${job.id}`, {
+      state: { 
+        totalApplications: job.application_count || 0,
+        jobTitle: job.job_title,
+        companyName: job.company_name
+      }
+    });
   };
 
   const handleQuickExport = async (job) => {
@@ -507,6 +568,26 @@ const AdminJobReports = () => {
                     <span className={`text-xs font-semibold ${textColor}`}>{job.application_count || 0}</span>
                     <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.65rem' }}>applications</span>
                   </div>
+                  {job.approved_count !== undefined && job.pending_count !== undefined && (
+                    <>
+                      <div className="h-3 w-px bg-gray-300 dark:bg-gray-600"></div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
+                          <span className={`text-xs font-semibold text-green-600 dark:text-green-400`}>{job.approved_count}</span>
+                          <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.6rem' }}>approved</span>
+                        </div>
+                        {job.pending_count > 0 && (
+                          <>
+                            <span className={`text-xs ${textSecondary}`}>•</span>
+                            <div className="flex items-center gap-1">
+                              <span className={`text-xs font-semibold text-yellow-600 dark:text-yellow-400`}>{job.pending_count}</span>
+                              <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.6rem' }}>pending</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Action Buttons */}

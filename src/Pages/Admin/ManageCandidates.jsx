@@ -34,7 +34,7 @@ const ManageCandidates = () => {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [actionLoading, setActionLoading] = useState(null);
-  const candidatesPerPage = 10;
+  const candidatesPerPage = 25;
 
   // Fetch candidates data from API
   useEffect(() => {

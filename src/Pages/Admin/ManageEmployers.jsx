@@ -34,7 +34,7 @@ const ManageEmployers = () => {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [actionLoading, setActionLoading] = useState(null);
-  const recruitersPerPage = 10;
+  const recruitersPerPage = 25;
 
   // Fetch recruiters data from API
   useEffect(() => {

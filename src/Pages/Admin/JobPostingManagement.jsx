@@ -24,7 +24,7 @@ const JobPostingManagement = () => {
   const [showCandidateModal, setShowCandidateModal] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [studentNames, setStudentNames] = useState({});
-  const jobsPerPage = 10;
+  const jobsPerPage = 25;
 
   // Form state for adding/editing jobs
   const [formData, setFormData] = useState({

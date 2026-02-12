@@ -16,7 +16,7 @@ const AdminGovernmentJobs = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const jobsPerPage = 10;
+  const jobsPerPage = 25;
 
   // Fetch government jobs data
   const fetchJobs = async () => {

@@ -87,7 +87,7 @@ const ManageJobs = () => {
   const [applicantDetails, setApplicantDetails] = useState(null);
   const [newSkill, setNewSkill] = useState("");
   const [loadingJobEdit, setLoadingJobEdit] = useState(false);
-  const jobsPerPage = 10;
+  const jobsPerPage = 25;
 
   // Cache for API calls
   const [recruiterCache, setRecruiterCache] = useState({});
