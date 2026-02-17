@@ -632,7 +632,7 @@ const AdminEmployerJobs = () => {
                   </button>
 
                   {/* Edit Job Button */}
-                  <button
+                  {/* <button
                     onClick={() => {
                       console.log('AdminEmployerJobs: EDIT button clicked for job:', job.job_title);
                       handleEditJob(job);
@@ -643,7 +643,7 @@ const AdminEmployerJobs = () => {
                   >
                     <Edit size={13} />
                     Edit
-                  </button>
+                  </button> */}
 
                   {/* Premium Toggle Button */}
                   <button

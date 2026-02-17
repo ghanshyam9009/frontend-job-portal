@@ -309,7 +309,7 @@ const ManageJobs = () => {
               qualifications: Array.isArray(job.qualifications) ? job.qualifications.join("\n") : job.qualifications || "",
               application_deadline: job.application_deadline || "",
               contact_email: job.contact_email || "",
-              // contact_number: job.contact_number || "",
+              contact_number: job.contact_number || "",
               job_status: job.job_status || "open",
             });
           } else {
@@ -1172,49 +1172,51 @@ const ManageJobs = () => {
                         {/* Basic Information */}
                         <div>
                           <h3 className={`text-lg font-semibold ${textColor} mb-4 flex items-center gap-2`}>
-                            <Briefcase size={18} className="text-blue-500" />
+                            <Briefcase size={18} className="text-purple-500" />
                             Basic Information
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                               <label className={`text-xs font-semibold ${textSecondary} mb-1 block`}>Job Title</label>
-                              <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} bg-gray-50 dark:bg-gray-700`}>
+                              <div className={`w-full px-3 py-2 border-2 ${isDark ? 'border-purple-500/30 bg-purple-900/20' : 'border-purple-200 bg-purple-50'} rounded-lg text-sm ${textColor} font-medium`}>
                                 {jobData.job_title || 'Not specified'}
                               </div>
                             </div>
                             <div>
                               <label className={`text-xs font-semibold ${textSecondary} mb-1 block`}>Company Name</label>
-                              <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} bg-gray-50 dark:bg-gray-700`}>
+                              <div className={`w-full px-3 py-2 border-2 ${isDark ? 'border-purple-500/30 bg-purple-900/20' : 'border-purple-200 bg-purple-50'} rounded-lg text-sm ${textColor} font-medium`}>
                                 {jobData.company_name || 'Not specified'}
                               </div>
                             </div>
                             <div>
                               <label className={`text-xs font-semibold ${textSecondary} mb-1 block`}>Location</label>
-                              <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} bg-gray-50 dark:bg-gray-700`}>
+                              <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                                 {jobData.location || 'Not specified'}
                               </div>
                             </div>
                             <div>
                               <label className={`text-xs font-semibold ${textSecondary} mb-1 block`}>Employment Type</label>
-                              <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} bg-gray-50 dark:bg-gray-700`}>
+                              <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                                 {jobData.employment_type || 'Not specified'}
                               </div>
                             </div>
                             <div>
                               <label className={`text-xs font-semibold ${textSecondary} mb-1 block`}>Work Mode</label>
-                              <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} bg-gray-50 dark:bg-gray-700`}>
+                              <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                                 {jobData.work_mode || 'Not specified'}
                               </div>
                             </div>
                             <div>
                               <label className={`text-xs font-semibold ${textSecondary} mb-1 block`}>Contact Email</label>
-                              <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} bg-gray-50 dark:bg-gray-700`}>
+                              <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} flex items-center gap-2`}>
+                                <Mail size={14} className={textSecondary} />
                                 {jobData.contact_email || 'Not specified'}
                               </div>
                             </div>
                             <div>
                               <label className={`text-xs font-semibold ${textSecondary} mb-1 block`}>Contact Number</label>
-                              <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} bg-gray-50 dark:bg-gray-700`}>
+                              <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} flex items-center gap-2`}>
+                                <Phone size={14} className={textSecondary} />
                                 {jobData.contact_number || 'Not specified'}
                               </div>
                             </div>
@@ -1224,7 +1226,7 @@ const ManageJobs = () => {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                             <div>
                               <label className={`text-xs font-semibold ${textSecondary} mb-1 block`}>Salary Range</label>
-                              <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} bg-gray-50 dark:bg-gray-700`}>
+                              <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                                 {jobData.salary_range?.min && jobData.salary_range?.max
                                   ? `${jobData.salary_range.currency || 'INR'} ${jobData.salary_range.min} - ${jobData.salary_range.max}`
                                   : 'Not specified'}
@@ -1232,7 +1234,7 @@ const ManageJobs = () => {
                             </div>
                             <div>
                               <label className={`text-xs font-semibold ${textSecondary} mb-1 block`}>Experience (Years)</label>
-                              <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} bg-gray-50 dark:bg-gray-700`}>
+                              <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                                 {jobData.experience_required?.min_years && jobData.experience_required?.max_years
                                   ? `${jobData.experience_required.min_years} - ${jobData.experience_required.max_years} years`
                                   : 'Not specified'}
@@ -1244,26 +1246,26 @@ const ManageJobs = () => {
                         {/* Job Details */}
                         <div>
                           <h3 className={`text-lg font-semibold ${textColor} mb-4 flex items-center gap-2`}>
-                            <FileText size={18} className="text-blue-500" />
+                            <FileText size={18} className="text-purple-500" />
                             Job Details
                           </h3>
                           <div className="space-y-4">
                             <div>
                               <label className={`text-xs font-semibold ${textSecondary} mb-1 block`}>Description</label>
-                              <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} bg-gray-50 dark:bg-gray-700 min-h-[100px] whitespace-pre-wrap`}>
+                              <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} min-h-[100px] whitespace-pre-wrap`}>
                                 {jobData.description || 'Not specified'}
                               </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
                                 <label className={`text-xs font-semibold ${textSecondary} mb-1 block`}>Responsibilities</label>
-                                <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} bg-gray-50 dark:bg-gray-700 min-h-[80px] whitespace-pre-wrap`}>
+                                <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} min-h-[80px] whitespace-pre-wrap`}>
                                   {jobData.responsibilities || 'Not specified'}
                                 </div>
                               </div>
                               <div>
                                 <label className={`text-xs font-semibold ${textSecondary} mb-1 block`}>Qualifications</label>
-                                <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} bg-gray-50 dark:bg-gray-700 min-h-[80px] whitespace-pre-wrap`}>
+                                <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} min-h-[80px] whitespace-pre-wrap`}>
                                   {jobData.qualifications || 'Not specified'}
                                 </div>
                               </div>
@@ -1279,7 +1281,7 @@ const ManageJobs = () => {
                               jobData.skills_required.map((skill, index) => (
                                 <span
                                   key={index}
-                                  className={`px-3 py-1 ${isDark ? 'bg-blue-900/30 text-blue-400 border border-blue-700' : 'bg-blue-100 text-blue-700 border border-blue-200'} rounded-lg text-sm`}
+                                  className={`px-3 py-1.5 ${isDark ? 'bg-purple-900/30 text-purple-400 border border-purple-700' : 'bg-purple-100 text-purple-700 border border-purple-200'} rounded-lg text-sm font-medium`}
                                 >
                                   {skill}
                                 </span>
@@ -1293,7 +1295,7 @@ const ManageJobs = () => {
                         {/* Application Deadline */}
                         <div>
                           <label className={`text-xs font-semibold ${textSecondary} mb-1 block`}>Application Deadline</label>
-                          <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} bg-gray-50 dark:bg-gray-700`}>
+                          <div className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                             {jobData.application_deadline ? formatDate(jobData.application_deadline) : 'Not specified'}
                           </div>
                         </div>

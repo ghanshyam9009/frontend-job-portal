@@ -262,7 +262,8 @@ const AdminPostJob = () => {
         application_deadline: deadlineDate,
         contact_email: job.contact_email || "",
         contact_number: job.contact_number || "",
-        is_premium: job.is_premium || false
+        is_premium: job.is_premium || false,
+        additional_benefits: Array.isArray(job.additional_benefits) ? job.additional_benefits : []
       };
 
       setFormData(formDataToSet);
@@ -274,6 +275,7 @@ const AdminPostJob = () => {
       console.log('Responsibilities lines:', responsibilitiesText ? responsibilitiesText.split('\n').length : 0);
       console.log('Qualifications lines:', qualificationsText ? qualificationsText.split('\n').length : 0);
       console.log('Is Premium:', formDataToSet.is_premium);
+      console.log('Additional Benefits:', formDataToSet.additional_benefits);
       console.log('=========================');
     } catch (error) {
       console.error('=== ERROR FETCHING JOB ===');
@@ -324,9 +326,9 @@ const AdminPostJob = () => {
   const handleBenefitChange = (benefit) => {
     setFormData(prev => ({
       ...prev,
-      additional_benefits: prev.additional_benefits.includes(benefit)
-        ? prev.additional_benefits.filter(b => b !== benefit)
-        : [...prev.additional_benefits, benefit]
+      additional_benefits: (prev.additional_benefits || []).includes(benefit)
+        ? (prev.additional_benefits || []).filter(b => b !== benefit)
+        : [...(prev.additional_benefits || []), benefit]
     }));
   };
 
@@ -939,7 +941,7 @@ const AdminPostJob = () => {
                 <label key={benefit} className={`flex items-center gap-3 ${textColor} text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-md`}>
                   <input
                     type="checkbox"
-                    checked={formData.additional_benefits.includes(benefit)}
+                    checked={(formData.additional_benefits || []).includes(benefit)}
                     onChange={() => handleBenefitChange(benefit)}
                     className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                   />

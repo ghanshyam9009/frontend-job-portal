@@ -523,12 +523,16 @@ const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
                 <div className="flex-1 min-w-0">
 
                   <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
-                    <span className="font-semibold text-base text-slate-800 dark:text-black">{job.company_name || "Company"}</span>
+                    <span className="font-semibold text-base text-slate-800 dark:text-black">{job.job_title || "Job_title"}</span>
                     {job.company_rating && <span className="text-yellow-500">⭐ {job.company_rating}</span>}
                     {job.company_reviews && <span className="text-gray-400">({job.company_reviews} Reviews)</span>}
                     {job.is_premium && (
                       <span className="ml-2 bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Premium</span>
                     )}
+                  </div>
+                   <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
+                    <span className="font-semibold text-base text-slate-800 dark:text-black">{job.company_name || "Company"}</span>
+                   
                   </div>
 
                   <div className="flex flex-wrap gap-4 text-sm text-gray-600">

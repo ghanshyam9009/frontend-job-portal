@@ -21,7 +21,7 @@ const AdminJobs = () => {
   const [error, setError] = useState("");
   const jobsPerPage = 25;
 
-  // Fetch jobs data
+  // Fetch jobs data — mirrors AdminJobReports pattern exactly
   const fetchJobs = async () => {
     try {
       setLoading(true);
@@ -36,13 +36,31 @@ const AdminJobs = () => {
         .filter(job => job.posted_by?.toUpperCase() !== 'RECRUITER')
         .filter(job => job.status !== 'closed');
 
-      const jobsWithDefaultCounts = adminJobs.map(job => ({
-        ...job,
-        application_count: 0,
-        applications: []
-      }));
+      // Fetch actual application counts — same as AdminJobReports
+      const jobsWithActualCounts = await Promise.all(
+        adminJobs.map(async (job) => {
+          try {
+            const jobId = job.job_id || job.id;
+            const applicationsData = await adminService.getApplicationsForJob(jobId);
+            const applications = applicationsData?.applications || [];
 
-      const sortedJobs = jobsWithDefaultCounts.sort((a, b) => {
+            return {
+              ...job,
+              application_count: applications.length,
+              applications: []
+            };
+          } catch (err) {
+            console.error(`Failed to fetch applications for job ${job.job_id || job.id}:`, err);
+            return {
+              ...job,
+              application_count: job.application_count || 0,
+              applications: []
+            };
+          }
+        })
+      );
+
+      const sortedJobs = jobsWithActualCounts.sort((a, b) => {
         const dateA = new Date(a.created_at || a.posted_date || 0);
         const dateB = new Date(b.created_at || b.posted_date || 0);
         return dateB - dateA;
@@ -66,47 +84,47 @@ const AdminJobs = () => {
   const filterByDate = (job) => {
     const dateString = job.created_at || job.posted_date;
     if (!dateString) return false;
-    
+
     const jobDate = new Date(dateString);
     const now = new Date();
-    
+
     switch (dateFilter) {
       case "today":
         return jobDate.toDateString() === now.toDateString();
-      
+
       case "yesterday":
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
         return jobDate.toDateString() === yesterday.toDateString();
-      
+
       case "last7days":
         const last7Days = new Date(now);
         last7Days.setDate(last7Days.getDate() - 7);
         return jobDate >= last7Days;
-      
+
       case "last30days":
         const last30Days = new Date(now);
         last30Days.setDate(last30Days.getDate() - 30);
         return jobDate >= last30Days;
-      
+
       case "thisMonth":
-        return jobDate.getMonth() === now.getMonth() && 
+        return jobDate.getMonth() === now.getMonth() &&
                jobDate.getFullYear() === now.getFullYear();
-      
+
       case "lastMonth":
         const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
         return jobDate >= lastMonth && jobDate <= lastMonthEnd;
-      
+
       case "thisYear":
         return jobDate.getFullYear() === now.getFullYear();
-      
+
       default:
         return true;
     }
   };
 
-  // Filter jobs based on search, status, date, and sort
+  // Filter and sort jobs
   useEffect(() => {
     let filtered = jobs;
 
@@ -126,35 +144,19 @@ const AdminJobs = () => {
       filtered = filtered.filter(filterByDate);
     }
 
-    // Apply sorting
     const sorted = [...filtered].sort((a, b) => {
       const dateA = new Date(a.created_at || a.posted_date || 0);
       const dateB = new Date(b.created_at || b.posted_date || 0);
-      
+
       switch (sortBy) {
-        case "newest":
-          return dateB - dateA;
-        
-        case "oldest":
-          return dateA - dateB;
-        
-        case "titleAZ":
-          return (a.job_title || '').localeCompare(b.job_title || '');
-        
-        case "titleZA":
-          return (b.job_title || '').localeCompare(a.job_title || '');
-        
-        case "companyAZ":
-          return (a.company_name || '').localeCompare(b.company_name || '');
-        
-        case "companyZA":
-          return (b.company_name || '').localeCompare(a.company_name || '');
-        
-        case "applications":
-          return (b.application_count || 0) - (a.application_count || 0);
-        
-        default:
-          return 0;
+        case "newest":       return dateB - dateA;
+        case "oldest":       return dateA - dateB;
+        case "titleAZ":      return (a.job_title || '').localeCompare(b.job_title || '');
+        case "titleZA":      return (b.job_title || '').localeCompare(a.job_title || '');
+        case "companyAZ":    return (a.company_name || '').localeCompare(b.company_name || '');
+        case "companyZA":    return (b.company_name || '').localeCompare(a.company_name || '');
+        case "applications": return (b.application_count || 0) - (a.application_count || 0);
+        default:             return 0;
       }
     });
 
@@ -296,6 +298,14 @@ const AdminJobs = () => {
                   {jobs.filter(j => j.status === 'pending').length}
                 </span>
                 <span className="text-xs text-yellow-600 dark:text-yellow-500">Pending</span>
+              </div>
+            </div>
+            <div className="px-4 py-2 rounded-lg bg-blue-50 dark:bg-blue-500/20">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-blue-700 dark:text-blue-400">
+                  {jobs.reduce((sum, job) => sum + (job.application_count || 0), 0)}
+                </span>
+                <span className="text-xs text-blue-600 dark:text-blue-500">Total Applications</span>
               </div>
             </div>
           </div>
@@ -489,7 +499,7 @@ const AdminJobs = () => {
                 {/* Stats Bar */}
                 <div className={`flex items-center gap-4 p-2 rounded-lg mb-2.5 border ${borderColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                   <div className="flex items-center gap-1.5">
-                    <Users size={13} className="text-gray-500" />
+                    <Users size={13} className="text-blue-500" />
                     <span className={`text-xs font-semibold ${textColor}`}>{job.application_count || 0}</span>
                     <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.65rem' }}>applications</span>
                   </div>

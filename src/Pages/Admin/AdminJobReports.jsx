@@ -661,4 +661,4 @@ const AdminJobReports = () => {
   );
 };
 
-export default AdminJobReports;
+export default AdminJobReports

@@ -16,7 +16,10 @@ import {
   MapPin,
   Calendar,
   Download,
-  Eye
+  Eye,
+  CheckCircle,
+  XCircle,
+  Loader2
 } from "lucide-react";
 import { recruiterExternalService } from "../../services/recruiterExternalService";
 import { candidateExternalService } from "../../services/candidateExternalService";
@@ -36,111 +39,155 @@ const AdminJobApplications = () => {
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [showCandidateModal, setShowCandidateModal] = useState(false);
 
+  // Track per-application loading state for status updates
+  const [statusUpdating, setStatusUpdating] = useState({});
+
   useEffect(() => {
-    const fetchApplications = async () => {
-      if (!jobId) {
-        setError("Job ID is missing");
-        setLoading(false);
-        return;
+    fetchApplications();
+  }, [jobId, user]);
+
+  const fetchApplications = async () => {
+    if (!jobId) {
+      setError("Job ID is missing");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      // Fetch job details
+      const jobsData = await candidateExternalService.getAllJobs();
+      const currentAdminId = user?.admin_id || user?.id || user?.user_id;
+      const job = jobsData?.jobs?.find(j =>
+        j.job_id === parseInt(jobId) && j.admin_id === currentAdminId
+      );
+
+      if (job) {
+        setJobDetails({
+          title: job.job_title,
+          company: job.company_name || "",
+          location: job.location || "",
+          type: job.employment_type || "",
+          status: job.status || "Open",
+          description: job.description || ""
+        });
       }
 
-      try {
-        setLoading(true);
-        setError("");
+      // Fetch applications
+      const applicationsData = await recruiterExternalService.getAllApplicants(jobId);
+      console.log('Raw applicants data:', applicationsData);
 
-        // Fetch job details
-        const jobsData = await candidateExternalService.getAllJobs();
-        const currentAdminId = user?.admin_id || user?.id || user?.user_id;
-        const job = jobsData?.jobs?.find(j => 
-          j.job_id === parseInt(jobId) && j.admin_id === currentAdminId
-        );
+      let applicationsList = [];
+      if (Array.isArray(applicationsData)) {
+        applicationsList = applicationsData;
+      } else if (applicationsData.applications && Array.isArray(applicationsData.applications)) {
+        applicationsList = applicationsData.applications;
+      } else if (applicationsData.data && Array.isArray(applicationsData.data)) {
+        applicationsList = applicationsData.data;
+      }
 
-        if (job) {
-          setJobDetails({
-            title: job.job_title,
-            company: job.company_name || "",
-            location: job.location || "",
-            type: job.employment_type || "",
-            status: job.status || "Open",
-            description: job.description || ""
-          });
-        }
-
-        // Fetch applications
-        const applicationsData = await recruiterExternalService.getAllApplicants(jobId);
-        console.log('Raw applicants data:', applicationsData);
-
-        let applicationsList = [];
-        if (Array.isArray(applicationsData)) {
-          applicationsList = applicationsData;
-        } else if (applicationsData.applications && Array.isArray(applicationsData.applications)) {
-          applicationsList = applicationsData.applications;
-        } else if (applicationsData.data && Array.isArray(applicationsData.data)) {
-          applicationsList = applicationsData.data;
-        }
-
-        // Enrich applications with student data
-        const applicationsWithDetails = applicationsList.map((app) => {
-          // Check if application already has embedded student data
-          if (app.student_name) {
-            return {
-              ...app,
-              student_details: {
-                name: app.student_name || "Unknown",
-                email: app.student_email || app.email || null,
-                phone: app.student_phone || null,
-                skills: app.student_skills
-                  ? (typeof app.student_skills === 'string'
-                      ? app.student_skills.split(',').map(skill => skill.trim())
-                      : Array.isArray(app.student_skills)
-                      ? app.student_skills
-                      : [])
-                  : [],
-                location: app.student_location || null,
-                experience: app.student_experience || null,
-                education: app.student_university ? [app.student_university] : [],
-                experience_years: app.student_experience_years || null,
-                bio: app.student_bio || null,
-                resumeUrl: app.resume_url || app.student_profile?.resume || null,
-                department: app.student_department || null,
-                cgpa: app.student_cgpa || null,
-                logo: app.student_profile?.logo || app.student_profile?.profile_image || null
-              }
-            };
-          }
-
-          // Fallback if no embedded data
+      // Enrich applications with student data
+      const applicationsWithDetails = applicationsList.map((app) => {
+        if (app.student_name) {
           return {
             ...app,
             student_details: {
-              name: `Student ${app.student_id || 'Unknown'}`,
-              email: null,
-              phone: null,
-              skills: [],
-              location: null,
-              experience: null,
-              education: [],
-              experience_years: null,
-              bio: null,
-              resumeUrl: app.resume_url || null,
-              department: null,
-              cgpa: null,
+              name: app.student_name || "Unknown",
+              email: app.student_email || app.email || null,
+              phone: app.student_phone || null,
+              skills: app.student_skills
+                ? (typeof app.student_skills === 'string'
+                    ? app.student_skills.split(',').map(skill => skill.trim())
+                    : Array.isArray(app.student_skills)
+                    ? app.student_skills
+                    : [])
+                : [],
+              location: app.student_location || null,
+              experience: app.student_experience || null,
+              education: app.student_university ? [app.student_university] : [],
+              experience_years: app.student_experience_years || null,
+              bio: app.student_bio || null,
+              resumeUrl: app.resume_url || app.student_profile?.resume || null,
+              department: app.student_department || null,
+              cgpa: app.student_cgpa || null,
               logo: app.student_profile?.logo || app.student_profile?.profile_image || null
             }
           };
-        });
+        }
 
-        setApplications(applicationsWithDetails);
-      } catch (e) {
-        console.error(e);
-        setError(typeof e === "string" ? e : e?.message || "Failed to load applications");
-      } finally {
-        setLoading(false);
-      }
-    };
+        return {
+          ...app,
+          student_details: {
+            name: `Student ${app.student_id || 'Unknown'}`,
+            email: null,
+            phone: null,
+            skills: [],
+            location: null,
+            experience: null,
+            education: [],
+            experience_years: null,
+            bio: null,
+            resumeUrl: app.resume_url || null,
+            department: null,
+            cgpa: null,
+            logo: app.student_profile?.logo || app.student_profile?.profile_image || null
+          }
+        };
+      });
 
-    fetchApplications();
-  }, [jobId, user]);
+      setApplications(applicationsWithDetails);
+    } catch (e) {
+      console.error(e);
+      setError(typeof e === "string" ? e : e?.message || "Failed to load applications");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── Status Update Handler ────────────────────────────────────────────────
+  const handleUpdateStatus = async (application, newStatus) => {
+    const appId = application.application_id || application.id;
+    if (!appId) return;
+
+    // Prevent duplicate clicks
+    if (statusUpdating[appId]) return;
+
+    // If already at the target status, do nothing
+    if (application.status?.toLowerCase() === newStatus.toLowerCase()) return;
+
+    setStatusUpdating(prev => ({ ...prev, [appId]: newStatus }));
+
+    try {
+      await recruiterExternalService.updateApplicationStatus(appId, newStatus);
+
+      // Optimistic update — reflect change immediately in local state
+      setApplications(prev =>
+        prev.map(app =>
+          (app.application_id || app.id) === appId
+            ? { ...app, status: newStatus }
+            : app
+        )
+      );
+
+      // Also sync if the modal is open for this candidate
+      setSelectedCandidate(prev =>
+        prev && (prev.application_id || prev.id) === appId
+          ? { ...prev, status: newStatus }
+          : prev
+      );
+    } catch (err) {
+      console.error(`Failed to update status for application ${appId}:`, err);
+      alert(`Failed to update status. Please try again.`);
+    } finally {
+      setStatusUpdating(prev => {
+        const next = { ...prev };
+        delete next[appId];
+        return next;
+      });
+    }
+  };
 
   const handleViewCandidateDetails = (candidate) => {
     setSelectedCandidate(candidate);
@@ -158,7 +205,7 @@ const AdminJobApplications = () => {
 
   const filteredApplications = applications.filter(app => {
     const matchesStatus = filterStatus === "All" || app.status?.toLowerCase() === filterStatus.toLowerCase();
-    const matchesSearch = 
+    const matchesSearch =
       app.student_details?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.student_details?.email?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
@@ -195,6 +242,70 @@ const AdminJobApplications = () => {
   const textColor = isDark ? 'text-white' : 'text-gray-900';
   const textSecondary = isDark ? 'text-gray-400' : 'text-gray-600';
   const borderColor = isDark ? 'border-gray-700' : 'border-gray-200';
+
+  // ─── Shortlist / Reject button component ─────────────────────────────────
+  const StatusActionButtons = ({ application, compact = false }) => {
+    const appId = application.application_id || application.id;
+    const currentStatus = application.status?.toLowerCase() || 'pending';
+    const isUpdating = !!statusUpdating[appId];
+    const isShortlisting = statusUpdating[appId] === 'shortlisted';
+    const isRejecting = statusUpdating[appId] === 'rejected';
+
+    const isShortlisted = currentStatus === 'shortlisted';
+    const isRejected = currentStatus === 'rejected';
+
+    return (
+      <div className={`flex gap-1.5 ${compact ? '' : 'flex-wrap'}`}>
+        {/* Shortlist Button */}
+        <button
+          onClick={() => handleUpdateStatus(application, 'shortlisted')}
+          disabled={isUpdating || isShortlisted}
+          title={isShortlisted ? 'Already shortlisted' : 'Shortlist candidate'}
+          className={`
+            flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium
+            transition-all border
+            ${isShortlisted
+              ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30 cursor-default'
+              : 'bg-green-600 text-white border-green-600 hover:bg-green-700 hover:border-green-700 dark:bg-green-600 dark:hover:bg-green-700 cursor-pointer'
+            }
+            ${isUpdating ? 'opacity-60 cursor-not-allowed' : ''}
+          `}
+          style={{ fontSize: '0.7rem' }}
+        >
+          {isShortlisting ? (
+            <Loader2 size={12} className="animate-spin" />
+          ) : (
+            <CheckCircle size={12} />
+          )}
+          {isShortlisted ? 'Shortlisted' : 'Shortlist'}
+        </button>
+
+        {/* Reject Button */}
+        <button
+          onClick={() => handleUpdateStatus(application, 'rejected')}
+          disabled={isUpdating || isRejected}
+          title={isRejected ? 'Already rejected' : 'Reject candidate'}
+          className={`
+            flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium
+            transition-all border
+            ${isRejected
+              ? 'bg-red-100 text-red-700 border-red-300 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30 cursor-default'
+              : 'bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700 dark:bg-red-600 dark:hover:bg-red-700 cursor-pointer'
+            }
+            ${isUpdating ? 'opacity-60 cursor-not-allowed' : ''}
+          `}
+          style={{ fontSize: '0.7rem' }}
+        >
+          {isRejecting ? (
+            <Loader2 size={12} className="animate-spin" />
+          ) : (
+            <XCircle size={12} />
+          )}
+          {isRejected ? 'Rejected' : 'Reject'}
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div className={`min-h-screen ${bgColor}`}>
@@ -284,7 +395,7 @@ const AdminJobApplications = () => {
                       : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
                   }`}
                 >
-                  {status} ({status === 'All' ? stats.total : 
+                  {status} ({status === 'All' ? stats.total :
                            status === 'Pending' ? stats.pending :
                            status === 'Shortlisted' ? stats.shortlisted :
                            stats.rejected})
@@ -365,6 +476,7 @@ const AdminJobApplications = () => {
                 {/* Candidate Header */}
                 <div className="flex items-start justify-between gap-2.5 mb-2.5">
                   <div className="flex items-start gap-2 flex-1 min-w-0">
+                    {/* Avatar */}
                     <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
                       {application.student_details?.logo ? (
                         <img
@@ -381,6 +493,7 @@ const AdminJobApplications = () => {
                         {application.student_details?.name?.charAt(0)?.toUpperCase() || 'U'}
                       </div>
                     </div>
+
                     <div className="min-w-0 flex-1">
                       <h4 className={`text-xs font-bold ${textColor} truncate leading-tight`}>
                         {application.student_details?.name || 'Unknown Candidate'}
@@ -395,7 +508,12 @@ const AdminJobApplications = () => {
                       </div>
                     </div>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${getStatusColor(application.status)}`} style={{ fontSize: '0.65rem' }}>
+
+                  {/* Status Badge */}
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-semibold border flex-shrink-0 ${getStatusColor(application.status)}`}
+                    style={{ fontSize: '0.65rem' }}
+                  >
                     {application.status || 'Pending'}
                   </span>
                 </div>
@@ -403,7 +521,6 @@ const AdminJobApplications = () => {
                 {/* Candidate Information */}
                 <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-2 mb-2 border ${borderColor}`}>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {/* Email */}
                     {application.student_details?.email && (
                       <div>
                         <h5 className={`text-xs font-semibold ${textColor} mb-0.5 flex items-center gap-1`} style={{ fontSize: '0.7rem' }}>
@@ -415,8 +532,6 @@ const AdminJobApplications = () => {
                         </p>
                       </div>
                     )}
-
-                    {/* Phone */}
                     {application.student_details?.phone && (
                       <div>
                         <h5 className={`text-xs font-semibold ${textColor} mb-0.5 flex items-center gap-1`} style={{ fontSize: '0.7rem' }}>
@@ -428,8 +543,6 @@ const AdminJobApplications = () => {
                         </p>
                       </div>
                     )}
-
-                    {/* Experience */}
                     {application.student_details?.experience && (
                       <div>
                         <h5 className={`text-xs font-semibold ${textColor} mb-0.5 flex items-center gap-1`} style={{ fontSize: '0.7rem' }}>
@@ -441,8 +554,6 @@ const AdminJobApplications = () => {
                         </p>
                       </div>
                     )}
-
-                    {/* Education */}
                     {application.student_details?.education && application.student_details.education.length > 0 && (
                       <div>
                         <h5 className={`text-xs font-semibold ${textColor} mb-0.5 flex items-center gap-1`} style={{ fontSize: '0.7rem' }}>
@@ -454,8 +565,6 @@ const AdminJobApplications = () => {
                         </p>
                       </div>
                     )}
-
-                    {/* Skills */}
                     {application.student_details?.skills && application.student_details.skills.length > 0 && (
                       <div className="sm:col-span-2">
                         <h5 className={`text-xs font-semibold ${textColor} mb-1`} style={{ fontSize: '0.7rem' }}>
@@ -489,8 +598,9 @@ const AdminJobApplications = () => {
                   </div>
                 )}
 
-                {/* Action Buttons */}
-                <div className="flex flex-wrap gap-1.5">
+                {/* ── Action Buttons Row ── */}
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  {/* View Details */}
                   <button
                     onClick={() => handleViewCandidateDetails(application)}
                     className="px-2.5 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium flex items-center gap-1"
@@ -499,6 +609,8 @@ const AdminJobApplications = () => {
                     <Eye size={12} />
                     View Details
                   </button>
+
+                  {/* Resume */}
                   {(application.student_details?.resumeUrl || application.resume_url) && (
                     <a
                       href={application.student_details?.resumeUrl || application.resume_url}
@@ -511,6 +623,12 @@ const AdminJobApplications = () => {
                       Resume
                     </a>
                   )}
+
+                  {/* Divider */}
+                  <div className={`h-5 w-px ${isDark ? 'bg-gray-600' : 'bg-gray-300'} mx-0.5`} />
+
+                  {/* Shortlist / Reject Buttons */}
+                  <StatusActionButtons application={application} />
                 </div>
               </div>
             ))}
@@ -518,7 +636,7 @@ const AdminJobApplications = () => {
         )}
       </div>
 
-      {/* Candidate Details Modal */}
+      {/* ── Candidate Details Modal ── */}
       {showCandidateModal && selectedCandidate && (
         <div
           className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
@@ -631,6 +749,58 @@ const AdminJobApplications = () => {
                   </a>
                 </div>
               )}
+
+              {/* ── Status Actions inside Modal ── */}
+              <div>
+                <h4 className={`text-md font-bold ${textColor} mb-3`}>Update Application Status</h4>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleUpdateStatus(selectedCandidate, 'shortlisted')}
+                    disabled={
+                      !!statusUpdating[selectedCandidate.application_id || selectedCandidate.id] ||
+                      selectedCandidate.status?.toLowerCase() === 'shortlisted'
+                    }
+                    className={`
+                      flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold
+                      transition-all border
+                      ${selectedCandidate.status?.toLowerCase() === 'shortlisted'
+                        ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30 cursor-default'
+                        : 'bg-green-600 text-white border-green-600 hover:bg-green-700 cursor-pointer'
+                      }
+                      disabled:opacity-60 disabled:cursor-not-allowed
+                    `}
+                  >
+                    {statusUpdating[selectedCandidate.application_id || selectedCandidate.id] === 'shortlisted'
+                      ? <Loader2 size={15} className="animate-spin" />
+                      : <CheckCircle size={15} />
+                    }
+                    {selectedCandidate.status?.toLowerCase() === 'shortlisted' ? 'Shortlisted ✓' : 'Shortlist'}
+                  </button>
+
+                  <button
+                    onClick={() => handleUpdateStatus(selectedCandidate, 'rejected')}
+                    disabled={
+                      !!statusUpdating[selectedCandidate.application_id || selectedCandidate.id] ||
+                      selectedCandidate.status?.toLowerCase() === 'rejected'
+                    }
+                    className={`
+                      flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold
+                      transition-all border
+                      ${selectedCandidate.status?.toLowerCase() === 'rejected'
+                        ? 'bg-red-100 text-red-700 border-red-300 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30 cursor-default'
+                        : 'bg-red-600 text-white border-red-600 hover:bg-red-700 cursor-pointer'
+                      }
+                      disabled:opacity-60 disabled:cursor-not-allowed
+                    `}
+                  >
+                    {statusUpdating[selectedCandidate.application_id || selectedCandidate.id] === 'rejected'
+                      ? <Loader2 size={15} className="animate-spin" />
+                      : <XCircle size={15} />
+                    }
+                    {selectedCandidate.status?.toLowerCase() === 'rejected' ? 'Rejected ✗' : 'Reject'}
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className={`flex justify-end gap-2 p-5 border-t ${borderColor}`}>
