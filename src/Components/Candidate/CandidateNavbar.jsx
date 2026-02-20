@@ -285,7 +285,9 @@ const CandidateNavbar = ({ toggleSidebar }) => {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={handleProfileClick}
-              className="w-10 h-10 rounded-full bg-[#2271B5] text-white flex items-center justify-center font-bold hover:bg-[#1a5a8f] transition-colors overflow-hidden"
+              className="w-10 h-10 rounded-full bg-white text-white flex shadow-lg items-center justify-center font-bold hover:bg-white
+              
+              transition-colors overflow-hidden"
               >
               {user?.logo ? (
                 <img
@@ -350,7 +352,7 @@ const CandidateNavbar = ({ toggleSidebar }) => {
               {/* Profile Info */}
               <div className={`mb-6 p-4 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
               <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-[#2271B5] text-white flex items-center justify-center text-xl font-bold overflow-hidden">
+                  <div className="w-12 h-12 rounded-full bg-white text-white flex items-center justify-center text-xl font-bold overflow-hidden">
                     {user?.logo ? (
                       <img
                         src={user.logo}
@@ -469,6 +471,48 @@ const CandidateNavbar = ({ toggleSidebar }) => {
 
               {/* Mobile Navigation Links */}
               <ul className="space-y-1 mb-6">
+                {/* Mobile Profile Section */}
+              <div  onClick={() => { navigate('/profile'); closeMobileMenu();}} className={`pt-6 border-t ${borderColor}`}>
+                <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-100'} mb-4`}>
+
+                  <div className="flex items-center gap-3">
+                    <div   className="w-12 h-12 rounded-full bg-[#2271B5] text-white flex items-center justify-center text-xl font-bold">
+                      {(user?.full_name || 'U').charAt(0)?.toUpperCase()}
+                    </div>
+                    <div>
+                      <div className={`font-bold ${textColor}`}>
+                        {user?.full_name || user?.name || 'User'}
+                      </div>
+                      <div className={`text-sm ${textSecondary}`}>
+                        {user?.email || 'user@example.com'}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Profile Completion */}
+                <div className="mt-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className={`text-sm font-medium ${textSecondary}`}>Profile Completion</span>
+                    <span className={`text-sm font-bold ${textColor}`}>{profileCompletion}%</span>
+                  </div>
+                  <div className={`w-full h-2 rounded-full ${isDark ? 'bg-gray-600' : 'bg-gray-300'}`}>
+                    <div className="h-2 bg-[#2271B5] rounded-full" style={{ width: `${profileCompletion}%` }}></div>
+                  </div>
+                  <p className={`text-xs mt-2 ${textSecondary}`}>
+                    Complete your profile to get better job matches
+                  </p>
+                  <button
+                    onMouseDown={() => { navigate('/profile'); setShowProfileSidebar(false); }}
+                    className="block w-full mt-3 px-4 py-2 text-center text-sm font-bold text-white bg-[#2271B5] hover:bg-[#1a5a8f] rounded-md transition-colors"
+                  >
+                    Complete Profile
+                  </button>
+                </div>
+                  
+              </div>
+
+                
+              </div>
                 <li>
                   <button
                     onClick={() => { navigate('/candidate-home'); closeMobileMenu(); }}
@@ -484,9 +528,9 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                 </li>
                 <li>
                   <button
-                    onClick={() => { navigate('/candidate-home'); closeMobileMenu(); }}
+                    onClick={() => { navigate('/jobs'); closeMobileMenu(); }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-colors ${
-                      isActive("/candidate-home")
+                      isActive("'/jobs'")
                         ? `text-[#2271B5] ${isDark ? 'bg-[#2271B5]/20' : 'bg-[#2271B5]/10'}`
                         : `${textSecondary} ${dropdownHover}`
                     }`}
@@ -549,47 +593,8 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                 </li>
               </ul>
 
-              {/* Mobile Profile Section */}
-              <div  onClick={() => { navigate('/profile'); closeMobileMenu();}} className={`pt-6 border-t ${borderColor}`}>
-                <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-100'} mb-4`}>
-
-                  <div className="flex items-center gap-3">
-                    <div   className="w-12 h-12 rounded-full bg-[#2271B5] text-white flex items-center justify-center text-xl font-bold">
-                      {(user?.full_name || 'U').charAt(0)?.toUpperCase()}
-                    </div>
-                    <div>
-                      <div className={`font-bold ${textColor}`}>
-                        {user?.full_name || user?.name || 'User'}
-                      </div>
-                      <div className={`text-sm ${textSecondary}`}>
-                        {user?.email || 'user@example.com'}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Profile Completion */}
-                <div className="mt-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className={`text-sm font-medium ${textSecondary}`}>Profile Completion</span>
-                    <span className={`text-sm font-bold ${textColor}`}>{profileCompletion}%</span>
-                  </div>
-                  <div className={`w-full h-2 rounded-full ${isDark ? 'bg-gray-600' : 'bg-gray-300'}`}>
-                    <div className="h-2 bg-[#2271B5] rounded-full" style={{ width: `${profileCompletion}%` }}></div>
-                  </div>
-                  <p className={`text-xs mt-2 ${textSecondary}`}>
-                    Complete your profile to get better job matches
-                  </p>
-                  <button
-                    onMouseDown={() => { navigate('/profile'); setShowProfileSidebar(false); }}
-                    className="block w-full mt-3 px-4 py-2 text-center text-sm font-bold text-white bg-[#2271B5] hover:bg-[#1a5a8f] rounded-md transition-colors"
-                  >
-                    Complete Profile
-                  </button>
-                </div>
-                  
-                </div>
-
-                <div className="space-y-2">
+              
+              <div className="space-y-2">
                   <button
                     onClick={() => { navigate('/my-applications'); closeMobileMenu(); }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-md ${textSecondary} ${dropdownHover} transition-colors`}
@@ -612,7 +617,6 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                     <span className="font-medium">Logout</span>
                   </button>
                 </div>
-              </div>
             </div>
           </div>
         </div>

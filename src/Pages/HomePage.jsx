@@ -932,7 +932,7 @@ const Homepage = () => {
       </div>
 
       {/* Blue Info Section */}
-      <div className="bg-[#2271B5] py-4 px-4">
+      <div className=" hidden md:flex bg-[#2271B5] py-4 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
             {features.map((feature, index) => {
@@ -1327,7 +1327,7 @@ const Homepage = () => {
       </section>
 
       {/* Steps Section */}
-      <section className={`${bgColor} py-8 sm:py-8 lg:py-12 transition-colors duration-300 relative`}>
+      <section className={`hidden md:flex ${bgColor} py-8 sm:py-8 lg:py-12 transition-colors duration-300 relative`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Section Title */}
           <div className="text-center mb-12">

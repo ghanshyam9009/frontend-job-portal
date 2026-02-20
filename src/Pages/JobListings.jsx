@@ -681,7 +681,7 @@ const JobListings = () => {
   );
 
   return (
-    <div className={`min-h-screen ${bgPrimary} transition-colors duration-300`}>
+    <div className={`min-h-screen ${bgPrimary} transition-colors duration-300 mt-18 `}>
       {/* {console.log(user.company_name)} */}
       {user? (user.company_name ?<RecruiterNavbar/>: <CandidateNavbar />) : <HomeNav />}
       

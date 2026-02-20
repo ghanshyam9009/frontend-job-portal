@@ -315,7 +315,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={handleProfileClick}
-                className="w-10 h-10 rounded-full bg-white text-white flex items-center justify-center font-bold hover:bg-white transition-colors  overflow-hidden"
+                className="w-10 h-10 rounded-full bg-white text-white flex items-center shadow-lg justify-center font-bold hover:bg-white transition-colors  overflow-hidden"
               >
                 {recruiterProfile?.company_logo ? (
                   <img

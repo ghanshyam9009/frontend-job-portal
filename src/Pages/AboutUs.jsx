@@ -385,7 +385,7 @@ const AboutUs = () => {
       </section>
 
       {/* Footer */}
-      <div className={`py-6 text-center ${isDark ? 'bg-gray-950 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>
+      <div className={`py-6  ${isDark ? 'bg-gray-950 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>
         <Footer />
       </div>
     </div>
