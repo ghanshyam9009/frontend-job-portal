@@ -92,7 +92,7 @@ const HomeNav = () => {
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 text-xl lg:text-2xl font-bold">
-            <div className="w-18 h-18 rounded-lg flex items-center justify-center text-white">
+            <div className="w-14 h-14 rounded-lg flex items-center justify-center text-white">
               <img src={logo} alt="Bigsources logo" loading="lazy" decoding="async" />
             </div>
             <span className={textColor}>

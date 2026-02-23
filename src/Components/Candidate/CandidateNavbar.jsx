@@ -170,7 +170,7 @@ const CandidateNavbar = ({ toggleSidebar }) => {
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <Link to="/candidate-home" className="flex items-center space-x-2 text-xl lg:text-2xl font-bold">
-                     <div className="w-18 h-18 rounded-lg flex items-center justify-center text-white">
+                     <div className="w-14 h-14 rounded-lg flex items-center justify-center text-white">
                        <img src={logo1} alt="" />
                      </div>
                      <span className={textColor}>

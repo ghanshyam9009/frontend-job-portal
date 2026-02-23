@@ -24,7 +24,7 @@ import {
 import { adminService } from "../../services/adminService";
 import { contactService } from "../../services/contactService";
 import { demoService } from "../../services/demoService";
-import logo from "../../assets/favicon-icon.png";
+import logo from "../../assets/logo.png";
 
 const IntegratedAdminLayout = () => {
   const location = useLocation();
@@ -253,8 +253,8 @@ const IntegratedAdminLayout = () => {
               <Menu className="h-6 w-6" />
             </button>
             
-            <Link to="/" className="flex items-center gap-2">
-              <img src={logo} alt="Logo" className="h-8 w-8" />
+            <Link to="#" className="flex items-center gap-2">
+              <img src={logo} alt="Logo" className="w-12 h-12" />
               <span className={`text-xl font-bold hidden sm:block ${
                 theme === 'dark' ? 'text-white' : 'text-gray-900'
               }`}>
