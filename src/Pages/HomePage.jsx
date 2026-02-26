@@ -773,7 +773,7 @@ const Homepage = () => {
           </div>
 
           {/* Search Bar */}
-          <div className=" hidden md:flex  max-w-4xl mx-auto mb-8">
+          <div className=" md:flex  max-w-4xl mx-auto mb-8">
             <div className="rounded-xl shadow-lg flex flex-col md:flex-row relative overflow-visible bg-gray-800/90 backdrop-blur-sm">
               
               {/* Job Title Input with Autocomplete */}

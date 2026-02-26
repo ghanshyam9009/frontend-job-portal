@@ -254,7 +254,7 @@ const IntegratedAdminLayout = () => {
             </button>
             
             <Link to="#" className="flex items-center gap-2">
-              <img src={logo} alt="Logo" className="w-12 h-12" />
+              <img src={logo} alt="Logo" className="w-18 h-18" />
               <span className={`text-xl font-bold hidden sm:block ${
                 theme === 'dark' ? 'text-white' : 'text-gray-900'
               }`}>
