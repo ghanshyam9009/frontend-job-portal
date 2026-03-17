@@ -272,13 +272,13 @@ const AdminJobReports = () => {
           return jobDateOnly >= monthAgo;
         }
         case "thisMonth": {
-          return jobDate.getMonth() === now.getMonth() && 
-                 jobDate.getFullYear() === now.getFullYear();
+          return jobDate.getMonth() === now.getMonth() &&
+            jobDate.getFullYear() === now.getFullYear();
         }
         case "lastMonth": {
           const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-          return jobDate.getMonth() === lastMonth.getMonth() && 
-                 jobDate.getFullYear() === lastMonth.getFullYear();
+          return jobDate.getMonth() === lastMonth.getMonth() &&
+            jobDate.getFullYear() === lastMonth.getFullYear();
         }
         default:
           return true;
@@ -289,7 +289,7 @@ const AdminJobReports = () => {
   // Helper function to sort jobs
   const sortJobs = (jobs, sortBy) => {
     const sorted = [...jobs];
-    
+
     switch (sortBy) {
       case "newest":
         sorted.sort((a, b) => {
@@ -312,29 +312,29 @@ const AdminJobReports = () => {
         sorted.sort((a, b) => (a.application_count || 0) - (b.application_count || 0));
         break;
       case "companyAZ":
-        sorted.sort((a, b) => 
+        sorted.sort((a, b) =>
           (a.company_name || '').localeCompare(b.company_name || '')
         );
         break;
       case "companyZA":
-        sorted.sort((a, b) => 
+        sorted.sort((a, b) =>
           (b.company_name || '').localeCompare(a.company_name || '')
         );
         break;
       case "titleAZ":
-        sorted.sort((a, b) => 
+        sorted.sort((a, b) =>
           (a.job_title || '').localeCompare(b.job_title || '')
         );
         break;
       case "titleZA":
-        sorted.sort((a, b) => 
+        sorted.sort((a, b) =>
           (b.job_title || '').localeCompare(a.job_title || '')
         );
         break;
       default:
         break;
     }
-    
+
     return sorted;
   };
 
@@ -387,7 +387,7 @@ const AdminJobReports = () => {
 
   const handleViewApplications = (job) => {
     navigate(`/admin/job-reports/applications/${job.id}`, {
-      state: { 
+      state: {
         totalApplications: job.application_count || 0,
         jobTitle: job.job_title,
         companyName: job.company_name
@@ -596,111 +596,140 @@ const AdminJobReports = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Search and Filters */}
-        <div className={`${cardBg} rounded-lg border ${borderColor} p-4 mb-6`}>
-          <div className="flex flex-col gap-4">
-            {/* Search Bar */}
-            <div className="flex-1">
-              <div className="relative">
-                <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`} />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search by job title, company, or location..."
-                  className={`w-full pl-10 pr-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
-                />
-              </div>
-            </div>
 
-            {/* Date and Sort Filters Row */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* Date Filter Dropdown */}
-              <div className="flex items-center gap-2">
-                <Calendar size={18} className={textSecondary} />
-                <select
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                  className={`px-4 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
-                >
-                  <option value="all">All Time</option>
-                  <option value="today">Today</option>
-                  <option value="yesterday">Yesterday</option>
-                  <option value="last7days">Last 7 Days</option>
-                  <option value="last30days">Last 30 Days</option>
-                  <option value="thisMonth">This Month</option>
-                  <option value="lastMonth">Last Month</option>
-                </select>
-              </div>
+{/* Search and Filters */}
+<div className={`${cardBg} rounded-2xl border ${borderColor} p-4 sm:p-5 mb-6 shadow-sm`}>
+  
+  <div className="flex flex-col lg:flex-row gap-4 lg:items-center">
 
-              {/* Sort By Dropdown */}
-              <div className="flex items-center gap-2">
-                <ArrowUpDown size={18} className={textSecondary} />
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className={`px-4 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="mostApplications">Most Applications</option>
-                  <option value="leastApplications">Least Applications</option>
-                  <option value="companyAZ">Company (A-Z)</option>
-                  <option value="companyZA">Company (Z-A)</option>
-                  <option value="titleAZ">Job Title (A-Z)</option>
-                  <option value="titleZA">Job Title (Z-A)</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
+    {/* Search */}
+    <div className="w-full lg:flex-1">
+      <div className="relative group">
 
-        {/* Tabs: All (approved only) | New Job | Edit | Close */}
-        <div className={`${cardBg} rounded-lg border ${borderColor} p-3 mb-6`}>
-          <p className={`text-xs ${textSecondary} mb-2`}>Show jobs by type</p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setJobTypeTab('all')}
-              className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${jobTypeTab === 'all'
-                ? 'bg-indigo-600 text-white'
-                : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-              }`}
-            >
-              All
-            </button>
-            <button
-              type="button"
-              onClick={() => setJobTypeTab('newjob')}
-              className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${jobTypeTab === 'newjob'
-                ? 'bg-indigo-600 text-white'
-                : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-              }`}
-            >
-              New Job
-            </button>
-            <button
-              type="button"
-              onClick={() => setJobTypeTab('editjob')}
-              className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${jobTypeTab === 'editjob'
-                ? 'bg-indigo-600 text-white'
-                : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-              }`}
-            >
-              Edit
-            </button>
-            <button
-              type="button"
-              onClick={() => setJobTypeTab('closedjob')}
-              className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${jobTypeTab === 'closedjob'
-                ? 'bg-indigo-600 text-white'
-                : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-              }`}
-            >
-              Close
-            </button>
-          </div>
-        </div>
+        <Search
+          size={18}
+          className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`}
+        />
+
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search job, company, location..."
+          className={`w-full pl-10 pr-4 py-2.5 sm:py-3 border ${borderColor} rounded-xl
+          focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+          text-sm transition-all duration-200 ${cardBg} ${textColor}`}
+        />
+
+      </div>
+    </div>
+
+    {/* Filters */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:flex gap-3 w-full lg:w-auto">
+
+      {/* Date Filter */}
+      <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/60 
+      rounded-xl px-3 sm:px-4 py-2 border border-gray-200 dark:border-gray-700 
+      hover:border-indigo-400 transition">
+
+        <Calendar size={16} className={textSecondary} />
+
+        <select
+          value={dateFilter}
+          onChange={(e) => setDateFilter(e.target.value)}
+          className={`bg-transparent outline-none text-xs sm:text-sm ${textColor} cursor-pointer`}
+        >
+          <option value="all">All time</option>
+          <option value="today">Today</option>
+          <option value="yesterday">Yesterday</option>
+          <option value="last7days">Last 7 days</option>
+          <option value="last30days">Last 30 days</option>
+          <option value="thisMonth">This month</option>
+          <option value="lastMonth">Last month</option>
+        </select>
+
+      </div>
+
+      {/* Sort Filter */}
+      <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/60 
+      rounded-xl px-3 sm:px-4 py-2 border border-gray-200 dark:border-gray-700 
+      hover:border-indigo-400 transition">
+
+        <ArrowUpDown size={16} className={textSecondary} />
+
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          className={`bg-transparent outline-none text-xs sm:text-sm ${textColor} cursor-pointer`}
+        >
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="mostApplications">Most applications</option>
+          <option value="leastApplications">Least applications</option>
+          <option value="companyAZ">Company A–Z</option>
+          <option value="companyZA">Company Z–A</option>
+          <option value="titleAZ">Job title A–Z</option>
+          <option value="titleZA">Job title Z–A</option>
+        </select>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+{/* Tabs */}
+<div className={`${cardBg} rounded-2xl border ${borderColor} p-4 mb-6 shadow-sm`}>
+
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:flex gap-2">
+
+  <button
+    onClick={() => setJobTypeTab('all')}
+    className={`w-full px-4 py-2 rounded-lg text-sm font-semibold transition
+    ${jobTypeTab === 'all'
+    ? 'bg-indigo-600 text-white shadow'
+    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-indigo-100'}`}
+  >
+    All
+  </button>
+
+  <button
+    onClick={() => setJobTypeTab('newjob')}
+    className={`w-full px-4 py-2 rounded-lg text-sm font-semibold transition
+    ${jobTypeTab === 'newjob'
+    ? 'bg-indigo-600 text-white shadow'
+    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-indigo-100'}`}
+  >
+    New Job
+  </button>
+
+  <button
+    onClick={() => setJobTypeTab('editjob')}
+    className={`w-full px-4 py-2 rounded-lg text-sm font-semibold transition
+    ${jobTypeTab === 'editjob'
+    ? 'bg-indigo-600 text-white shadow'
+    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-indigo-100'}`}
+  >
+    Edit
+  </button>
+
+  <button
+    onClick={() => setJobTypeTab('closedjob')}
+    className={`w-full px-4 py-2 rounded-lg text-sm font-semibold transition
+    ${jobTypeTab === 'closedjob'
+    ? 'bg-indigo-600 text-white shadow'
+    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-indigo-100'}`}
+  >
+    Close
+  </button>
+
+</div>
+
+</div>
+
+
+
 
         {/* Error Display */}
         {error && (
@@ -792,11 +821,10 @@ const AdminJobReports = () => {
                         </div>
                       </div>
                       <div className="flex flex-row items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-1 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-0 border-gray-100 dark:border-gray-700">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex-shrink-0 ${
-                          job.status === 'open' ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' :
-                          job.status === 'closed' ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800' :
-                          'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700'
-                        }`} style={{ fontSize: '0.7rem' }}>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex-shrink-0 ${job.status === 'open' ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' :
+                            job.status === 'closed' ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800' :
+                              'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700'
+                          }`} style={{ fontSize: '0.7rem' }}>
                           {job.status === 'open' ? 'Active' : job.status === 'closed' ? 'Closed' : job.status || 'Active'}
                         </span>
                         {job.admin_approval_status === 'pending' ? (
@@ -821,17 +849,16 @@ const AdminJobReports = () => {
                             </button>
                           </div>
                         ) : (
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${
-                            (job.admin_approval_status === 'approved' || job.admin_approval_status === 'fulfilled')
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${(job.admin_approval_status === 'approved' || job.admin_approval_status === 'fulfilled')
                               ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                               : job.admin_approval_status === 'rejected'
                                 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                                 : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                          }`} style={{ fontSize: '0.7rem' }}>
+                            }`} style={{ fontSize: '0.7rem' }}>
                             {(job.admin_approval_status === 'approved' || job.admin_approval_status === 'fulfilled') ? 'Approved' : job.admin_approval_status === 'rejected' ? 'Rejected' : '—'}
                           </span>
                         )}
-                        {(job.pending_task_count > 0 || job.fulfilled_task_count > 0) && (
+                        {/* {(job.pending_task_count > 0 || job.fulfilled_task_count > 0) && (
                           <div className="flex flex-wrap gap-1.5 flex-shrink-0">
                             {job.pending_task_count > 0 && (
                               <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-400 rounded text-xs font-semibold">
@@ -844,7 +871,7 @@ const AdminJobReports = () => {
                               </span>
                             )}
                           </div>
-                        )}
+                        )} */}
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1.5 mb-2.5">
@@ -928,11 +955,10 @@ const AdminJobReports = () => {
             <button
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                currentPage === 1
+              className={`px-4 py-2 rounded-lg text-sm font-medium ${currentPage === 1
                   ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
                   : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-              }`}
+                }`}
             >
               Previous
             </button>
@@ -942,11 +968,10 @@ const AdminJobReports = () => {
             <button
               onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage === totalPages}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                currentPage === totalPages
+              className={`px-4 py-2 rounded-lg text-sm font-medium ${currentPage === totalPages
                   ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
                   : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-              }`}
+                }`}
             >
               Next
             </button>

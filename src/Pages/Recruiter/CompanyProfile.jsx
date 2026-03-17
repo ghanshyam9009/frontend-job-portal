@@ -534,15 +534,18 @@ const CompanyProfile = () => {
           <div className="lg:col-span-1 space-y-6">
             <div className={`${cardBg} rounded-2xl shadow-xl border ${borderColor} overflow-hidden sticky top-24`}>
               <div className="h-24 bg-gradient-to-r from-blue-600 to-indigo-700 relative">
-                <div className="absolute -bottom-12 left-1/2 -translate-x-1/2">
-                  <div className={`w-28 h-28 rounded-2xl ${cardBg} border-4 ${borderColor} shadow-lg overflow-hidden flex items-center justify-center`}>
+                <div className="absolute -bottom-30 left-1/2 -translate-x-1/2">
+                  <div
+                    style={{ width: 180, height: 180 }}
+                    className={`rounded-2xl ${cardBg} border-4 ${borderColor} shadow-lg overflow-hidden flex items-center justify-center`}
+                  >
                     {profileData.company_logo ? (
                       <img src={profileData.company_logo} className="w-full h-full object-contain" alt="logo" />
                     ) : <Building className="text-gray-300" size={40} />}
                   </div>
                 </div>
               </div>
-              <div className="pt-12 pb-6 px-6">
+              <div className="pt-35 pb-6 px-6">
                 {/* Company Name and Industry */}
                 <div className="text-center mb-6">
                   <h2 className={`text-xl font-bold ${textColor}`}>{profileData.company_name || "Organization Name"}</h2>

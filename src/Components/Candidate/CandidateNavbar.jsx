@@ -65,18 +65,11 @@ const CandidateNavbar = ({ toggleSidebar }) => {
   const dropdownRef = useRef(null);
   const searchRef = useRef(null);
 
+  // (Disabled) click-outside close for profile sidebar to avoid accidental closes
+  // Sidebar already has explicit close (X button + menu actions),
+  // and clicking scrollbar/overlay shouldn't close it.
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowProfileSidebar(false);
-      }
-    };
-    if (showProfileSidebar) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    // intentionally left blank
   }, [showProfileSidebar]);
 
   useEffect(() => {
@@ -417,7 +410,10 @@ const CandidateNavbar = ({ toggleSidebar }) => {
         {/* ─── Profile Sidebar ─── */}
         {showProfileSidebar && (
           <>
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => setShowProfileSidebar(false)} />
+            <div
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
+              onClick={(e) => e.stopPropagation()}
+            />
             <div className={`fixed right-0 top-0 bottom-0 w-80 ${dropdownBg} shadow-2xl z-50 overflow-y-auto sidebar-slide-in`}>
               <div className="p-5">
                 {/* Header */}
@@ -431,7 +427,10 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                 {/* Profile Info */}
                 <div className={`mb-6 p-6 rounded-xl shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
                   <div className="flex flex-col items-center justify-center text-center gap-2 mb-4">
-                    <div className="w-20 h-20 rounded-md bg-blue-50 text-[#2271B5] shadow-inner border border-blue-100 flex items-center justify-center text-3xl font-bold overflow-hidden mb-2">
+                    <div
+                      style={{ width: 220, height: 220 }}
+                      className="rounded-xl bg-blue-50 text-[#2271B5] shadow-inner border border-blue-100 flex items-center justify-center text-3xl font-bold overflow-hidden mb-2"
+                    >
                       {user?.logo ? (
                         <img
                           src={user.logo}

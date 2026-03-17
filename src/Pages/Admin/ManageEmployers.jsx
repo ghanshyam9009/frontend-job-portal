@@ -467,6 +467,18 @@ const ManageEmployers = () => {
     setViewMode(mode);
   };
 
+  // Card shortcuts
+  const handleTotalApplicationsClick = () => {
+    // Jump to job reports tab where admin can see job-wise applications
+    setViewMode("reports");
+  };
+
+  const handlePendingEmployersClick = () => {
+    // Show only pending employers in the main employers table
+    setApprovalFilter("pending");
+    setViewMode("employers");
+  };
+
   const isDark = theme === 'dark';
   const bgColor = isDark ? 'bg-gray-900' : 'bg-gray-50';
   const cardBg = isDark ? 'bg-gray-800' : 'bg-white';
@@ -643,8 +655,10 @@ const ManageEmployers = () => {
                 </button>
 
                 {/* Active Applications */}
-                <div 
-                  className={`${cardBg} rounded-xl shadow-lg p-6 border-l-4 border-emerald-500 transform transition-all hover:-translate-y-1 hover:shadow-xl`}
+                <button
+                  type="button"
+                  onClick={handleTotalApplicationsClick}
+                  className={`${cardBg} rounded-xl shadow-lg p-6 border-l-4 border-emerald-500 transform transition-all hover:-translate-y-1 hover:shadow-xl text-left w-full`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -661,11 +675,13 @@ const ManageEmployers = () => {
                       <Briefcase className="text-emerald-500" size={28} />
                     </div>
                   </div>
-                </div>
+                </button>
 
                 {/* Pending Employers */}
-                <div 
-                  className={`${cardBg} rounded-xl shadow-lg p-6 border-l-4 border-amber-500 transform transition-all hover:-translate-y-1 hover:shadow-xl`}
+                <button
+                  type="button"
+                  onClick={handlePendingEmployersClick}
+                  className={`${cardBg} rounded-xl shadow-lg p-6 border-l-4 border-amber-500 transform transition-all hover:-translate-y-1 hover:shadow-xl text-left w-full`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -682,7 +698,7 @@ const ManageEmployers = () => {
                       <Clock className="text-amber-500" size={28} />
                     </div>
                   </div>
-                </div>
+                </button>
               </div>
             </div>
           )}

@@ -39,9 +39,8 @@ h1, h2, h3, h4, h5, h6 {
   --navbar-background: rgba(255, 255, 255, 0.8);
   --navbar-border: 1px solid rgba(229, 231, 235, 0.3);
   --card-background: #fff;
-  --card-border: 1px solid #e5e7eb;
+  --input-background: #ffffff;
   --input-background: #fff;
-  --input-border: 1px solid #d1d5db;
 }
 
 [data-theme='dark'] {

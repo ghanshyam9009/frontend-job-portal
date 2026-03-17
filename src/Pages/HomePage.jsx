@@ -56,26 +56,90 @@ function JobRoleCard({ title, image, link, isDark }) {
   const iconBg = isDark ? 'bg-[#2271B5]/40' : 'bg-[#2271B5]/10';
   const iconHoverBg = isDark ? 'group-hover:bg-[#2271B5]/60' : 'group-hover:bg-[#2271B5]/20';
   const textColor = isDark ? 'text-gray-100' : 'text-gray-900';
+  const textSecondary = isDark ? 'text-gray-400' : 'text-gray-600';
   const textHoverColor = isDark ? 'group-hover:text-[#2271B5]' : 'group-hover:text-[#2271B5]';
   const imageBrightness = isDark ? 'brightness-110' : '';
 
   return (
     <Link
       to={link}
-      className={`group ${cardBg} rounded-lg p-4 flex flex-col items-center justify-center gap-3 ${cardHoverShadow} transition-all duration-300 cursor-pointer border ${cardBorder} ${cardHoverBorder} min-h-[140px]`}
+      className={[
+        "group relative overflow-hidden",
+        cardBg,
+        "rounded-xl p-2.5 sm:p-3 md:p-4",
+        "w-full",
+        "flex flex-col items-center justify-center gap-2.5 sm:gap-3",
+        "border",
+        cardBorder,
+        cardHoverBorder,
+        cardHoverShadow,
+        "min-h-[110px] sm:min-h-[120px] md:min-h-[140px]",
+        "transition-all duration-300",
+        "transform-gpu will-change-transform",
+        "hover:-translate-y-1 hover:shadow-xl",
+        "active:translate-y-0",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2271B5] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900",
+      ].join(" ")}
+      aria-label={`Browse ${title} jobs`}
     >
-      <div className={`${iconBg} p-3 rounded-lg ${iconHoverBg} transition-colors duration-300 w-12 h-12 flex items-center justify-center`}>
+      {/* subtle shine */}
+      <div
+        className={[
+          "pointer-events-none absolute inset-0 opacity-0",
+          "transition-opacity duration-300",
+          "group-hover:opacity-100",
+          isDark
+            ? "bg-[radial-gradient(80%_80%_at_50%_0%,rgba(34,113,181,0.22)_0%,rgba(0,0,0,0)_60%)]"
+            : "bg-[radial-gradient(80%_80%_at_50%_0%,rgba(34,113,181,0.16)_0%,rgba(255,255,255,0)_60%)]",
+        ].join(" ")}
+      />
+
+      <div
+        className={[
+          iconBg,
+          "p-2 sm:p-2.5 md:p-3 rounded-xl",
+          iconHoverBg,
+          "transition-all duration-300",
+          "w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 flex items-center justify-center",
+          "transform-gpu",
+          "group-hover:scale-105",
+        ].join(" ")}
+      >
         <img
           src={image}
           alt={title}
-          className={`w-8 h-8 object-contain ${imageBrightness}`}
+          className={[
+            "w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 object-contain",
+            imageBrightness,
+            "transition-transform duration-300",
+            "group-hover:-rotate-3 group-hover:scale-105",
+          ].join(" ")}
           loading="lazy"
         />
       </div>
       <div className="text-center">
-        <h3 className={`font-medium text-sm ${textColor} leading-snug ${textHoverColor} transition-colors duration-300`}>
+        <h3
+          className={[
+            "font-semibold text-[11.5px] sm:text-[12.5px] md:text-sm",
+            textColor,
+            "leading-snug",
+            textHoverColor,
+            "transition-colors duration-300",
+            "line-clamp-2",
+          ].join(" ")}
+        >
           {title}
         </h3>
+        <div
+          className={[
+            "mt-1 inline-flex items-center gap-1 text-[10.5px] sm:text-[11px] md:text-xs",
+            textSecondary,
+            "opacity-0 translate-y-1 transition-all duration-300",
+            "group-hover:opacity-100 group-hover:translate-y-0",
+          ].join(" ")}
+        >
+          Explore <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-0.5" />
+        </div>
       </div>
     </Link>
   );
@@ -1464,9 +1528,9 @@ const Homepage = () => {
         </div>
 
         {/* Job Categories Section */}
-        <div className={`hidden md:block ${bgColor} w-full transition-colors duration-300`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
-            <div className="flex flex-col items-center gap-6 sm:gap-8 lg:gap-10">
+        <div className={`${bgColor} w-full transition-colors duration-300`}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+            <div className="flex flex-col items-center gap-5 sm:gap-8 lg:gap-10">
               {/* Header */}
               <div className="flex flex-col items-center gap-3 text-center max-w-2xl">
                 <span className={`${badgeBg} text-white text-xs font-semibold px-3 py-1 rounded uppercase tracking-wider ${badgeShadow}`}>
@@ -1478,11 +1542,40 @@ const Homepage = () => {
               </div>
 
               {/* Job Role Grid */}
-              <div className="w-full max-w-5xl">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              <div className="w-full max-w-7xl">
+                {/* Mobile & Tablet & Desktop < xl: simple responsive grid (no 5/4/3/1 grouping) */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 xl:hidden">
                   {jobRoleDefinitions.map((role, index) => (
                     <JobRoleCard key={index} {...role} isDark={isDark} />
                   ))}
+                </div>
+
+                {/* XL and above: 5 / 4 / 3 / 1 grouped rows with fixed card width */}
+                <div className="hidden xl:flex xl:flex-col xl:space-y-4 items-center">
+                  {[
+                    jobRoleDefinitions.slice(0, 5),   // 5
+                    jobRoleDefinitions.slice(5, 9),   // 4
+                    jobRoleDefinitions.slice(9, 12),  // 3
+                    jobRoleDefinitions.slice(12),     // 1 (remaining)
+                  ].map((row, rowIndex) => {
+                    if (row.length === 0) return null;
+
+                    return (
+                      <div
+                        key={rowIndex}
+                        className="flex flex-wrap justify-center gap-4"
+                      >
+                        {row.map((role, index) => (
+                          <div
+                            key={`${rowIndex}-${index}`}
+                            className="w-[220px]"
+                          >
+                            <JobRoleCard {...role} isDark={isDark} />
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

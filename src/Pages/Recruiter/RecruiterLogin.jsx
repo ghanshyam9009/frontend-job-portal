@@ -170,7 +170,29 @@ const RecruiterLogin = () => {
         if (result.success) {
           setSuccess("Login successful!");
           setError("");
-          const from = location.state?.from?.pathname || '/company-profile';
+
+          // Decide where to send recruiter after login
+          const userData =
+            result.user ||
+            result.recruiter ||
+            result.data?.user ||
+            result.data?.employer ||
+            result.data ||
+            {};
+
+          // Heuristic: if profile not completed, send to company profile first
+          const hasCompletedProfile =
+            userData.hasCompletedProfile === true ||
+            userData.profile_completed === true ||
+            userData.isProfileComplete === true;
+
+          const looksIncompleteProfile =
+            !hasCompletedProfile &&
+            (!userData.company_name || !userData.industry || !userData.address);
+
+          const defaultPath = looksIncompleteProfile ? '/company-profile' : '/recruiter/dashboard';
+          const from = location.state?.from?.pathname || defaultPath;
+
           navigate(from, { replace: true });
         } else {
           const errorMessage = result.error?.error || result.error?.response?.data?.error || result.error?.message || '';

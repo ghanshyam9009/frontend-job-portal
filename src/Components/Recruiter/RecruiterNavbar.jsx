@@ -121,21 +121,11 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
   }, [user?.employer_id, user?.id]);
   */
 
-  // Handle clicking outside dropdown to close it
+  // (Disabled) click-outside close for profile sidebar to avoid accidental closes
+  // Sidebar already has explicit close (X button + menu actions),
+  // and click on overlay / scrollbar should NOT close it.
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowProfileSidebar(false);
-      }
-    };
-
-    if (showProfileSidebar) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    // intentionally left blank
   }, [showProfileSidebar]);
 
   // Prevent body scroll when sidebars are open
@@ -386,7 +376,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
         <>
           <div
             className="fixed inset-0 bg-black/50 z-50"
-            onClick={() => setShowProfileSidebar(false)}
+            onClick={(e) => e.stopPropagation()}
           ></div>
           <div className={`fixed right-0 top-0 bottom-0 w-80 ${dropdownBg} shadow-2xl z-50 overflow-y-auto`}>
             <div className="p-6 flex flex-col gap-4">
@@ -404,7 +394,10 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
               {/* Profile Info (Candidate-style centered) */}
               <div className={`mb-6 p-6 rounded-xl shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
                 <div className="flex flex-col items-center justify-center text-center gap-2 mb-4">
-                  <div className="w-20 h-20 rounded-md bg-blue-50 text-[#2271B5] shadow-inner border border-blue-100 flex items-center justify-center text-3xl font-bold overflow-hidden mb-2">
+                  <div
+                    style={{ width: 220, height: 220 }}
+                    className="rounded-xl bg-blue-50 text-[#2271B5] shadow-inner border border-blue-100 flex items-center justify-center text-3xl font-bold overflow-hidden mb-2"
+                  >
                     {recruiterProfile?.company_logo ? (
                       <img
                         src={recruiterProfile.company_logo}
@@ -548,7 +541,9 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                   <div className="p-2 rounded-lg bg-blue-50 dark:bg-[#2271B5]/15 group-hover:bg-blue-100 dark:group-hover:bg-[#2271B5]/25 transition-colors">
                     <Building size={18} className="text-[#2271B5] dark:text-blue-200" />
                   </div>
-                  <span className="font-medium">Company Profile</span>
+                  <span className={`font-semibold ${textSecondary} group-hover:text-[#2271B5] transition-colors`}>
+                    Company Profile
+                  </span>
                 </button>
                 <button
                   onMouseDown={() => { navigate('/membership-tokens'); setShowProfileSidebar(false); }}
@@ -557,7 +552,9 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                   <div className="p-2 rounded-lg bg-blue-50 dark:bg-[#2271B5]/15 group-hover:bg-blue-100 dark:group-hover:bg-[#2271B5]/25 transition-colors">
                     <CreditCard size={18} className="text-[#2271B5] dark:text-blue-200" />
                   </div>
-                  <span className="font-medium">Membership</span>
+                  <span className={`font-semibold ${textSecondary} group-hover:text-[#2271B5] transition-colors`}>
+                    Membership
+                  </span>
                 </button>
                 <button
                   onMouseDown={() => { handleLogout(); setShowProfileSidebar(false); }}
