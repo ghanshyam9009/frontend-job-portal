@@ -33,7 +33,9 @@ export const API_ENDPOINTS = {
   password: {
     sendOtp: '/password/send-otp',
     verifyOtp: '/password/verify-otp',
-    resetPassword: '/password/reset-password'
+    resetPassword: '/password/reset-password',
+    sendOtpRegistration: '/password/send-otp-registration',
+    verifyOtpRegistration: '/password/verify-otp-registration'
   },
   
   // Students

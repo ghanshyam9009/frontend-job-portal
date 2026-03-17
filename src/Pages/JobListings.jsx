@@ -11,6 +11,7 @@ import { jobService } from "../services/jobService";
 import { showError } from "../utils/errorHandler";
 import { candidateExternalService } from "../services/candidateExternalService";
 import { candidateService } from "../services/candidateService";
+import { recruiterExternalService } from "../services/recruiterExternalService";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import { Loader, ErrorBox, SkeletonJobCard, JobCard } from "../Components/Shared";
 import RecruiterNavbar from "../Components/Recruiter/RecruiterNavbar";
@@ -24,7 +25,7 @@ const JobListings = () => {
   const locationHook = useLocation();
   const [querySearch, setQuerySearch] = useState("");
   const [queryLocation, setQueryLocation] = useState("");
- 
+
   useEffect(() => {
     const params = new URLSearchParams(locationHook.search);
     setQuerySearch(params.get("search") || "");
@@ -39,6 +40,7 @@ const JobListings = () => {
   const [totalJobs, setTotalJobs] = useState(0);
   const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [applicationStatusByJobId, setApplicationStatusByJobId] = useState({});
 
   // Autocomplete states
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
@@ -47,7 +49,7 @@ const JobListings = () => {
   const [availableJobTypes, setAvailableJobTypes] = useState([]);
   const [filteredLocations, setFilteredLocations] = useState([]);
   const [filteredJobTypes, setFilteredJobTypes] = useState([]);
-  
+
   const searchRef = useRef(null);
   const locationRef = useRef(null);
 
@@ -102,6 +104,43 @@ const JobListings = () => {
 
     fetchBookmarkedJobs();
   }, [isAuthenticated, user]);
+
+  const isRecruiter = !!(user?.company_name || user?.role === 'Recruiter' || user?.role === 'Employer');
+
+  // Candidate: fetch shortlisted/applied status per job (getAllApplicants se)
+  useEffect(() => {
+    if (!isAuthenticated || !user || isRecruiter || jobs.length === 0) {
+      setApplicationStatusByJobId({});
+      return;
+    }
+    const userId = user.user_id || user.id;
+    if (!userId) return;
+
+    let cancelled = false;
+    const fetchStatuses = async () => {
+      const map = {};
+      await Promise.all(
+        jobs.map(async (job) => {
+          const jid = job.job_id || job.id;
+          try {
+            const res = await recruiterExternalService.getAllApplicants(jid);
+            const app = (res.applications || []).find(
+              (a) => String(a.student_id) === String(userId) || String(a.student_id) === String(user.id)
+            );
+            if (!app) return;
+            const shortlisted = app.shortlisted === true || app.is_shortlisted === true ||
+              (String(app.application_status || app.status || '').toLowerCase() === 'shortlisted');
+            map[jid] = shortlisted ? 'shortlisted' : 'applied';
+          } catch (_) {
+            /* ignore per-job errors */
+          }
+        })
+      );
+      if (!cancelled) setApplicationStatusByJobId(map);
+    };
+    fetchStatuses();
+    return () => { cancelled = true; };
+  }, [isAuthenticated, user, isRecruiter, jobs]);
 
   useEffect(() => {
     if (queryLocation.trim()) {
@@ -186,16 +225,16 @@ const JobListings = () => {
         },
       });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-        const jobsData = await response.json();
+      const jobsData = await response.json();
 
-        if (jobsData.jobs || Array.isArray(jobsData)) {
-          let jobsArray = jobsData.jobs || jobsData.data || jobsData;
-          // Filter out government jobs for the job listings page
-          let allJobsData = (Array.isArray(jobsArray) ? jobsArray : []).filter(job => job.job_type !== "GOVERNMENT");
+      if (jobsData.jobs || Array.isArray(jobsData)) {
+        let jobsArray = jobsData.jobs || jobsData.data || jobsData;
+        // Filter out government jobs for the job listings page
+        let allJobsData = (Array.isArray(jobsArray) ? jobsArray : []).filter(job => job.job_type !== "GOVERNMENT");
 
         const locations = [...new Set(allJobsData.map(job => job.location).filter(Boolean))].sort();
         const jobTypes = [...new Set(allJobsData.map(job => job.job_title).filter(Boolean))].sort();
@@ -208,7 +247,7 @@ const JobListings = () => {
 
         if (querySearch) {
           const searchLower = querySearch.toLowerCase();
-          filteredJobs = filteredJobs.filter(job => 
+          filteredJobs = filteredJobs.filter(job =>
             job.job_title?.toLowerCase().includes(searchLower) ||
             job.company_name?.toLowerCase().includes(searchLower) ||
             job.description?.toLowerCase().includes(searchLower) ||
@@ -218,7 +257,7 @@ const JobListings = () => {
 
         if (queryLocation) {
           const locationLower = queryLocation.toLowerCase();
-          filteredJobs = filteredJobs.filter(job => 
+          filteredJobs = filteredJobs.filter(job =>
             job.location?.toLowerCase().includes(locationLower)
           );
         }
@@ -230,8 +269,8 @@ const JobListings = () => {
             const filterType = filters.jobType.toLowerCase().trim();
             const normalizeType = (type) => type.replace(/[-\s]/g, '');
             return normalizeType(jobType) === normalizeType(filterType) ||
-                   jobType.includes(filterType) ||
-                   filterType.includes(jobType);
+              jobType.includes(filterType) ||
+              filterType.includes(jobType);
           });
         }
 
@@ -252,8 +291,8 @@ const JobListings = () => {
               return job.skills_required.some(jobSkill => {
                 const jobSkillLower = jobSkill.toLowerCase().trim();
                 return jobSkillLower.includes(filterSkillLower) ||
-                       filterSkillLower.includes(jobSkillLower) ||
-                       jobSkillLower.replace(/[.\-\s]/g, '') === filterSkillLower.replace(/[.\-\s]/g, '');
+                  filterSkillLower.includes(jobSkillLower) ||
+                  jobSkillLower.replace(/[.\-\s]/g, '') === filterSkillLower.replace(/[.\-\s]/g, '');
               });
             });
           });
@@ -294,7 +333,7 @@ const JobListings = () => {
             }
 
             return (jobSalaryMax >= filterMin && jobSalaryMin <= filterMax) ||
-                   (jobSalaryMin >= filterMin && jobSalaryMin <= filterMax);
+              (jobSalaryMin >= filterMin && jobSalaryMin <= filterMax);
           });
         }
 
@@ -303,9 +342,9 @@ const JobListings = () => {
             if (!job.experience_level) return true;
             const jobExpLevel = job.experience_level.toLowerCase().trim();
             const filterExpLevel = filters.experienceLevel.toLowerCase().trim();
-            return jobExpLevel.includes(filterExpLevel) || 
-                   filterExpLevel.includes(jobExpLevel) ||
-                   jobExpLevel.replace(/[-\s]/g, '') === filterExpLevel.replace(/[-\s]/g, '');
+            return jobExpLevel.includes(filterExpLevel) ||
+              filterExpLevel.includes(jobExpLevel) ||
+              jobExpLevel.replace(/[-\s]/g, '') === filterExpLevel.replace(/[-\s]/g, '');
           });
         }
 
@@ -456,11 +495,10 @@ const JobListings = () => {
           {["Full Time", "Part Time", "Contractual", "Intern", "Freelance", "Night Shift"].map((type) => (
             <label
               key={type}
-              className={`flex items-center gap-1.5 text-xs rounded-md px-2 py-1.5 border transition-all cursor-pointer ${
-                filters.jobType === type
+              className={`flex items-center gap-1.5 text-xs rounded-md px-2 py-1.5 border transition-all cursor-pointer ${filters.jobType === type
                   ? "bg-blue-50 border-blue-500 text-blue-700"
                   : `${borderColor} hover:bg-opacity-50`
-              }`}
+                }`}
             >
               <input
                 type="radio"
@@ -487,102 +525,102 @@ const JobListings = () => {
             value={filters.category}
             onChange={(e) => handleFilterChange("category", e.target.value)}
           >
-           <option value="">All Categories</option>
-                  <option value="Accounting">Accounting</option>
-                  <option value="Accounting, Data Entry">Accounting, Data Entry</option>
-                  <option value="Accounts & Finance">Accounts & Finance</option>
-                  <option value="Administration">Administration</option>
-                  <option value="Administrative & Office Support">Administrative & Office Support</option>
-                  <option value="Auto Mobile Sector">Auto Mobile Sector</option>
-                  <option value="Automobile Industry">Automobile Industry</option>
-                  <option value="Automotive Diagnostics">Automotive Diagnostics</option>
-                  <option value="Automotive, Evaluation">Automotive, Evaluation</option>
-                  <option value="Back Office Jobs">Back Office Jobs</option>
-                  <option value="Back Office and Sales">Back Office and Sales</option>
-                  <option value="Banking Sector">Banking Sector</option>
-                  <option value="Beauty & Wellness, Hairdressing">Beauty & Wellness, Hairdressing</option>
-                  <option value="Beauty Industry/Telecaller & Receptionist in Beauty Industry">Beauty Industry/Telecaller & Receptionist in Beauty Industry</option>
-                  <option value="Bpo & kpo - Sector">Bpo & kpo - Sector</option>
-                  <option value="Broking Firm">Broking Firm</option>
-                  <option value="Construction">Construction</option>
-                  <option value="Counseling Jobs">Counseling Jobs</option>
-                  <option value="Customer Service">Customer Service</option>
-                  <option value="Customer Service and Telesales">Customer Service and Telesales</option>
-                  <option value="Customer Support">Customer Support</option>
-                  <option value="Data Entry/ Administration">Data Entry/ Administration</option>
-                  <option value="Delivery Services">Delivery Services</option>
-                  <option value="Design/Creative">Design/Creative</option>
-                  <option value="Digital Marketing">Digital Marketing</option>
-                  <option value="Distributor/Super Stockist">Distributor/Super Stockist</option>
-                  <option value="Driving/Motor Technician">Driving/Motor Technician</option>
-                  <option value="Education, Teaching">Education, Teaching</option>
-                  <option value="Electronic Repair, Electronics Technician, Industrial Electronics">Electronic Repair, Electronics Technician, Industrial Electronics</option>
-                  <option value="Energy/Solar Power / Consultation & Etc">Energy/Solar Power / Consultation & Etc</option>
-                  <option value="Engineer/Architects">Engineer/Architects</option>
-                  <option value="Engineering / Manufacturing">Engineering / Manufacturing</option>
-                  <option value="Engineering/Design">Engineering/Design</option>
-                  <option value="FInancial Consultancy">FInancial Consultancy</option>
-                  <option value="FMCG Sales industry">FMCG Sales industry</option>
-                  <option value="Fashion">Fashion</option>
-                  <option value="Finance & Banking">Finance & Banking</option>
-                  <option value="Finance/Administration">Finance/Administration</option>
-                  <option value="Financial Services">Financial Services</option>
-                  <option value="Garments/Textile">Garments/Textile</option>
-                  <option value="Glass industry">Glass industry</option>
-                  <option value="Graphic Design">Graphic Design</option>
-                  <option value="HR/Recruitment">HR/Recruitment</option>
-                  <option value="Healthcare">Healthcare</option>
-                  <option value="Helper">Helper</option>
-                  <option value="Hospitality">Hospitality</option>
-                  <option value="IT & Technology">IT & Technology</option>
-                  <option value="IT & Telecommunication">IT & Telecommunication</option>
-                  <option value="IT/Computer/Mis/System Work">IT/Computer/Mis/System Work</option>
-                  <option value="Information Technology">Information Technology</option>
-                  <option value="Insurance, Sales">Insurance, Sales</option>
-                  <option value="Internship">Internship</option>
-                  <option value="Laboratories">Laboratories</option>
-                  <option value="Law/Legal/Immigration Consultant,Legal Assistant">Law/Legal/Immigration Consultant,Legal Assistant</option>
-                  <option value="Logistics and Supply Chain">Logistics and Supply Chain</option>
-                  <option value="Logistics, Packaging">Logistics, Packaging</option>
-                  <option value="Management">Management</option>
-                  <option value="Manufacturer & Supplier">Manufacturer & Supplier</option>
-                  <option value="Manufacturer of Polycarbonate">Manufacturer of Polycarbonate</option>
-                  <option value="Manufacturing, Operations">Manufacturing, Operations</option>
-                  <option value="Marketing & Media">Marketing & Media</option>
-                  <option value="Marketing Jobs">Marketing Jobs</option>
-                  <option value="Mechanical">Mechanical</option>
-                  <option value="Mechanical Fitter">Mechanical Fitter</option>                   <option value="Media & Entertainment">Media & Entertainment</option>
-                  <option value="Medical/Pharma/pharmaceutica">Medical/Pharma/pharmaceutica</option>
-                  <option value="Operations, Management">Operations, Management</option>
-                  <option value="Others">Others</option>
-                  <option value="Packaging Industries">Packaging Industries</option>
-                  <option value="Packers & Movers">Packers & Movers</option>                   <option value="Production/Manufacturing">Production/Manufacturing</option>
-                  <option value="Quality Control/Inventory Jobs">Quality Control/Inventory Jobs</option>
-                  <option value="Real Rstates">Real Rstates</option>
-                  <option value="Real State Valuation">Real State Valuation</option>
-                  <option value="Restaurant, Cafe, Food Service">Restaurant, Cafe, Food Service</option>
-                  <option value="Retail industry services">Retail industry services</option>
-                  <option value="Sales & Business Development">Sales & Business Development</option>
-                  <option value="Sales & Marketing">Sales & Marketing</option>
-                  <option value="Sales & Marketing, Retail">Sales & Marketing, Retail</option>
-                  <option value="Sales Jobs">Sales Jobs</option>
-                  <option value="Sales, Marketing, Back Office">Sales, Marketing, Back Office</option>
-                  <option value="Sales, Marketing, Design, E-commerce">Sales, Marketing, Design, E-commerce</option>
-                  <option value="School/College">School/College</option>
-                  <option value="Security Services">Security Services</option>
-                  <option value="Service & Housekeeping">Service & Housekeeping</option>
-                  <option value="Service & Trading">Service & Trading</option>
-                  <option value="Software Operation">Software Operation</option>
-                  <option value="Supervision Inspection Monitoring">Supervision Inspection Monitoring</option>
-                  <option value="Supplier">Supplier</option>
-                  <option value="Support Staff/Office Services/Office Boy">Support Staff/Office Services/Office Boy</option>
-                  <option value="Tax Consultants (Law Firm ) Legal Services">Tax Consultants (Law Firm ) Legal Services</option>
-                  <option value="Technical">Technical</option>
-                  <option value="Transport /Logistics">Transport /Logistics</option>
-                  <option value="Transportation, Driving Jobs">Transportation, Driving Jobs</option>
-                  <option value="Welding and Fabrication">Welding and Fabrication</option>
-                  <option value="Workshop">Workshop</option>
-                  <option value="kpo">kpo</option>
+            <option value="">All Categories</option>
+            <option value="Accounting">Accounting</option>
+            <option value="Accounting, Data Entry">Accounting, Data Entry</option>
+            <option value="Accounts & Finance">Accounts & Finance</option>
+            <option value="Administration">Administration</option>
+            <option value="Administrative & Office Support">Administrative & Office Support</option>
+            <option value="Auto Mobile Sector">Auto Mobile Sector</option>
+            <option value="Automobile Industry">Automobile Industry</option>
+            <option value="Automotive Diagnostics">Automotive Diagnostics</option>
+            <option value="Automotive, Evaluation">Automotive, Evaluation</option>
+            <option value="Back Office Jobs">Back Office Jobs</option>
+            <option value="Back Office and Sales">Back Office and Sales</option>
+            <option value="Banking Sector">Banking Sector</option>
+            <option value="Beauty & Wellness, Hairdressing">Beauty & Wellness, Hairdressing</option>
+            <option value="Beauty Industry/Telecaller & Receptionist in Beauty Industry">Beauty Industry/Telecaller & Receptionist in Beauty Industry</option>
+            <option value="Bpo & kpo - Sector">Bpo & kpo - Sector</option>
+            <option value="Broking Firm">Broking Firm</option>
+            <option value="Construction">Construction</option>
+            <option value="Counseling Jobs">Counseling Jobs</option>
+            <option value="Customer Service">Customer Service</option>
+            <option value="Customer Service and Telesales">Customer Service and Telesales</option>
+            <option value="Customer Support">Customer Support</option>
+            <option value="Data Entry/ Administration">Data Entry/ Administration</option>
+            <option value="Delivery Services">Delivery Services</option>
+            <option value="Design/Creative">Design/Creative</option>
+            <option value="Digital Marketing">Digital Marketing</option>
+            <option value="Distributor/Super Stockist">Distributor/Super Stockist</option>
+            <option value="Driving/Motor Technician">Driving/Motor Technician</option>
+            <option value="Education, Teaching">Education, Teaching</option>
+            <option value="Electronic Repair, Electronics Technician, Industrial Electronics">Electronic Repair, Electronics Technician, Industrial Electronics</option>
+            <option value="Energy/Solar Power / Consultation & Etc">Energy/Solar Power / Consultation & Etc</option>
+            <option value="Engineer/Architects">Engineer/Architects</option>
+            <option value="Engineering / Manufacturing">Engineering / Manufacturing</option>
+            <option value="Engineering/Design">Engineering/Design</option>
+            <option value="FInancial Consultancy">FInancial Consultancy</option>
+            <option value="FMCG Sales industry">FMCG Sales industry</option>
+            <option value="Fashion">Fashion</option>
+            <option value="Finance & Banking">Finance & Banking</option>
+            <option value="Finance/Administration">Finance/Administration</option>
+            <option value="Financial Services">Financial Services</option>
+            <option value="Garments/Textile">Garments/Textile</option>
+            <option value="Glass industry">Glass industry</option>
+            <option value="Graphic Design">Graphic Design</option>
+            <option value="HR/Recruitment">HR/Recruitment</option>
+            <option value="Healthcare">Healthcare</option>
+            <option value="Helper">Helper</option>
+            <option value="Hospitality">Hospitality</option>
+            <option value="IT & Technology">IT & Technology</option>
+            <option value="IT & Telecommunication">IT & Telecommunication</option>
+            <option value="IT/Computer/Mis/System Work">IT/Computer/Mis/System Work</option>
+            <option value="Information Technology">Information Technology</option>
+            <option value="Insurance, Sales">Insurance, Sales</option>
+            <option value="Internship">Internship</option>
+            <option value="Laboratories">Laboratories</option>
+            <option value="Law/Legal/Immigration Consultant,Legal Assistant">Law/Legal/Immigration Consultant,Legal Assistant</option>
+            <option value="Logistics and Supply Chain">Logistics and Supply Chain</option>
+            <option value="Logistics, Packaging">Logistics, Packaging</option>
+            <option value="Management">Management</option>
+            <option value="Manufacturer & Supplier">Manufacturer & Supplier</option>
+            <option value="Manufacturer of Polycarbonate">Manufacturer of Polycarbonate</option>
+            <option value="Manufacturing, Operations">Manufacturing, Operations</option>
+            <option value="Marketing & Media">Marketing & Media</option>
+            <option value="Marketing Jobs">Marketing Jobs</option>
+            <option value="Mechanical">Mechanical</option>
+            <option value="Mechanical Fitter">Mechanical Fitter</option>                   <option value="Media & Entertainment">Media & Entertainment</option>
+            <option value="Medical/Pharma/pharmaceutica">Medical/Pharma/pharmaceutica</option>
+            <option value="Operations, Management">Operations, Management</option>
+            <option value="Others">Others</option>
+            <option value="Packaging Industries">Packaging Industries</option>
+            <option value="Packers & Movers">Packers & Movers</option>                   <option value="Production/Manufacturing">Production/Manufacturing</option>
+            <option value="Quality Control/Inventory Jobs">Quality Control/Inventory Jobs</option>
+            <option value="Real Rstates">Real Rstates</option>
+            <option value="Real State Valuation">Real State Valuation</option>
+            <option value="Restaurant, Cafe, Food Service">Restaurant, Cafe, Food Service</option>
+            <option value="Retail industry services">Retail industry services</option>
+            <option value="Sales & Business Development">Sales & Business Development</option>
+            <option value="Sales & Marketing">Sales & Marketing</option>
+            <option value="Sales & Marketing, Retail">Sales & Marketing, Retail</option>
+            <option value="Sales Jobs">Sales Jobs</option>
+            <option value="Sales, Marketing, Back Office">Sales, Marketing, Back Office</option>
+            <option value="Sales, Marketing, Design, E-commerce">Sales, Marketing, Design, E-commerce</option>
+            <option value="School/College">School/College</option>
+            <option value="Security Services">Security Services</option>
+            <option value="Service & Housekeeping">Service & Housekeeping</option>
+            <option value="Service & Trading">Service & Trading</option>
+            <option value="Software Operation">Software Operation</option>
+            <option value="Supervision Inspection Monitoring">Supervision Inspection Monitoring</option>
+            <option value="Supplier">Supplier</option>
+            <option value="Support Staff/Office Services/Office Boy">Support Staff/Office Services/Office Boy</option>
+            <option value="Tax Consultants (Law Firm ) Legal Services">Tax Consultants (Law Firm ) Legal Services</option>
+            <option value="Technical">Technical</option>
+            <option value="Transport /Logistics">Transport /Logistics</option>
+            <option value="Transportation, Driving Jobs">Transportation, Driving Jobs</option>
+            <option value="Welding and Fabrication">Welding and Fabrication</option>
+            <option value="Workshop">Workshop</option>
+            <option value="kpo">kpo</option>
           </select>
           <ChevronDown className={`absolute right-2 top-1.5 w-3.5 h-3.5 ${textSecondary} pointer-events-none`} />
         </div>
@@ -597,11 +635,10 @@ const JobListings = () => {
           {["Fresher", "Entry Level", "Mid Level", "Senior Level", "Expert"].map((level) => (
             <label
               key={level}
-              className={`flex items-center gap-1.5 text-xs rounded-md px-2 py-1.5 border transition-all cursor-pointer ${
-                filters.experienceLevel === level
+              className={`flex items-center gap-1.5 text-xs rounded-md px-2 py-1.5 border transition-all cursor-pointer ${filters.experienceLevel === level
                   ? "bg-blue-50 border-blue-500 text-blue-700"
                   : `${borderColor} hover:bg-opacity-50`
-              }`}
+                }`}
             >
               <input
                 type="radio"
@@ -627,11 +664,10 @@ const JobListings = () => {
             <button
               key={skill}
               onClick={() => handleSkillToggle(skill)}
-              className={`text-xs px-2 py-1 rounded-full transition-all ${
-                filters.skills.includes(skill)
+              className={`text-xs px-2 py-1 rounded-full transition-all ${filters.skills.includes(skill)
                   ? "bg-blue-600 text-white"
                   : `${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'} hover:bg-blue-100 hover:text-blue-700`
-              }`}
+                }`}
             >
               {skill}
             </button>
@@ -683,8 +719,8 @@ const JobListings = () => {
   return (
     <div className={`min-h-screen ${bgPrimary} transition-colors duration-300 mt-18 `}>
       {/* {console.log(user.company_name)} */}
-      {user? (user.company_name ?<RecruiterNavbar/>: <CandidateNavbar />) : <HomeNav />}
-      
+      {user ? (user.company_name ? <RecruiterNavbar /> : <CandidateNavbar />) : <HomeNav />}
+
       {/* Search Section - COMPACT */}
       <div className={`${isDark ? 'bg-gradient-to-r from-gray-800 to-gray-700' : 'bg-gray-50'} lg:mt-20 border-b ${borderColor}`}>
         <div className="max-w-6xl mx-auto px-4 py-4">
@@ -715,7 +751,7 @@ const JobListings = () => {
                     onFocus={() => querySearch.trim() && setShowSearchDropdown(true)}
                   />
                 </div>
-                
+
                 {/* Autocomplete Dropdown - COMPACT */}
                 {showSearchDropdown && filteredJobTypes.length > 0 && (
                   <div className={`absolute top-full left-0 right-0 mt-1 ${bgSecondary} border ${borderColor} rounded-md shadow-xl max-h-56 overflow-y-auto z-50`}>
@@ -759,7 +795,7 @@ const JobListings = () => {
                     onFocus={() => queryLocation.trim() && setShowLocationDropdown(true)}
                   />
                 </div>
-                
+
                 {/* Location Dropdown - COMPACT */}
                 {showLocationDropdown && filteredLocations.length > 0 && (
                   <div className={`absolute top-full left-0 right-0 mt-1 ${bgSecondary} border ${borderColor} rounded-md shadow-xl max-h-56 overflow-y-auto z-50`}>
@@ -779,7 +815,7 @@ const JobListings = () => {
                 )}
               </div>
 
-              <button 
+              <button
                 className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-semibold text-sm"
                 onClick={() => {
                   setCurrentPage(1);
@@ -812,7 +848,7 @@ const JobListings = () => {
                     onFocus={() => querySearch.trim() && setShowSearchDropdown(true)}
                   />
                 </div>
-                
+
                 {showSearchDropdown && filteredJobTypes.length > 0 && (
                   <div className={`absolute top-full left-0 right-0 mt-1 ${bgSecondary} border ${borderColor} rounded-md shadow-xl max-h-44 overflow-y-auto z-50`}>
                     {filteredJobTypes.map((jobType, index) => (
@@ -853,7 +889,7 @@ const JobListings = () => {
                       onFocus={() => queryLocation.trim() && setShowLocationDropdown(true)}
                     />
                   </div>
-                  
+
                   {showLocationDropdown && filteredLocations.length > 0 && (
                     <div className={`absolute top-full left-0 right-0 mt-1 ${bgSecondary} border ${borderColor} rounded-md shadow-xl max-h-44 overflow-y-auto z-50`}>
                       {filteredLocations.map((location, index) => (
@@ -881,7 +917,7 @@ const JobListings = () => {
                 </button>
               </div>
 
-              <button 
+              <button
                 className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-semibold text-sm"
                 onClick={() => {
                   setCurrentPage(1);
@@ -956,8 +992,8 @@ const JobListings = () => {
                 {loading && <SkeletonJobCard count={5} />}
 
                 {!loading && error && (
-                  <ErrorBox 
-                    error={error} 
+                  <ErrorBox
+                    error={error}
                     onRetry={fetchJobs}
                     title="Failed to load jobs"
                   />
@@ -976,10 +1012,12 @@ const JobListings = () => {
                     onBookmark={toggleBookmark}
                     isBookmarked={bookmarkedJobs.has(job.job_id)}
                     isDark={isDark}
+                    hideApplyButton={isRecruiter}
+                    applicationStatus={applicationStatusByJobId[job.job_id] || null}
                   />
                 ))}
               </div>
-             
+
 
               {/* Pagination - COMPACT */}
               {!loading && totalPages > 1 && (
@@ -1007,11 +1045,10 @@ const JobListings = () => {
                       pages.push(
                         <button
                           key={1}
-                          className={`px-3 py-1.5 rounded-md transition-colors text-xs ${
-                            1 === currentPage 
-                              ? 'bg-blue-600 text-white' 
+                          className={`px-3 py-1.5 rounded-md transition-colors text-xs ${1 === currentPage
+                              ? 'bg-blue-600 text-white'
                               : `${bgSecondary} border ${borderColor} hover:bg-opacity-80 ${textPrimary}`
-                          }`}
+                            }`}
                           onClick={() => setCurrentPage(1)}
                         >
                           1
@@ -1028,11 +1065,10 @@ const JobListings = () => {
                       pages.push(
                         <button
                           key={i}
-                          className={`px-3 py-1.5 rounded-md transition-colors text-xs ${
-                            i === currentPage 
-                              ? 'bg-blue-600 text-white' 
+                          className={`px-3 py-1.5 rounded-md transition-colors text-xs ${i === currentPage
+                              ? 'bg-blue-600 text-white'
                               : `${bgSecondary} border ${borderColor} hover:bg-opacity-80 ${textPrimary}`
-                          }`}
+                            }`}
                           onClick={() => setCurrentPage(i)}
                         >
                           {i}
@@ -1049,11 +1085,10 @@ const JobListings = () => {
                       pages.push(
                         <button
                           key={totalPages}
-                          className={`px-3 py-1.5 rounded-md transition-colors text-xs ${
-                            totalPages === currentPage 
-                              ? 'bg-blue-600 text-white' 
+                          className={`px-3 py-1.5 rounded-md transition-colors text-xs ${totalPages === currentPage
+                              ? 'bg-blue-600 text-white'
                               : `${bgSecondary} border ${borderColor} hover:bg-opacity-80 ${textPrimary}`
-                          }`}
+                            }`}
                           onClick={() => setCurrentPage(totalPages)}
                         >
                           {totalPages}
@@ -1079,11 +1114,10 @@ const JobListings = () => {
           {/* Right Sidebar - Desktop - COMPACT */}
           <div className="hidden lg:block w-64 flex-shrink-0">
             <div
-              className={`sticky top-20 ${
-                isDark
+              className={`sticky top-20 ${isDark
                   ? 'bg-gradient-to-br from-gray-800 to-gray-700 border border-gray-600'
                   : 'bg-gradient-to-br from-blue-50 to-orange-50'
-              } rounded-lg shadow-sm p-4 transition-colors duration-300`}
+                } rounded-lg shadow-sm p-4 transition-colors duration-300`}
             >
               <div className={`${textPrimary} text-xl mb-2`}>⚡ BigSources FASTFORWARD</div>
 
@@ -1096,27 +1130,26 @@ const JobListings = () => {
               </p>
 
               <button
-                className={`text-xs font-semibold transition-colors duration-200 ${
-                  isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
-                }`}
+                className={`text-xs font-semibold transition-colors duration-200 ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
+                  }`}
               >
                 Know More
               </button>
             </div>
-              {/* Axis Banner */}
-                    <section className={` sticky top-80 mt-4 transition-colors duration-300`}>
-                      <div className="max-w-3xl mx-auto">
-                        <div className="rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-                          <img 
-                            src={vacancy1} 
-                            alt="Axis Bank Banner" 
-                            className="w-full h-auto object-cover"
-                            loading="lazy"
-                          />
-                        </div>
-                      </div>
-                    </section>
-   </div>
+            {/* Axis Banner */}
+            <section className={` sticky top-80 mt-4 transition-colors duration-300`}>
+              <div className="max-w-3xl mx-auto">
+                <div className="rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
+                  <img
+                    src={vacancy1}
+                    alt="Axis Bank Banner"
+                    className="w-full h-auto object-cover"
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+            </section>
+          </div>
         </div>
       </div>
       <Footer />

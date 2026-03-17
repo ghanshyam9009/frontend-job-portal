@@ -78,70 +78,26 @@ const AdminPostJob = () => {
       setError("");
       
       const jobsData = await candidateExternalService.getAllJobs();
-      const currentAdminId = user?.admin_id || user?.id || user?.user_id;
-      
-      // Filter to only show admin-posted jobs
-      const adminJobs = (jobsData?.jobs || []).filter(j => {
-        const postedBy = (j.posted_by || '').toLowerCase();
-        return postedBy === 'admin';
-      });
-      
+      const allJobs = jobsData?.jobs || [];
+
       console.log('=== EDIT JOB DEBUG INFO ===');
       console.log('JobId from URL:', jobId);
-      console.log('Current Admin ID:', currentAdminId);
       console.log('User object:', JSON.stringify(user, null, 2));
-      console.log('Total jobs fetched:', jobsData?.jobs?.length);
-      console.log('Admin-posted jobs:', adminJobs.length);
-      
-      // Log admin jobs to see what's available
-      if (adminJobs && adminJobs.length > 0) {
-        console.log('Admin-posted jobs (first 5):', adminJobs.slice(0, 5).map(j => ({
-          job_id: j.job_id,
-          id: j.id,
-          title: j.job_title,
-          admin_id: j.admin_id,
-          posted_by: j.posted_by,
-          status: j.status
-        })));
-      }
-      
-      // Find job - only search in admin-posted jobs
-      let job = null;
-      
-      // Approach 1: Try exact match with admin_id and job ID
-      job = adminJobs.find(j => {
-        const jobIdMatch = (j.job_id == jobId || j.id == jobId); // Use == for type coercion
-        const adminIdMatch = (j.admin_id == currentAdminId);
-        return jobIdMatch && adminIdMatch;
-      });
-      
-      console.log('Approach 1 (exact admin_id match):', job ? 'FOUND' : 'NOT FOUND');
-      
-      // Approach 2: If not found, try matching just by job ID (must be admin-posted)
-      if (!job) {
-        job = adminJobs.find(j => {
-          return (j.job_id == jobId || j.id == jobId);
-        });
-        console.log('Approach 2 (job_id in admin jobs):', job ? 'FOUND' : 'NOT FOUND');
-      }
+      console.log('Total jobs fetched:', allJobs.length);
+
+      // Find job among all jobs (admin can edit any job from reports)
+      const job = allJobs.find(j => (j.job_id == jobId || j.id == jobId));
       
       if (!job) {
         console.error('=== JOB NOT FOUND ===');
         console.log('Searched for job with ID:', jobId);
-        console.log('Available admin job IDs:', adminJobs.map(j => ({
+        console.log('Available job IDs (first 10):', allJobs.map(j => ({
           job_id: j.job_id,
           id: j.id,
           title: j.job_title,
           posted_by: j.posted_by
         })).slice(0, 10));
-        setError('Job not found. Only jobs posted by admin can be edited. This job may have been posted by a recruiter or may not exist.');
-        return;
-      }
-      
-      // Double-check that the job is posted by admin
-      const postedBy = (job.posted_by || '').toLowerCase();
-      if (postedBy !== 'admin') {
-        setError('You can only edit jobs posted by admin. This job was posted by: ' + (job.posted_by || 'unknown'));
+        setError('Job not found. This job may not exist or could not be loaded.');
         return;
       }
 
@@ -151,7 +107,6 @@ const AdminPostJob = () => {
         id: job.id,
         title: job.job_title,
         company: job.company_name,
-        admin_id: job.admin_id,
         posted_by: job.posted_by
       });
 
@@ -426,7 +381,7 @@ const AdminPostJob = () => {
     return (
       <div className={`min-h-screen ${bgColor}`}>
         <div className={`${cardBg} border-b ${borderColor} sticky top-0 z-40`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate('/admin/job-posting')}
@@ -435,7 +390,7 @@ const AdminPostJob = () => {
                 <ArrowLeft size={20} className={textColor} />
               </button>
               <div>
-                <h1 className={`text-xl sm:text-2xl font-bold ${textColor}`}>
+                <h1 className={`text-2xl font-bold ${textColor}`}>
                   Edit Job Posting
                 </h1>
                 <p className={`text-sm ${textSecondary} mt-1`}>
@@ -445,7 +400,7 @@ const AdminPostJob = () => {
             </div>
           </div>
         </div>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="max-w-4xl mx-auto px-6 py-12">
           <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center`}>
             <div className="relative mb-6">
               <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-t-4 border-blue-500 mx-auto"></div>
@@ -466,23 +421,23 @@ const AdminPostJob = () => {
     return (
       <div className={`min-h-screen ${bgColor}`}>
         <div className={`${cardBg} border-b ${borderColor} sticky top-0 z-40`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => navigate('/admin/job-posting')}
+                onClick={() => navigate(-1)}
                 className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors`}
               >
                 <ArrowLeft size={20} className={textColor} />
               </button>
               <div>
-                <h1 className={`text-xl sm:text-2xl font-bold ${textColor}`}>
+                <h1 className={`text-2xl font-bold ${textColor}`}>
                   Edit Job Posting
                 </h1>
               </div>
             </div>
           </div>
         </div>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="max-w-4xl mx-auto px-6 py-12">
           <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center`}>
             <div className="w-16 h-16 bg-red-100 dark:bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <X className="text-red-500" size={32} />
@@ -490,7 +445,7 @@ const AdminPostJob = () => {
             <h3 className="text-lg font-bold text-red-500 mb-2">Failed to Load Job</h3>
             <p className={`${textSecondary} mb-6`}>{error}</p>
             <button
-              onClick={() => navigate('/admin/job-posting')}
+              onClick={() => navigate(-1)}
               className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
               Back to Jobs
@@ -505,16 +460,16 @@ const AdminPostJob = () => {
     <div className={`min-h-screen ${bgColor}`}>
       {/* Header */}
       <div className={`${cardBg} border-b ${borderColor} sticky top-0 z-40`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/admin/job-posting')}
+              onClick={() => navigate(-1)}
               className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors`}
             >
               <ArrowLeft size={20} className={textColor} />
             </button>
             <div>
-              <h1 className={`text-xl sm:text-2xl font-bold ${textColor}`}>
+              <h1 className={`text-2xl font-bold ${textColor}`}>
                 {jobId ? 'Edit Job Posting' : 'Post New Job'}
               </h1>
               <p className={`text-sm ${textSecondary} mt-1`}>
@@ -525,7 +480,7 @@ const AdminPostJob = () => {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-4xl mx-auto px-6 py-6">
         {/* Show edit mode indicator */}
         {jobId && formData.job_title && (
           <div className={`mb-4 p-4 ${isDark ? 'bg-blue-900/20' : 'bg-blue-50'} border ${isDark ? 'border-blue-500/30' : 'border-blue-200'} rounded-lg`}>
@@ -533,7 +488,7 @@ const AdminPostJob = () => {
               <FileText className="text-blue-500 flex-shrink-0 mt-0.5" size={18} />
               <div className="flex-1">
                 <p className={`text-sm font-semibold ${textColor} mb-2`}>Editing Job: {formData.job_title}</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                <div className="grid grid-cols-4 gap-2 text-xs">
                   <div>
                     <span className={textSecondary}>Company:</span>
                     <p className={`font-medium ${textColor}`}>{formData.company_name || 'N/A'}</p>
@@ -565,7 +520,7 @@ const AdminPostJob = () => {
               <h2 className={`text-lg font-bold ${textColor}`}>Basic Information</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
                   Job Title <span className="text-red-500">*</span>
@@ -597,7 +552,7 @@ const AdminPostJob = () => {
                 />
               </div>
 
-              <div className="md:col-span-2">
+              <div className="col-span-2">
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
                   Job Logo
                 </label>
@@ -698,7 +653,7 @@ const AdminPostJob = () => {
                 </div>
               </div>
 
-              <div className="md:col-span-2">
+              <div className="col-span-2">
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
                   Salary Range
                 </label>
@@ -731,7 +686,7 @@ const AdminPostJob = () => {
                 </div>
               </div>
 
-              <div className="md:col-span-2">
+              <div className="col-span-2">
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
                   Experience Required (Years)
                 </label>
@@ -755,7 +710,7 @@ const AdminPostJob = () => {
               </div>
 
               {/* Premium Job Toggle */}
-              <div className="md:col-span-2">
+              <div className="col-span-2">
                 <label className={`flex items-center gap-2 ${textColor} text-sm font-medium`}>
                   <input
                     type="checkbox"
@@ -776,7 +731,7 @@ const AdminPostJob = () => {
               <h2 className={`text-lg font-bold ${textColor}`}>Contact Information</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
                   Contact Email <span className="text-red-500">*</span>
@@ -927,7 +882,7 @@ const AdminPostJob = () => {
               <h2 className={`text-lg font-bold ${textColor}`}>Additional Benefits</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {[
                 'PF & ESIC',
                 'Health Insurance',

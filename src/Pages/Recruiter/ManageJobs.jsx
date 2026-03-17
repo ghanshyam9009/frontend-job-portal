@@ -38,6 +38,24 @@ const ManageJobs = () => {
         const data = await recruiterExternalService.getAllPostedJobs(employerId);
         const allJobs = data?.jobs || [];
 
+        const formatSalary = (salaryRange) => {
+          if (!salaryRange || (salaryRange.min == null && salaryRange.max == null)) return "Not specified";
+          const min = Number(salaryRange.min);
+          const max = Number(salaryRange.max);
+          if (Number.isNaN(min) && Number.isNaN(max)) return "Not specified";
+          const currency = salaryRange.currency || "INR";
+          const symbol = currency === "INR" ? "₹" : currency;
+          const formatAmount = (val) => {
+            if (Number.isNaN(val)) return "—";
+            if (val >= 100000) return `${(val / 100000).toFixed(1).replace(/\.0$/, "")}L`;
+            if (val >= 1000) return `${(val / 1000).toFixed(0)}K`;
+            return val.toLocaleString("en-IN");
+          };
+          const minStr = formatAmount(min);
+          const maxStr = formatAmount(max);
+          return `${symbol}${minStr} - ${symbol}${maxStr}`;
+        };
+
         const approvedJobs = allJobs.filter(job => job && job.job_id && job.job_title);
 
         const jobsData = approvedJobs.map(job => ({
@@ -47,9 +65,7 @@ const ManageJobs = () => {
           location: job.location || "",
           type: job.employment_type || "",
           workMode: job.work_mode || "",
-          salary: job.salary_range && job.salary_range.min && job.salary_range.max 
-                    ? `${Math.round(job.salary_range.min/100000)}L - ${Math.round(job.salary_range.max/100000)}L` 
-                    : "Not specified",
+          salary: formatSalary(job.salary_range),
           status: (job.status || "Open").toLowerCase() === "open" ? "Active" : job.status,
           postedDate: (job.created_at || "").split("T")[0] || "",
           applications: job.application_count || 0,
@@ -133,16 +149,16 @@ const ManageJobs = () => {
     <div className={`min-h-screen ${bgColor}`}>
       <RecruiterNavbar toggleSidebar={toggleSidebar} darkMode={theme === 'dark'} toggleDarkMode={toggleTheme} />
       
-      {/* Header */}
-      <div className={`${cardBg} border-b ${borderColor} mt-20 sticky top-0 z-40`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <h1 className={`text-xl sm:text-2xl font-bold ${textColor}`}>Manage Jobs</h1>
+      {/* Header - mobile friendly */}
+      <div className={`${cardBg} border-b ${borderColor} mt-14 sm:mt-20 sticky top-0 z-40 safe-area-top`}>
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-3">
+            <h1 className={`text-lg sm:text-2xl font-bold ${textColor} truncate`}>Manage Jobs</h1>
             <button 
               onClick={() => navigate('/post-job')}
-              className="px-4 sm:px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2 text-sm sm:text-base"
+              className="min-h-[44px] min-w-[44px] px-4 sm:px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-[0.98] transition-all font-medium flex items-center justify-center gap-2 text-sm sm:text-base flex-shrink-0 touch-manipulation"
             >
-              <Plus size={18} />
+              <Plus size={20} className="sm:w-[18px] sm:h-[18px]" />
               <span className="hidden sm:inline">Post New Job</span>
               <span className="sm:hidden">Post</span>
             </button>
@@ -150,8 +166,8 @@ const ManageJobs = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex flex-col lg:flex-row gap-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 sm:pb-8">
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
           {/* Left Sidebar - Filters (Desktop) */}
           <aside className="hidden lg:block w-72 flex-shrink-0">
             <div className={`${cardBg} rounded-lg border ${borderColor} p-5 sticky top-24`}>
@@ -224,21 +240,21 @@ const ManageJobs = () => {
             </div>
           </aside>
 
-          {/* Mobile Filter Button */}
-          <div className="lg:hidden">
+          {/* Mobile Filter Button - touch friendly */}
+          <div className="lg:hidden order-first">
             <button
               onClick={() => setShowMobileFilters(true)}
-              className={`w-full px-4 py-3 ${cardBg} border ${borderColor} rounded-lg ${textColor} font-medium flex items-center justify-center gap-2`}
+              className={`w-full min-h-[48px] px-4 py-3 ${cardBg} border ${borderColor} rounded-xl ${textColor} font-medium flex items-center justify-center gap-2 active:scale-[0.99] touch-manipulation`}
             >
-              <Filter size={18} />
+              <Filter size={20} />
               Filters & Search
             </button>
           </div>
 
-          {/* Mobile Filters Modal */}
+          {/* Mobile Filters Modal - full height drawer */}
           {showMobileFilters && (
             <div className="fixed inset-0 bg-black/50 z-50 lg:hidden" onClick={() => setShowMobileFilters(false)}>
-              <div className={`absolute inset-y-0 left-0 w-80 max-w-full ${cardBg} p-6 overflow-y-auto`} onClick={(e) => e.stopPropagation()}>
+              <div className={`absolute inset-y-0 right-0 w-full max-w-sm ${cardBg} p-5 overflow-y-auto shadow-xl`} onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-6">
                   <h2 className={`text-lg font-bold ${textColor}`}>Filters</h2>
                   <button onClick={() => setShowMobileFilters(false)} className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg`}>
@@ -297,8 +313,8 @@ const ManageJobs = () => {
 
           {/* Right Side - Job Listings */}
           <div className="flex-1 min-w-0">
-            {/* Results Header */}
-            <div className="mb-4">
+            {/* Results Header - mobile compact */}
+            <div className="mb-3 sm:mb-4 py-2 sm:py-0">
               <p className={`text-sm ${textSecondary}`}>
                 Showing <span className={`font-semibold ${textColor}`}>{filteredJobs.length}</span> {filteredJobs.length === 1 ? 'job' : 'jobs'}
               </p>
@@ -357,92 +373,91 @@ const ManageJobs = () => {
               </div>
             )}
             
-            {/* Job Listings - Compact Cards */}
-            <div className="space-y-3">
+            {/* Job Listings - Mobile-first cards */}
+            <div className="space-y-4 sm:space-y-3">
               {filteredJobs.map(job => (
                 <div key={job.id} 
-                     className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all`}>
-                  <div className="p-3">
+                     className={`${cardBg} rounded-xl border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all overflow-hidden`}>
+                  <div className="p-4 sm:p-3">
                     {/* Job Header */}
-                    <div className="flex items-start justify-between gap-3 mb-2.5">
-                      <div className="flex-1 min-w-0">
-                        <h3 className={`text-base font-bold ${textColor} mb-1.5 hover:text-blue-600 cursor-pointer leading-tight`}>
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="flex-1 min-w-0 pr-2">
+                        <h3 className={`text-[15px] sm:text-base font-bold ${textColor} leading-snug line-clamp-2`}>
                           {job.title}
                         </h3>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mb-2">
-                          <span className="flex items-center gap-1">
-                            <Building size={13} className="flex-shrink-0" />
-                            {job.company}
+                        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-1 sm:gap-2 mt-1.5 text-xs text-gray-600 dark:text-gray-400">
+                          <span className="flex items-center gap-1 min-w-0 truncate">
+                            <Building size={14} className="flex-shrink-0 text-gray-500" />
+                            <span className="truncate">{job.company}</span>
                           </span>
-                          <span className="flex items-center gap-1">
-                            <MapPin size={13} className="flex-shrink-0" />
-                            {job.location}
+                          <span className="flex items-center gap-1 min-w-0 truncate">
+                            <MapPin size={14} className="flex-shrink-0 text-gray-500" />
+                            <span className="truncate">{job.location}</span>
                           </span>
                         </div>
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold border flex-shrink-0 ${getStatusColor(job.status)}`} style={{ fontSize: '0.7rem' }}>
+                      <span className={`px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold border flex-shrink-0 capitalize ${getStatusColor(job.status)}`}>
                         {job.status}
                       </span>
                     </div>
 
-                    {/* Job Details */}
-                    <div className="flex flex-wrap gap-1.5 mb-2.5">
-                      <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`} style={{ fontSize: '0.7rem' }}>
+                    {/* Job Details - Pills wrap nicely on mobile */}
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      <span className={`px-2.5 py-1.5 rounded-lg text-xs font-medium ${isDark ? 'bg-gray-700/60 text-gray-300 border border-gray-600' : 'bg-gray-100 text-gray-700 border border-gray-200'}`}>
                         {job.type}
                       </span>
-                      <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`} style={{ fontSize: '0.7rem' }}>
+                      <span className={`px-2.5 py-1.5 rounded-lg text-xs font-medium ${isDark ? 'bg-gray-700/60 text-gray-300 border border-gray-600' : 'bg-gray-100 text-gray-700 border border-gray-200'}`}>
                         {job.workMode}
                       </span>
-                      <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`} style={{ fontSize: '0.7rem' }}>
-                        💰 {job.salary}
+                      <span className={`px-2.5 py-1.5 rounded-lg text-xs font-medium ${isDark ? 'bg-gray-700/60 text-gray-300 border border-gray-600' : 'bg-gray-100 text-gray-700 border border-gray-200'}`}>
+                        {job.salary}
                       </span>
-                      <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'} flex items-center gap-1`} style={{ fontSize: '0.7rem' }}>
+                      <span className={`px-2.5 py-1.5 rounded-lg text-xs font-medium ${isDark ? 'bg-gray-700/60 text-gray-300 border border-gray-600' : 'bg-gray-100 text-gray-700 border border-gray-200'} flex items-center gap-1`}>
                         <Calendar size={12} />
                         {job.postedDate}
                       </span>
                     </div>
 
-                    {/* Stats Bar */}
-                    <div className={`flex items-center gap-4 p-2 rounded-lg mb-2.5 border ${borderColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
+                    {/* Stats Bar - compact on mobile */}
+                    <div className={`flex items-center gap-4 py-2.5 px-3 rounded-xl mb-3 ${isDark ? 'bg-gray-700/40' : 'bg-gray-50'} border ${borderColor}`}>
                       <div className="flex items-center gap-1.5">
-                        <Users size={13} className="text-gray-500" />
+                        <Users size={14} className="text-gray-500 flex-shrink-0" />
                         <span className={`text-xs font-semibold ${textColor}`}>{job.applications}</span>
-                        <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.65rem' }}>applications</span>
+                        <span className={`text-xs ${textSecondary}`}>applications</span>
                       </div>
-                      <div className={`h-3 w-px ${isDark ? 'bg-gray-600' : 'bg-gray-300'}`}></div>
+                      <div className={`h-4 w-px ${isDark ? 'bg-gray-600' : 'bg-gray-200'}`} />
                       <div className="flex items-center gap-1.5">
-                        <Eye size={13} className="text-gray-500" />
+                        <Eye size={14} className="text-gray-500 flex-shrink-0" />
                         <span className={`text-xs font-semibold ${textColor}`}>{job.views}</span>
-                        <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.65rem' }}>views</span>
+                        <span className={`text-xs ${textSecondary}`}>views</span>
                       </div>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-1.5">
-                      <button
-                        onClick={() => handleEditJob(job.id)}
-                        className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5`}
-                        style={{ fontSize: '0.7rem' }}
-                      >
-                        <Edit size={13} />
-                        <span className="hidden sm:inline">Edit</span>
-                      </button>
+                    {/* Action Buttons - mobile: primary full-width, then Edit + Close row */}
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-1.5">
                       <button
                         onClick={() => handleViewApplications(job.id)}
-                        className="flex-1 sm:flex-initial px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5"
-                        style={{ fontSize: '0.7rem' }}
+                        className="w-full min-h-[44px] sm:min-h-0 sm:flex-1 px-4 py-3 sm:py-1.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 touch-manipulation order-first sm:order-none"
                       >
-                        <Eye size={13} />
+                        <Eye size={18} className="sm:w-[14px] sm:h-[14px]" />
                         View Applications ({job.applications})
                       </button>
-                      <button
-                        onClick={() => handleToggleStatus(job.id)}
-                        className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5`}
-                        style={{ fontSize: '0.7rem' }}
-                      >
-                        <CircleX size={13} />
-                        <span className="hidden sm:inline">{job.status === 'Active' ? 'Close' : 'Reopen'}</span>
-                      </button>
+                      <div className="flex gap-2 sm:gap-1.5">
+                        <button
+                          onClick={() => handleEditJob(job.id)}
+                          className={`flex-1 min-h-[44px] sm:min-h-0 px-4 py-3 sm:py-1.5 border ${borderColor} rounded-xl text-sm font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 touch-manipulation`}
+                        >
+                          <Edit size={18} className="sm:w-[14px] sm:h-[14px]" />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleToggleStatus(job.id)}
+                          className={`flex-1 min-h-[44px] sm:min-h-0 px-4 py-3 sm:py-1.5 border ${borderColor} rounded-xl text-sm font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 touch-manipulation`}
+                        >
+                          <CircleX size={18} className="sm:w-[14px] sm:h-[14px]" />
+                          <span>{job.status === 'Active' ? 'Close' : 'Reopen'}</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

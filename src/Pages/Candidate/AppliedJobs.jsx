@@ -16,11 +16,11 @@ import {
   DollarSign,
   Clock,
   ExternalLink,
-  TrendingUp,
   AlertCircle,
   Crown,
   Building,
-  Search
+  Search,
+  Star
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -31,9 +31,6 @@ const AppliedJobs = () => {
   const [appliedJobs, setAppliedJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [trackingInfo, setTrackingInfo] = useState(null);
-  const [timeline, setTimeline] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -51,11 +48,14 @@ const AppliedJobs = () => {
             try {
               const applicantsData = await recruiterExternalService.getAllApplicants(job.job_id);
               const currentUserApplication = (applicantsData.applications || []).find(
-                (app) => app.student_id === userId
+                (app) => String(app.student_id) === String(userId) || String(app.student_id) === String(user?.id)
               );
+              const isShortlisted = currentUserApplication?.shortlisted === true || currentUserApplication?.is_shortlisted === true || (currentUserApplication?.application_status || currentUserApplication?.status || "").toLowerCase() === "shortlisted";
               return {
                 ...job,
                 application_id: currentUserApplication?.application_id || "",
+                application_status: currentUserApplication?.application_status || currentUserApplication?.status || "",
+                is_shortlisted: isShortlisted,
               };
             } catch (error) {
               console.error(`Failed to fetch applicants for job ${job.job_id}`, error);
@@ -64,22 +64,25 @@ const AppliedJobs = () => {
           })
         );
 
-        const mapped = (jobsWithApps || []).map((a, idx) => ({
-          id: a.job_id || idx,
-          title: a.job_title || "",
-          company: a.company_name || "",
-          salary:
-            a.salary_range && a.salary_range.min && a.salary_range.max
-              ? `₹${a.salary_range.min} - ₹${a.salary_range.max}`
-              : "Salary not disclosed",
-          location: a.location && a.location.toLowerCase() !== "n/a" ? a.location : "",
-          type: a.employment_type || "",
-          appliedDate: a.created_at ? a.created_at.split("T")[0] : "",
-          appliedDateTime: a.created_at || "",
-          status: a.status || "Under Review",
-          applicationId: a.application_id || "",
-          is_premium: a.premium_job || false,
-        }));
+        const mapped = (jobsWithApps || []).map((a, idx) => {
+          const displayStatus = a.is_shortlisted ? "Shortlisted" : (a.application_status || a.status || "Under Review");
+          return {
+            id: a.job_id || idx,
+            title: a.job_title || "",
+            company: a.company_name || "",
+            salary:
+              a.salary_range && a.salary_range.min && a.salary_range.max
+                ? `₹${a.salary_range.min} - ₹${a.salary_range.max}`
+                : "Salary not disclosed",
+            location: a.location && a.location.toLowerCase() !== "n/a" ? a.location : "",
+            type: a.employment_type || "",
+            appliedDate: a.created_at ? a.created_at.split("T")[0] : "",
+            appliedDateTime: a.created_at || "",
+            status: typeof displayStatus === "string" ? displayStatus : "Under Review",
+            applicationId: a.application_id || "",
+            is_premium: a.premium_job || false,
+          };
+        });
 
         const sorted = mapped.sort((a, b) => {
           const dateA = new Date(a.appliedDateTime || 0);
@@ -106,81 +109,12 @@ const AppliedJobs = () => {
     });
   };
 
-  const handleTrack = async (applicationId) => {
-    if (!applicationId) {
-      return toast.error(
-        "Application ID not found. The application may still be processing. Please try again later."
-      );
-    }
-
-    try {
-      const data = await candidateExternalService.getApplicationStatus(applicationId);
-
-      if (!data || typeof data.status !== 'string') {
-        console.error("Invalid status data received:", data);
-        toast.error("Could not retrieve valid tracking information.");
-        return;
-      }
-
-      setTrackingInfo(data);
-
-      const statusOrder = ['pending', 'applied', 'under review', 'shortlisted', 'interview scheduled', 'offer received', 'hired'];
-      const currentStatus = data.status.toLowerCase();
-      const isRejected = currentStatus === 'rejected';
-      const currentIndex = statusOrder.indexOf(currentStatus);
-
-      let timeline = [
-        { stage: 'Application Sent', status: 'Pending', date: data.applied_date || data.created_at || null },
-        { stage: 'Under Review', status: 'Pending', date: null },
-        { stage: 'Shortlisted', status: 'Pending', date: null },
-        { stage: 'Interview Scheduled', status: 'Pending', date: null },
-        { stage: 'Offer Received', status: 'Pending', date: null },
-        { stage: 'Hired', status: 'Pending', date: null },
-      ];
-
-      if (isRejected) {
-        timeline[0].status = 'Completed';
-        timeline.push({ 
-          stage: 'Rejected', 
-          status: 'Completed', 
-          date: data.status_date || data.updated_at || new Date().toISOString() 
-        });
-      } else if (currentIndex > -1) {
-        for (let i = 0; i <= currentIndex; i++) {
-          timeline[i].status = 'Completed';
-          if (i === currentIndex) {
-            timeline[i].date = data.status_date || data.updated_at || new Date().toISOString();
-          }
-        }
-      } else {
-        timeline[0].status = 'Completed';
-      }
-
-      setTimeline(timeline);
-      setIsModalOpen(true);
-    } catch (e) {
-      console.error("Failed to fetch application status:", e);
-      if (e.error === "Application not found") {
-        toast.error(
-          "Could not find application. It might still be processing. Please try again later."
-        );
-      } else {
-        const errorMessage = e?.message || "An unknown error occurred.";
-        toast.error(`Failed to fetch status: ${errorMessage}`);
-      }
-    }
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setTrackingInfo(null);
-    setTimeline([]);
-  };
-
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
       case 'under review':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-400';
+      case 'shortlisted':
+        return 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-400';
       case 'interview scheduled':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400';
       case 'offer received':
@@ -196,6 +130,8 @@ const AppliedJobs = () => {
     switch (status.toLowerCase()) {
       case 'under review':
         return <Eye size={14} />;
+      case 'shortlisted':
+        return <Star size={14} />;
       case 'interview scheduled':
         return <Calendar size={14} />;
       case 'offer received':
@@ -265,7 +201,7 @@ const AppliedJobs = () => {
 
           {/* Stats Cards */}
           {appliedJobs.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
               <div className={`${cardBg} border ${borderColor} rounded-lg p-4`}>
                 <div className="flex items-center justify-between">
                   <div>
@@ -300,14 +236,14 @@ const AppliedJobs = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className={`text-xs font-semibold ${textSecondary} uppercase tracking-wider mb-1`}>
-                      Interviews
+                      Shortlisted
                     </p>
                     <p className={`text-2xl font-bold ${textColor}`}>
-                      {appliedJobs.filter(j => j.status.toLowerCase() === 'interview scheduled').length}
+                      {appliedJobs.filter(j => j.status.toLowerCase() === 'shortlisted').length}
                     </p>
                   </div>
-                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-lg flex items-center justify-center">
-                    <Calendar size={20} className="text-blue-600 dark:text-blue-400" />
+                  <div className="w-10 h-10 bg-amber-100 dark:bg-amber-500/20 rounded-lg flex items-center justify-center">
+                    <Star size={20} className="text-amber-600 dark:text-amber-400" />
                   </div>
                 </div>
               </div>
@@ -332,19 +268,19 @@ const AppliedJobs = () => {
 
           {/* Search and Filters */}
           {appliedJobs.length > 0 && (
-            <div className={`${cardBg} border ${borderColor} rounded-lg p-4 mb-6`}>
+            <div className={`${cardBg} border ${borderColor} rounded-lg p-4 mb-6 overflow-hidden`}>
               <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
+                <div className="relative flex-1 min-w-0">
                   <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`} />
                   <input
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search by job title, company, or location..."
-                    className={`w-full pl-10 pr-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+                    placeholder="Search by job title, company..."
+                    className={`w-full min-w-0 pl-10 pr-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
                   />
                 </div>
-                <div className="flex gap-2 overflow-x-auto">
+                <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => setStatusFilter('all')}
                     className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
@@ -490,7 +426,7 @@ const AppliedJobs = () => {
                     </div>
                   )}
 
-                  {/* Action Buttons */}
+                  {/* Action Buttons – Track button remove, sirf View */}
                   <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <button 
                       onClick={() => handleJobClick(job)}
@@ -498,23 +434,6 @@ const AppliedJobs = () => {
                     >
                       <Eye size={14} />
                       View
-                    </button>
-                    <button
-                      onClick={() => handleTrack(job.applicationId)}
-                      disabled={!job.applicationId}
-                      title={
-                        !job.applicationId
-                          ? "Tracking information is not yet available for this application."
-                          : "Track your application status"
-                      }
-                      className={`flex-1 px-3 py-2 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2 ${
-                        job.applicationId
-                          ? `border ${borderColor} ${textColor} hover:bg-gray-100 dark:hover:bg-gray-700`
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                      }`}
-                    >
-                      <TrendingUp size={14} />
-                      Track
                     </button>
                   </div>
                 </div>
@@ -537,76 +456,6 @@ const AppliedJobs = () => {
         </div>
       </main>
 
-      {/* Tracking Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className={`${cardBg} rounded-xl max-w-2xl w-full shadow-2xl border ${borderColor}`}>
-            {/* Modal Header */}
-            <div className={`flex items-center justify-between p-6 border-b ${borderColor}`}>
-              <h2 className={`text-2xl font-bold ${textColor}`}>
-                Application Status
-              </h2>
-              <button
-                onClick={closeModal}
-                className={`${textSecondary} hover:${textColor} transition-colors p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg`}
-              >
-                <X size={24} />
-              </button>
-            </div>
-
-            {/* Timeline */}
-            <div className="p-6">
-              <div className="relative">
-                {timeline.map((item, index) => (
-                  <div key={index} className="flex gap-4 relative pb-8 last:pb-0">
-                    {/* Vertical Line */}
-                    {index < timeline.length - 1 && (
-                      <div className={`absolute left-5 top-12 w-0.5 h-full ${
-                        item.status === 'Completed' ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
-                      }`}></div>
-                    )}
-                    
-                    {/* Icon */}
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 z-10 ${
-                      item.status === 'Completed'
-                        ? 'bg-green-500 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-400'
-                    }`}>
-                      {item.status === 'Completed' ? (
-                        <Check size={18} />
-                      ) : (
-                        <Clock size={18} />
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 pt-1">
-                      <h4 className={`font-bold ${textColor} mb-1`}>{item.stage}</h4>
-                      <p className={`text-sm ${textSecondary}`}>
-                        {item.date ? new Date(item.date).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        }) : 'Pending'}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className={`flex justify-end p-6 border-t ${borderColor}`}>
-              <button
-                onClick={closeModal}
-                className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

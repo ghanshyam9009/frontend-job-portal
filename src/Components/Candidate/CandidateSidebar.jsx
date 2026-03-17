@@ -31,6 +31,12 @@ const CandidateSidebar = ({ isOpen, toggleSidebar }) => {
       path: '/saved-jobs'
     },
     {
+      id: 'shortlisted',
+      label: 'Shortlisted Jobs',
+      icon: <Star size={20} />,
+      path: '/shortlisted-jobs'
+    },
+    {
       id: 'applications',
       label: 'My Applications',
       icon: <ClipboardList size={20} />,

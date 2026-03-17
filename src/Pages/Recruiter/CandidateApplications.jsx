@@ -297,7 +297,9 @@ const CandidateApplications = () => {
 
           {/* Applications List - Enhanced Cards */}
           <div className="space-y-5">
-            {filteredApplications.map((application) => (
+            {filteredApplications.map((application) => {
+              const studentProfile = application.student_profile || {};
+              return (
               <div key={application.application_id} className={`${cardBg} rounded-2xl shadow-md border ${borderColor} p-6 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 relative overflow-hidden group`}>
                 <div className={`absolute inset-0 bg-gradient-to-r ${
                   application.status === 'Shortlisted' ? 'from-emerald-500/5 to-emerald-600/5' :
@@ -417,7 +419,8 @@ const CandidateApplications = () => {
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         </div>
       </main>

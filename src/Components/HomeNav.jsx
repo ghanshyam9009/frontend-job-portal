@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Sun, Moon } from 'lucide-react';
+import { Link, useLocation } from "react-router-dom";
+import { Sun, Moon, Home, Briefcase, Building, Info, Phone, CreditCard, X } from 'lucide-react';
 import logo from "../assets/logo.png";
 
 const HomeNav = () => {
@@ -9,18 +9,24 @@ const HomeNav = () => {
   const [showCareerDropdown, setShowCareerDropdown] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+  const { pathname } = useLocation();
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
   };
     
   const isActive = (path) => {
-    return currentPath === path;
+    return pathname === path;
   };
-  
-  console.log(currentPath)
-  
+
+  const navLinks = [
+    { label: 'Home', path: '/', icon: <Home size={18} /> },
+    { label: 'Jobs', path: '/jobs', icon: <Briefcase size={18} /> },
+    { label: 'Government Jobs', path: '/government-jobs', icon: <Building size={18} /> },
+    { label: 'About Us', path: '/about', icon: <Info size={18} /> },
+    { label: 'Contact Us', path: '/contact', icon: <Phone size={18} /> },
+    { label: 'Membership', path: '/membership', icon: <CreditCard size={18} /> },
+  ];
 
   
   useEffect(() => {
@@ -75,7 +81,7 @@ const HomeNav = () => {
   const isDark = theme == 'dark';
   const bgColor = isDark ? 'bg-gray-900' : 'bg-white';
   // Only use transparent background effect on home page
-  const isHomePage = currentPath === '/';
+  const isHomePage = pathname === '/';
   
   const textColor = (isDark ? 'text-white' : 'text-gray-900')
 
@@ -87,12 +93,47 @@ const HomeNav = () => {
   const dropdownHover = isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-50';
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${bgColor}`}>
+    <>
+      <style>{`
+        .nav-link-btn {
+          position: relative;
+          padding-bottom: 4px;
+        }
+        .nav-link-btn::after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 0%;
+          height: 2px;
+          background: #2271B5;
+          border-radius: 2px;
+          transition: width 0.25s ease;
+        }
+        .nav-link-btn:hover::after,
+        .nav-link-btn.active::after {
+          width: 100%;
+        }
+        .sidebar-slide-in {
+          animation: slideInRight 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
+        }
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to   { transform: translateX(0);   opacity: 1; }
+        }
+        .divider-line {
+          height: 1px;
+          margin: 10px 0;
+        }
+      `}</style>
+
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${bgColor} shadow-md`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 text-xl lg:text-2xl font-bold">
-            <div className="w-18 h-18 rounded-lg flex items-center justify-center text-white">
+            <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center border border-gray-200">
               <img src={logo} alt="Bigsources logo" loading="lazy" decoding="async" />
             </div>
             <span className={textColor}>
@@ -101,79 +142,20 @@ const HomeNav = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <ul className="hidden lg:flex font-bold items-center gap-6">
-            <li>
-              <Link
-                to="/"
-                className={`text-sm font-bold  transition-colors ${
-                  isActive("/")
-                    ? "text-[#2271B5]"
+          <ul className="hidden lg:flex items-center gap-1">
+            {navLinks.map((link) => (
+              <li key={link.path}>
+                <Link
+                  to={link.path}
+                  className={`nav-link-btn px-3 py-2 text-sm font-semibold transition-colors rounded-md ${isActive(link.path)
+                    ? 'active text-[#2271B5]'
                     : `${textSecondary} hover:text-[#2271B5]`
-                }`}
-              >
-                Home
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/jobs"
-                className={`text-sm font-bold transition-colors ${
-                  isActive("/jobs")
-                    ? "text-[#2271B5]"
-                    : `${textSecondary} hover:text-[#2271B5]`
-                }`}
-              >
-                Job
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/government-jobs"
-                className={`text-sm font-bold transition-colors ${
-                  isActive("/government-jobs")
-                    ? "text-[#2271B5]"
-                    : `${textSecondary} hover:text-[#2271B5]`
-                }`}
-              >
-                Government Jobs
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/about"
-                className={`text-sm font-bold transition-colors ${
-                  isActive("/about")
-                    ? "text-[#2271B5]"
-                    : `${textSecondary} hover:text-[#2271B5]`
-                }`}
-              >
-                About Us
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/contact"
-                className={`text-sm font-bold transition-colors ${
-                  isActive("/contact")
-                    ? "text-[#2271B5]"
-                    : `${textSecondary} hover:text-[#2271B5]`
-                }`}
-              >
-                Contact Us
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/membership"
-                className={`text-sm font-bold transition-colors ${
-                  isActive("/membership")
-                    ? "text-[#2271B5]"
-                    : `${textSecondary} hover:text-[#2271B5]`
-                }`}
-              >
-                Membership
-              </Link>
-            </li>
+                    }`}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
             {/* <li className="relative">
               <button
                 onClick={() => setShowCareerDropdown(!showCareerDropdown)}
@@ -275,18 +257,18 @@ const HomeNav = () => {
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
           onClick={closeMobileMenu}
         >
           <div
-            className={`fixed right-0 top-0 bottom-0 w-80 ${bgColor} shadow-xl overflow-y-auto`}
+            className={`fixed right-0 top-0 bottom-0 w-80 ${bgColor} shadow-xl overflow-y-auto sidebar-slide-in`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
               {/* Mobile Header */}
               <div className="flex items-center justify-between mb-6">
                 <Link to="/" className="flex items-center space-x-2 text-xl font-bold">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white">
+                  <div className="w-9 h-9 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center">
                     <img src={logo} alt="Bigsources logo" loading="lazy" decoding="async" />
                   </div>
                   <span className={textColor}>
@@ -297,92 +279,38 @@ const HomeNav = () => {
                   onClick={closeMobileMenu}
                   className={`p-2 rounded-md ${textSecondary} ${hoverBg}`}
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M18 6L6 18M6 6l12 12" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
+                  <X size={20} />
                 </button>
               </div>
 
               {/* Mobile Navigation Links */}
+              <p className={`text-xs font-semibold uppercase tracking-wider px-2 mb-2 ${textSecondary} opacity-60`}>Navigation</p>
               <ul className="space-y-1 mb-6">
-                <li>
-                  <Link
-                    to="/"
-                    className={`block px-4 py-3 rounded-md text-sm font-medium transition-colors ${
-                      isActive("/")
-                        ? `text-[#2271B5] ${isDark ? 'bg-[#2271B5]/20' : 'bg-[#2271B5]/10'}`
-                        : `${textSecondary} ${dropdownHover}`
-                    }`}
-                    onClick={closeMobileMenu}
-                  >
-                    Home
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/jobs"
-                    className={`block px-4 py-3 rounded-md text-sm font-medium transition-colors ${
-                      isActive("/jobs")
-                        ? `text-[#2271B5] ${isDark ? 'bg-[#2271B5]/20' : 'bg-[#2271B5]/10'}`
-                        : `${textSecondary} ${dropdownHover}`
-                    }`}
-                    onClick={closeMobileMenu}
-                  >
-                    Job Listings
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/government-jobs"
-                    className={`block px-4 py-3 rounded-md text-sm font-medium transition-colors ${
-                      isActive("/government-jobs")
-                        ? `text-[#2271B5] ${isDark ? 'bg-[#2271B5]/20' : 'bg-[#2271B5]/10'}`
-                        : `${textSecondary} ${dropdownHover}`
-                    }`}
-                    onClick={closeMobileMenu}
-                  >
-                    Government Jobs
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/about"
-                    className={`block px-4 py-3 rounded-md text-sm font-medium transition-colors ${
-                      isActive("/about")
-                        ? `text-[#2271B5] ${isDark ? 'bg-[#2271B5]/20' : 'bg-[#2271B5]/10'}`
-                        : `${textSecondary} ${dropdownHover}`
-                    }`}
-                    onClick={closeMobileMenu}
-                  >
-                    About Us
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/contact"
-                    className={`block px-4 py-3 rounded-md text-sm font-medium transition-colors ${
-                      isActive("/contact")
-                        ? `text-[#2271B5] ${isDark ? 'bg-[#2271B5]/20' : 'bg-[#2271B5]/10'}`
-                        : `${textSecondary} ${dropdownHover}`
-                    }`}
-                    onClick={closeMobileMenu}
-                  >
-                    Contact Us
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/membership"
-                    className={`block px-4 py-3 rounded-md text-sm font-medium transition-colors ${
-                      isActive("/membership")
-                        ? `text-[#2271B5] ${isDark ? 'bg-[#2271B5]/20' : 'bg-[#2271B5]/10'}`
-                        : `${textSecondary} ${dropdownHover}`
-                    }`}
-                    onClick={closeMobileMenu}
-                  >
-                    Membership
-                  </Link>
-                </li>
+                {navLinks.map((link) => (
+                  <li key={link.path}>
+                    <Link
+                      to={link.path}
+                      className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border transition-all group ${isActive(link.path)
+                        ? `border-[#2271B5] ${isDark ? 'bg-[#2271B5]/15' : 'bg-blue-50'} text-[#2271B5]`
+                        : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white shadow-sm'} ${textSecondary} hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
+                        }`}
+                      onClick={closeMobileMenu}
+                    >
+                      <div className={`p-2 rounded-lg transition-colors ${isActive(link.path)
+                        ? (isDark ? 'bg-[#2271B5]/25' : 'bg-blue-100')
+                        : (isDark ? 'bg-[#2271B5]/15 group-hover:bg-[#2271B5]/25' : 'bg-blue-50 group-hover:bg-blue-100')
+                        }`}>
+                        {React.cloneElement(link.icon, {
+                          className: `transition-colors ${isActive(link.path)
+                            ? (isDark ? 'text-blue-300' : 'text-[#2271B5]')
+                            : (isDark ? 'text-blue-200 group-hover:text-blue-300' : 'text-[#2271B5] group-hover:text-[#1a5a8f]')
+                            }`
+                        })}
+                      </div>
+                      <span className="font-semibold">{link.label}</span>
+                    </Link>
+                  </li>
+                ))}
               </ul>
 
               {/* Mobile Auth Buttons */}
@@ -400,7 +328,7 @@ const HomeNav = () => {
                 <div className="space-y-2">
                   <Link
                     to="/recruiter/login"
-                    className={`block px-4 py-2 text-sm ${textSecondary} ${dropdownHover} rounded-md transition-colors`}
+                    className={`block w-full px-4 py-3 text-center text-sm font-bold text-white bg-[#2271B5] hover:bg-[#1a5a8f] rounded-md transition-colors`}
                     onClick={closeMobileMenu}
                   >
                     Recruiter Login
@@ -414,6 +342,7 @@ const HomeNav = () => {
         </div>
       )}
     </nav>
+    </>
   );
 };
 

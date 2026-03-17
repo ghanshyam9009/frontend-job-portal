@@ -7,7 +7,9 @@ import {
   DollarSign,
   Briefcase,
   Bookmark,
-  IndianRupee
+  IndianRupee,
+  Share2,
+  Link2
 } from 'lucide-react';
 
 const JobCard = ({
@@ -16,7 +18,11 @@ const JobCard = ({
   isBookmarked = false,
   showBookmark = true,
   className = '',
-  isDark = false
+  isDark = false,
+  /** Recruiter ke liye Apply button hide */
+  hideApplyButton = false,
+  /** Candidate: 'shortlisted' | 'applied' | null – shortlisted ho toh "Shortlisted" dikhe */
+  applicationStatus = null,
 }) => {
   const navigate = useNavigate();
 
@@ -32,6 +38,56 @@ const JobCard = ({
     e.stopPropagation();
     if (onBookmark) {
       onBookmark(job.job_id || job.id);
+    }
+  };
+
+  const getJobUrl = () => {
+    const jobId = job.job_id || job.id;
+    return `${window.location.origin}/job/${jobId}`;
+  };
+
+  const showCopiedFeedback = () => {
+    const msg = document.createElement('span');
+    msg.textContent = 'Link copied!';
+    msg.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2271B5;color:white;padding:8px 16px;border-radius:8px;font-size:14px;z-index:9999;box-shadow:0 2px 8px rgba(0,0,0,0.2);';
+    document.body.appendChild(msg);
+    setTimeout(() => msg.remove(), 2000);
+  };
+
+  const handleCopyLink = async (e) => {
+    e.stopPropagation();
+    const jobUrl = getJobUrl();
+    try {
+      await navigator.clipboard.writeText(jobUrl);
+      showCopiedFeedback();
+    } catch (_) {
+      showCopiedFeedback();
+    }
+  };
+
+  const handleShareClick = async (e) => {
+    e.stopPropagation();
+    const jobUrl = getJobUrl();
+    const title = job.job_title || job.title || 'Job';
+    const text = `${title} at ${job.company_name || 'Company'}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title,
+          text,
+          url: jobUrl
+        });
+      } else {
+        await navigator.clipboard.writeText(jobUrl);
+        showCopiedFeedback();
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        try {
+          await navigator.clipboard.writeText(jobUrl);
+          showCopiedFeedback();
+        } catch (_) {}
+      }
     }
   };
 
@@ -80,22 +136,30 @@ const JobCard = ({
       className={`${bgSecondary} rounded-lg shadow-sm border ${borderColor} ${hoverBorder} p-4 hover:shadow-md transition-all duration-300 relative overflow-hidden cursor-pointer ${className}`}
       onClick={handleJobClick}
     >
-      {/* Header with time and apply button */}
+      {/* Header with time and apply / shortlisted */}
       <div className="flex items-center justify-between mb-2">
         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
           isDark ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-700'
         }`}>
           {formatDate(job.created_at || job.posted_date)}
         </span>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleJobClick();
-          }}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-1.5 rounded-md transition-all duration-300 hover:shadow-md text-xs"
-        >
-          Apply Now
-        </button>
+        {!hideApplyButton && (
+          applicationStatus === 'shortlisted' ? (
+            <span className="bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-400 font-semibold px-4 py-1.5 rounded-md text-xs">
+              Shortlisted
+            </span>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleJobClick();
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-1.5 rounded-md transition-all duration-300 hover:shadow-md text-xs"
+            >
+              Apply Now
+            </button>
+          )
+        )}
       </div>
 
       {/* Company Logo and Title */}
@@ -168,18 +232,35 @@ const JobCard = ({
         </p>
       )}
 
-      {/* Bookmark Button */}
-      {showBookmark && (
+      {/* Copy link, Share & Bookmark Buttons */}
+      <div className="absolute bottom-2 right-3 flex items-center gap-0.5">
         <button
-          onClick={handleBookmarkClick}
-          className={`${textSecondary} absolute bottom-2 right-3 hover:text-yellow-500 transition-colors p-1 rounded-md`}
+          onClick={handleCopyLink}
+          className={`${textSecondary} hover:text-blue-500 transition-colors p-1 rounded-md`}
+          title="Copy link"
         >
-          <Bookmark
-            className="w-4 h-4"
-            fill={isBookmarked ? "currentColor" : "none"}
-          />
+          <Link2 className="w-4 h-4" />
         </button>
-      )}
+        <button
+          onClick={handleShareClick}
+          className={`${textSecondary} hover:text-blue-500 transition-colors p-1 rounded-md`}
+          title="Share job"
+        >
+          <Share2 className="w-4 h-4" />
+        </button>
+        {showBookmark && (
+          <button
+            onClick={handleBookmarkClick}
+            className={`${textSecondary} hover:text-yellow-500 transition-colors p-1 rounded-md`}
+            title={isBookmarked ? 'Remove bookmark' : 'Bookmark job'}
+          >
+            <Bookmark
+              className="w-4 h-4"
+              fill={isBookmarked ? "currentColor" : "none"}
+            />
+          </button>
+        )}
+      </div>
 
       {/* Premium Badge */}
       {job.is_premium && (

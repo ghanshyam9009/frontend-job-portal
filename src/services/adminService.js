@@ -131,6 +131,8 @@ export const adminService = {
           // Get premium status - prioritize task.premium_job if it exists (from recent API calls), otherwise use jobs data
           const is_premium = task.premium_job !== undefined ? task.premium_job : (task.job_id ? premiumStatusMap[task.job_id] || false : false);
 
+          const rawStatus = (task.status || 'pending').toString().toLowerCase();
+          const status = ['pending', 'fulfilled', 'rejected'].includes(rawStatus) ? rawStatus : 'pending';
           return {
             id: task.task_id,
             task_id: task.task_id,
@@ -140,7 +142,7 @@ export const adminService = {
             location: task.location || 'Unknown Location',
             salary: task.salary || 'Not specified',
             job_type: task.employment_type || 'Unknown',
-            status: task.status || 'pending',
+            status,
             posted_date: task.created_at || new Date().toISOString(),
             updated_date: task.updated_at || new Date().toISOString(),
             description: task.description || 'No description available',
@@ -253,12 +255,23 @@ export const adminService = {
   },
 
   async updateAdminJob(jobId, jobData) {
+    // API requires job_id and employer_id in body; use same payload for primary and fallback
+    const payload = {
+      ...jobData,
+      job_id: jobData.job_id || jobId,
+      employer_id: jobData.employer_id
+    };
     try {
-      const response = await adminApiClient.post(`/job/updateadminjobs/${jobId}`, jobData);
+      const response = await adminApiClient.post(`/job/updateadminjobs/${jobId}`, payload);
       return response.data;
     } catch (error) {
-      console.error('Error updating admin job:', error);
-      throw error;
+      try {
+        const fallbackResponse = await adminApiClient.post(`/job/Updatejobs/${jobId}`, payload);
+        return fallbackResponse.data;
+      } catch (fallbackErr) {
+        console.error('Error updating admin job (primary and fallback):', error, fallbackErr);
+        throw fallbackErr;
+      }
     }
   },
 
@@ -744,7 +757,7 @@ export const adminService = {
       const apiUrl = 'https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs';
       const searchParams = {
         page: 1,
-        limit: 1000, 
+        limit: 1000,
         status: 'approved'
       };
 
@@ -765,6 +778,25 @@ export const adminService = {
       }));
     } catch (error) {
       console.error('Failed to fetch jobs with application counts:', error);
+      return [];
+    }
+  },
+
+  /** Fetch all jobs (no status filter) for admin - to include pending/rejected in reports */
+  async getAllJobsForAdmin() {
+    try {
+      const apiUrl = 'https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs';
+      const response = await fetch(`${apiUrl}?page=1&limit=5000`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const jobsData = await response.json();
+      const jobs = jobsData?.jobs || jobsData?.data || (Array.isArray(jobsData) ? jobsData : []);
+      return Array.isArray(jobs) ? jobs : [];
+    } catch (error) {
+      console.error('Failed to fetch all jobs for admin:', error);
       return [];
     }
   },

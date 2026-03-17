@@ -37,6 +37,7 @@ const CompanyProfile = () => {
   const [kycLoading, setKycLoading] = useState(false);
   const [kycError, setKycError] = useState(null);
   const [kycSuccess, setKycSuccess] = useState('');
+  const [isEditingKyc, setIsEditingKyc] = useState(false);
   const [showKycReviewModal, setShowKycReviewModal] = useState(false);
   const [expandedStep, setExpandedStep] = useState(1);
   const logoInputRef = useRef(null);
@@ -46,6 +47,8 @@ const CompanyProfile = () => {
 
   const isKycVerified = ['verified', 'approved', 'completed', 'success', 'accepted'].includes(normalizedKycStatus);
   const isKycSubmitted = ['submitted', 'in_review', 'under_review', 'pending_verification'].includes(normalizedKycStatus);
+  /** Step 3 green check: show when KYC is submitted (or has document) or fully verified */
+  const isBusinessVerificationComplete = isKycVerified || isKycSubmitted || !!(kycStatus.documentUrl && kycStatus.status);
   const isAdminApproved = user?.hasadminapproved === true;
 
   const profileCompletionPercent = useMemo(() => {
@@ -531,11 +534,11 @@ const CompanyProfile = () => {
           <div className="lg:col-span-1 space-y-6">
             <div className={`${cardBg} rounded-2xl shadow-xl border ${borderColor} overflow-hidden sticky top-24`}>
               <div className="h-24 bg-gradient-to-r from-blue-600 to-indigo-700 relative">
-                <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
-                  <div className={`w-20 h-20 rounded-2xl ${cardBg} border-4 ${borderColor} shadow-lg overflow-hidden flex items-center justify-center`}>
+                <div className="absolute -bottom-12 left-1/2 -translate-x-1/2">
+                  <div className={`w-28 h-28 rounded-2xl ${cardBg} border-4 ${borderColor} shadow-lg overflow-hidden flex items-center justify-center`}>
                     {profileData.company_logo ? (
                       <img src={profileData.company_logo} className="w-full h-full object-contain" alt="logo" />
-                    ) : <Building className="text-gray-300" size={32} />}
+                    ) : <Building className="text-gray-300" size={40} />}
                   </div>
                 </div>
               </div>
@@ -828,8 +831,8 @@ const CompanyProfile = () => {
             <div className={`${cardBg} rounded-2xl shadow-lg border ${expandedStep === 3 ? 'border-blue-500 ring-4 ring-blue-500/10' : borderColor} transition-all`}>
               <button onClick={() => setExpandedStep(expandedStep === 3 ? 0 : 3)} className="w-full p-6 flex items-center justify-between">
                 <div className="flex items-center gap-4 text-left">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${isKycVerified ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                    {isKycVerified ? <Check size={20} /> : '3'}
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${isBusinessVerificationComplete ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                    {isBusinessVerificationComplete ? <Check size={20} /> : '3'}
                   </div>
                   <div>
                     <h3 className={`text-lg font-bold ${textColor}`}>Business Verification</h3>
@@ -894,104 +897,131 @@ const CompanyProfile = () => {
                       )}
 
                       <form onSubmit={handleKycSubmit} className="space-y-6">
-                        {kycError && (
-                          <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-3">
-                            <XCircle size={20} className="text-red-500 flex-shrink-0" />
-                            <p className="text-sm text-red-600 dark:text-red-400">{kycError}</p>
-                          </div>
-                        )}
+                        {/* Show full KYC form only when editing or when KYC is not yet verified/submitted */}
+                        {(!isKycVerified && !isKycSubmitted) || isEditingKyc ? (
+                          <>
+                            {kycError && (
+                              <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-3">
+                                <XCircle size={20} className="text-red-500 flex-shrink-0" />
+                                <p className="text-sm text-red-600 dark:text-red-400">{kycError}</p>
+                              </div>
+                            )}
 
-                        {kycSuccess && (
-                          <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-center gap-3">
-                            <CheckCircle size={20} className="text-green-500 flex-shrink-0" />
-                            <p className="text-sm text-green-600 dark:text-green-400">{kycSuccess}</p>
-                          </div>
-                        )}
+                            {kycSuccess && (
+                              <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-center gap-3">
+                                <CheckCircle size={20} className="text-green-500 flex-shrink-0" />
+                                <p className="text-sm text-green-600 dark:text-green-400">{kycSuccess}</p>
+                              </div>
+                            )}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5"> 
-                          <div> 
-                            <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Document Type *</label> 
-                            <select 
-                              name="documentType" 
-                              value={kycData.documentType} 
-                              onChange={handleKycInputChange} 
-                              className={`w-full p-3 rounded-xl border ${borderColor} ${inputBg} ${textColor}`}
-                              required
-                            > 
-                              <option value="">Select Document Type</option>
-                              <option value="GST">Company GST Certificate</option> 
-                              <option value="PAN">Company PAN Card</option> 
-                              <option value="FSSAI">FSSAI License</option>
-                              <option value="INCORPORATION">Company Incorporation Certificate</option> 
-                              <option value="SHOP_ESTABLISHMENT">Shop & Establishment Certificate</option>
-                              <option value="MSME">MSME Registration Certificate</option> 
-                              <option value="ID_CARD">ID Card</option>
-                              <option value="OFFER_LETTER">Offer Letter</option>
-                              <option value="Aadhar_Card">Aadhar Card</option>
-                              <option value="CUSTOM">Custom Document</option>
-                            </select> 
-                          </div>
-                          
-                          <div>
-                            <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Document Number *</label>
-                            <input
-                              type="text"
-                              name="documentNumber"
-                              value={kycData.documentNumber}
-                              onChange={handleKycInputChange}
-                              placeholder="Enter document number"
-                              className={`w-full p-3 rounded-xl border ${borderColor} ${inputBg} ${textColor}`}
-                              required
-                            />
-                          </div>
-                          
-                          {kycData.documentType === "CUSTOM" && (
-                            <div className="md:col-span-2">
-                              <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Custom Document Name</label>
-                              <input
-                                type="text"
-                                name="customDocumentName"
-                                value={kycData.customDocumentName || ''}
-                                onChange={handleKycInputChange}
-                                placeholder="Enter document name"
-                                className={`w-full p-3 rounded-xl border ${borderColor} ${inputBg} ${textColor}`}
-                              />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5"> 
+                              <div> 
+                                <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Document Type *</label> 
+                                <select 
+                                  name="documentType" 
+                                  value={kycData.documentType} 
+                                  onChange={handleKycInputChange} 
+                                  className={`w-full p-3 rounded-xl border ${borderColor} ${inputBg} ${textColor}`}
+                                  required
+                                > 
+                                  <option value="">Select Document Type</option>
+                                  <option value="GST">Company GST Certificate</option> 
+                                  <option value="PAN">Company PAN Card</option> 
+                                  <option value="FSSAI">FSSAI License</option>
+                                  <option value="INCORPORATION">Company Incorporation Certificate</option> 
+                                  <option value="SHOP_ESTABLISHMENT">Shop & Establishment Certificate</option>
+                                  <option value="MSME">MSME Registration Certificate</option> 
+                                  <option value="ID_CARD">ID Card</option>
+                                  <option value="OFFER_LETTER">Offer Letter</option>
+                                  <option value="Aadhar_Card">Aadhar Card</option>
+                                  <option value="CUSTOM">Custom Document</option>
+                                </select> 
+                              </div>
+                              
+                              <div>
+                                <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Document Number *</label>
+                                <input
+                                  type="text"
+                                  name="documentNumber"
+                                  value={kycData.documentNumber}
+                                  onChange={handleKycInputChange}
+                                  placeholder="Enter document number"
+                                  className={`w-full p-3 rounded-xl border ${borderColor} ${inputBg} ${textColor}`}
+                                  required
+                                />
+                              </div>
+                              
+                              {kycData.documentType === "CUSTOM" && (
+                                <div className="md:col-span-2">
+                                  <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Custom Document Name</label>
+                                  <input
+                                    type="text"
+                                    name="customDocumentName"
+                                    value={kycData.customDocumentName || ''}
+                                    onChange={handleKycInputChange}
+                                    placeholder="Enter document name"
+                                    className={`w-full p-3 rounded-xl border ${borderColor} ${inputBg} ${textColor}`}
+                                  />
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
 
-                        <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl p-10 text-center bg-gray-50 dark:bg-gray-900/30">
-                          <Upload className="mx-auto text-gray-300 mb-4" size={48} />
-                          <input type="file" className="hidden" id="kyc" onChange={handleKycFileChange} accept=".pdf,.jpg,.jpeg,.png" />
-                          <label htmlFor="kyc" className="text-blue-500 font-bold cursor-pointer hover:underline">Click to upload document (PDF/JPG)</label>
-                          {kycData.documentFile && <p className="mt-3 text-sm text-green-500 font-bold flex items-center justify-center gap-2"><Check size={16}/> {kycData.documentFile.name}</p>}
-                        </div>
+                            <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl p-10 text-center bg-gray-50 dark:bg-gray-900/30">
+                              <Upload className="mx-auto text-gray-300 mb-4" size={48} />
+                              <input type="file" className="hidden" id="kyc" onChange={handleKycFileChange} accept=".pdf,.jpg,.jpeg,.png" />
+                              <label htmlFor="kyc" className="text-blue-500 font-bold cursor-pointer hover:underline">Click to upload document (PDF/JPG)</label>
+                              {kycData.documentFile && <p className="mt-3 text-sm text-green-500 font-bold flex items-center justify-center gap-2"><Check size={16}/> {kycData.documentFile.name}</p>}
+                            </div>
 
-                        <div>
-                          <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Additional Notes (Optional)</label>
-                          <textarea name="additionalNotes" value={kycData.additionalNotes} onChange={handleKycInputChange} rows="3" className={`w-full p-3 rounded-xl border ${borderColor} ${inputBg} ${textColor}`} placeholder="Any additional information..." />
-                        </div>
+                            <div>
+                              <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Additional Notes (Optional)</label>
+                              <textarea name="additionalNotes" value={kycData.additionalNotes} onChange={handleKycInputChange} rows="3" className={`w-full p-3 rounded-xl border ${borderColor} ${inputBg} ${textColor}`} placeholder="Any additional information..." />
+                            </div>
 
-                        {kycStatus.reviewerNote && (
-                          <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
-                            <p className={`text-sm font-medium ${textColor} mb-1`}>Reviewer Note:</p>
-                            <p className="text-sm text-amber-800 dark:text-amber-200">{kycStatus.reviewerNote}</p>
+                            {kycStatus.reviewerNote && (
+                              <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+                                <p className={`text-sm font-medium ${textColor} mb-1`}>Reviewer Note:</p>
+                                <p className="text-sm text-amber-800 dark:text-amber-200">{kycStatus.reviewerNote}</p>
+                              </div>
+                            )}
+
+                            <button
+                              type="submit"
+                              disabled={kycLoading}
+                              className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                              {kycLoading ? (
+                                <>
+                                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                  Submitting...
+                                </>
+                              ) : (
+                                <>
+                                  <Shield size={20} />
+                                  Submit for Verification
+                                </>
+                              )}
+                            </button>
+                          </>
+                        ) : (
+                          <div className="space-y-4">
+                            <button
+                              type="button"
+                              disabled
+                              className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 opacity-90 cursor-default"
+                            >
+                              <CheckCircle size={20} />
+                              KYC Completed
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setIsEditingKyc(true)}
+                              className="w-full bg-blue-50 text-blue-700 py-3 rounded-2xl font-semibold hover:bg-blue-100 border border-blue-200 flex items-center justify-center gap-2"
+                            >
+                              Edit KYC
+                            </button>
                           </div>
                         )}
-
-                        <button type="submit" disabled={kycLoading} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-50">
-                          {kycLoading ? (
-                            <>
-                              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                              Submitting...
-                            </>
-                          ) : (
-                            <>
-                              <Shield size={20} />
-                              Submit for Verification
-                            </>
-                          )}
-                        </button>
                       </form>
                     </div>
                   )}

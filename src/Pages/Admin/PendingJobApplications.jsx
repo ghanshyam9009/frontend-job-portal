@@ -20,8 +20,13 @@ function PendingJobApplications() {
   const [dateFilter, setDateFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [jobTypes, setJobTypes] = useState({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
-  // Fetch applications based on status filter
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, companyFilter, jobFilter, statusFilter, dateFilter, sortBy]);
+
   useEffect(() => {
     fetchData();
   }, [statusFilter]);
@@ -32,41 +37,34 @@ function PendingJobApplications() {
 
       let filteredApps = [];
 
-      // Fetch only the data needed based on status filter
       if (statusFilter === 'pending') {
-        // Only fetch pending applications
         const pendingTasks = await adminService.getPendingJobs();
         filteredApps = pendingTasks.filter(task =>
           task.category === 'newapplication' && task.status === 'pending'
         );
       } else if (statusFilter === 'approved') {
-        // Only fetch approved applications
-        const allTasks = await adminService.getPendingJobs(); // Assuming this returns all tasks
+        const allTasks = await adminService.getPendingJobs();
         filteredApps = allTasks.filter(task =>
           task.category === 'newapplication' && task.status === 'fulfilled'
         );
       } else if (statusFilter === 'rejected') {
-        // Only fetch rejected applications
-        const allTasks = await adminService.getPendingJobs(); // Assuming this returns all tasks
+        const allTasks = await adminService.getPendingJobs();
         filteredApps = allTasks.filter(task =>
           task.category === 'newapplication' && task.status === 'rejected'
         );
       } else if (statusFilter === 'all') {
-        // Fetch all applications
         const allTasks = await adminService.getPendingJobs();
         filteredApps = allTasks.filter(task => task.category === 'newapplication');
       }
 
-      // Initialize status for each application
       const appsWithStatus = filteredApps.map(app => ({
         ...app,
         applicationStatus: app.status === 'fulfilled' ? 'approved' :
-                         app.status === 'rejected' ? 'rejected' : 'pending'
+          app.status === 'rejected' ? 'rejected' : 'pending'
       }));
 
       setAllApplications(appsWithStatus);
 
-      // Fetch detailed information for each application
       if (appsWithStatus.length > 0) {
         await fetchApplicationDetails(appsWithStatus);
         determineJobTypes(appsWithStatus);
@@ -79,11 +77,8 @@ function PendingJobApplications() {
     }
   };
 
-  // Function to determine job types from existing task data (no API calls needed)
   const determineJobTypes = (applications) => {
     const jobTypeMap = {};
-
-    // Determine job type based on recruiter_id in task data
     applications.forEach(app => {
       if (app.job_id && !jobTypeMap[app.job_id]) {
         jobTypeMap[app.job_id] = app.recruiter_id ? 'Recruiter Job' : 'Admin Private Job';
@@ -92,12 +87,8 @@ function PendingJobApplications() {
 
     setJobTypes(jobTypeMap);
   };
-
-  // Function to fetch complete application details with optimized API calls
   const fetchApplicationDetails = async (applications) => {
     const detailsMap = {};
-
-    // First, fetch all candidates data to get proper student information
     let allCandidates = [];
     try {
       allCandidates = await adminService.getCandidates();
@@ -105,64 +96,106 @@ function PendingJobApplications() {
       console.warn('Failed to fetch candidates data:', error);
       allCandidates = [];
     }
+    let recruiterDataMap = {};
+    try {
+      recruiterDataMap = await adminService.getAllRecruiterData();
+    } catch (error) {
+      console.warn('Failed to fetch all recruiter data:', error);
+    }
 
-    // Process applications in parallel to reduce total time
-    const promises = applications.map(async (app) => {
+    const uniqueJobIds = [...new Set(applications.map(app => app.job_id).filter(Boolean))];
+    const jobDataMap = {};
+
+    const jobChunkSize = 5;
+    for (let i = 0; i < uniqueJobIds.length; i += jobChunkSize) {
+      const chunk = uniqueJobIds.slice(i, i + jobChunkSize);
+      await Promise.all(
+        chunk.map(async (jobId) => {
+          try {
+            const res = await fetch(`https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs?job_id=${jobId}`);
+            if (res.ok) {
+              const jobData = await res.json();
+              const job = Array.isArray(jobData.jobs)
+                ? jobData.jobs.find(j => j.job_id === jobId) || jobData.jobs[0]
+                : jobData.job || jobData;
+              if (job) {
+                jobDataMap[jobId] = job;
+              }
+            }
+          } catch (error) {
+            console.warn(`Failed to fetch job ${jobId}:`, error);
+          }
+        })
+      );
+    }
+
+    const applicationsForJobCache = {};
+    const fetchAppsForJob = async (jobId) => {
+      if (!jobId) return [];
+      if (applicationsForJobCache[jobId]) return applicationsForJobCache[jobId];
       try {
-        const details = {
-          studentName: 'Loading...',
-          studentEmail: '',
-          resumeUrl: '',
-          studentPhone: '',
-          studentSkills: [],
-          jobTitle: 'Loading...',
-          jobLocation: '',
-          companyName: 'Loading...',
-          applicationDate: app.created_at || app.posted_date || '',
-          studentDetails: null
-        };
+        const res = await adminService.getApplicationsForJob(jobId);
+        applicationsForJobCache[jobId] = res.applications || [];
+        return applicationsForJobCache[jobId];
+      } catch (e) {
+        applicationsForJobCache[jobId] = [];
+        return [];
+      }
+    };
 
-        // Find student from candidates data
-        const studentData = allCandidates.find(candidate =>
-          candidate.id?.toString() === app.student_id?.toString() ||
-          candidate.candidate_id?.toString() === app.student_id?.toString() ||
-          candidate.user_id?.toString() === app.student_id?.toString()
-        );
+    const appChunkSize = 10;
+    for (let i = 0; i < applications.length; i += appChunkSize) {
+      const chunk = applications.slice(i, i + appChunkSize);
 
-        if (studentData) {
-          details.studentName = studentData.name || studentData.full_name || `Student ${app.student_id}`;
-          details.studentEmail = studentData.email || '';
-          details.resumeUrl = studentData.resume || studentData.resumeUrl || '';
-          details.studentPhone = studentData.phone || studentData.phone_number || '';
-          details.studentSkills = studentData.skills || [];
-
-          details.studentDetails = {
-            name: studentData.name || studentData.full_name || "Unknown",
-            email: studentData.email || null,
-            phone: studentData.phone || studentData.phone_number || null,
-            skills: studentData.skills || [],
-            location: studentData.city || studentData.location || null,
-            experience: studentData.experience || null,
-            education: studentData.education || [],
-            experience_years: studentData.experience_years || null,
-            bio: studentData.bio || null,
-            resumeUrl: studentData.resume || studentData.resumeUrl || null,
-            department: studentData.department || null,
-            cgpa: studentData.cgpa || null,
-            logo: studentData.logo || studentData.profile_image || null
+      const promises = chunk.map(async (app) => {
+        try {
+          const details = {
+            studentName: 'Loading...',
+            studentEmail: '',
+            resumeUrl: '',
+            studentPhone: '',
+            studentSkills: [],
+            jobTitle: 'Loading...',
+            jobLocation: '',
+            companyName: 'Loading...',
+            applicationDate: app.created_at || app.posted_date || '',
+            studentDetails: null
           };
-        } else {
-          // Fallback to application data if student not found in candidates
-          const [applicationsResponse] = await Promise.allSettled([
-            app.job_id ? adminService.getApplicationsForJob(app.job_id)
-              .catch(() => ({ applications: [] })) : Promise.resolve({ applications: [] })
-          ]);
 
-          if (applicationsResponse.status === 'fulfilled') {
-            const applications = applicationsResponse.value.applications || [];
-            const studentApplication = applications.find(a =>
+          const studentData = allCandidates.find(candidate =>
+            candidate.id?.toString() === app.student_id?.toString() ||
+            candidate.candidate_id?.toString() === app.student_id?.toString() ||
+            candidate.user_id?.toString() === app.student_id?.toString()
+          );
+
+          if (studentData) {
+            details.studentName = studentData.name || studentData.full_name || `Student ${app.student_id}`;
+            details.studentEmail = studentData.email || '';
+            details.resumeUrl = studentData.resume || studentData.resumeUrl || '';
+            details.studentPhone = studentData.phone || studentData.phone_number || '';
+            details.studentSkills = studentData.skills || [];
+
+            details.studentDetails = {
+              name: studentData.name || studentData.full_name || "Unknown",
+              email: studentData.email || null,
+              phone: studentData.phone || studentData.phone_number || null,
+              skills: studentData.skills || [],
+              location: studentData.city || studentData.location || null,
+              experience: studentData.experience || null,
+              education: studentData.education || [],
+              experience_years: studentData.experience_years || null,
+              bio: studentData.bio || null,
+              resumeUrl: studentData.resume || studentData.resumeUrl || null,
+              department: studentData.department || null,
+              cgpa: studentData.cgpa || null,
+              logo: studentData.logo || studentData.profile_image || null
+            };
+          } else {
+            const applicationsList = await fetchAppsForJob(app.job_id);
+
+            const studentApplication = applicationsList.find(a =>
               a.student_id?.toString() === app.student_id?.toString()
-            ) || applications[0];
+            ) || applicationsList[0];
 
             if (studentApplication) {
               details.studentName = studentApplication.student_name || `Student ${app.student_id}`;
@@ -171,8 +204,8 @@ function PendingJobApplications() {
               details.studentPhone = studentApplication.student_phone || '';
               details.studentSkills = studentApplication.student_skills
                 ? (typeof studentApplication.student_skills === 'string'
-                    ? studentApplication.student_skills.split(',').map(skill => skill.trim())
-                    : Array.isArray(studentApplication.student_skills)
+                  ? studentApplication.student_skills.split(',').map(skill => skill.trim())
+                  : Array.isArray(studentApplication.student_skills)
                     ? studentApplication.student_skills
                     : [])
                 : [];
@@ -183,8 +216,8 @@ function PendingJobApplications() {
                 phone: studentApplication.student_phone || null,
                 skills: studentApplication.student_skills
                   ? (typeof studentApplication.student_skills === 'string'
-                      ? studentApplication.student_skills.split(',').map(skill => skill.trim())
-                      : Array.isArray(studentApplication.student_skills)
+                    ? studentApplication.student_skills.split(',').map(skill => skill.trim())
+                    : Array.isArray(studentApplication.student_skills)
                       ? studentApplication.student_skills
                       : [])
                   : [],
@@ -200,73 +233,60 @@ function PendingJobApplications() {
               };
             }
           }
-        }
 
-        // Fetch job details
-        const jobData = await Promise.resolve(
-          app.job_id ? fetch(`https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs?job_id=${app.job_id}`)
-            .then(res => res.ok ? res.json() : null)
-            .catch(() => null) : null
-        );
-
-        if (jobData) {
-          const job = Array.isArray(jobData.jobs)
-            ? jobData.jobs.find(j => j.job_id === app.job_id) || jobData.jobs[0]
-            : jobData.job || jobData;
-
-          if (job) {
+          if (app.job_id && jobDataMap[app.job_id]) {
+            const job = jobDataMap[app.job_id];
             details.jobTitle = job.job_title || job.title || 'Not specified';
             details.jobLocation = job.location || 'Not specified';
             details.companyName = job.company_name || 'Not specified';
           }
-        }
 
-        // Fetch company name if still needed
-        if (app.recruiter_id && (!details.companyName || details.companyName === 'Loading...')) {
-          try {
-            const recruiterData = await recruiterExternalService.getRecruiterCompanyName(app.recruiter_id);
-            if (recruiterData && recruiterData.company_name) {
-              details.companyName = recruiterData.company_name;
+          if (app.recruiter_id && recruiterDataMap[app.recruiter_id] && (!details.companyName || details.companyName === 'Loading...' || details.companyName === 'Unknown Company' || details.companyName === 'Not specified')) {
+            details.companyName = recruiterDataMap[app.recruiter_id].company_name || 'Unknown Company';
+          } else if (app.recruiter_id && (!details.companyName || details.companyName === 'Loading...' || details.companyName === 'Unknown Company' || details.companyName === 'Not specified')) {
+            try {
+              const recruiterData = await recruiterExternalService.getRecruiterCompanyName(app.recruiter_id);
+              if (recruiterData && recruiterData.company_name) {
+                details.companyName = recruiterData.company_name;
+              }
+            } catch (err) {
+              console.warn(`Failed to fetch company:`, err);
             }
-          } catch (err) {
-            console.warn(`Failed to fetch company:`, err);
           }
-        }
 
-        // Final fallbacks
-        if (!details.studentName || details.studentName === 'Loading...') {
-          details.studentName = `Student ${app.student_id || 'Unknown'}`;
-        }
-        if (!details.companyName || details.companyName === 'Loading...') {
-          details.companyName = app.company_name || 'Unknown Company';
-        }
-        if (!details.jobTitle || details.jobTitle === 'Loading...') {
-          details.jobTitle = app.title || 'Not specified';
-        }
+          if (!details.studentName || details.studentName === 'Loading...') {
+            details.studentName = `Student ${app.student_id || 'Unknown'}`;
+          }
+          if (!details.companyName || details.companyName === 'Loading...' || details.companyName === 'Unknown Company' || details.companyName === 'Not specified') {
+            details.companyName = app.company_name || 'Unknown Company';
+          }
+          if (!details.jobTitle || details.jobTitle === 'Loading...' || details.jobTitle === 'Not specified') {
+            details.jobTitle = app.title || 'Not specified';
+          }
 
-        detailsMap[app.task_id] = details;
-      } catch (error) {
-        console.error(`Error fetching details for app ${app.task_id}:`, error);
-        detailsMap[app.task_id] = {
-          studentName: `Student ${app.student_id || 'Unknown'}`,
-          studentEmail: '',
-          resumeUrl: '',
-          studentPhone: '',
-          studentSkills: [],
-          jobTitle: app.title || 'Not specified',
-          jobLocation: app.location || 'Not specified',
-          companyName: app.company_name || 'Unknown Company',
-          applicationDate: app.created_at || app.posted_date || '',
-          studentDetails: null
-        };
-      }
-    });
+          detailsMap[app.task_id] = details;
+        } catch (error) {
+          console.error(`Error fetching details for app ${app.task_id}:`, error);
+          detailsMap[app.task_id] = {
+            studentName: `Student ${app.student_id || 'Unknown'}`,
+            studentEmail: '',
+            resumeUrl: '',
+            studentPhone: '',
+            studentSkills: [],
+            jobTitle: app.title || 'Not specified',
+            jobLocation: app.location || 'Not specified',
+            companyName: app.company_name || 'Unknown Company',
+            applicationDate: app.created_at || app.posted_date || '',
+            studentDetails: null
+          };
+        }
+      });
 
-    await Promise.all(promises);
+      await Promise.all(promises);
+    }
     setApplicationDetails(detailsMap);
   };
 
-  // Helper function to filter applications by date
   const filterApplicationsByDate = (applications, dateFilter) => {
     if (dateFilter === "all") return applications;
 
@@ -300,13 +320,13 @@ function PendingJobApplications() {
           return appDateOnly >= monthAgo;
         }
         case "thisMonth": {
-          return appDate.getMonth() === now.getMonth() && 
-                 appDate.getFullYear() === now.getFullYear();
+          return appDate.getMonth() === now.getMonth() &&
+            appDate.getFullYear() === now.getFullYear();
         }
         case "lastMonth": {
           const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-          return appDate.getMonth() === lastMonth.getMonth() && 
-                 appDate.getFullYear() === lastMonth.getFullYear();
+          return appDate.getMonth() === lastMonth.getMonth() &&
+            appDate.getFullYear() === lastMonth.getFullYear();
         }
         default:
           return true;
@@ -314,10 +334,9 @@ function PendingJobApplications() {
     });
   };
 
-  // Helper function to sort applications
   const sortApplications = (applications, sortBy) => {
     const sorted = [...applications];
-    
+
     switch (sortBy) {
       case "newest":
         sorted.sort((a, b) => {
@@ -364,7 +383,7 @@ function PendingJobApplications() {
       default:
         break;
     }
-    
+
     return sorted;
   };
 
@@ -374,14 +393,12 @@ function PendingJobApplications() {
       await adminService.approveJobApplicationByStudent(taskId);
       alert('Application approved successfully! The recruiter can now review this application.');
 
-      // Update application status in frontend
       setAllApplications(prev => prev.map(app =>
         app.task_id === taskId
           ? { ...app, applicationStatus: 'approved', status: 'fulfilled' }
           : app
       ));
 
-      // Reset filters if they were set to ensure clean state
       setSearchQuery('');
       setCompanyFilter('all');
       setJobFilter('all');
@@ -402,15 +419,11 @@ function PendingJobApplications() {
       setLoadingApplications(prev => ({ ...prev, [taskId]: true }));
       await adminService.rejectJob(taskId);
       alert('Application rejected successfully.');
-
-      // Update application status in frontend
       setAllApplications(prev => prev.map(app =>
         app.task_id === taskId
           ? { ...app, applicationStatus: 'rejected', status: 'rejected' }
           : app
       ));
-
-      // Reset filters if they were set to ensure clean state
       setSearchQuery('');
       setCompanyFilter('all');
       setJobFilter('all');
@@ -426,8 +439,6 @@ function PendingJobApplications() {
   const handleViewCandidateDetails = (application, details) => {
     console.log('Opening modal for application:', application);
     console.log('Application details:', details);
-    
-    // Create a comprehensive candidate object
     const candidateData = {
       ...application,
       details: {
@@ -445,7 +456,7 @@ function PendingJobApplications() {
         }
       }
     };
-    
+
     console.log('Setting candidate data:', candidateData);
     setSelectedCandidate(candidateData);
     setShowCandidateModal(true);
@@ -464,12 +475,10 @@ function PendingJobApplications() {
     });
   };
 
-  // Get unique companies for filter
   const uniqueCompanies = [...new Set(
     allApplications.map(app => applicationDetails[app.task_id]?.companyName).filter(Boolean)
   )];
 
-  // Get unique jobs for filter
   const uniqueJobs = [...new Set(
     allApplications.map(app => {
       const details = applicationDetails[app.task_id];
@@ -477,21 +486,16 @@ function PendingJobApplications() {
     }).filter(Boolean)
   )];
 
-  // Filter applications
   let filteredApplications = allApplications.filter(app => {
     const details = applicationDetails[app.task_id] || {};
 
-    // Status filter
     const matchesStatus = statusFilter === "all" || app.applicationStatus === statusFilter;
-
-    // Search filter
     const matchesSearch =
       details.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       details.studentEmail?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       details.companyName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       details.jobTitle?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    // Company filter
     const matchesCompany = companyFilter === "all" || details.companyName === companyFilter;
 
     // Job filter
@@ -506,6 +510,12 @@ function PendingJobApplications() {
 
   // Apply sorting
   filteredApplications = sortApplications(filteredApplications, sortBy);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredApplications.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentApplications = filteredApplications.slice(indexOfFirstItem, indexOfLastItem);
 
   const isDark = theme === 'dark';
   const bgColor = isDark ? 'bg-gray-900' : 'bg-gray-50';
@@ -703,188 +713,218 @@ function PendingJobApplications() {
 
         {/* Applications List - Compact Cards */}
         {!loading && filteredApplications.length > 0 && (
-          <div className="space-y-3">
-            {filteredApplications.map((application) => {
-              const details = applicationDetails[application.task_id] || {};
-              const isLoadingAction = loadingApplications[application.task_id];
+          <div className="flex flex-col gap-4">
+            <div className="space-y-3">
+              {currentApplications.map((application) => {
+                const details = applicationDetails[application.task_id] || {};
+                const isLoadingAction = loadingApplications[application.task_id];
 
-              return (
-                <div
-                  key={application.task_id}
-                  className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all`}
-                >
-                  <div className="p-3">
-                    {/* Application Header */}
-                    <div className="flex items-start justify-between gap-3 mb-2.5">
-                      <div className="flex items-start gap-2 flex-1 min-w-0">
-                        <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
-                          <div className={`w-full h-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm`}>
-                            {details.studentName?.charAt(0)?.toUpperCase() || 'U'}
+                return (
+                  <div
+                    key={application.task_id}
+                    className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all`}
+                  >
+                    <div className="p-3">
+                      {/* Application Header */}
+                      <div className="flex items-start justify-between gap-3 mb-2.5">
+                        <div className="flex items-start gap-2 flex-1 min-w-0">
+                          <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
+                            <div className={`w-full h-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm`}>
+                              {details.studentName?.charAt(0)?.toUpperCase() || 'U'}
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className={`text-base font-bold ${textColor} leading-tight mb-1`}>
-                            {details.studentName || 'Unknown Candidate'}
-                          </h3>
-                          <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                            <span className="flex items-center gap-1 truncate">
-                              <Mail size={13} className="flex-shrink-0" />
-                              {details.studentEmail || 'No email'}
-                            </span>
-                            {details.studentPhone && (
-                              <span className="flex items-center gap-1">
-                                <Phone size={13} className="flex-shrink-0" />
-                                {details.studentPhone}
+                          <div className="flex-1 min-w-0">
+                            <h3 className={`text-base font-bold ${textColor} leading-tight mb-1`}>
+                              {details.studentName || 'Unknown Candidate'}
+                            </h3>
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                              <span className="flex items-center gap-1 truncate">
+                                <Mail size={13} className="flex-shrink-0" />
+                                {details.studentEmail || 'No email'}
                               </span>
-                            )}
+                              {details.studentPhone && (
+                                <span className="flex items-center gap-1">
+                                  <Phone size={13} className="flex-shrink-0" />
+                                  {details.studentPhone}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-1.5">
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${
-                          application.applicationStatus === 'approved'
+                        <div className="flex flex-col items-end gap-1.5">
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${application.applicationStatus === 'approved'
                             ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30'
                             : application.applicationStatus === 'rejected'
-                            ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30'
-                            : 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30'
-                        }`} style={{ fontSize: '0.7rem' }}>
-                          {application.applicationStatus === 'approved' ? 'Approved' :
-                           application.applicationStatus === 'rejected' ? 'Rejected' : 'Pending'}
-                        </span>
-                        {jobTypes[application.job_id] && (
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                            jobTypes[application.job_id] === 'Admin Private Job'
+                              ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30'
+                              : 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30'
+                            }`} style={{ fontSize: '0.7rem' }}>
+                            {application.applicationStatus === 'approved' ? 'Approved' :
+                              application.applicationStatus === 'rejected' ? 'Rejected' : 'Pending'}
+                          </span>
+                          {jobTypes[application.job_id] && (
+                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${jobTypes[application.job_id] === 'Admin Private Job'
                               ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400'
                               : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'
-                          }`} style={{ fontSize: '0.65rem' }}>
-                            {jobTypes[application.job_id]}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Job Details */}
-                    <div className={`flex flex-wrap items-center gap-2 text-xs mb-2.5 ${textSecondary}`}>
-                      <span className="flex items-center gap-1">
-                        <Briefcase size={13} className="flex-shrink-0" />
-                        {details.jobTitle}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Building size={13} className="flex-shrink-0" />
-                        {details.companyName}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MapPin size={13} className="flex-shrink-0" />
-                        {details.jobLocation || 'Not specified'}
-                      </span>
-                    </div>
-
-                    {/* Application Info Bar */}
-                    <div className={`flex flex-wrap gap-1.5 mb-2.5`}>
-                      <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'} flex items-center gap-1`} style={{ fontSize: '0.7rem' }}>
-                        <Calendar size={12} />
-                        Applied: {formatDate(details.applicationDate)}
-                      </span>
-                      <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`} style={{ fontSize: '0.7rem' }}>
-                        Student ID: {application.student_id || 'N/A'}
-                      </span>
-                      <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`} style={{ fontSize: '0.7rem' }}>
-                        Job ID: {application.job_id || 'N/A'}
-                      </span>
-                    </div>
-
-                    {/* Skills */}
-                    {details.studentSkills && details.studentSkills.length > 0 && (
-                      <div className="mb-2.5">
-                        <div className="flex flex-wrap gap-1.5">
-                          {details.studentSkills.slice(0, 4).map((skill, index) => (
-                            <span
-                              key={index}
-                              className={`px-2 py-1 ${isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-600'} rounded-full text-xs font-medium`}
-                              style={{ fontSize: '0.7rem' }}
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                          {details.studentSkills.length > 4 && (
-                            <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.7rem' }}>
-                              +{details.studentSkills.length - 4} more
+                              }`} style={{ fontSize: '0.65rem' }}>
+                              {jobTypes[application.job_id]}
                             </span>
                           )}
                         </div>
                       </div>
-                    )}
 
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-1.5">
-                      <button
-                        onClick={() => handleViewCandidateDetails(application, details)}
-                        className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5`}
-                        style={{ fontSize: '0.7rem' }}
-                      >
-                        <Eye size={13} />
-                        <span className="hidden sm:inline">View Details</span>
-                        <span className="sm:hidden">View</span>
-                      </button>
-                      {details.resumeUrl && (
-                        <a
-                          href={details.resumeUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                      {/* Job Details */}
+                      <div className={`flex flex-wrap items-center gap-2 text-xs mb-2.5 ${textSecondary}`}>
+                        <span className="flex items-center gap-1">
+                          <Briefcase size={13} className="flex-shrink-0" />
+                          {details.jobTitle}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Building size={13} className="flex-shrink-0" />
+                          {details.companyName}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MapPin size={13} className="flex-shrink-0" />
+                          {details.jobLocation || 'Not specified'}
+                        </span>
+                      </div>
+
+                      {/* Application Info Bar */}
+                      <div className={`flex flex-wrap gap-1.5 mb-2.5`}>
+                        <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'} flex items-center gap-1`} style={{ fontSize: '0.7rem' }}>
+                          <Calendar size={12} />
+                          Applied: {formatDate(details.applicationDate)}
+                        </span>
+                        <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`} style={{ fontSize: '0.7rem' }}>
+                          Student ID: {application.student_id || 'N/A'}
+                        </span>
+                        <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`} style={{ fontSize: '0.7rem' }}>
+                          Job ID: {application.job_id || 'N/A'}
+                        </span>
+                      </div>
+
+                      {/* Skills */}
+                      {details.studentSkills && details.studentSkills.length > 0 && (
+                        <div className="mb-2.5">
+                          <div className="flex flex-wrap gap-1.5">
+                            {details.studentSkills.slice(0, 4).map((skill, index) => (
+                              <span
+                                key={index}
+                                className={`px-2 py-1 ${isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-600'} rounded-full text-xs font-medium`}
+                                style={{ fontSize: '0.7rem' }}
+                              >
+                                {skill}
+                              </span>
+                            ))}
+                            {details.studentSkills.length > 4 && (
+                              <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.7rem' }}>
+                                +{details.studentSkills.length - 4} more
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action Buttons */}
+                      <div className="flex flex-wrap gap-1.5">
+                        <button
+                          onClick={() => handleViewCandidateDetails(application, details)}
                           className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5`}
                           style={{ fontSize: '0.7rem' }}
                         >
-                          <Download size={13} />
-                          Resume
-                        </a>
-                      )}
-                      {application.applicationStatus === 'pending' && (
-                        <>
-                          <button
-                            onClick={() => handleRejectApplication(application.task_id)}
-                            disabled={isLoadingAction}
-                            className={`flex-1 sm:flex-initial px-3 py-1.5 border border-red-300 text-red-700 bg-red-50 hover:bg-red-100 dark:border-red-500/30 dark:text-red-400 dark:bg-red-500/20 dark:hover:bg-red-500/30 rounded-lg transition-colors text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed`}
+                          <Eye size={13} />
+                          <span className="hidden sm:inline">View Details</span>
+                          <span className="sm:hidden">View</span>
+                        </button>
+                        {details.resumeUrl && (
+                          <a
+                            href={details.resumeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5`}
                             style={{ fontSize: '0.7rem' }}
                           >
-                            {isLoadingAction ? (
-                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-500"></div>
-                            ) : (
-                              <X size={13} />
-                            )}
-                            Reject
-                          </button>
-                          <button
-                            onClick={() => handleApproveApplication(application.task_id)}
-                            disabled={isLoadingAction}
-                            className={`flex-1 sm:flex-initial px-3 py-1.5 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed`}
-                            style={{ fontSize: '0.7rem' }}
-                          >
-                            {isLoadingAction ? (
-                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                            ) : (
-                              <Check size={13} />
-                            )}
-                            Approve
-                          </button>
-                        </>
-                      )}
-                      {application.applicationStatus === 'approved' && (
-                        <span className="flex-1 sm:flex-initial px-3 py-1.5 text-green-700 dark:text-green-400 text-xs font-medium flex items-center justify-center gap-1.5" style={{ fontSize: '0.7rem' }}>
-                          <Check size={13} />
-                          Approved
-                        </span>
-                      )}
-                      {application.applicationStatus === 'rejected' && (
-                        <span className="flex-1 sm:flex-initial px-3 py-1.5 text-red-700 dark:text-red-400 text-xs font-medium flex items-center justify-center gap-1.5" style={{ fontSize: '0.7rem' }}>
-                          <X size={13} />
-                          Rejected
-                        </span>
-                      )}
+                            <Download size={13} />
+                            Resume
+                          </a>
+                        )}
+                        {application.applicationStatus === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => handleRejectApplication(application.task_id)}
+                              disabled={isLoadingAction}
+                              className={`flex-1 sm:flex-initial px-3 py-1.5 border border-red-300 text-red-700 bg-red-50 hover:bg-red-100 dark:border-red-500/30 dark:text-red-400 dark:bg-red-500/20 dark:hover:bg-red-500/30 rounded-lg transition-colors text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed`}
+                              style={{ fontSize: '0.7rem' }}
+                            >
+                              {isLoadingAction ? (
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-500"></div>
+                              ) : (
+                                <X size={13} />
+                              )}
+                              Reject
+                            </button>
+                            <button
+                              onClick={() => handleApproveApplication(application.task_id)}
+                              disabled={isLoadingAction}
+                              className={`flex-1 sm:flex-initial px-3 py-1.5 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed`}
+                              style={{ fontSize: '0.7rem' }}
+                            >
+                              {isLoadingAction ? (
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                              ) : (
+                                <Check size={13} />
+                              )}
+                              Approve
+                            </button>
+                          </>
+                        )}
+                        {application.applicationStatus === 'approved' && (
+                          <span className="flex-1 sm:flex-initial px-3 py-1.5 text-green-700 dark:text-green-400 text-xs font-medium flex items-center justify-center gap-1.5" style={{ fontSize: '0.7rem' }}>
+                            <Check size={13} />
+                            Approved
+                          </span>
+                        )}
+                        {application.applicationStatus === 'rejected' && (
+                          <span className="flex-1 sm:flex-initial px-3 py-1.5 text-red-700 dark:text-red-400 text-xs font-medium flex items-center justify-center gap-1.5" style={{ fontSize: '0.7rem' }}>
+                            <X size={13} />
+                            Rejected
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
+                );
+              })}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-4 mt-2 gap-4">
+                <div className="flex items-center">
+                  <p className={`text-sm ${textSecondary}`}>
+                    Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to <span className="font-medium">{Math.min(indexOfLastItem, filteredApplications.length)}</span> of <span className="font-medium">{filteredApplications.length}</span> results
+                  </p>
                 </div>
-              );
-            })}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className={`px-3 py-1.5 rounded-lg border ${borderColor} text-sm font-medium ${textColor} disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors bg-white dark:bg-gray-800 shadow-sm`}
+                  >
+                    Previous
+                  </button>
+                  <div className={`text-sm font-medium ${textColor} px-2`}>
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className={`px-3 py-1.5 rounded-lg border ${borderColor} text-sm font-medium ${textColor} disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors bg-white dark:bg-gray-800 shadow-sm`}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1007,30 +1047,30 @@ function PendingJobApplications() {
               )}
 
               {/* Education - FIXED */}
-              {selectedCandidate.details?.studentDetails?.education && 
-               Array.isArray(selectedCandidate.details.studentDetails.education) && 
-               selectedCandidate.details.studentDetails.education.length > 0 && (
-                <div>
-                  <h4 className={`text-lg font-bold ${textColor} mb-3`}>Education</h4>
-                  <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 border ${borderColor} space-y-2`}>
-                    {selectedCandidate.details.studentDetails.education.map((edu, index) => {
-                      // Handle different data types - convert objects to strings
-                      const eduText = typeof edu === 'string' 
-                        ? edu 
-                        : typeof edu === 'object' && edu !== null
-                          ? (edu.institution || edu.university || edu.degree || JSON.stringify(edu))
-                          : String(edu);
-                      
-                      return (
-                        <div key={index} className="flex items-start gap-2">
-                          <div className={`w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0`}></div>
-                          <p className={`text-sm ${textColor}`}>{eduText}</p>
-                        </div>
-                      );
-                    })}
+              {selectedCandidate.details?.studentDetails?.education &&
+                Array.isArray(selectedCandidate.details.studentDetails.education) &&
+                selectedCandidate.details.studentDetails.education.length > 0 && (
+                  <div>
+                    <h4 className={`text-lg font-bold ${textColor} mb-3`}>Education</h4>
+                    <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 border ${borderColor} space-y-2`}>
+                      {selectedCandidate.details.studentDetails.education.map((edu, index) => {
+                        // Handle different data types - convert objects to strings
+                        const eduText = typeof edu === 'string'
+                          ? edu
+                          : typeof edu === 'object' && edu !== null
+                            ? (edu.institution || edu.university || edu.degree || JSON.stringify(edu))
+                            : String(edu);
+
+                        return (
+                          <div key={index} className="flex items-start gap-2">
+                            <div className={`w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0`}></div>
+                            <p className={`text-sm ${textColor}`}>{eduText}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Department & CGPA */}
               {(selectedCandidate.details?.studentDetails?.department || selectedCandidate.details?.studentDetails?.cgpa) && (
@@ -1086,22 +1126,20 @@ function PendingJobApplications() {
               <div>
                 <h4 className={`text-lg font-bold ${textColor} mb-3`}>Application Status</h4>
                 <div className="flex items-center gap-3">
-                  <span className={`px-4 py-2 rounded-lg text-sm font-semibold border ${
-                    selectedCandidate.applicationStatus === 'approved'
-                      ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30'
-                      : selectedCandidate.applicationStatus === 'rejected'
+                  <span className={`px-4 py-2 rounded-lg text-sm font-semibold border ${selectedCandidate.applicationStatus === 'approved'
+                    ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30'
+                    : selectedCandidate.applicationStatus === 'rejected'
                       ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30'
                       : 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30'
-                  }`}>
+                    }`}>
                     {selectedCandidate.applicationStatus === 'approved' ? '✓ Approved' :
-                     selectedCandidate.applicationStatus === 'rejected' ? '✗ Rejected' : '⏳ Pending Review'}
+                      selectedCandidate.applicationStatus === 'rejected' ? '✗ Rejected' : '⏳ Pending Review'}
                   </span>
                   {jobTypes[selectedCandidate.job_id] && (
-                    <span className={`px-3 py-2 rounded-lg text-sm font-medium border ${
-                      jobTypes[selectedCandidate.job_id] === 'Admin Private Job'
-                        ? 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/20 dark:text-purple-400 dark:border-purple-500/30'
-                        : 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
-                    }`}>
+                    <span className={`px-3 py-2 rounded-lg text-sm font-medium border ${jobTypes[selectedCandidate.job_id] === 'Admin Private Job'
+                      ? 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/20 dark:text-purple-400 dark:border-purple-500/30'
+                      : 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
+                      }`}>
                       {jobTypes[selectedCandidate.job_id]}
                     </span>
                   )}

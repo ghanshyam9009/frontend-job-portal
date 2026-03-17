@@ -1,12 +1,12 @@
 // src/Pages/JobDescription.jsx
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../Contexts/AuthContext";
 import { applicationService } from "../services/applicationService";
 import { candidateExternalService } from "../services/candidateExternalService";
 import { studentService } from "../services/studentService";
 import HomeNav from "../Components/HomeNav";
-import { Bookmark, Briefcase, Contact, Contact2, MapPin, Sparkles, TrendingUp } from "lucide-react";
+import { Bookmark, Briefcase, Contact, Contact2, MapPin, Sparkles, TrendingUp, ArrowLeft } from "lucide-react";
 import Footer from "../Components/Footer";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import RecruiterNavbar from "../Components/Recruiter/RecruiterNavbar";
@@ -33,6 +33,7 @@ const JobDescription = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
+  const location = useLocation();
 
   // Calculate profile completion percentage
   const calculateProfileCompletion = (userData) => {
@@ -168,6 +169,8 @@ const JobDescription = () => {
   };
 
   const jobId = id;
+  const isAdminView = (user?.role === 'admin') || location.state?.fromAdmin;
+  const isRecruiter = !!(user?.company_name || user?.role === 'Recruiter' || user?.role === 'Employer');
 
   useEffect(() => {
     fetchJobDetails();
@@ -199,6 +202,15 @@ const JobDescription = () => {
     setLoading(true);
     setError(null);
     try {
+      // Admin View: job getalljobs me nahi ho sakti (pending) – state me pass ki hui job use karo
+      const stateJob = location.state?.job;
+      if (location.state?.fromAdmin && stateJob && (String(stateJob.job_id || stateJob.id) === String(jobId))) {
+        setJob(stateJob);
+        setRelatedJobs([]);
+        setLoading(false);
+        return;
+      }
+
       const apiUrl =
         "https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs";
       const response = await fetch(apiUrl, {
@@ -253,6 +265,10 @@ const JobDescription = () => {
   };
 
   const handleApplyClick = async () => {
+    if (isAdminView) {
+      // Admins can't apply to jobs; just ignore click
+      return;
+    }
     if (!isAuthenticated) {
       alert("Please login first to apply for this job");
       navigate("/candidate/login");
@@ -406,7 +422,7 @@ const JobDescription = () => {
 
   const parseJobDescription = (description) => {
     if (!description) return "";
-    
+
     if (Array.isArray(description)) {
       return description
         .map(item => {
@@ -415,11 +431,11 @@ const JobDescription = () => {
         })
         .join('');
     }
-    
+
     if (typeof description === 'object') {
       return "";
     }
-    
+
     const descStr = String(description);
     return descStr
       .split('\n')
@@ -473,7 +489,19 @@ const JobDescription = () => {
     <>
       {user ? (user.company_name ? <RecruiterNavbar /> : <CandidateNavbar />) : <HomeNav />}
 
-      <div className={`${isDarkMode ? "bg-slate-900 text-slate-100" : "bg-gray-100 text-slate-900"} mt-15 min-h-screen font-sans`}>
+      <div className={`${isDarkMode ? "bg-slate-900 text-slate-100" : "bg-gray-100 text-slate-900"} min-h-screen font-sans pt-20 lg:pt-24`}>
+
+        {/* Back button – navbar ke niche, fixed spacing */}
+        <div className="max-w-5xl mx-auto px-3 sm:px-4 pt-4 pb-2">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 shadow-sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
+        </div>
 
         {/* Mobile: "View Related Jobs" toggle button */}
         <div className="lg:hidden sticky top-[60px] z-20 px-4 pt-3 pb-1">
@@ -577,22 +605,30 @@ const JobDescription = () => {
                   )}
                 </div>
 
-                {/* Alerts */}
-                <div className="mt-4 space-y-2">
-                  {applicationSuccess && (
-                    <div className="bg-green-100 text-green-800 px-3 py-2 rounded text-sm">{applicationSuccess}</div>
-                  )}
-                  {applicationError && (
-                    <div className="bg-red-100 text-red-800 px-3 py-2 rounded text-sm">{applicationError}</div>
-                  )}
-                  {hasApplied && !applicationError && !applicationSuccess && (
-                    <div className="bg-blue-100 text-blue-800 px-3 py-2 rounded text-sm">You have already applied for this job</div>
-                  )}
-                </div>
+                {/* Alerts – candidate ke liye hi (recruiter par apply nahi hota) */}
+                {!isRecruiter && (
+                  <div className="mt-4 space-y-2">
+                    {applicationSuccess && (
+                      <div className="bg-green-100 text-green-800 px-3 py-2 rounded text-sm">{applicationSuccess}</div>
+                    )}
+                    {applicationError && (
+                      <div className="bg-red-100 text-red-800 px-3 py-2 rounded text-sm">{applicationError}</div>
+                    )}
+                    {hasApplied && !applicationError && !applicationSuccess && (
+                      <div className="bg-blue-100 text-blue-800 px-3 py-2 rounded text-sm">You have already applied for this job</div>
+                    )}
+                  </div>
+                )}
 
-                {/* Action buttons */}
+                {/* Action buttons – Recruiter/Admin par Apply nahi */}
                 <div className="mt-4 flex gap-2 sm:gap-3">
-                  {!isAuthenticated ? (
+                  {isAdminView ? (
+                    <div className="flex-1 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm border border-gray-300 text-gray-500 bg-gray-50 cursor-default text-center">
+                      Admin view only – applications disabled
+                    </div>
+                  ) : isRecruiter ? (
+                    <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">View only</span>
+                  ) : !isAuthenticated ? (
                     <>
                       <button
                         onClick={() => navigate("/candidate/register")}
@@ -669,6 +705,26 @@ const JobDescription = () => {
                       ) : (
                         <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.requirements_string) }} />
                       )}
+                    </div>
+                  </div>
+                )}
+
+                {/* qualifications */}
+                {(job.qualifications?.length > 0 || job.qualifications_string || job.qualification) && (
+                  <div className="mt-6">
+                    <h3 className="font-semibold mb-2 text-sm sm:text-base">Qualifications</h3>
+                    <div className="text-gray-900 dark:text-black leading-relaxed space-y-2 text-sm sm:text-base">
+                      {job.qualifications?.length > 0 ? (
+                        job.qualifications.map((q, i) => <p key={i}>{cleanBulletPoints(q)}</p>)
+                      ) : job.qualifications_string ? (
+                        <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.qualifications_string) }} />
+                      ) : job.qualification ? (
+                        typeof job.qualification === 'string' ? (
+                          <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.qualification) }} />
+                        ) : (
+                          <p>{cleanBulletPoints(String(job.qualification))}</p>
+                        )
+                      ) : null}
                     </div>
                   </div>
                 )}
@@ -761,20 +817,18 @@ const RelatedJobsPanel = ({
           <div
             key={idx}
             onClick={() => navigate(`/job/${relJob.job_id || relJob.id}`)}
-            className={`group cursor-pointer p-3 sm:p-4 rounded-xl transition-all duration-300 border ${
-              isDarkMode
+            className={`group cursor-pointer p-3 sm:p-4 rounded-xl transition-all duration-300 border ${isDarkMode
                 ? 'bg-slate-700/50 border-slate-600 hover:bg-slate-700 hover:border-indigo-500'
                 : 'bg-gray-50 border-gray-200 hover:bg-white hover:border-indigo-300 hover:shadow-md'
-            }`}
+              }`}
           >
             <div className="flex items-start gap-2 sm:gap-3">
               {/* Company Avatar */}
-              <div className={`flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300 overflow-hidden ${
-                (() => {
+              <div className={`flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300 overflow-hidden ${(() => {
                   const companyLogo = relJob.job_logo_url || relJob.job_logo || relJob.company_logo || relJob.logo;
                   return companyLogo ? 'bg-white' : getCompanyColor(idx);
                 })()
-              }`}>
+                }`}>
                 {(() => {
                   const companyLogo = relJob.job_logo_url || relJob.job_logo || relJob.company_logo || relJob.logo;
                   if (companyLogo) {
@@ -811,17 +865,15 @@ const RelatedJobsPanel = ({
 
                 {/* Info Pills */}
                 <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-2">
-                  <span className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-xs font-medium ${
-                    isDarkMode ? 'bg-slate-600 text-slate-200' : 'bg-indigo-50 text-indigo-700'
-                  }`}>
+                  <span className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-xs font-medium ${isDarkMode ? 'bg-slate-600 text-slate-200' : 'bg-indigo-50 text-indigo-700'
+                    }`}>
                     <Briefcase className="w-3 h-3 flex-shrink-0" />
                     <span className="truncate max-w-[70px] sm:max-w-none">
                       {formatExperience(relJob.experience_required || relJob.experience)}
                     </span>
                   </span>
-                  <span className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-xs font-medium ${
-                    isDarkMode ? 'bg-slate-600 text-slate-200' : 'bg-emerald-50 text-emerald-700'
-                  }`}>
+                  <span className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-xs font-medium ${isDarkMode ? 'bg-slate-600 text-slate-200' : 'bg-emerald-50 text-emerald-700'
+                    }`}>
                     <MapPin className="w-3 h-3 flex-shrink-0" />
                     <span className="truncate max-w-[70px] sm:max-w-none">
                       {relJob.location || "Remote"}

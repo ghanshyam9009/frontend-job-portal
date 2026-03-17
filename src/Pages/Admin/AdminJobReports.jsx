@@ -1,46 +1,48 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
-import { Search, Download, Users, Building, MapPin, Calendar, Eye, Briefcase, RefreshCw, Trash2, ArrowUpDown } from "lucide-react";
+import { Search, Download, Users, Building, MapPin, Calendar, Eye, Briefcase, RefreshCw, Trash2, ArrowUpDown, CheckCircle, XCircle, Check, X, Star } from "lucide-react";
 import * as XLSX from 'xlsx';
 
 const AdminJobReports = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme } = useTheme();
-  const [jobs, setJobs] = useState([]);
+  const [allJobsFromApi, setAllJobsFromApi] = useState([]); // sirf API jobs (40) – sab tabs isi se
   const [filteredJobs, setFilteredJobs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
+  const [jobTypeTab, setJobTypeTab] = useState("all"); // all | newjob | editjob | closedjob
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [actionLoading, setActionLoading] = useState(null);
   const jobsPerPage = 25;
+
+  const [confirmJob, setConfirmJob] = useState(null); // job object for approve modal
 
   useEffect(() => {
     fetchJobReports();
   }, []);
 
+  // Update ke baad Job Reports pe aaye to usi job ka Approve modal khol do
+  useEffect(() => {
+    const openJobId = location.state?.openApproveForJobId;
+    if (!openJobId || !allJobsFromApi.length) return;
+    const job = allJobsFromApi.find((j) => (j.job_id || j.id) === openJobId);
+    if (job) {
+      setConfirmJob(job);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [allJobsFromApi, location.state?.openApproveForJobId, location.pathname, navigate]);
+
   const fetchJobReports = async () => {
     try {
       setLoading(true);
       setError(null);
-      const jobsData = await adminService.getJobsWithApplicationCounts();
 
-      // Filter to only show jobs posted by recruiters (not admin jobs)
-      // Also filter out government jobs
-      const recruiterJobs = jobsData
-        .filter(job => {
-          const postedBy = (job.posted_by || '').toUpperCase();
-          const isRecruiterJob = postedBy === 'RECRUITER' || postedBy === 'EMPLOYER';
-          const isNotGovernment = job.job_type !== "GOVERNMENT";
-          return isRecruiterJob && isNotGovernment;
-        });
-
-      console.log('Filtered recruiter jobs:', recruiterJobs.length);
-
-      // Fetch pending tasks to count pending applications
       let pendingTasksData = [];
       try {
         pendingTasksData = await adminService.getPendingJobs();
@@ -48,62 +50,195 @@ const AdminJobReports = () => {
         console.warn('Failed to fetch pending tasks:', err);
       }
 
-      // Fetch actual application counts for each job
-      const jobsWithActualCounts = await Promise.all(
-        recruiterJobs.map(async (job) => {
+      const allTasks = pendingTasksData || [];
+      // Pending NEW JOB POSTINGS (postnewjob / editjob) – approve/reject ke liye
+      const postNewJobTasks = allTasks.filter(
+        (t) => (t.category === 'postnewjob' || t.category === 'editjob') && (t.status === 'pending' || t.status === 'rejected')
+      );
+      const jobIdToPostTask = {};
+      postNewJobTasks.forEach((t) => {
+        const jid = t.job_id;
+        if (jid != null && jid !== '' && !jobIdToPostTask[jid]) {
+          jobIdToPostTask[jid] = { task_id: t.task_id || t.id, status: t.status || 'pending' };
+        }
+      });
+
+      // Candidate applications (for application counts only)
+      const newAppTasks = allTasks.filter((t) => t.category === 'newapplication');
+
+      let jobMapById = {};
+      try {
+        const allJobs = await adminService.getAllJobsForAdmin();
+        const nonGov = (allJobs || []).filter((j) => j.job_type !== 'GOVERNMENT');
+        nonGov.forEach((j) => {
+          const id = j.job_id || j.id;
+          if (id) jobMapById[id] = j;
+        });
+      } catch (e) {
+        console.warn('Failed to fetch all jobs for admin:', e);
+      }
+
+      // Har job_id ke liye task categories (Edit Job / Close Job / New Job tabs ke liye)
+      const getTaskCategoriesForJob = (jobId) => {
+        const cats = [...new Set(
+          allTasks.filter((t) => t.job_id === jobId).map((t) => t.category)
+        )].filter((c) => ['postnewjob', 'editjob', 'closedjob'].includes(c));
+        return cats;
+      };
+      const getTaskTypeLabel = (cat) => {
+        if (cat === 'postnewjob') return 'New Job';
+        if (cat === 'editjob') return 'Edit Job';
+        if (cat === 'closedjob') return 'Close Job';
+        return 'Job';
+      };
+      const rawStatus = (s) => (s || '').toString().toLowerCase();
+
+      // 1) API jobs (40) – enriched with task info
+      const apiJobsEnriched = Object.values(jobMapById).map((apiJob) => {
+        const id = apiJob.job_id || apiJob.id;
+        const postInfo = jobIdToPostTask[id];
+        const taskCategories = getTaskCategoriesForJob(id);
+        const tasksForJob = allTasks.filter((t) => t.job_id === id);
+        const pending_task_count = tasksForJob.filter((t) => rawStatus(t.status) === 'pending').length;
+        const fulfilled_task_count = tasksForJob.filter((t) => rawStatus(t.status) === 'fulfilled').length;
+        return {
+          ...apiJob,
+          id,
+          admin_approval_status: postInfo?.status || 'approved',
+          task_id: postInfo?.task_id,
+          taskCategories,
+          pending_task_count,
+          fulfilled_task_count,
+        };
+      });
+
+      // 2) Pending jobs – job_ids in tasks but NOT in API (nayi post abhi getalljobs me nahi aati)
+      const uniqueTaskJobIds = [...new Set(
+        allTasks.map((t) => t.job_id).filter((jid) => jid != null && jid !== '' && !String(jid).startsWith('no-job-'))
+      )];
+      const syntheticJobs = uniqueTaskJobIds
+        .filter((jid) => !jobMapById[jid])
+        .map((jid) => {
+          const firstTask = allTasks.find((t) => t.job_id === jid);
+          const postInfo = jobIdToPostTask[jid];
+          const taskCategories = getTaskCategoriesForJob(jid);
+          const primaryCategory = firstTask?.category;
+          const tasksForJob = allTasks.filter((t) => t.job_id === jid);
+          const pending_task_count = tasksForJob.filter((t) => rawStatus(t.status) === 'pending').length;
+          const fulfilled_task_count = tasksForJob.filter((t) => rawStatus(t.status) === 'fulfilled').length;
+          const companyName = firstTask?.company_name || 'Unknown Company';
+          return {
+            id: jid,
+            job_id: jid,
+            job_title: `${companyName} - ${getTaskTypeLabel(primaryCategory)}`,
+            company_name: companyName,
+            location: firstTask?.location || 'Not specified',
+            created_at: firstTask?.posted_date || firstTask?.updated_date,
+            admin_approval_status: postInfo?.status || 'pending',
+            task_id: postInfo?.task_id,
+            taskCategories,
+            pending_task_count,
+            fulfilled_task_count,
+            employer_id: firstTask?.employer_id || firstTask?.recruiter_id || null,
+          };
+        });
+
+      const allEnriched = [...apiJobsEnriched, ...syntheticJobs];
+      const withCounts = await Promise.all(
+        allEnriched.map(async (job) => {
           try {
-            // Fetch applications for this specific job
             const applicationsData = await adminService.getApplicationsForJob(job.id);
             const applications = applicationsData.applications || [];
-            
-            // Count pending applications for this job
-            const pendingApplicationsForJob = pendingTasksData.filter(task => 
-              task.category === 'newapplication' && 
-              task.status === 'pending' && 
-              task.job_id === job.id
+            const pendingApplicationsForJob = newAppTasks.filter(
+              (task) => rawStatus(task.status) === 'pending' && task.job_id === job.id
             );
-
-            // Total count = approved applications + pending applications
             const totalCount = applications.length + pendingApplicationsForJob.length;
-            
-            console.log(`Job: ${job.job_title}, ID: ${job.id}, Approved: ${applications.length}, Pending: ${pendingApplicationsForJob.length}, Total: ${totalCount}`);
-            
             return {
               ...job,
               application_count: totalCount,
               approved_count: applications.length,
-              pending_count: pendingApplicationsForJob.length
+              pending_count: pendingApplicationsForJob.length,
             };
           } catch (error) {
-            console.error(`Failed to fetch applications for job ${job.id}:`, error);
-            // Return job with original count or 0
             return {
               ...job,
               application_count: job.application_count || 0,
               approved_count: 0,
-              pending_count: 0
+              pending_count: 0,
             };
           }
         })
       );
-
-      // Sort by latest date first
-      const sortedJobs = jobsWithActualCounts.sort((a, b) => 
-        new Date(b.created_at || 0) - new Date(a.created_at || 0)
+      const sortedJobs = withCounts.sort(
+        (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
       );
-
-      console.log('Loaded recruiter job reports with actual counts:', sortedJobs.length);
-      console.log('Total applications across all jobs:', sortedJobs.reduce((sum, job) => sum + (job.application_count || 0), 0));
-      
-      setJobs(sortedJobs);
-      setFilteredJobs(sortedJobs);
+      setAllJobsFromApi(sortedJobs);
     } catch (error) {
       console.error('Failed to fetch job application reports:', error);
       setError('Failed to fetch job application reports. Please try again.');
-      setJobs([]);
+      setAllJobsFromApi([]);
       setFilteredJobs([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const approveJobDirect = async (job) => {
+    const taskId = job.task_id || job.id;
+    try {
+      setActionLoading(`approve-${job.id}`);
+      await adminService.approveJob(taskId);
+      await fetchJobReports();
+    } catch (error) {
+      console.error('Error approving job:', error);
+      alert('Failed to approve job');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleApproveJob = (job) => {
+    setConfirmJob(job);
+  };
+
+  const handleViewJob = (job) => {
+    const jobId = job.job_id || job.id;
+    if (!jobId) return;
+    navigate(`/job/${jobId}`, { state: { job, fromAdmin: true } });
+  };
+
+  const handleMarkPremium = async (job, isPremium = true) => {
+    const jobId = job.job_id || job.id;
+    if (!jobId) return;
+
+    try {
+      setActionLoading(`premium-${jobId}`);
+      await adminService.markJobPremium(jobId, isPremium, 'job');
+
+      const updatePremium = (j) =>
+        (j.job_id || j.id) === jobId ? { ...j, premium_job: isPremium, is_premium: isPremium } : j;
+      setAllJobsFromApi(prev => prev.map(updatePremium));
+      setFilteredJobs(prev => prev.map(updatePremium));
+    } catch (err) {
+      console.error('Failed to mark job as premium:', err);
+      alert('Failed to update premium status. Please try again.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleRejectJob = async (job) => {
+    if (!window.confirm(`Are you sure you want to reject "${job.job_title}"?`)) return;
+    const taskId = job.task_id || job.id;
+    try {
+      setActionLoading(`reject-${job.id}`);
+      await adminService.rejectJob(taskId);
+      await fetchJobReports();
+    } catch (error) {
+      console.error('Error rejecting job:', error);
+      alert('Failed to reject job');
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -203,23 +338,34 @@ const AdminJobReports = () => {
     return sorted;
   };
 
-  // Filter jobs based on search term, date, and sort
+  // Sab tabs sirf 40 API jobs se – All = sab 40; New/Edit/Close = inhi 40 me se category filter
   useEffect(() => {
-    let filtered = jobs.filter(job =>
+    let filtered = allJobsFromApi.filter(job =>
       job.job_title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.location?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Apply date filter
-    filtered = filterJobsByDate(filtered, dateFilter);
+    const hasCategory = (job, cat) => (job.taskCategories || []).includes(cat);
+    const isApproved = (job) =>
+      job.admin_approval_status === 'approved' || job.admin_approval_status === 'fulfilled';
 
-    // Apply sorting
+    if (jobTypeTab === 'all') {
+      filtered = filtered.filter((job) => isApproved(job));
+    } else if (jobTypeTab === 'newjob') {
+      filtered = filtered.filter((job) => hasCategory(job, 'postnewjob'));
+    } else if (jobTypeTab === 'editjob') {
+      filtered = filtered.filter((job) => hasCategory(job, 'editjob'));
+    } else if (jobTypeTab === 'closedjob') {
+      filtered = filtered.filter((job) => hasCategory(job, 'closedjob'));
+    }
+
+    filtered = filterJobsByDate(filtered, dateFilter);
     filtered = sortJobs(filtered, sortBy);
 
     setFilteredJobs(filtered);
     setCurrentPage(1);
-  }, [searchTerm, dateFilter, sortBy, jobs]);
+  }, [searchTerm, dateFilter, sortBy, jobTypeTab, allJobsFromApi]);
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -377,6 +523,59 @@ const AdminJobReports = () => {
 
   return (
     <div className={`min-h-screen ${bgColor}`}>
+      {/* Approve confirmation modal */}
+      {confirmJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className={`${cardBg} rounded-2xl shadow-xl border ${borderColor} w-full max-w-md mx-4`}>
+            <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <h2 className={`text-base font-bold ${textColor}`}>Approve Job</h2>
+              <button
+                onClick={() => setConfirmJob(null)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <div>
+                <p className={`text-sm font-semibold ${textColor}`}>{confirmJob.job_title}</p>
+                <p className={`text-xs ${textSecondary}`}>{confirmJob.company_name}</p>
+              </div>
+              <p className={`text-xs ${textSecondary}`}>
+                Do you want to review and edit this job before approving, or approve it as it is?
+              </p>
+            </div>
+            <div className="px-5 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmJob(null);
+                  navigate(`/admin/edit-job/${confirmJob.id}`, {
+                    state: { employer_id: confirmJob.employer_id, fromApproveFlow: true }
+                  });
+                }}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <Briefcase size={14} />
+                Edit Job
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const job = confirmJob;
+                  setConfirmJob(null);
+                  await approveJobDirect(job);
+                }}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-sm font-semibold text-white"
+              >
+                <Check size={14} />
+                Approve
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className={`${cardBg} border-b ${borderColor} sticky top-0 z-40`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -392,41 +591,6 @@ const AdminJobReports = () => {
               <RefreshCw size={16} />
               <span className="hidden sm:inline">Refresh</span>
             </button>
-          </div>
-
-          {/* Stats Bar */}
-          <div className="flex flex-wrap gap-4 mt-4">
-            <div className={`px-4 py-2 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
-              <div className="flex items-center gap-2">
-                <Briefcase size={16} className={textSecondary} />
-                <span className={`text-sm font-semibold ${textColor}`}>{jobs.length}</span>
-                <span className={`text-xs ${textSecondary}`}>Total Jobs</span>
-              </div>
-            </div>
-            <div className="px-4 py-2 rounded-lg bg-blue-50 dark:bg-blue-500/20">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-blue-700 dark:text-blue-400">
-                  {jobs.reduce((sum, job) => sum + (job.application_count || 0), 0)}
-                </span>
-                <span className="text-xs text-blue-600 dark:text-blue-500">Total Applications</span>
-              </div>
-            </div>
-            <div className="px-4 py-2 rounded-lg bg-green-50 dark:bg-green-500/20">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-green-700 dark:text-green-400">
-                  {jobs.filter(job => job.application_count > 0).length}
-                </span>
-                <span className="text-xs text-green-600 dark:text-green-500">Jobs with Applications</span>
-              </div>
-            </div>
-            <div className="px-4 py-2 rounded-lg bg-purple-50 dark:bg-purple-500/20">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-purple-700 dark:text-purple-400">
-                  {Math.max(...jobs.map(job => job.application_count || 0), 0)}
-                </span>
-                <span className="text-xs text-purple-600 dark:text-purple-500">Most Applied</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -491,6 +655,53 @@ const AdminJobReports = () => {
           </div>
         </div>
 
+        {/* Tabs: All (approved only) | New Job | Edit | Close */}
+        <div className={`${cardBg} rounded-lg border ${borderColor} p-3 mb-6`}>
+          <p className={`text-xs ${textSecondary} mb-2`}>Show jobs by type</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setJobTypeTab('all')}
+              className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${jobTypeTab === 'all'
+                ? 'bg-indigo-600 text-white'
+                : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+              }`}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              onClick={() => setJobTypeTab('newjob')}
+              className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${jobTypeTab === 'newjob'
+                ? 'bg-indigo-600 text-white'
+                : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+              }`}
+            >
+              New Job
+            </button>
+            <button
+              type="button"
+              onClick={() => setJobTypeTab('editjob')}
+              className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${jobTypeTab === 'editjob'
+                ? 'bg-indigo-600 text-white'
+                : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+              }`}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => setJobTypeTab('closedjob')}
+              className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${jobTypeTab === 'closedjob'
+                ? 'bg-indigo-600 text-white'
+                : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+              }`}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+
         {/* Error Display */}
         {error && (
           <div className="bg-red-100 dark:bg-red-900/30 border border-red-400 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg mb-6">
@@ -523,107 +734,192 @@ const AdminJobReports = () => {
           </div>
         )}
 
-        {/* Job Reports - Compact Cards */}
+        {/* Job Reports - Full card for All/New/Edit; simple card for Close */}
         <div className="space-y-3">
-          {currentJobs.map(job => (
-            <div
-              key={job.id}
-              className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all`}
-            >
-              <div className="p-3">
-                {/* Job Header */}
-                <div className="flex items-start justify-between gap-3 mb-2.5">
-                  <div className="flex-1 min-w-0">
-                    <h3 className={`text-base font-bold ${textColor} hover:text-blue-600 cursor-pointer leading-tight mb-1.5`}>
-                      {job.job_title || 'N/A'}
-                    </h3>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                      <span className="flex items-center gap-1">
-                        <Building size={13} className="flex-shrink-0" />
-                        {job.company_name || 'Unknown Company'}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MapPin size={13} className="flex-shrink-0" />
-                        {job.location || 'Not specified'}
-                      </span>
+          {currentJobs.map(job => {
+            const isCloseTab = jobTypeTab === 'closedjob';
+
+            return (
+              <div
+                key={job.id}
+                className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all ${isCloseTab ? 'p-3' : ''}`}
+              >
+                {isCloseTab ? (
+                  /* Close tab: simple single-row card */
+                  <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className={`text-sm font-bold ${textColor} truncate`}>{job.job_title || 'N/A'}</h3>
+                      <p className={`text-xs ${textSecondary} truncate`}>
+                        {job.company_name || 'Unknown'} · {job.location || '—'}
+                      </p>
+                    </div>
+                    <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400 flex-shrink-0 w-fit">
+                      Closed
+                    </span>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => handleViewJob(job)}
+                        className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700"
+                      >
+                        View
+                      </button>
+                      <button
+                        onClick={() => handleViewApplications(job)}
+                        className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700"
+                      >
+                        Applications ({job.application_count || 0})
+                      </button>
                     </div>
                   </div>
-                </div>
-
-                {/* Job Details */}
-                <div className="flex flex-wrap gap-1.5 mb-2.5">
-                  <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`} style={{ fontSize: '0.7rem' }}>
-                    💰 {formatSalary(job.salary_range)}
-                  </span>
-                  <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'} flex items-center gap-1`} style={{ fontSize: '0.7rem' }}>
-                    <Calendar size={12} />
-                    {formatDate(job.created_at)}
-                  </span>
-                </div>
-
-                {/* Stats Bar */}
-                <div className={`flex items-center gap-4 p-2 rounded-lg mb-2.5 border ${borderColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                  <div className="flex items-center gap-1.5">
-                    <Users size={13} className="text-blue-500" />
-                    <span className={`text-xs font-semibold ${textColor}`}>{job.application_count || 0}</span>
-                    <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.65rem' }}>applications</span>
-                  </div>
-                  {job.approved_count !== undefined && job.pending_count !== undefined && (
-                    <>
-                      <div className="h-3 w-px bg-gray-300 dark:bg-gray-600"></div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1">
-                          <span className={`text-xs font-semibold text-green-600 dark:text-green-400`}>{job.approved_count}</span>
-                          <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.6rem' }}>approved</span>
+                ) : (
+                  <div className="p-3">
+                    {/* Job Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
+                      <div className="flex-1 w-full min-w-0">
+                        <h3 className={`text-base font-bold ${textColor} hover:text-blue-600 cursor-pointer leading-tight mb-2 break-words`}>
+                          {job.job_title || 'N/A'}
+                        </h3>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 text-xs text-gray-600 dark:text-gray-400">
+                          <span className="flex items-center gap-1.5">
+                            <Building size={14} className="flex-shrink-0" />
+                            <span className="truncate max-w-[200px]">{job.company_name || 'Unknown Company'}</span>
+                          </span>
+                          <span className="hidden sm:block w-1 h-1 rounded-full bg-gray-400"></span>
+                          <span className="flex items-center gap-1.5">
+                            <MapPin size={14} className="flex-shrink-0" />
+                            <span className="truncate max-w-[200px]">{job.location || 'Not specified'}</span>
+                          </span>
                         </div>
-                        {job.pending_count > 0 && (
-                          <>
-                            <span className={`text-xs ${textSecondary}`}>•</span>
-                            <div className="flex items-center gap-1">
-                              <span className={`text-xs font-semibold text-yellow-600 dark:text-yellow-400`}>{job.pending_count}</span>
-                              <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.6rem' }}>pending</span>
-                            </div>
-                          </>
+                      </div>
+                      <div className="flex flex-row items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-1 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-0 border-gray-100 dark:border-gray-700">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex-shrink-0 ${
+                          job.status === 'open' ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' :
+                          job.status === 'closed' ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800' :
+                          'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700'
+                        }`} style={{ fontSize: '0.7rem' }}>
+                          {job.status === 'open' ? 'Active' : job.status === 'closed' ? 'Closed' : job.status || 'Active'}
+                        </span>
+                        {job.admin_approval_status === 'pending' ? (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleRejectJob(job)}
+                              disabled={actionLoading === `reject-${job.id}`}
+                              className="flex-initial px-3 py-1.5 border border-red-300 text-red-700 bg-red-50 hover:bg-red-100 dark:border-red-500/30 dark:text-red-400 dark:bg-red-500/20 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-50"
+                              style={{ fontSize: '0.75rem' }}
+                            >
+                              {actionLoading === `reject-${job.id}` ? <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-500" /> : <X size={14} />}
+                              Reject
+                            </button>
+                            <button
+                              onClick={() => handleApproveJob(job)}
+                              disabled={actionLoading === `approve-${job.id}`}
+                              className="flex-initial px-3 py-1.5 bg-green-600 text-white hover:bg-green-700 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-50"
+                              style={{ fontSize: '0.75rem' }}
+                            >
+                              {actionLoading === `approve-${job.id}` ? <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" /> : <Check size={14} />}
+                              Approve
+                            </button>
+                          </div>
+                        ) : (
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${
+                            (job.admin_approval_status === 'approved' || job.admin_approval_status === 'fulfilled')
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                              : job.admin_approval_status === 'rejected'
+                                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                          }`} style={{ fontSize: '0.7rem' }}>
+                            {(job.admin_approval_status === 'approved' || job.admin_approval_status === 'fulfilled') ? 'Approved' : job.admin_approval_status === 'rejected' ? 'Rejected' : '—'}
+                          </span>
+                        )}
+                        {(job.pending_task_count > 0 || job.fulfilled_task_count > 0) && (
+                          <div className="flex flex-wrap gap-1.5 flex-shrink-0">
+                            {job.pending_task_count > 0 && (
+                              <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-400 rounded text-xs font-semibold">
+                                {job.pending_task_count} Pending
+                              </span>
+                            )}
+                            {job.fulfilled_task_count > 0 && (
+                              <span className="px-2 py-0.5 bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-400 rounded text-xs font-semibold">
+                                {job.fulfilled_task_count} Fulfilled
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
-                    </>
-                  )}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    onClick={() => handleViewApplications(job)}
-                    className="flex-1 sm:flex-initial px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5"
-                    style={{ fontSize: '0.7rem' }}
-                  >
-                    <Eye size={13} />
-                    View Applications ({job.application_count || 0})
-                  </button>
-                  {/* <button
-                    onClick={() => handleQuickExport(job)}
-                    className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5`}
-                    style={{ fontSize: '0.7rem' }}
-                    disabled={!job.application_count || job.application_count === 0}
-                  >
-                    <Download size={13} />
-                    <span className="hidden sm:inline">Export Excel</span>
-                    <span className="sm:hidden">Export</span>
-                  </button> */}
-                  <button
-                    onClick={() => handleCloseJob(job)}
-                    className="flex-1 sm:flex-initial px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-1.5"
-                    style={{ fontSize: '0.7rem' }}
-                    disabled={loading}
-                  >
-                    <Trash2 size={13} />
-                    <span className="hidden sm:inline">Delete Job</span>
-                    <span className="sm:hidden">Delete</span>
-                  </button>
-                </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 mb-2.5">
+                      <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`} style={{ fontSize: '0.7rem' }}>
+                        💰 {formatSalary(job.salary_range)}
+                      </span>
+                      <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'} flex items-center gap-1`} style={{ fontSize: '0.7rem' }}>
+                        <Calendar size={12} />
+                        {formatDate(job.created_at)}
+                      </span>
+                    </div>
+                    {job.admin_approval_status !== 'pending' && (
+                      <>
+                        <div className={`flex items-center gap-4 p-2 rounded-lg mb-2.5 border ${borderColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
+                          <div className="flex items-center gap-1.5">
+                            <Users size={13} className="text-blue-500" />
+                            <span className={`text-xs font-semibold ${textColor}`}>{job.application_count || 0}</span>
+                            <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.65rem' }}>applications</span>
+                          </div>
+                          {job.approved_count !== undefined && job.pending_count !== undefined && (
+                            <>
+                              <div className="h-3 w-px bg-gray-300 dark:bg-gray-600" />
+                              <div className="flex items-center gap-2">
+                                <span className={`text-xs font-semibold text-green-600 dark:text-green-400`}>{job.approved_count}</span>
+                                <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.6rem' }}>approved</span>
+                                {job.pending_count > 0 && (
+                                  <>
+                                    <span className={`text-xs ${textSecondary}`}>·</span>
+                                    <span className={`text-xs font-semibold text-yellow-600 dark:text-yellow-400`}>{job.pending_count}</span>
+                                    <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.6rem' }}>pending</span>
+                                  </>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mt-3">
+                          <button
+                            onClick={() => handleViewApplications(job)}
+                            className="col-span-2 sm:col-auto px-4 py-2 sm:py-1.5 bg-blue-600 text-white rounded-lg text-sm sm:text-xs font-medium hover:bg-blue-700 flex items-center justify-center gap-1.5"
+                          >
+                            <Eye size={14} />
+                            View Applications ({job.application_count || 0})
+                          </button>
+                          <button
+                            onClick={() => navigate(`/admin/edit-job/${job.id}`, { state: { employer_id: job.employer_id } })}
+                            className="col-span-1 sm:col-auto px-2 py-2 sm:py-1.5 border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 dark:border-blue-500/30 dark:text-blue-300 dark:bg-blue-500/20 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5"
+                          >
+                            <Briefcase size={14} />
+                            Edit / View
+                          </button>
+                          <button
+                            onClick={() => handleMarkPremium(job, !(job.premium_job || job.is_premium))}
+                            disabled={actionLoading === `premium-${job.job_id || job.id}`}
+                            className={`col-span-1 sm:col-auto px-2 py-2 sm:py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-yellow-50 dark:hover:bg-yellow-900/20 flex items-center justify-center gap-1.5 disabled:opacity-50`}
+                          >
+                            <Star size={14} />
+                            {(job.premium_job || job.is_premium) ? 'Premium' : 'Feature Job'}
+                          </button>
+                          <button
+                            onClick={() => handleCloseJob(job)}
+                            className="col-span-2 sm:col-auto px-4 py-2 sm:py-1.5 bg-red-600 text-white rounded-lg text-sm sm:text-xs font-medium hover:bg-red-700 flex items-center justify-center gap-1.5"
+                            disabled={loading}
+                          >
+                            <Trash2 size={14} />
+                            Delete Job
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Pagination */}

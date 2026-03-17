@@ -442,32 +442,36 @@ const PostJob = () => {
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
                   Salary Range
                 </label>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                   <select
                     value={jobData.salary_range.currency}
                     onChange={(e) => handleInputChange("salary_range.currency", e.target.value)}
-                    className={`px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                    className={`w-full sm:w-auto sm:min-w-[100px] px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
                   >
                     <option value="INR">INR (₹)</option>
                     <option value="USD">USD ($)</option>
                     <option value="EUR">EUR (€)</option>
                     <option value="GBP">GBP (£)</option>
                   </select>
-                  <input
-                    type="number"
-                    value={jobData.salary_range.min}
-                    onChange={(e) => handleInputChange("salary_range.min", e.target.value)}
-                    placeholder="Min"
-                    className={`flex-1 px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
-                  />
-                  <span className={textSecondary}>-</span>
-                  <input
-                    type="number"
-                    value={jobData.salary_range.max}
-                    onChange={(e) => handleInputChange("salary_range.max", e.target.value)}
-                    placeholder="Max"
-                    className={`flex-1 px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
-                  />
+                  <div className="flex items-center gap-2 min-w-0">
+                    <input
+                      type="number"
+                      min={0}
+                      value={jobData.salary_range.min}
+                      onChange={(e) => handleInputChange("salary_range.min", e.target.value)}
+                      placeholder="Min"
+                      className={`flex-1 min-w-0 w-0 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm px-3 py-2`}
+                    />
+                    <span className={`flex-shrink-0 ${textSecondary}`}>-</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={jobData.salary_range.max}
+                      onChange={(e) => handleInputChange("salary_range.max", e.target.value)}
+                      placeholder="Max"
+                      className={`flex-1 min-w-0 w-0 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm px-3 py-2`}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -475,21 +479,23 @@ const PostJob = () => {
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
                   Experience Required (Years)
                 </label>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-0">
                   <input
                     type="number"
+                    min={0}
                     value={jobData.experience_required.min_years}
                     onChange={(e) => handleInputChange("experience_required.min_years", e.target.value)}
                     placeholder="Min"
-                    className={`flex-1 px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                    className={`flex-1 min-w-0 w-0 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm px-3 py-2`}
                   />
-                  <span className={textSecondary}>-</span>
+                  <span className={`flex-shrink-0 ${textSecondary}`}>-</span>
                   <input
                     type="number"
+                    min={0}
                     value={jobData.experience_required.max_years}
                     onChange={(e) => handleInputChange("experience_required.max_years", e.target.value)}
                     placeholder="Max"
-                    className={`flex-1 px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                    className={`flex-1 min-w-0 w-0 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm px-3 py-2`}
                   />
                 </div>
               </div>

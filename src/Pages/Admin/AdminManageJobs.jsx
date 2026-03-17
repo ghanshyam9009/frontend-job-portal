@@ -230,15 +230,15 @@ const AdminJobs = () => {
   if (loading) {
     return (
       <div className={`min-h-screen ${bgColor}`}>
-        <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center max-w-7xl mx-auto mt-20`}>
-          <div className="relative mb-6">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-t-4 border-blue-500 mx-auto"></div>
+        <div className={`${cardBg} rounded-lg border ${borderColor} p-6 sm:p-12 text-center max-w-7xl mx-auto mt-12 sm:mt-20 mx-3 sm:mx-auto`}>
+          <div className="relative mb-4 sm:mb-6">
+            <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-b-4 border-t-4 border-blue-500 mx-auto"></div>
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-              <Briefcase className="text-blue-500" size={24} />
+              <Briefcase className="text-blue-500" size={20} />
             </div>
           </div>
-          <h3 className={`text-lg font-bold ${textColor}`}>Loading jobs...</h3>
-          <p className={`${textSecondary} mt-2`}>Please wait</p>
+          <h3 className={`text-base sm:text-lg font-bold ${textColor}`}>Loading jobs...</h3>
+          <p className={`text-sm ${textSecondary} mt-2`}>Please wait</p>
         </div>
       </div>
     );
@@ -247,19 +247,24 @@ const AdminJobs = () => {
   return (
     <div className={`min-h-screen ${bgColor}`}>
       {/* Header */}
-      <div className={`${cardBg} border-b ${borderColor} sticky top-0 z-40`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className={`text-xl sm:text-2xl font-bold ${textColor}`}>Manage Jobs</h1>
-              <p className={`text-sm ${textSecondary} mt-1`}>Create and manage job postings</p>
+      <div className={`${cardBg} border-b ${borderColor} sticky top-0 z-40 overflow-hidden`}>
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
+          {/* Title + Actions row — mobile: single row, title truncates; desktop: same */}
+          <div className="flex items-center justify-between gap-2 sm:gap-4 min-h-[40px]">
+            <div className="min-w-0 flex-1">
+              <h1 className={`text-base sm:text-xl md:text-2xl font-bold ${textColor} truncate`}>
+                Manage Jobs
+              </h1>
+              <p className={`text-xs sm:text-sm ${textSecondary} mt-0.5 truncate`}>
+                Create and manage job postings
+              </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <button
                 onClick={() => navigate('/admin/post-job')}
-                className="px-4 sm:px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2 text-sm sm:text-base"
+                className="px-3 py-2 sm:px-5 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium inline-flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm touch-manipulation min-h-[40px]"
               >
-                <Plus size={18} />
+                <Plus size={16} className="sm:w-[18px] sm:h-[18px]" />
                 <span className="hidden sm:inline">Post New Job</span>
                 <span className="sm:hidden">Post</span>
               </button>
@@ -268,56 +273,58 @@ const AdminJobs = () => {
                   setError("");
                   fetchJobs();
                 }}
-                className={`px-4 py-2.5 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium flex items-center gap-2`}
+                className={`p-2 sm:px-4 sm:py-2.5 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors inline-flex items-center justify-center touch-manipulation min-h-[40px] min-w-[40px]`}
+                aria-label="Refresh jobs"
               >
-                <RefreshCw size={16} />
+                <RefreshCw size={18} />
               </button>
             </div>
           </div>
 
-          {/* Stats Bar */}
-          <div className="flex flex-wrap gap-4 mt-4">
-            <div className={`px-4 py-2 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
+          {/* Stats Bar — mobile: 2x2 grid; sm+: single row flex */}
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-4 mt-3 sm:mt-4">
+            <div className={`px-3 py-2 sm:px-4 sm:py-2 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
               <div className="flex items-center gap-2">
-                <Briefcase size={16} className={textSecondary} />
-                <span className={`text-sm font-semibold ${textColor}`}>{jobs.length}</span>
+                <Briefcase size={16} className={`flex-shrink-0 ${textSecondary}`} />
+                <span className={`text-xs sm:text-sm font-semibold ${textColor}`}>{jobs.length}</span>
                 <span className={`text-xs ${textSecondary}`}>Total</span>
               </div>
             </div>
-            <div className="px-4 py-2 rounded-lg bg-green-50 dark:bg-green-500/20">
+            <div className="px-3 py-2 sm:px-4 sm:py-2 rounded-lg bg-green-50 dark:bg-green-500/20">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-green-700 dark:text-green-400">
+                <span className="text-xs sm:text-sm font-semibold text-green-700 dark:text-green-400">
                   {jobs.filter(j => j.status === 'approved').length}
                 </span>
                 <span className="text-xs text-green-600 dark:text-green-500">Approved</span>
               </div>
             </div>
-            <div className="px-4 py-2 rounded-lg bg-yellow-50 dark:bg-yellow-500/20">
+            <div className="px-3 py-2 sm:px-4 sm:py-2 rounded-lg bg-yellow-50 dark:bg-yellow-500/20">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">
+                <span className="text-xs sm:text-sm font-semibold text-yellow-700 dark:text-yellow-400">
                   {jobs.filter(j => j.status === 'pending').length}
                 </span>
                 <span className="text-xs text-yellow-600 dark:text-yellow-500">Pending</span>
               </div>
             </div>
-            <div className="px-4 py-2 rounded-lg bg-blue-50 dark:bg-blue-500/20">
+            <div className="px-3 py-2 sm:px-4 sm:py-2 rounded-lg bg-blue-50 dark:bg-blue-500/20">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-blue-700 dark:text-blue-400">
+                <span className="text-xs sm:text-sm font-semibold text-blue-700 dark:text-blue-400">
                   {jobs.reduce((sum, job) => sum + (job.application_count || 0), 0)}
                 </span>
-                <span className="text-xs text-blue-600 dark:text-blue-500">Total Applications</span>
+                <span className="text-xs text-blue-600 dark:text-blue-500 hidden sm:inline">Total Applications</span>
+                <span className="text-xs text-blue-600 dark:text-blue-500 sm:hidden">Apps</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
         {/* Filters on Top */}
-        <div className={`${cardBg} rounded-lg border ${borderColor} p-4 mb-6`}>
-          <div className="flex flex-col gap-4">
+        <div className={`${cardBg} rounded-lg border ${borderColor} p-3 sm:p-4 mb-4 sm:mb-6`}>
+          <div className="flex flex-col gap-3 sm:gap-4">
             {/* Search */}
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="relative">
                 <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`} />
                 <input
@@ -331,12 +338,12 @@ const AdminJobs = () => {
             </div>
 
             {/* Status, Date, and Sort Filters Row */}
-            <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
               {/* Status Filters */}
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setStatusFilter('all')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors touch-manipulation ${
                     statusFilter === 'all'
                       ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
                       : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
@@ -347,12 +354,12 @@ const AdminJobs = () => {
               </div>
 
               {/* Date Filter Dropdown */}
-              <div className="flex items-center gap-2">
-                <Calendar size={18} className={textSecondary} />
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Calendar size={18} className={`flex-shrink-0 ${textSecondary}`} />
                 <select
                   value={dateFilter}
                   onChange={(e) => setDateFilter(e.target.value)}
-                  className={`px-4 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
+                  className={`flex-1 sm:flex-initial min-w-0 px-3 sm:px-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
                 >
                   <option value="all">All Time</option>
                   <option value="today">Today</option>
@@ -366,12 +373,12 @@ const AdminJobs = () => {
               </div>
 
               {/* Sort By Dropdown */}
-              <div className="flex items-center gap-2">
-                <ArrowUpDown size={18} className={textSecondary} />
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <ArrowUpDown size={18} className={`flex-shrink-0 ${textSecondary}`} />
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className={`px-4 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
+                  className={`flex-1 sm:flex-initial min-w-0 px-3 sm:px-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
                 >
                   <option value="newest">Newest First</option>
                   <option value="oldest">Oldest First</option>
@@ -407,12 +414,12 @@ const AdminJobs = () => {
 
         {/* Empty State */}
         {filteredJobs.length === 0 && !loading && (
-          <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center`}>
-            <div className={`w-16 h-16 ${isDark ? 'bg-blue-500/20' : 'bg-blue-100'} rounded-full flex items-center justify-center mx-auto mb-4`}>
-              <Building2 size={32} className="text-blue-500" />
+          <div className={`${cardBg} rounded-lg border ${borderColor} p-6 sm:p-12 text-center`}>
+            <div className={`w-14 h-14 sm:w-16 sm:h-16 ${isDark ? 'bg-blue-500/20' : 'bg-blue-100'} rounded-full flex items-center justify-center mx-auto mb-4`}>
+              <Building2 size={28} className="text-blue-500 sm:w-8 sm:h-8" />
             </div>
-            <h3 className={`text-lg font-semibold ${textColor} mb-2`}>No jobs found</h3>
-            <p className={`${textSecondary} mb-6`}>
+            <h3 className={`text-base sm:text-lg font-semibold ${textColor} mb-2`}>No jobs found</h3>
+            <p className={`text-sm ${textSecondary} mb-4 sm:mb-6`}>
               {statusFilter === 'all' && searchTerm === '' && dateFilter === 'all'
                 ? "Start by posting your first job opening."
                 : "Try adjusting your filters or search query"}
@@ -427,7 +434,7 @@ const AdminJobs = () => {
                   navigate('/admin/post-job');
                 }
               }}
-              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="w-full sm:w-auto px-6 py-3 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium touch-manipulation"
             >
               {statusFilter !== 'all' || searchTerm !== '' || dateFilter !== 'all' ? 'Clear Filters' : 'Post Your First Job'}
             </button>
@@ -441,12 +448,12 @@ const AdminJobs = () => {
               key={job.id || job.job_id}
               className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all`}
             >
-              <div className="p-3">
+              <div className="p-3 sm:p-4">
                 {/* Job Header */}
-                <div className="flex items-start justify-between gap-3 mb-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-2.5">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <h3 className={`text-base font-bold ${textColor} hover:text-blue-600 cursor-pointer leading-tight`}>
+                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                      <h3 className={`text-sm sm:text-base font-bold ${textColor} hover:text-blue-600 cursor-pointer leading-tight break-words`}>
                         {job.job_title || 'N/A'}
                       </h3>
                       {job.is_premium && (
@@ -456,21 +463,21 @@ const AdminJobs = () => {
                         </span>
                       )}
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mb-2">
-                      <span className="flex items-center gap-1">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600 dark:text-gray-400 mb-2">
+                      <span className="flex items-center gap-1 truncate max-w-full">
                         <Building2 size={13} className="flex-shrink-0" />
-                        {job.company_name || 'N/A'}
+                        <span className="truncate">{job.company_name || 'N/A'}</span>
                       </span>
-                      <span className="flex items-center gap-1">
+                      <span className="flex items-center gap-1 truncate max-w-full">
                         <MapPin size={13} className="flex-shrink-0" />
-                        {job.location || 'N/A'}
+                        <span className="truncate">{job.location || 'N/A'}</span>
                       </span>
                     </div>
-                    <p className={`text-xs ${textSecondary} line-clamp-2`}>
+                    <p className={`text-xs ${textSecondary} line-clamp-2 hidden sm:block`}>
                       {job.description ? `${job.description.substring(0, 150)}...` : 'N/A'}
                     </p>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold border flex-shrink-0 ${getStatusColor(job.status || 'approved')}`} style={{ fontSize: '0.7rem' }}>
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold border flex-shrink-0 w-fit ${getStatusColor(job.status || 'approved')}`} style={{ fontSize: '0.7rem' }}>
                     {job.status || 'Approved'}
                   </span>
                 </div>
@@ -506,18 +513,18 @@ const AdminJobs = () => {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-wrap gap-1.5">
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
                   <button
                     onClick={() => handleViewApplications(job)}
-                    className="flex-1 sm:flex-initial px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5"
+                    className="col-span-2 sm:col-auto flex-1 sm:flex-initial px-3 py-2.5 sm:py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5 touch-manipulation"
                     style={{ fontSize: '0.7rem' }}
                   >
                     <Eye size={13} />
-                    View Applications ({job.application_count || 0})
+                    <span className="truncate">View Applications ({job.application_count || 0})</span>
                   </button>
                   <button
                     onClick={() => handleEdit(job)}
-                    className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5`}
+                    className={`px-3 py-2.5 sm:py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5 touch-manipulation`}
                     style={{ fontSize: '0.7rem' }}
                   >
                     <Edit size={13} />
@@ -525,7 +532,7 @@ const AdminJobs = () => {
                   </button>
                   <button
                     onClick={() => handleDelete(job.job_id || job.id)}
-                    className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5`}
+                    className={`px-3 py-2.5 sm:py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5 touch-manipulation`}
                     style={{ fontSize: '0.7rem' }}
                   >
                     <Trash2 size={13} />
@@ -539,11 +546,11 @@ const AdminJobs = () => {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-6">
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-4 sm:mt-6 pb-4 sm:pb-0">
             <button
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${
+              className={`px-4 py-2.5 sm:py-2 rounded-lg text-sm font-medium touch-manipulation ${
                 currentPage === 1
                   ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
                   : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
@@ -551,13 +558,13 @@ const AdminJobs = () => {
             >
               Previous
             </button>
-            <span className={`text-sm ${textColor}`}>
+            <span className={`text-xs sm:text-sm ${textColor} px-2`}>
               Page {currentPage} of {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage === totalPages}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${
+              className={`px-4 py-2.5 sm:py-2 rounded-lg text-sm font-medium touch-manipulation ${
                 currentPage === totalPages
                   ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
                   : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
