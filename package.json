@@ -3,6 +3,14 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "browserslist": [
+    "defaults",
+    "not dead",
+    "IE 11",
+    "Edge >= 14",
+    "Chrome >= 49",
+    "Safari >= 10.1"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -12,8 +20,11 @@
   "dependencies": {
     "@react-oauth/google": "^0.12.2",
     "@tailwindcss/vite": "^4.1.16",
+    "core-js": "^3.40.1",
     "axios": "^1.12.2",
+    "custom-event": "^1.0.1",
     "lucide-react": "^0.544.0",
+    "regenerator-runtime": "^0.14.1",
     "razorpay": "^2.9.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -24,17 +35,27 @@
     "socket.io-client": "^4.8.1",
     "swiper": "^12.0.3",
     "tailwindcss": "^4.1.16",
+    "whatwg-fetch": "^3.6.20",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
+    "@babel/core": "^7.26.0",
+    "@babel/plugin-transform-runtime": "^7.26.0",
+    "@babel/preset-env": "^7.26.0",
+    "@babel/preset-react": "^7.26.0",
+    "@babel/runtime": "^7.26.0",
+    "@rollup/plugin-babel": "^6.0.4",
     "@vitejs/plugin-legacy": "^5.4.3",
     "@vitejs/plugin-react": "^4.0.0",
+    "autoprefixer": "^10.4.20",
     "eslint": "^8.53.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.4",
+    "postcss": "^8.5.3",
+    "postcss-custom-properties": "^15.0.1",
     "vite": "^5.0.0"
   }
 }

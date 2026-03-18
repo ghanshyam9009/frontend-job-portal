@@ -140,6 +140,8 @@ const AdminJobReports = () => {
             pending_task_count,
             fulfilled_task_count,
             employer_id: firstTask?.employer_id || firstTask?.recruiter_id || null,
+            // Synthetic (pending) jobs me `posted_by` available na hone par recruiter_id se infer karte hain
+            posted_by: firstTask?.recruiter_id ? 'RECRUITER' : 'ADMIN',
           };
         });
 
@@ -346,6 +348,15 @@ const AdminJobReports = () => {
       job.location?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    // Sirf Recruiter ke jobs dikhane hain
+    filtered = filtered.filter((job) => {
+      const postedByRaw = (job?.posted_by ?? '').toString().trim();
+      const postedBy = postedByRaw.toUpperCase();
+      if (postedBy) return postedBy === 'RECRUITER';
+      // Fallback: agar posted_by na ho, toh recruiter_id presence check karen
+      return Boolean(job?.recruiter_id);
+    });
+
     const hasCategory = (job, cat) => (job.taskCategories || []).includes(cat);
     const isApproved = (job) =>
       job.admin_approval_status === 'approved' || job.admin_approval_status === 'fulfilled';
@@ -551,7 +562,18 @@ const AdminJobReports = () => {
                 onClick={() => {
                   setConfirmJob(null);
                   navigate(`/admin/edit-job/${confirmJob.id}`, {
-                    state: { employer_id: confirmJob.employer_id, fromApproveFlow: true }
+                    state: {
+                      employer_id: confirmJob.employer_id,
+                      fromApproveFlow: true,
+                      approveTaskId: confirmJob.task_id || confirmJob.id,
+                      approveType: confirmJob.taskCategories?.includes("editjob")
+                        ? "editjob"
+                        : confirmJob.taskCategories?.includes("postnewjob")
+                          ? "postnewjob"
+                          : confirmJob.taskCategories?.includes("closedjob")
+                            ? "closedjob"
+                            : "editjob"
+                    }
                   });
                 }}
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -679,7 +701,7 @@ const AdminJobReports = () => {
 </div>
 
 
-{/* Tabs */}
+
 <div className={`${cardBg} rounded-2xl border ${borderColor} p-4 mb-6 shadow-sm`}>
 
 <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex gap-2">

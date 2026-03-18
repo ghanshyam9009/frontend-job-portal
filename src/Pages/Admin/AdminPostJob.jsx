@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { useAuth } from "../../Contexts/AuthContext";
 import { adminService } from "../../services/adminService";
-import { candidateExternalService } from "../../services/candidateExternalService";
+import { recruiterExternalService } from "../../services/recruiterExternalService";
+import { adminExternalService } from "../../services/adminExternalService";
 import { jobService } from "../../services/jobService";
 import {
   FileText,
@@ -11,6 +12,7 @@ import {
   Clock,
   Plus,
   Award,
+  CheckCircle,
   X,
   ArrowLeft,
   Save,
@@ -22,8 +24,13 @@ import {
 const AdminPostJob = () => {
   const navigate = useNavigate();
   const { jobId } = useParams(); // For edit mode
+  const location = useLocation();
   const { theme } = useTheme();
   const { user } = useAuth();
+  const fromApproveFlow = location.state?.fromApproveFlow === true;
+  const employerIdFromState = location.state?.employer_id ?? location.state?.employerId;
+  const approveTaskId = location.state?.approveTaskId;
+  const approveType = location.state?.approveType; // editjob | postnewjob | closedjob
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [skillInput, setSkillInput] = useState("");
@@ -77,21 +84,112 @@ const AdminPostJob = () => {
       setLoading(true);
       setError("");
       
-      const jobsData = await candidateExternalService.getAllJobs();
-      const allJobs = jobsData?.jobs || [];
+      const employerIdFromState = location.state?.employer_id ?? location.state?.employerId;
+      let job = null;
+      let allJobs = [];
+      let availableJobsForLog = [];
 
-      console.log('=== EDIT JOB DEBUG INFO ===');
-      console.log('JobId from URL:', jobId);
-      console.log('User object:', JSON.stringify(user, null, 2));
-      console.log('Total jobs fetched:', allJobs.length);
+      // Recruiter-side edit flow jaisa hi approach: pehle employer_id se job list fetch.
+      if (employerIdFromState) {
+        try {
+          const jobsDataByEmployer = await recruiterExternalService.getAllPostedJobs(employerIdFromState);
+          const allJobsRawByEmployer = jobsDataByEmployer?.jobs || jobsDataByEmployer || [];
+          allJobs = Array.isArray(allJobsRawByEmployer) ? allJobsRawByEmployer : [];
+          availableJobsForLog = allJobs;
 
-      // Find job among all jobs (admin can edit any job from reports)
-      const job = allJobs.find(j => (j.job_id == jobId || j.id == jobId));
+          job = allJobs.find((j) => (j?.job_id == jobId || j?.id == jobId)) || null;
+
+          console.log('=== EDIT JOB DEBUG (EMPLOYER FETCH) ===', {
+            employerId: employerIdFromState,
+            totalJobsFetched: allJobs.length,
+            jobFound: Boolean(job),
+          });
+        } catch (empErr) {
+          console.warn('Failed to fetch jobs by employer id:', empErr);
+        }
+      }
+
+      // Agar employer_id list me nahi mila, to admin ke liye all jobs fallback.
+      if (!job) {
+        const jobsData = await adminService.getAllJobsForAdmin();
+        const allJobsRaw = jobsData?.jobs || jobsData || [];
+        allJobs = Array.isArray(allJobsRaw) ? allJobsRaw : [];
+        availableJobsForLog = allJobs;
+
+        console.log('=== EDIT JOB DEBUG INFO ===');
+        console.log('JobId from URL:', jobId);
+        console.log('User object:', JSON.stringify(user, null, 2));
+        console.log('Total jobs fetched:', allJobs.length);
+
+        job = allJobs.find((j) => (j?.job_id == jobId || j?.id == jobId)) || null;
+      } else {
+        console.log('=== EDIT JOB DEBUG INFO ===');
+        console.log('JobId from URL:', jobId);
+        console.log('User object:', JSON.stringify(user, null, 2));
+        console.log('Total jobs fetched:', allJobs.length);
+      }
+
+      // Fallback: agar job getalljobs me available nahi hai (pending state),
+      // to tasks list (admin approvals workflow) se details lete hain.
+      if (!job) {
+        try {
+          const tasksData = await adminExternalService.getAllTasks();
+          const tasks = tasksData?.tasks || [];
+          const task = tasks.find(t =>
+            t?.job_id == jobId ||
+            t?.jobId == jobId ||
+            t?.jobID == jobId ||
+            t?.id == jobId
+          );
+
+          if (task) {
+            // Many backends store edited job fields inside nested objects (e.g. task.data / task.payload / task.job).
+            // We'll merge those objects into `job` so AdminPostJob's form can fill everything.
+            const payload =
+              task?.job && typeof task.job === "object"
+                ? task.job
+                : task?.data && typeof task.data === "object"
+                  ? task.data
+                  : task?.payload && typeof task.payload === "object"
+                    ? task.payload
+                    : task?.after && typeof task.after === "object"
+                      ? task.after
+                      : task?.result && typeof task.result === "object"
+                        ? task.result
+                        : null;
+
+            job = {
+              ...task,
+              ...(payload ? payload : {}),
+              // Normalize identifiers so the rest of this file works.
+              id: task.id ?? task.job_id ?? task.jobId ?? task.jobID ?? payload?.id ?? payload?.job_id ?? payload?.jobId,
+              job_id: task.job_id ?? task.id ?? task.jobId ?? task.jobID ?? payload?.job_id ?? payload?.id ?? payload?.jobId,
+              // Normalize common naming differences.
+              job_title: task.job_title ?? task.title ?? task.jobTitle ?? payload?.job_title ?? payload?.title ?? payload?.jobTitle ?? "",
+              company_name:
+                task.company_name ?? task.company ?? task.companyName ?? task.recruiter_company_name ?? payload?.company_name ?? payload?.company ?? payload?.companyName ?? "",
+              location: task.location ?? task.job_location ?? task.jobLocation ?? payload?.location ?? payload?.job_location ?? payload?.jobLocation ?? "",
+            };
+
+            console.log("=== EDIT JOB FALLBACK TASK ===", {
+              foundTaskJobId: task?.job_id ?? task?.id,
+              taskKeysCount: task ? Object.keys(task).length : 0,
+              payloadMerged: Boolean(payload),
+              payloadKeysCount: payload ? Object.keys(payload).length : 0,
+            });
+            if (payload) {
+              console.log("=== EDIT JOB FALLBACK TASK PAYLOAD KEYS ===", Object.keys(payload));
+            }
+          }
+        } catch (taskErr) {
+          console.warn('Failed to fetch pending task fallback job:', taskErr);
+        }
+      }
       
       if (!job) {
         console.error('=== JOB NOT FOUND ===');
         console.log('Searched for job with ID:', jobId);
-        console.log('Available job IDs (first 10):', allJobs.map(j => ({
+        console.log('Available job IDs (first 10):', availableJobsForLog.map(j => ({
           job_id: j.job_id,
           id: j.id,
           title: j.job_title,
@@ -108,6 +206,94 @@ const AdminPostJob = () => {
         title: job.job_title,
         company: job.company_name,
         posted_by: job.posted_by
+      });
+
+      // Normalize task/job payload fields (backend me naming variations ho sakti hain)
+      job = {
+        ...job,
+        // Job title/company/location
+        job_title:
+          job.job_title ??
+          job.title ??
+          job.jobTitle ??
+          job.job_name ??
+          job.new_job_title ??
+          job.updated_job_title ??
+          job.posting_title ??
+          "",
+        company_name:
+          job.company_name ??
+          job.company ??
+          job.companyName ??
+          job.employer_company_name ??
+          job.recruiter_company_name ??
+          job.new_company_name ??
+          "",
+        location:
+          job.location ??
+          job.job_location ??
+          job.jobLocation ??
+          job.city ??
+          job.country ??
+          job.new_location ??
+          "",
+
+        // Core content
+        description:
+          job.description ??
+          job.job_description ??
+          job.jobDescription ??
+          job.desc ??
+          job.job_desc ??
+          job.new_description ??
+          "",
+        responsibilities: job.responsibilities ?? job.responsibility ?? job.new_responsibilities ?? "",
+        qualifications: job.qualifications ?? job.qualification ?? job.new_qualifications ?? "",
+
+        // Skills
+        skills_required:
+          job.skills_required ??
+          job.skills ??
+          job.skill_list ??
+          job.required_skills ??
+          job.requiredSkills ??
+          job.new_skills ??
+          [],
+
+        // Deadline/contact
+        application_deadline:
+          job.application_deadline ??
+          job.deadline ??
+          job.application_deadline_date ??
+          job.deadline_date ??
+          job.due_date ??
+          "",
+        contact_email: job.contact_email ?? job.email ?? job.contactEmail ?? job.contact_email_address ?? "",
+        contact_number: job.contact_number ?? job.phone_number ?? job.phone ?? job.contactPhone ?? job.contact_phone ?? "",
+
+        // Employment/meta
+        employment_type: job.employment_type ?? job.job_type ?? job.jobType ?? job.type ?? "Full-Time",
+        work_mode: job.work_mode ?? job.workMode ?? job.work_mode_type ?? "On-site",
+
+        // Premium/benefits
+        is_premium: job.is_premium ?? job.premium_job ?? job.premium ?? false,
+        additional_benefits: job.additional_benefits ?? job.benefits ?? job.new_benefits ?? [],
+
+        // Salary/experience (only best-effort; formatter further handles shapes)
+        salary_range: job.salary_range ?? job.salary ?? job.compensation ?? null,
+        experience_required: job.experience_required ?? job.experience ?? job.experienceRange ?? null,
+      };
+
+      console.log('=== EDIT JOB NORMALIZED FIELDS ===', {
+        job_title: job.job_title,
+        company_name: job.company_name,
+        location: job.location,
+        skills_required_count: Array.isArray(job.skills_required) ? job.skills_required.length : typeof job.skills_required,
+        has_description: Boolean(job.description),
+        responsibilities_type: Array.isArray(job.responsibilities) ? 'array' : typeof job.responsibilities,
+        qualifications_type: Array.isArray(job.qualifications) ? 'array' : typeof job.qualifications,
+        has_salary_range: Boolean(job.salary_range),
+        has_experience_required: Boolean(job.experience_required),
       });
 
       // Format experience_required
@@ -289,81 +475,144 @@ const AdminPostJob = () => {
 
 
 
+  const performSaveJob = async ({ silent = false } = {}) => {
+    const jobData = {
+      job_title: formData.job_title,
+      company_name: formData.company_name || null,
+      description: formData.description,
+      location: formData.location,
+      employment_type: formData.employment_type,
+      work_mode: formData.work_mode,
+      salary_range: formData.salary_range,
+      experience_required: formData.experience_required,
+      skills_required: formData.skills_required,
+      responsibilities: formData.responsibilities.split("\n").filter(r => r.trim()),
+      qualifications: formData.qualifications.split("\n").filter(q => q.trim()),
+      category: formData.category || null,
+      application_deadline: formData.application_deadline || null,
+      contact_email: formData.contact_email || null,
+      contact_number: formData.contact_number || null,
+      additional_benefits: formData.additional_benefits || [],
+      status: "Open",
+      is_premium: formData.is_premium,
+      posted_by: "admin",
+      to_show_user: true,
+      admin_id: user?.admin_id || user?.id || user?.user_id,
+      // adminService.updateAdminJob expects employer_id in body for some backends.
+      employer_id: employerIdFromState ?? user?.employer_id ?? null
+    };
+
+    let jobResult;
+
+    if (jobId) {
+      // Update existing job
+      jobResult = await adminService.updateAdminJob(jobId, jobData);
+      if (!silent) alert("Job updated successfully!");
+    } else {
+      // Create new job
+      jobResult = await adminService.postJobByAdmin(jobData);
+      if (!silent) alert("Job posted successfully!");
+    }
+
+    // If logo file is selected, upload the logo
+    if (logoFile && (jobResult?.job_id || jobId)) {
+      try {
+        const targetJobId = jobId || jobResult.job_id;
+        await jobService.uploadJobLogo(targetJobId, logoFile);
+        console.log("Job logo uploaded successfully");
+      } catch (logoErr) {
+        console.error("Failed to upload job logo:", logoErr);
+        alert("Job saved successfully, but failed to upload logo. You can try again later.");
+      }
+    }
+
+    // Mark job as premium if checkbox was checked
+    if (formData.is_premium) {
+      try {
+        const targetJobId = jobId || jobResult.job_id;
+        await adminService.markJobPremium(targetJobId, true, "job");
+        console.log("Job marked as premium successfully");
+      } catch (premiumError) {
+        console.error("Failed to mark job as premium:", premiumError);
+        alert("Job saved successfully, but failed to mark as premium. You can try again later.");
+      }
+    }
+
+    // Clear logo file after successful submission
+    setLogoFile(null);
+
+    return jobResult;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setLoading(true);
       setError("");
-
-      const jobData = {
-        job_title: formData.job_title,
-        company_name: formData.company_name || null,
-        description: formData.description,
-        location: formData.location,
-        employment_type: formData.employment_type,
-        work_mode: formData.work_mode,
-        salary_range: formData.salary_range,
-        experience_required: formData.experience_required,
-        skills_required: formData.skills_required,
-        responsibilities: formData.responsibilities.split("\n").filter(r => r.trim()),
-        qualifications: formData.qualifications.split("\n").filter(q => q.trim()),
-        category: formData.category || null,
-        application_deadline: formData.application_deadline || null,
-        contact_email: formData.contact_email || null,
-        contact_number: formData.contact_number || null,
-        additional_benefits: formData.additional_benefits || [],
-        status: "Open",
-        is_premium: formData.is_premium,
-        posted_by: "admin",
-        to_show_user: true,
-        admin_id: user?.admin_id || user?.id || user?.user_id
-      };
-
-      let jobResult;
-
-      if (jobId) {
-        // Update existing job
-        jobResult = await adminService.updateAdminJob(jobId, jobData);
-        alert('Job updated successfully!');
-      } else {
-        // Create new job
-        jobResult = await adminService.postJobByAdmin(jobData);
-        alert('Job posted successfully!');
-      }
-
-      // If logo file is selected and job was created successfully, upload the logo
-      if (logoFile && (jobResult?.job_id || jobId)) {
-        try {
-          const targetJobId = jobId || jobResult.job_id;
-          await jobService.uploadJobLogo(targetJobId, logoFile);
-          console.log('Job logo uploaded successfully');
-        } catch (logoErr) {
-          console.error('Failed to upload job logo:', logoErr);
-          alert('Job saved successfully, but failed to upload logo. You can try again later.');
-        }
-      }
-
-      // Mark job as premium if checkbox was checked
-      if (formData.is_premium) {
-        try {
-          const targetJobId = jobId || jobResult.job_id;
-          await adminService.markJobPremium(targetJobId, true, 'job');
-          console.log('Job marked as premium successfully');
-        } catch (premiumError) {
-          console.error('Failed to mark job as premium:', premiumError);
-          alert('Job saved successfully, but failed to mark as premium. You can try again later.');
-        }
-      }
-
-      // Clear logo file after successful submission
-      setLogoFile(null);
-
-      // Navigate back to manage jobs
-      navigate('/admin/job-posting');
+      await performSaveJob();
+      // If coming from approve flow, go back to reports
+      navigate(fromApproveFlow ? "/admin/job-application-reports" : "/admin/job-posting");
     } catch (error) {
-      console.error('Failed to save job:', error);
-      setError('Failed to save job. Please try again.');
-      alert('Failed to save job. Please try again.');
+      console.error("Failed to save job:", error);
+      setError("Failed to save job. Please try again.");
+      alert("Failed to save job. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateAndApprove = async () => {
+    if (!approveTaskId) {
+      alert("Approve task ID missing. Please go back and try again.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      console.log("=== UPDATE & APPROVE FLOW ===", {
+        jobId,
+        fromApproveFlow,
+        approveTaskId,
+        approveType,
+        employerIdFromState,
+      });
+
+      await performSaveJob({ silent: true });
+
+      console.log("=== UPDATE DONE, START APPROVAL ===");
+
+      // Backend workflow:
+      // - "postnewjob"   => approveJob()
+      // - "editjob"      => approveEditedJob()
+      // - "closedjob"   => approveJobClosing()
+      if (approveType === "editjob") {
+        console.log("Calling approveEditedJob with", approveTaskId);
+        await adminService.approveEditedJob(approveTaskId);
+      } else if (approveType === "postnewjob") {
+        console.log("Calling approveJob with", approveTaskId);
+        await adminService.approveJob(approveTaskId);
+      } else if (approveType === "closedjob") {
+        console.log("Calling approveJobClosing with", approveTaskId);
+        await adminService.approveJobClosing(approveTaskId);
+      } else {
+        // Safe default
+        console.log("Fallback calling approveJob with", approveTaskId, "approveType:", approveType);
+        await adminService.approveJob(approveTaskId);
+      }
+
+      alert("Job updated and approved successfully!");
+      navigate("/admin/job-application-reports");
+    } catch (error) {
+      console.error("Failed to update and approve job:", error);
+      const msg =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        "Failed to update and approve job. Please try again.";
+      setError(msg);
+      alert(msg);
     } finally {
       setLoading(false);
     }
@@ -921,11 +1170,22 @@ const AdminPostJob = () => {
           <div className="flex gap-3 justify-end">
             <button
               type="button"
-              onClick={() => navigate('/admin/job-posting')}
+              onClick={() => navigate(fromApproveFlow ? "/admin/job-application-reports" : "/admin/job-posting")}
               className={`px-6 py-2.5 ${isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'} border rounded-md transition-colors font-medium text-sm`}
             >
               Cancel
             </button>
+            {fromApproveFlow && approveTaskId && (
+              <button
+                type="button"
+                onClick={handleUpdateAndApprove}
+                disabled={loading}
+                className="px-6 py-2.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <CheckCircle size={16} />
+                Update & Approve
+              </button>
+            )}
             <button
               type="submit"
               disabled={loading}

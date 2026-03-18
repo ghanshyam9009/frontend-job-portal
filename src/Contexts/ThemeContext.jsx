@@ -46,13 +46,34 @@ export const ThemeProvider = ({ children }) => {
     
     // Force re-render of all components
     setTimeout(() => {
-      window.dispatchEvent(new CustomEvent('themeChanged', { detail: newTheme }));
-      // Also trigger a storage event for cross-tab sync
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: 'theme',
-        newValue: newTheme,
-        oldValue: theme
-      }));
+      // IE11 compatibility: CustomEvent/StorageEvent constructors may not exist.
+      try {
+        let themeEvent;
+        if (typeof window.CustomEvent === 'function') {
+          themeEvent = new window.CustomEvent('themeChanged', { detail: newTheme });
+        } else {
+          themeEvent = document.createEvent('CustomEvent');
+          themeEvent.initCustomEvent('themeChanged', false, false, newTheme);
+        }
+        window.dispatchEvent(themeEvent);
+      } catch (e) {
+        // No-op: theme listeners will still see the updated state via React.
+      }
+
+      // Best-effort cross-tab sync; IE11 may not fully support StorageEvent payloads.
+      try {
+        if (typeof window.StorageEvent === 'function') {
+          window.dispatchEvent(new window.StorageEvent('storage', {
+            key: 'theme',
+            newValue: newTheme,
+            oldValue: theme
+          }));
+        } else if (typeof window.Event === 'function') {
+          window.dispatchEvent(new window.Event('storage'));
+        }
+      } catch (e) {
+        // No-op
+      }
     }, 10);
   };
 
