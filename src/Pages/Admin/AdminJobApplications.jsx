@@ -150,7 +150,6 @@ const AdminJobApplications = () => {
   const handleUpdateStatus = async (application, newStatus) => {
     const appId = application.application_id || application.id;
     if (!appId) return;
-
     // Prevent duplicate clicks
     if (statusUpdating[appId]) return;
 
@@ -160,7 +159,8 @@ const AdminJobApplications = () => {
     setStatusUpdating(prev => ({ ...prev, [appId]: newStatus }));
 
     try {
-      await recruiterExternalService.updateApplicationStatus(appId, newStatus);
+      const statusBool = newStatus.toLowerCase() === "shortlisted";
+      await recruiterExternalService.changeApplicationStatus(appId, statusBool);
 
       // Optimistic update — reflect change immediately in local state
       setApplications(prev =>

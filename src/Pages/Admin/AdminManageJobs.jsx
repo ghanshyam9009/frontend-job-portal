@@ -4,7 +4,7 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import { useAuth } from "../../Contexts/AuthContext";
 import { adminService } from "../../services/adminService";
 import { candidateExternalService } from "../../services/candidateExternalService";
-import { Building2, Edit, Trash2, Search, RefreshCw, Eye, Users, Plus, MapPin, Calendar, Briefcase, Award, ArrowUpDown } from "lucide-react";
+import { Building2, Edit, CircleX, Search, RefreshCw, Eye, Users, Plus, MapPin, Calendar, Briefcase, Award, ArrowUpDown } from "lucide-react";
 
 const AdminJobs = () => {
   const navigate = useNavigate();
@@ -33,8 +33,7 @@ const AdminJobs = () => {
         .filter(job => job.admin_id === currentAdminId)
         .filter(job => job.posted_by?.toLowerCase() === 'admin')
         .filter(job => job.job_type !== 'GOVERNMENT')
-        .filter(job => job.posted_by?.toUpperCase() !== 'RECRUITER')
-        .filter(job => job.status !== 'closed');
+        .filter(job => job.posted_by?.toUpperCase() !== 'RECRUITER');
 
       // Fetch actual application counts — same as AdminJobReports
       const jobsWithActualCounts = await Promise.all(
@@ -197,16 +196,42 @@ const AdminJobs = () => {
     navigate(`/admin/edit-job/${jobIdentifier}`);
   };
 
-  const handleDelete = async (jobId) => {
-    if (window.confirm('Are you sure you want to close this job? This will remove it from public display.')) {
-      try {
+  const handleToggleStatus = async (job) => {
+    const jobId = job.job_id || job.id;
+    if (!jobId) return;
+
+    const currentStatus = (job.status || "").toLowerCase();
+    const isCurrentlyClosed = currentStatus === "closed";
+    const targetStatus = isCurrentlyClosed ? "approved" : "closed";
+
+    const confirmMessage = isCurrentlyClosed
+      ? "Are you sure you want to reopen this job?"
+      : "Are you sure you want to close this job? This will remove it from public display.";
+
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      setLoading(true);
+
+      if (!isCurrentlyClosed) {
         await adminService.closeAdminJob(jobId);
-        await fetchJobs();
-        alert('Job closed successfully!');
-      } catch (error) {
-        console.error('Failed to close job:', error);
-        alert('Failed to close job. Please try again.');
       }
+
+      // Mirror recruiter ManageJobs behavior: close via API, reopen via local status toggle.
+      setJobs((prev) =>
+        prev.map((j) =>
+          (j.job_id || j.id) === jobId
+            ? { ...j, status: targetStatus }
+            : j
+        )
+      );
+
+      alert(`Job ${isCurrentlyClosed ? "reopened" : "closed"} successfully!`);
+    } catch (error) {
+      console.error(`Failed to ${isCurrentlyClosed ? "reopen" : "close"} job:`, error);
+      alert(`Failed to ${isCurrentlyClosed ? "reopen" : "close"} job. Please try again.`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -531,12 +556,14 @@ const AdminJobs = () => {
                     <span className="hidden sm:inline">Edit</span>
                   </button>
                   <button
-                    onClick={() => handleDelete(job.job_id || job.id)}
+                    onClick={() => handleToggleStatus(job)}
                     className={`px-3 py-2.5 sm:py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5 touch-manipulation`}
                     style={{ fontSize: '0.7rem' }}
                   >
-                    <Trash2 size={13} />
-                    <span className="hidden sm:inline">Delete</span>
+                    <CircleX size={13} />
+                    <span className="hidden sm:inline">
+                      {(job.status || "").toLowerCase() === "closed" ? "Reopen" : "Close"}
+                    </span>
                   </button>
                 </div>
               </div>

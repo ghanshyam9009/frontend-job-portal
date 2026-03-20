@@ -333,6 +333,25 @@ const CandidateLogin = () => {
               </div>
             )}
 
+            {!isLogin && (
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>
+                  <span className={styles.labelText}>Phone Number</span>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    placeholder="Enter your phone number"
+                    className={`${styles.input} ${errors.phone ? styles.inputError : ''}`}
+                    required={!isLogin}
+                    disabled={otpSent || otpVerified}
+                  />
+                  {errors.phone && <span className={styles.errorText}>{errors.phone}</span>}
+                </label>
+              </div>
+            )}
+
             <div className={styles.inputGroup}>
               <label className={styles.label}>
                 <span className={styles.labelText}>Email Address</span>
@@ -444,25 +463,6 @@ const CandidateLogin = () => {
                     </button>
                   </div>
                   {errors.otp && <span className={styles.errorText}>{errors.otp}</span>}
-                </label>
-              </div>
-            )}
-
-            {!isLogin && (
-              <div className={styles.inputGroup}>
-                <label className={styles.label}>
-                  <span className={styles.labelText}>Phone Number</span>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    placeholder="Enter your phone number"
-                    className={`${styles.input} ${errors.phone ? styles.inputError : ''}`}
-                    required={!isLogin}
-                    disabled={otpSent || otpVerified}
-                  />
-                  {errors.phone && <span className={styles.errorText}>{errors.phone}</span>}
                 </label>
               </div>
             )}

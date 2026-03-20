@@ -59,7 +59,6 @@ const CompanyReviews = lazy(() => import('./Pages/CompanyReviews'));
 const SalaryTools = lazy(() => import('./Pages/SalaryTools'));
 const EmployerBranding = lazy(() => import('./Pages/EmployerBranding'));
 const RecruitingSolutions = lazy(() => import('./Pages/RecruitingSolutions'));
-
 const PrivacyPolicy = lazy(() => import('./Pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./Pages/TermsOfService'));
 const PaymentSuccess = lazy(() => import('./Pages/PaymentSuccess'));
@@ -162,7 +161,6 @@ function App() {
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route element={<ProtectedRoute role="admin"><IntegratedAdminLayout /></ProtectedRoute>}>
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
-
                 <Route path="/admin/candidates" element={<ManageCandidates />} />
                 <Route path="/admin/candidates/profile/:email" element={<AdminCandidateProfile />} />
                 <Route path="/admin/candidates/applications/:candidateId" element={<AdminCandidateApplications />} />
