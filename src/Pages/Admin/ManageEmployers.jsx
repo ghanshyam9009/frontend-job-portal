@@ -23,6 +23,15 @@ import {
   ArrowRight
 } from "lucide-react";
 
+/** Job card logo: API returns `job_logo_url`; fallbacks match JobCard / job detail. */
+const getJobLogoUrl = (job) =>
+  job?.job_logo_url ||
+  job?.job_logo ||
+  job?.company_logo ||
+  job?.companyLogo ||
+  job?.logo ||
+  null;
+
 const ManageEmployers = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -41,6 +50,9 @@ const ManageEmployers = () => {
 
   // State for job reports
   const [jobs, setJobs] = useState([]);
+  const [totalNewJobs, setTotalNewJobs] = useState(0);
+  /** Syncs with AdminJobReports tabs: `all` | `newjob` (get-all-tasks postnewjob) */
+  const [jobReportsInitialTab, setJobReportsInitialTab] = useState("all");
 
   // Fetch recruiters and jobs data from API
   useEffect(() => {
@@ -56,38 +68,23 @@ const ManageEmployers = () => {
         return (postedBy === 'RECRUITER' || postedBy === 'EMPLOYER') && job.job_type !== "GOVERNMENT";
       });
 
-      let pendingTasksData = [];
-      try {
-        pendingTasksData = await adminService.getPendingJobs();
-      } catch (err) {
-        console.warn('Failed to fetch pending tasks:', err);
-      }
-
-      const jobsWithCounts = await Promise.all(
-        recruiterJobs.map(async (job) => {
-          try {
-            const applicationsData = await adminService.getApplicationsForJob(job.id);
-            const applications = applicationsData.applications || [];
-
-            const pendingApplicationsForJob = pendingTasksData.filter(task =>
-              task.category === 'newapplication' &&
-              task.status === 'pending' &&
-              task.job_id === job.id
-            );
-
-            return {
-              ...job,
-              application_count: applications.length + pendingApplicationsForJob.length,
-            };
-          } catch (error) {
-            return {
-              ...job,
-              application_count: job.application_count || 0,
-            };
-          }
-        })
+      setJobs(
+        recruiterJobs.map((job) => ({
+          ...job,
+          id: job.id || job.job_id,
+        }))
       );
-      setJobs(jobsWithCounts);
+
+      let tasks = [];
+      try {
+        tasks = await adminService.getPendingJobs();
+      } catch (err) {
+        console.warn("Failed to fetch tasks (get all tasks):", err);
+      }
+      const postNewCount = (tasks || []).filter(
+        (t) => t.category === "postnewjob"
+      ).length;
+      setTotalNewJobs(postNewCount);
     } catch (error) {
       console.error('Failed to fetch job reports:', error);
     }
@@ -440,7 +437,6 @@ const ManageEmployers = () => {
 
   const totalEmployers = recruiters.length;
   const totalJobs = jobs.length;
-  const totalApplications = jobs.reduce((sum, job) => sum + (job.application_count || 0), 0);
 
   // Approved employers and recent lists
   const approvedEmployers = useMemo(
@@ -464,12 +460,14 @@ const ManageEmployers = () => {
   }, [jobs]);
 
   const handleSummaryCardClick = (mode) => {
+    if (mode === "reports") {
+      setJobReportsInitialTab("all");
+    }
     setViewMode(mode);
   };
 
-  // Card shortcuts
-  const handleTotalApplicationsClick = () => {
-    // Jump to job reports tab where admin can see job-wise applications
+  const handleTotalNewClick = () => {
+    setJobReportsInitialTab("newjob");
     setViewMode("reports");
   };
 
@@ -595,7 +593,10 @@ const ManageEmployers = () => {
                 <span className="hidden sm:inline">Export</span>
               </button>
               <button
-                onClick={fetchRecruiters}
+                onClick={() => {
+                  fetchRecruiters();
+                  fetchJobReports();
+                }}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center gap-2 shadow-sm"
               >
                 <RefreshCw size={18} />
@@ -654,21 +655,21 @@ const ManageEmployers = () => {
                   </div>
                 </button>
 
-                {/* Active Applications */}
+                {/* New job tasks (get all tasks — postnewjob) */}
                 <button
                   type="button"
-                  onClick={handleTotalApplicationsClick}
+                  onClick={handleTotalNewClick}
                   className={`${cardBg} rounded-xl shadow-lg p-6 border-l-4 border-emerald-500 transform transition-all hover:-translate-y-1 hover:shadow-xl text-left w-full`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className={`${textSecondary} text-sm font-medium`}>Total Applications</p>
+                      <p className={`${textSecondary} text-sm font-medium`}>Total New</p>
                       <h3 className={`text-3xl font-bold ${textColor} mt-2`}>
-                        {totalApplications}
+                        {totalNewJobs}
                       </h3>
                       <p className="text-emerald-600 text-sm mt-2 flex items-center gap-1">
                         <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        Across employer jobs
+                        New job post tasks
                       </p>
                     </div>
                     <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
@@ -771,20 +772,46 @@ const ManageEmployers = () => {
                   </button>
                 </div>
                 <div className="space-y-3 text-sm">
-                  {recentJobs.map((job) => (
+                  {recentJobs.map((job) => {
+                    const logoUrl = getJobLogoUrl(job);
+                    return (
                     <div
                       key={job.id || job.job_id}
-                      className="flex items-center justify-between px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+                      className="flex items-center justify-between gap-2 px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
                     >
-                      <div className="min-w-0">
-                        <p className={`text-sm font-semibold ${textColor} truncate`}>
-                          {job.job_title || 'Job'}
-                        </p>
-                        <p className={`text-xs ${textSecondary} truncate`}>
-                          {job.company_name || 'Company'} • {job.location || 'N/A'}
-                        </p>
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div
+                          className={`w-10 h-10 rounded-lg flex-shrink-0 overflow-hidden border ${borderColor} flex items-center justify-center ${isDark ? "bg-gray-700/80" : "bg-white"}`}
+                        >
+                          {logoUrl ? (
+                            <img
+                              src={logoUrl}
+                              alt=""
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                              onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                                  job.company_name || "Company"
+                                )}&background=2563eb&color=fff&size=64`;
+                              }}
+                            />
+                          ) : (
+                            <span className={`text-xs font-bold ${textSecondary}`}>
+                              {getInitials(job.company_name || "Job")}
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className={`text-sm font-semibold ${textColor} truncate`}>
+                            {job.job_title || 'Job'}
+                          </p>
+                          <p className={`text-xs ${textSecondary} truncate`}>
+                            {job.company_name || 'Company'} • {job.location || 'N/A'}
+                          </p>
+                        </div>
                       </div>
-                      <span className={`text-xs ${textSecondary}`}>
+                      <span className={`text-xs ${textSecondary} flex-shrink-0`}>
                         {job.created_at
                           ? new Date(job.created_at).toLocaleDateString("en-US", {
                               month: "short",
@@ -794,7 +821,8 @@ const ManageEmployers = () => {
                           : 'N/A'}
                       </span>
                     </div>
-                  ))}
+                    );
+                  })}
                   {recentJobs.length === 0 && (
                     <p className={`text-xs ${textSecondary}`}>No jobs found yet.</p>
                   )}
@@ -1140,7 +1168,7 @@ const ManageEmployers = () => {
               </button>
               <h2 className={`text-base font-bold ${textColor}`}>Employer Job Reports</h2>
             </div>
-            <AdminJobReports />
+            <AdminJobReports initialReportTab={jobReportsInitialTab} />
           </div>
         )}
       </div>

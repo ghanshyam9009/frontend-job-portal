@@ -52,17 +52,7 @@ const AdminJobReportApplications = () => {
       setLoading(true);
       setError("");
 
-      // Fetch job details - Only show jobs posted by recruiters
-      const jobsData = await adminService.getJobsWithApplicationCounts();
-      // Filter to only show recruiter-posted jobs
-      const recruiterJobs = jobsData.filter(j => {
-        const postedBy = (j.posted_by || '').toUpperCase();
-        return postedBy === 'RECRUITER' || postedBy === 'EMPLOYER';
-      });
-      const job = recruiterJobs.find(j => {
-        const idMatch = j.id === parseInt(jobId) || j.job_id === jobId || j.id === jobId;
-        return idMatch;
-      });
+      const job = await adminService.getRecruiterJobForReportById(jobId);
 
       if (!job) {
         setError("Job not found. Only jobs posted by recruiters are shown in the application report.");
@@ -70,16 +60,14 @@ const AdminJobReportApplications = () => {
         return;
       }
 
-      if (job) {
-        setJobDetails({
-          title: job.job_title,
-          company: job.company_name || "",
-          location: job.location || "",
-          salary: job.salary_range || "",
-          postedDate: job.created_at || "",
-          applicationCount: job.application_count || 0
-        });
-      }
+      setJobDetails({
+        title: job.job_title,
+        company: job.company_name || "",
+        location: job.location || "",
+        salary: job.salary_range || "",
+        postedDate: job.created_at || "",
+        applicationCount: job.application_count || 0
+      });
 
       // Fetch pending tasks for this job (applications waiting for admin approval)
       const pendingTasksData = await adminService.getPendingJobs();
@@ -500,7 +488,8 @@ const AdminJobReportApplications = () => {
             {/* Back button and title */}
             <div className="flex items-center gap-4">
               <button
-                onClick={() => navigate('/admin/job-reports')}
+                type="button"
+                onClick={() => navigate(`/admin/job-application-reports/job/${jobId}`)}
                 className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors`}
               >
                 <ArrowLeft size={20} className={textColor} />

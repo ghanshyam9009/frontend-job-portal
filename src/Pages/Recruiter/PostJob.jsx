@@ -162,10 +162,19 @@ const PostJob = () => {
     setError(null);
     setSuccess(false);
     try {
+      const minSal = jobData.salary_range.min;
+      const maxSal = jobData.salary_range.max;
+      const salary_range = {
+        currency: jobData.salary_range.currency || "INR",
+        min: minSal !== "" && minSal != null ? Number(minSal) : null,
+        max: maxSal !== "" && maxSal != null ? Number(maxSal) : null,
+      };
+
       const jobPayload = {
         ...jobData,
         employer_id: user.employer_id,
         company_logo: recruiterProfile?.company_logo || recruiterProfile?.logo || null,
+        salary_range,
         responsibilities: jobData.responsibilities.split("\n").filter(r => r.trim()),
         qualifications: jobData.qualifications.split("\n").filter(q => q.trim()),
         additional_benefits: jobData.additional_benefits || [],
@@ -263,11 +272,11 @@ const PostJob = () => {
   const inputBorder = isDark ? 'border-gray-600' : 'border-gray-300';
 
   return (
-    <div className={`min-h-screen ${bgColor} pt-20 lg:pt-24 px-4 sm:px-6 lg:px-8 pb-8`}>
-      <div className="max-w-5xl mx-auto">
+    <div className={`min-h-screen ${bgColor} pt-20 lg:pt-24 px-3 sm:px-6 lg:px-8 pb-8 overflow-x-hidden`}>
+      <div className="max-w-5xl mx-auto w-full min-w-0">
         {/* Header */}
         <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex flex-wrap items-center gap-3 mb-2">
             <div className="p-2 bg-blue-500/10 rounded-lg">
               <Briefcase className="text-blue-500" size={24} />
             </div>
@@ -278,15 +287,15 @@ const PostJob = () => {
 
         {/* Restriction Notice */}
         {!canPostJob && restrictionReason && (
-          <div className={`${cardBg} border-2 border-yellow-500 rounded-lg p-5 mb-6`}>
-            <div className="flex items-start gap-4">
-              <AlertTriangle className="text-yellow-500 flex-shrink-0" size={24} />
-              <div className="flex-1">
+          <div className={`${cardBg} border-2 border-yellow-500 rounded-lg p-4 sm:p-5 mb-6`}>
+            <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
+              <AlertTriangle className="text-yellow-500 flex-shrink-0 sm:mt-0.5" size={24} />
+              <div className="flex-1 min-w-0">
                 <h3 className={`font-bold ${textColor} mb-2`}>Job Posting Restricted</h3>
                 <p className={`${textSecondary} text-sm mb-3`}>{restrictionReason}</p>
                 <button
                   onClick={() => navigate('/company-profile')}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#2271B5] text-white rounded-md hover:bg-[#1a5a8f] transition-colors text-sm font-medium"
+                  className="inline-flex w-full sm:w-auto justify-center items-center gap-2 px-4 py-2 bg-[#2271B5] text-white rounded-md hover:bg-[#1a5a8f] transition-colors text-sm font-medium"
                 >
                   <Building size={16} />
                   Complete Profile & KYC
@@ -302,7 +311,7 @@ const PostJob = () => {
           className={`space-y-6 ${!canPostJob ? 'opacity-50 pointer-events-none' : ''}`}
         >
           {/* Basic Information */}
-          <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-5`}>
+          <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-4 sm:p-5`}>
             <div className="flex items-center gap-2 mb-4">
               <FileText className="text-blue-500" size={20} />
               <h2 className={`text-lg font-bold ${textColor}`}>Basic Information</h2>
@@ -337,7 +346,7 @@ const PostJob = () => {
                 />
               </div>
 
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 min-w-0">
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
                   Job Logo
                 </label>
@@ -390,7 +399,7 @@ const PostJob = () => {
                 </div>
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
                   Employment Type <span className="text-red-500">*</span>
                 </label>
@@ -407,7 +416,7 @@ const PostJob = () => {
                 </select>
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
                   Work Mode <span className="text-red-500">*</span>
                 </label>
@@ -423,7 +432,7 @@ const PostJob = () => {
                 </select>
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
                   Application Deadline
                 </label>
@@ -438,79 +447,97 @@ const PostJob = () => {
                 </div>
               </div>
 
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 min-w-0">
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
                   Salary Range
                 </label>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <select
-                    value={jobData.salary_range.currency}
-                    onChange={(e) => handleInputChange("salary_range.currency", e.target.value)}
-                    className={`w-full sm:w-auto sm:min-w-[100px] px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
-                  >
-                    <option value="INR">INR (₹)</option>
-                    <option value="USD">USD ($)</option>
-                    <option value="EUR">EUR (€)</option>
-                    <option value="GBP">GBP (£)</option>
-                  </select>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <input
-                      type="number"
-                      min={0}
-                      value={jobData.salary_range.min}
-                      onChange={(e) => handleInputChange("salary_range.min", e.target.value)}
-                      placeholder="Min"
-                      className={`flex-1 min-w-0 w-0 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm px-3 py-2`}
-                    />
-                    <span className={`flex-shrink-0 ${textSecondary}`}>-</span>
-                    <input
-                      type="number"
-                      min={0}
-                      value={jobData.salary_range.max}
-                      onChange={(e) => handleInputChange("salary_range.max", e.target.value)}
-                      placeholder="Max"
-                      className={`flex-1 min-w-0 w-0 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm px-3 py-2`}
-                    />
+                <p className={`text-xs ${textSecondary} mb-2`}>Optional. Enter annual amount in the selected currency.</p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:gap-3">
+                  <div className="w-full sm:w-40 sm:flex-shrink-0">
+                    <label className={`block text-xs font-medium ${textSecondary} mb-1 sm:sr-only`}>Currency</label>
+                    <div className="relative">
+                      <DollarSign className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary} pointer-events-none`} size={16} />
+                      <select
+                        value={jobData.salary_range.currency}
+                        onChange={(e) => handleInputChange("salary_range.currency", e.target.value)}
+                        className={`w-full pl-9 pr-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                        aria-label="Salary currency"
+                      >
+                        <option value="INR">INR (₹)</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="GBP">GBP (£)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 flex-1 min-w-0">
+                    <div className="min-w-0">
+                      <input
+                        type="number"
+                        min={0}
+                        inputMode="decimal"
+                        value={jobData.salary_range.min}
+                        onChange={(e) => handleInputChange("salary_range.min", e.target.value)}
+                        placeholder="e.g. 800000"
+                        className={`w-full min-w-0 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm px-3 py-2`}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <input
+                        type="number"
+                        min={0}
+                        inputMode="decimal"
+                        value={jobData.salary_range.max}
+                        onChange={(e) => handleInputChange("salary_range.max", e.target.value)}
+                        placeholder="e.g. 1200000"
+                        className={`w-full min-w-0 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm px-3 py-2`}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 min-w-0">
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
                   Experience Required (Years)
                 </label>
-                <div className="flex items-center gap-2 min-w-0">
-                  <input
-                    type="number"
-                    min={0}
-                    value={jobData.experience_required.min_years}
-                    onChange={(e) => handleInputChange("experience_required.min_years", e.target.value)}
-                    placeholder="Min"
-                    className={`flex-1 min-w-0 w-0 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm px-3 py-2`}
-                  />
-                  <span className={`flex-shrink-0 ${textSecondary}`}>-</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={jobData.experience_required.max_years}
-                    onChange={(e) => handleInputChange("experience_required.max_years", e.target.value)}
-                    placeholder="Max"
-                    className={`flex-1 min-w-0 w-0 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm px-3 py-2`}
-                  />
+                <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
+                  <div className="min-w-0">
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.5"
+                      value={jobData.experience_required.min_years}
+                      onChange={(e) => handleInputChange("experience_required.min_years", e.target.value)}
+                      placeholder="Min"
+                      className={`w-full min-w-0 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm px-3 py-2`}
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.5"
+                      value={jobData.experience_required.max_years}
+                      onChange={(e) => handleInputChange("experience_required.max_years", e.target.value)}
+                      placeholder="Max"
+                      className={`w-full min-w-0 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm px-3 py-2`}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Contact Information */}
-          <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-5`}>
+          <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-4 sm:p-5`}>
             <div className="flex items-center gap-2 mb-4">
               <Users className="text-indigo-500" size={20} />
               <h2 className={`text-lg font-bold ${textColor}`}>Contact Information</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
+              <div className="min-w-0">
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
                   Contact Email <span className="text-red-500">*</span>
                 </label>
@@ -527,7 +554,7 @@ const PostJob = () => {
                 </div>
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
                   Contact Number
                 </label>
@@ -549,7 +576,7 @@ const PostJob = () => {
           </div>
 
           {/* Job Details */}
-          <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-5`}>
+          <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-4 sm:p-5`}>
             <div className="flex items-center gap-2 mb-4">
               <FileText className="text-purple-500" size={20} />
               <h2 className={`text-lg font-bold ${textColor}`}>Job Details</h2>
@@ -566,7 +593,7 @@ const PostJob = () => {
                   placeholder="Provide a detailed job description..."
                   rows={14}
                   required
-                  className={`w-full px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm `}
+                  className={`w-full max-w-full min-h-[12rem] sm:min-h-[14rem] px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm box-border`}
                 />
               </div>
 
@@ -580,7 +607,7 @@ const PostJob = () => {
                   placeholder="List key responsibilities (one per line)..."
                   rows={6}
                   required
-                  className={`w-full px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm `}
+                  className={`w-full max-w-full min-h-[8rem] px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm box-border`}
                 />
               </div>
 
@@ -594,21 +621,21 @@ const PostJob = () => {
                   placeholder="List required qualifications (one per line)..."
                   rows={6}
                   required
-                  className={`w-full px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm `}
+                  className={`w-full max-w-full min-h-[8rem] px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm box-border`}
                 />
               </div>
             </div>
           </div>
 
           {/* Skills */}
-          <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-5`}>
+          <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-4 sm:p-5`}>
             <div className="flex items-center gap-2 mb-4">
               <Award className="text-green-500" size={20} />
               <h2 className={`text-lg font-bold ${textColor}`}>Required Skills</h2>
             </div>
 
             <div className="space-y-3">
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
                 <input
                   type="text"
                   value={newSkill}
@@ -620,12 +647,12 @@ const PostJob = () => {
                       handleAddSkill();
                     }
                   }}
-                  className={`flex-1 px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  className={`flex-1 min-w-0 px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
                 />
                 <button
                   type="button"
                   onClick={handleAddSkill}
-                  className="px-4 py-2 bg-[#2271B5] text-white rounded-md hover:bg-[#1a5a8f] transition-colors text-sm font-medium flex items-center gap-2"
+                  className="shrink-0 px-4 py-2.5 bg-[#2271B5] text-white rounded-md hover:bg-[#1a5a8f] transition-colors text-sm font-medium inline-flex items-center justify-center gap-2 w-full sm:w-auto"
                 >
                   <Plus size={16} />
                   Add
@@ -653,13 +680,13 @@ const PostJob = () => {
           </div>
 
           {/* Additional Benefits */}
-          <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-5`}>
+          <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-4 sm:p-5`}>
             <div className="flex items-center gap-2 mb-4">
               <Award className={isDark ? 'text-yellow-400' : 'text-yellow-500'} size={20} />
               <h2 className={`text-lg font-bold ${textColor}`}>Additional Benefits</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               {[
                 'PF & ESIC',
                 'Health Insurance',
@@ -670,7 +697,7 @@ const PostJob = () => {
                 'Travelling Allowance',
                 'Dearness Allowance'
               ].map((benefit) => (
-                <label key={benefit} className={`flex items-center gap-3 ${textColor} text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-md`}>
+                <label key={benefit} className={`flex items-start sm:items-center gap-3 ${textColor} text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-md min-w-0`}>
                   <input
                     type="checkbox"
                     checked={jobData.additional_benefits.includes(benefit)}
@@ -695,18 +722,18 @@ const PostJob = () => {
           )}
 
           {/* Form Actions */}
-          <div className="flex gap-3 justify-end">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:items-center pt-1">
             <button 
               type="button" 
               onClick={handleSaveDraft}
-              className={`px-6 py-2.5 border ${borderColor} ${textColor} rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium text-sm`}
+              className={`w-full sm:w-auto px-6 py-2.5 border ${borderColor} ${textColor} rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium text-sm`}
             >
               Save as Draft
             </button>
             <button 
               type="submit" 
               disabled={loading}
-              className="px-6 py-2.5 bg-[#2271B5] text-white rounded-md hover:bg-[#1a5a8f] transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto px-6 py-2.5 bg-[#2271B5] text-white rounded-md hover:bg-[#1a5a8f] transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Posting..." : "Post Job"}
             </button>

@@ -66,7 +66,9 @@ const ViewApplications = lazy(() => import('./Pages/Recruiter/ViewApplications')
 const IntegratedAdminLayout = lazy(() => import('./Components/Admin/IntegratedAdminLayout'));
 const AdminJobApplications = lazy(() => import('./Pages/Admin/AdminJobApplications'));
 const AdminJobs = lazy(() => import('./Pages/Admin/AdminManageJobs'));
+const AdminManageJobDetail = lazy(() => import('./Pages/Admin/AdminManageJobDetail'));
 const AdminJobReportApplications = lazy(() => import('./Pages/Admin/AdminJobReportApplications'));
+const AdminJobReportJobDetail = lazy(() => import('./Pages/Admin/AdminJobReportJobDetail'));
 const AdminJobReports = lazy(() => import('./Pages/Admin/AdminJobReports'));
 const AdminGovernmentJobs = lazy(() => import('./Pages/Admin/AdminGovernmentJobs'));
 const AdminPostGovernmentJob = lazy(() => import('./Pages/Admin/AdminPostGovernmentJob'));
@@ -172,6 +174,7 @@ function App() {
                 <Route path="/admin/jobs" element={<AdminManageJobs />} />
                 <Route path="/admin/post-job" element={<AdminPostJob />} />
                 <Route path="/admin/job-applications/:jobId" element={<AdminJobApplications />} />
+                <Route path="/admin/job-posting/job/:jobId" element={<AdminManageJobDetail />} />
                 <Route path="/admin/job-posting" element={<AdminJobs />} />
                 <Route path="/admin/edit-job/:jobId" element={<AdminPostJob />} />
                 <Route path="/admin/reports" element={<ReportsAnalytics />} />
@@ -182,6 +185,7 @@ function App() {
                 <Route path="/admin/government-jobs/post" element={<AdminPostGovernmentJob />} />
                 <Route path="/admin/government-jobs/edit/:jobId" element={<AdminPostGovernmentJob />} />
                 {/* <Route path="/admin/job-application-reports" element={<JobApplicationReports />} /> */}
+                <Route path="/admin/job-application-reports/job/:jobId" element={<AdminJobReportJobDetail />} />
                 <Route path="/admin/job-application-reports" element={<AdminJobReports />} />
 
                 <Route path="/admin/job-reports/applications/:jobId" element={<AdminJobReportApplications />} />

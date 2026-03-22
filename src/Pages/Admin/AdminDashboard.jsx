@@ -323,7 +323,7 @@ const AdminDashboard = () => {
   };
 
   const handleNavigateToJobReports = () => {
-    navigate('/admin/job-reports');
+    navigate('/admin/job-application-reports');
   };
 
   const handleRefreshDashboard = () => {

@@ -4,7 +4,27 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import { useAuth } from "../../Contexts/AuthContext";
 import { adminService } from "../../services/adminService";
 import { candidateExternalService } from "../../services/candidateExternalService";
-import { Building2, Edit, CircleX, Search, RefreshCw, Eye, Users, Plus, MapPin, Calendar, Briefcase, Award, ArrowUpDown } from "lucide-react";
+import { Building2, Edit, CircleX, Trash2, Search, RefreshCw, Eye, Users, Plus, MapPin, Calendar, Briefcase, Award, ArrowUpDown } from "lucide-react";
+
+/** API sends `job_logo_url`; fallbacks align with JobCard / AdminJobReports */
+const getJobLogoUrl = (job) =>
+  job?.job_logo_url ||
+  job?.job_logo ||
+  job?.company_logo ||
+  job?.companyLogo ||
+  job?.logo ||
+  null;
+
+const getCompanyInitials = (name) => {
+  if (!name || typeof name !== "string") return "?";
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+};
 
 const AdminJobs = () => {
   const navigate = useNavigate();
@@ -35,31 +55,14 @@ const AdminJobs = () => {
         .filter(job => job.job_type !== 'GOVERNMENT')
         .filter(job => job.posted_by?.toUpperCase() !== 'RECRUITER');
 
-      // Fetch actual application counts — same as AdminJobReports
-      const jobsWithActualCounts = await Promise.all(
-        adminJobs.map(async (job) => {
-          try {
-            const jobId = job.job_id || job.id;
-            const applicationsData = await adminService.getApplicationsForJob(jobId);
-            const applications = applicationsData?.applications || [];
+      const jobsWithIds = adminJobs.map((job) => ({
+        ...job,
+        id: job.job_id || job.id,
+        application_count: job.application_count ?? 0,
+        applications: [],
+      }));
 
-            return {
-              ...job,
-              application_count: applications.length,
-              applications: []
-            };
-          } catch (err) {
-            console.error(`Failed to fetch applications for job ${job.job_id || job.id}:`, err);
-            return {
-              ...job,
-              application_count: job.application_count || 0,
-              applications: []
-            };
-          }
-        })
-      );
-
-      const sortedJobs = jobsWithActualCounts.sort((a, b) => {
+      const sortedJobs = jobsWithIds.sort((a, b) => {
         const dateA = new Date(a.created_at || a.posted_date || 0);
         const dateB = new Date(b.created_at || b.posted_date || 0);
         return dateB - dateA;
@@ -235,8 +238,31 @@ const AdminJobs = () => {
     }
   };
 
-  const handleViewApplications = (job) => {
-    navigate(`/admin/job-applications/${job.job_id || job.id}`);
+  const handleDelete = async (jobId) => {
+    if (
+      !window.confirm(
+        "Are you sure you want to permanently delete this job? This cannot be undone."
+      )
+    ) {
+      return;
+    }
+    try {
+      setLoading(true);
+      await adminService.deleteAdminJob(jobId);
+      setJobs((prev) => prev.filter((j) => (j.job_id || j.id) !== jobId));
+      alert("Job deleted successfully!");
+    } catch (error) {
+      console.error("Failed to delete job:", error);
+      alert("Failed to delete job. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewJob = (job) => {
+    const id = job.job_id || job.id;
+    if (!id) return;
+    navigate(`/admin/job-posting/job/${id}`, { state: { job } });
   };
 
   // Pagination
@@ -346,74 +372,69 @@ const AdminJobs = () => {
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
         {/* Filters on Top */}
-        <div className={`${cardBg} rounded-lg border ${borderColor} p-3 sm:p-4 mb-4 sm:mb-6`}>
-          <div className="flex flex-col gap-3 sm:gap-4">
-            {/* Search */}
-            <div className="flex-1 min-w-0">
-              <div className="relative">
-                <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`} />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search by job title, company, or location..."
-                  className={`w-full pl-10 pr-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
-                />
-              </div>
+        <div className={`${cardBg} rounded-lg border ${borderColor} p-3 sm:p-4 mb-4 sm:mb-6 w-full`}>
+          <div className="flex flex-col gap-3 lg:flex-row lg:flex-nowrap lg:items-stretch lg:gap-3">
+            <div className="relative w-full lg:flex-1 lg:min-w-0">
+              <Search
+                size={18}
+                className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textSecondary}`}
+              />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search title, company, location…"
+                className={`w-full min-w-0 pl-10 pr-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+              />
             </div>
 
-            {/* Status, Date, and Sort Filters Row */}
-            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
-              {/* Status Filters */}
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setStatusFilter('all')}
-                  className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors touch-manipulation ${
-                    statusFilter === 'all'
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
-                      : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-                  }`}
-                >
-                  All ({jobs.length})
-                </button>
-              </div>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("all")}
+              className={`w-full sm:w-auto lg:w-auto lg:shrink-0 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors touch-manipulation min-h-[44px] ${
+                statusFilter === "all"
+                  ? "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30"
+                  : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+              }`}
+            >
+              All ({jobs.length})
+            </button>
 
-              {/* Date Filter Dropdown */}
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Calendar size={18} className={`flex-shrink-0 ${textSecondary}`} />
-                <select
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                  className={`flex-1 sm:flex-initial min-w-0 px-3 sm:px-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
-                >
-                  <option value="all">All Time</option>
-                  <option value="today">Today</option>
-                  <option value="yesterday">Yesterday</option>
-                  <option value="last7days">Last 7 Days</option>
-                  <option value="last30days">Last 30 Days</option>
-                  <option value="thisMonth">This Month</option>
-                  <option value="lastMonth">Last Month</option>
-                  <option value="thisYear">This Year</option>
-                </select>
-              </div>
+            <div className="flex items-center gap-2 w-full md:max-w-md lg:max-w-none lg:w-[200px] lg:shrink-0">
+              <Calendar size={18} className={`flex-shrink-0 ${textSecondary}`} />
+              <select
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                aria-label="Filter by date"
+                className={`w-full min-w-0 px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
+              >
+                <option value="all">All time</option>
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="last7days">Last 7 days</option>
+                <option value="last30days">Last 30 days</option>
+                <option value="thisMonth">This month</option>
+                <option value="lastMonth">Last month</option>
+                <option value="thisYear">This year</option>
+              </select>
+            </div>
 
-              {/* Sort By Dropdown */}
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <ArrowUpDown size={18} className={`flex-shrink-0 ${textSecondary}`} />
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className={`flex-1 sm:flex-initial min-w-0 px-3 sm:px-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="titleAZ">Job Title (A-Z)</option>
-                  <option value="titleZA">Job Title (Z-A)</option>
-                  <option value="companyAZ">Company (A-Z)</option>
-                  <option value="companyZA">Company (Z-A)</option>
-                  <option value="applications">Most Applications</option>
-                </select>
-              </div>
+            <div className="flex items-center gap-2 w-full md:max-w-md lg:max-w-none lg:w-[220px] lg:shrink-0">
+              <ArrowUpDown size={18} className={`flex-shrink-0 ${textSecondary}`} />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                aria-label="Sort jobs"
+                className={`w-full min-w-0 px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
+              >
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="titleAZ">Title A–Z</option>
+                <option value="titleZA">Title Z–A</option>
+                <option value="companyAZ">Company A–Z</option>
+                <option value="companyZA">Company Z–A</option>
+                <option value="applications">Most applications</option>
+              </select>
             </div>
           </div>
         </div>
@@ -468,7 +489,9 @@ const AdminJobs = () => {
 
         {/* Job Listings - Compact Cards */}
         <div className="space-y-3">
-          {currentJobs.map(job => (
+          {currentJobs.map((job) => {
+            const logoUrl = getJobLogoUrl(job);
+            return (
             <div
               key={job.id || job.job_id}
               className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all`}
@@ -476,9 +499,43 @@ const AdminJobs = () => {
               <div className="p-3 sm:p-4">
                 {/* Job Header */}
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-2.5">
-                  <div className="flex-1 min-w-0">
+                  <div className="flex gap-3 flex-1 min-w-0">
+                    <div
+                      className={`w-12 h-12 rounded-lg flex-shrink-0 overflow-hidden border ${borderColor} flex items-center justify-center shadow-sm ${isDark ? "bg-gray-700/80" : "bg-white"}`}
+                    >
+                      {logoUrl ? (
+                        <img
+                          src={logoUrl}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                              job.company_name || "Company"
+                            )}&background=2563eb&color=fff&size=64`;
+                          }}
+                        />
+                      ) : (
+                        <span className={`text-sm font-bold ${textSecondary}`}>
+                          {getCompanyInitials(job.company_name)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                      <h3 className={`text-sm sm:text-base font-bold ${textColor} hover:text-blue-600 cursor-pointer leading-tight break-words`}>
+                      <h3
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleViewJob(job)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleViewJob(job);
+                          }
+                        }}
+                        className={`text-sm sm:text-base font-bold ${textColor} hover:text-blue-600 cursor-pointer leading-tight break-words`}
+                      >
                         {job.job_title || 'N/A'}
                       </h3>
                       {job.is_premium && (
@@ -501,6 +558,7 @@ const AdminJobs = () => {
                     <p className={`text-xs ${textSecondary} line-clamp-2 hidden sm:block`}>
                       {job.description ? `${job.description.substring(0, 150)}...` : 'N/A'}
                     </p>
+                    </div>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-xs font-semibold border flex-shrink-0 w-fit ${getStatusColor(job.status || 'approved')}`} style={{ fontSize: '0.7rem' }}>
                     {job.status || 'Approved'}
@@ -529,23 +587,24 @@ const AdminJobs = () => {
                 </div>
 
                 {/* Stats Bar */}
-                <div className={`flex items-center gap-4 p-2 rounded-lg mb-2.5 border ${borderColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
+                {/* <div className={`flex items-center gap-4 p-2 rounded-lg mb-2.5 border ${borderColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                   <div className="flex items-center gap-1.5">
                     <Users size={13} className="text-blue-500" />
-                    <span className={`text-xs font-semibold ${textColor}`}>{job.application_count || 0}</span>
-                    <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.65rem' }}>applications</span>
+                    <span className={`text-xs font-semibold ${textColor}`}>{job.application_count ?? 0}</span>
+                    <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.65rem' }}>applications (from listings)</span>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Action Buttons */}
                 <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
                   <button
-                    onClick={() => handleViewApplications(job)}
+                    type="button"
+                    onClick={() => handleViewJob(job)}
                     className="col-span-2 sm:col-auto flex-1 sm:flex-initial px-3 py-2.5 sm:py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5 touch-manipulation"
                     style={{ fontSize: '0.7rem' }}
                   >
                     <Eye size={13} />
-                    <span className="truncate">View Applications ({job.application_count || 0})</span>
+                    <span className="truncate">View job</span>
                   </button>
                   <button
                     onClick={() => handleEdit(job)}
@@ -565,10 +624,19 @@ const AdminJobs = () => {
                       {(job.status || "").toLowerCase() === "closed" ? "Reopen" : "Close"}
                     </span>
                   </button>
+                  <button
+                    onClick={() => handleDelete(job.job_id || job.id)}
+                    className={`px-3 py-2.5 sm:py-1.5 border border-red-200 dark:border-red-500/40 rounded-lg text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors flex items-center justify-center gap-1.5 touch-manipulation`}
+                    style={{ fontSize: '0.7rem' }}
+                  >
+                    <Trash2 size={13} />
+                    <span className="hidden sm:inline">Delete</span>
+                  </button>
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Pagination */}

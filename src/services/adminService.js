@@ -117,6 +117,11 @@ export const adminService = {
         }
       });
 
+      const jobRowById = {};
+      jobsData.forEach((j) => {
+        if (j?.job_id != null) jobRowById[j.job_id] = j;
+      });
+
       // Ensure we return an array of jobs
       if (response && Array.isArray(response.tasks)) {
         // Process tasks with pre-fetched recruiter data and premium status
@@ -133,6 +138,13 @@ export const adminService = {
 
           const rawStatus = (task.status || 'pending').toString().toLowerCase();
           const status = ['pending', 'fulfilled', 'rejected'].includes(rawStatus) ? rawStatus : 'pending';
+          const fromJob = task.job_id != null ? jobRowById[task.job_id] : null;
+          const job_logo_url = fromJob?.job_logo_url ?? task.job_logo_url;
+          const job_logo = fromJob?.job_logo ?? task.job_logo;
+          const company_logo = fromJob?.company_logo ?? task.company_logo ?? fromJob?.logo ?? task.logo;
+          const companyLogo = fromJob?.companyLogo ?? task.companyLogo;
+          const logo = fromJob?.logo ?? task.logo;
+
           return {
             id: task.task_id,
             task_id: task.task_id,
@@ -150,7 +162,12 @@ export const adminService = {
             recruiter_id: task.recruiter_id,
             application_id: task.application_id,
             student_id: task.student_id,
-            is_premium: is_premium
+            is_premium: is_premium,
+            job_logo_url,
+            job_logo,
+            company_logo,
+            companyLogo,
+            logo
           };
         });
 
@@ -189,10 +206,9 @@ export const adminService = {
     }
   },
 
-  async rejectJob(taskId) {
+  async rejectJob(taskId, rejectionReason) {
     try {
-      // Using the external service for job posting rejection
-      return await adminExternalService.rejectJobPosting(taskId, 0);
+      return await adminExternalService.rejectJobPosting(taskId, rejectionReason);
     } catch (error) {
       throw error;
     }
@@ -782,6 +798,103 @@ export const adminService = {
     }
   },
 
+  normalizeJobDetailLambdaResponse(raw) {
+    if (raw == null) return null;
+    let data = raw;
+    if (typeof data.body === 'string') {
+      try {
+        data = JSON.parse(data.body);
+      } catch {
+        return null;
+      }
+    }
+    const job =
+      data?.job ??
+      data?.data ??
+      (Array.isArray(data?.jobs) ? data.jobs[0] : null) ??
+      (data?.job_id != null || data?.id != null ? data : null);
+    return job;
+  },
+
+  mapToReportJob(from) {
+    if (!from) return null;
+    const id = from.job_id ?? from.id;
+    return {
+      ...from,
+      id,
+      job_id: from.job_id ?? id,
+      application_count: from.application_count ?? 0,
+    };
+  },
+
+  passesRecruiterReportRules(job) {
+    if (!job) return false;
+    if (job.job_type === 'GOVERNMENT') return false;
+    const pb = (job.posted_by || '').toString().trim().toUpperCase();
+    if (pb === 'ADMIN') return false;
+    return pb === 'RECRUITER' || pb === 'EMPLOYER' || Boolean(job.recruiter_id);
+  },
+
+  /**
+   * Single job via getalljobs?job_id= (public GET — same pattern as PendingJobApplications).
+   */
+  async getJobByIdViaGetAllJobsQuery(jobId) {
+    if (jobId == null || jobId === '') return null;
+    const idNorm = String(jobId).trim();
+    try {
+      const apiUrl = 'https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs';
+      const response = await fetch(`${apiUrl}?job_id=${encodeURIComponent(idNorm)}`);
+      if (!response.ok) return null;
+      const jobData = await response.json();
+      if (Array.isArray(jobData.jobs)) {
+        const match = jobData.jobs.find((j) => {
+          const jid = j.job_id ?? j.id;
+          if (jid == null) return false;
+          return String(jid) === idNorm || String(jid) === String(Number(idNorm));
+        });
+        return match || null;
+      }
+      const single = jobData.job ?? jobData.data;
+      if (single && (single.job_id != null || single.id != null)) return single;
+      if (jobData.job_id != null || jobData.id != null) return jobData;
+      return null;
+    } catch (error) {
+      console.error('getalljobs?job_id= failed:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Job detail for admin report: 1) getjobdetail (GET_JOB_DETAIL_URL / VITE_ADMIN_GET_JOB_DETAIL_URL)
+   * 2) getalljobs?job_id= 3) full list scan.
+   */
+  async getJobDetailForReport(jobId) {
+    if (jobId == null || jobId === '') return null;
+
+    try {
+      const raw = await adminExternalService.getJobDetailFromLambda(jobId);
+      const fromLambda = this.normalizeJobDetailLambdaResponse(raw);
+      const mapped = this.mapToReportJob(fromLambda);
+      if (mapped && this.passesRecruiterReportRules(mapped)) {
+        return mapped;
+      }
+    } catch (error) {
+      console.warn('getjobdetail failed, falling back:', error?.message || error);
+    }
+
+    try {
+      const fromQuery = await this.getJobByIdViaGetAllJobsQuery(jobId);
+      const mapped = this.mapToReportJob(fromQuery);
+      if (mapped && this.passesRecruiterReportRules(mapped)) {
+        return mapped;
+      }
+    } catch (error) {
+      console.warn('getalljobs?job_id= failed:', error);
+    }
+
+    return this.getRecruiterJobForReportById(jobId);
+  },
+
   /** Fetch all jobs (no status filter) for admin - to include pending/rejected in reports */
   async getAllJobsForAdmin() {
     try {
@@ -798,6 +911,80 @@ export const adminService = {
     } catch (error) {
       console.error('Failed to fetch all jobs for admin:', error);
       return [];
+    }
+  },
+
+  /**
+   * Single recruiter job for admin job reports / detail (one getalljobs call, no applications lambda).
+   * Matches recruiter-report filters: not government, not admin-posted, recruiter or employer or recruiter_id.
+   */
+  async getRecruiterJobForReportById(jobId) {
+    if (jobId == null || jobId === '') return null;
+    try {
+      const all = await this.getAllJobsForAdmin();
+      const idNorm = String(jobId).trim();
+      const found = (all || []).find((j) => {
+        const jid = j.job_id ?? j.id;
+        if (jid == null) return false;
+        return String(jid) === idNorm || String(jid) === String(Number(idNorm));
+      });
+      if (!found) return null;
+      if (found.job_type === 'GOVERNMENT') return null;
+      const pb = (found.posted_by || '').toString().trim().toUpperCase();
+      if (pb === 'ADMIN') return null;
+      const isRecruiter =
+        pb === 'RECRUITER' || pb === 'EMPLOYER' || Boolean(found.recruiter_id);
+      if (!isRecruiter) return null;
+      const id = found.job_id || found.id;
+      return {
+        ...found,
+        id,
+        application_count: found.application_count ?? 0,
+      };
+    } catch (error) {
+      console.error('Failed to resolve recruiter job for report:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Admin’s own posted job for Manage Jobs (job posting) detail — one getalljobs call via candidate API, no applications lambda.
+   */
+  async getAdminPostedJobForManage(adminId, jobId) {
+    if (adminId == null || jobId == null || jobId === '') return null;
+    try {
+      const { candidateExternalService } = await import('./candidateExternalService');
+      const jobsData = await candidateExternalService.getAllJobs();
+      const jobs = jobsData?.jobs || [];
+      const idNorm = String(jobId).trim();
+      const parsed = parseInt(idNorm, 10);
+      const found = jobs.find((j) => {
+        const jid = j.job_id ?? j.id;
+        if (jid == null) return false;
+        const idMatch =
+          jid === parsed ||
+          String(jid) === idNorm ||
+          (Number.isFinite(parsed) && parseInt(String(jid), 10) === parsed);
+        if (!idMatch) return false;
+        const aid = j.admin_id;
+        const adminMatch =
+          aid === adminId ||
+          String(aid) === String(adminId);
+        if (!adminMatch) return false;
+        if ((j.posted_by || '').toLowerCase() !== 'admin') return false;
+        if (j.job_type === 'GOVERNMENT') return false;
+        return true;
+      });
+      if (!found) return null;
+      const id = found.job_id || found.id;
+      return {
+        ...found,
+        id,
+        application_count: found.application_count ?? 0,
+      };
+    } catch (error) {
+      console.error('Failed to resolve admin posted job for manage:', error);
+      return null;
     }
   },
 
