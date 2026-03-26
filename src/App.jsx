@@ -131,14 +131,12 @@ function App() {
 
               <Route element={<ProtectedRoute role="candidate"><CandidateLayout /></ProtectedRoute>}>
                 <Route path="/my-applications" element={<AppliedJobs />} />
-
                 <Route path="/candidate-home" element={<HomePage />} />
                 <Route path="/jobs" element={<JobListings />} />
                 <Route path="/government-jobs" element={<GovernmentJobs />} />
                 <Route path="/about" element={<AboutUs />} />
                 <Route path="/contact" element={<ContactUs />} />
                 <Route path="/membership" element={<Membership />} />
-
                 <Route path="/userjoblistings" element={<UserJobListings />} />
                 <Route path="/saved-jobs" element={<SavedJobs />} />
                 <Route path="/shortlisted-jobs" element={<ShortlistedJobs />} />

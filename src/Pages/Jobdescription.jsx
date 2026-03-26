@@ -293,13 +293,14 @@ const JobDescription = () => {
         const daysSinceRegistration = Math.floor(
           (now - registrationDate) / (1000 * 60 * 60 * 24)
         );
-        if (daysSinceRegistration > 45) {
-          alert(
-            "Your 45-day free trial has expired. You need a premium membership to apply for jobs. Redirecting to membership plans..."
-          );
-          navigate("/membership");
-          return;
-        }
+        // Temporarily disabled 45-day trial restriction.
+        // if (daysSinceRegistration > 45) {
+        //   alert(
+        //     "Your 45-day free trial has expired. You need a premium membership to apply for jobs. Redirecting to membership plans..."
+        //   );
+        //   navigate("/membership");
+        //   return;
+        // }
       } catch {
         // if created_at invalid, continue
       }

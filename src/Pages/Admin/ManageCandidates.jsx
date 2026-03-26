@@ -1,29 +1,32 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
+import PendingJobApplications from "./PendingJobApplications";
 import {
   Search,
   Users,
-  UserCheck,
-  Clock,
-  UserX,
   Eye,
   Trash2,
   RefreshCw,
   Briefcase,
   MapPin,
-  Mail,
   Phone,
   CheckCircle,
   XCircle,
   Calendar,
-  ArrowUpDown
+  ArrowUpDown,
+  ArrowRight,
+  FileText,
+  Clock
 } from "lucide-react";
 
 const ManageCandidates = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const [viewMode, setViewMode] = useState("overview"); // overview | candidates | applications
+  const [pendingAppsCount, setPendingAppsCount] = useState(0);
+  const [recentPendingApplicationTasks, setRecentPendingApplicationTasks] = useState([]);
   const [candidates, setCandidates] = useState([]);
   const [filteredCandidates, setFilteredCandidates] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -36,44 +39,69 @@ const ManageCandidates = () => {
   const [actionLoading, setActionLoading] = useState(null);
   const candidatesPerPage = 25;
 
-  // Fetch candidates data from API
-  useEffect(() => {
-    fetchCandidates();
-  }, []);
+  const processCandidatesData = (candidatesData) => {
+    const activeCandidates = (candidatesData || []).filter((candidate) => {
+      const isClosed = candidate.is_admin_closed === true ||
+        candidate.is_admin_closed === "true" ||
+        candidate.is_admin_closed === 1 ||
+        candidate.is_admin_closed === "1";
+      const isBlocked = candidate.status?.toLowerCase() === 'blocked' ||
+        candidate.status?.toLowerCase() === 'inactive';
+      const isBlockedField = candidate.blocked === true ||
+        candidate.blocked === "true" ||
+        candidate.blocked === 1 ||
+        candidate.blocked === "1";
+      return !isClosed && !isBlocked && !isBlockedField;
+    });
+    return activeCandidates.sort((a, b) =>
+      new Date(b.created_at) - new Date(a.created_at)
+    );
+  };
 
-  const fetchCandidates = async () => {
+  const fetchApplicationSummary = async () => {
+    try {
+      const tasks = await adminService.getPendingJobs();
+      const list = Array.isArray(tasks) ? tasks : [];
+      const newApps = list.filter((t) => t.category === "newapplication");
+      const pendingOnly = newApps.filter((t) => t.status === "pending");
+      setPendingAppsCount(pendingOnly.length);
+      const recent = [...pendingOnly]
+        .sort(
+          (a, b) =>
+            new Date(b.created_at || b.posted_date || 0) -
+            new Date(a.created_at || a.posted_date || 0)
+        )
+        .slice(0, 5);
+      setRecentPendingApplicationTasks(recent);
+    } catch (error) {
+      console.warn("Failed to fetch application tasks:", error);
+      setPendingAppsCount(0);
+      setRecentPendingApplicationTasks([]);
+    }
+  };
+
+  const loadDashboard = async () => {
     try {
       setLoading(true);
-      const candidatesData = await adminService.getCandidates();
-      // Filter out blocked candidates where is_admin_closed is true, status is blocked/inactive, or blocked field is true
-      const activeCandidates = candidatesData.filter(candidate => {
-        const isClosed = candidate.is_admin_closed === true ||
-                        candidate.is_admin_closed === "true" ||
-                        candidate.is_admin_closed === 1 ||
-                        candidate.is_admin_closed === "1";
-        const isBlocked = candidate.status?.toLowerCase() === 'blocked' ||
-                         candidate.status?.toLowerCase() === 'inactive';
-        const isBlockedField = candidate.blocked === true ||
-                              candidate.blocked === "true" ||
-                              candidate.blocked === 1 ||
-                              candidate.blocked === "1";
-
-        return !isClosed && !isBlocked && !isBlockedField;
-      });
-      const sortedCandidates = activeCandidates.sort((a, b) =>
-        new Date(b.created_at) - new Date(a.created_at)
-      );
-      console.log('Loaded candidates:', sortedCandidates.length);
+      const [candidatesData] = await Promise.all([
+        adminService.getCandidates(),
+        fetchApplicationSummary(),
+      ]);
+      const sortedCandidates = processCandidatesData(candidatesData);
       setCandidates(sortedCandidates);
       setFilteredCandidates(sortedCandidates);
     } catch (error) {
-      console.error('Failed to fetch candidates:', error);
+      console.error("Failed to fetch candidates:", error);
       setCandidates([]);
       setFilteredCandidates([]);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadDashboard();
+  }, []);
 
   // Helper function to filter by date
   const filterByDate = (candidate) => {
@@ -222,7 +250,7 @@ const ManageCandidates = () => {
       await adminService.blockStudent(candidate.email);
 
       // Refetch candidates to ensure the blocked candidate is properly filtered out
-      await fetchCandidates();
+      await loadDashboard();
 
       setMessage({ type: 'success', text: `${candidate.name} has been blocked and removed from the system.` });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
@@ -250,6 +278,18 @@ const ManageCandidates = () => {
     return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
   }).length;
 
+  const recentCandidates = useMemo(() => candidates.slice(0, 5), [candidates]);
+
+  const formatTaskDate = (task) => {
+    const d = task?.created_at || task?.posted_date;
+    if (!d) return "N/A";
+    return new Date(d).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
   const isDark = theme === 'dark';
   const bgColor = isDark ? 'bg-gray-900' : 'bg-gray-50';
   const cardBg = isDark ? 'bg-gray-800' : 'bg-white';
@@ -257,18 +297,67 @@ const ManageCandidates = () => {
   const textSecondary = isDark ? 'text-gray-400' : 'text-gray-600';
   const borderColor = isDark ? 'border-gray-700' : 'border-gray-200';
 
+  const SkeletonCard = () => (
+    <div className={`${cardBg} rounded-xl shadow-lg p-6 border-l-4 border-gray-300 dark:border-gray-600 animate-pulse`}>
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-24 mb-3"></div>
+          <div className="h-8 bg-gray-300 dark:bg-gray-600 rounded w-20 mb-2"></div>
+          <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-32"></div>
+        </div>
+        <div className="w-16 h-16 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+      </div>
+    </div>
+  );
+
+  const SkeletonItem = () => (
+    <div className="flex items-center justify-between p-3 rounded-lg animate-pulse">
+      <div className="flex items-center flex-1">
+        <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+        <div className="ml-3 flex-1">
+          <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-32 mb-2"></div>
+          <div className="h-2 bg-gray-300 dark:bg-gray-600 rounded w-24"></div>
+        </div>
+      </div>
+      <div className="h-2 bg-gray-300 dark:bg-gray-600 rounded w-16"></div>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className={`min-h-screen ${bgColor}`}>
-        <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center max-w-7xl mx-auto mt-20`}>
-          <div className="relative mb-6">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-t-4 border-blue-500 mx-auto"></div>
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-              <Users className="text-blue-500" size={24} />
+        <div className={`${cardBg} border-b ${borderColor} shadow-sm sticky top-0 z-40`}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h1 className={`text-xl sm:text-2xl font-bold ${textColor}`}>Manage Candidates</h1>
+                <p className={`text-sm ${textSecondary} mt-1 flex items-center gap-2`}>
+                  <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600 inline-block" />
+                  Loading...
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-6 pb-4">
+              <SkeletonCard />
+              <SkeletonCard />
             </div>
           </div>
-          <h3 className={`text-lg font-bold ${textColor}`}>Loading candidates...</h3>
-          <p className={`${textSecondary} mt-2`}>Please wait</p>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className={`${cardBg} rounded-xl shadow-lg p-6`}>
+              <div className="h-5 bg-gray-300 dark:bg-gray-600 rounded w-48 mb-4 animate-pulse"></div>
+              <div className="space-y-3">
+                <SkeletonItem /><SkeletonItem /><SkeletonItem />
+              </div>
+            </div>
+            <div className={`${cardBg} rounded-xl shadow-lg p-6`}>
+              <div className="h-5 bg-gray-300 dark:bg-gray-600 rounded w-48 mb-4 animate-pulse"></div>
+              <div className="space-y-3">
+                <SkeletonItem /><SkeletonItem /><SkeletonItem />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -276,7 +365,7 @@ const ManageCandidates = () => {
 
   return (
     <div className={`min-h-screen ${bgColor}`}>
-      {/* Header */}
+      {(viewMode === "overview" || viewMode === "candidates") && (
       <div className={`${cardBg} border-b ${borderColor} sticky top-0 z-40`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between gap-4">
@@ -285,52 +374,177 @@ const ManageCandidates = () => {
               <p className={`text-sm ${textSecondary} mt-1`}>View and manage all registered candidates</p>
             </div>
             <button
-              onClick={fetchCandidates}
-              className={`px-4 py-2.5 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium flex items-center gap-2`}
+              type="button"
+              onClick={loadDashboard}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center gap-2 shadow-sm"
             >
-              <RefreshCw size={16} />
+              <RefreshCw size={18} />
               <span className="hidden sm:inline">Refresh</span>
             </button>
           </div>
 
-          {/* Stats Bar */}
-          <div className="flex flex-wrap gap-4 mt-4">
-            <div className={`px-4 py-2 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
-              <div className="flex items-center gap-2">
-                <Users size={16} className={textSecondary} />
-                <span className={`text-sm font-semibold ${textColor}`}>{candidates.length}</span>
-                <span className={`text-xs ${textSecondary}`}>Total</span>
+          {viewMode === "overview" && (
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-6 pb-4">
+              <button
+                type="button"
+                onClick={() => setViewMode("candidates")}
+                className={`${cardBg} rounded-xl shadow-lg p-6 border-l-4 border-blue-500 transform transition-all hover:-translate-y-1 hover:shadow-xl cursor-pointer text-left w-full block`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`${textSecondary} text-sm font-medium`}>Total candidates</p>
+                    <h3 className={`text-3xl font-bold ${textColor} mt-2`}>{candidates.length}</h3>
+                    <p className="text-green-600 dark:text-green-400 text-sm mt-2 flex items-center gap-1">
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" />
+                      Registered seekers
+                    </p>
+                  </div>
+                  <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                    <Users className="text-blue-500" size={28} />
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode("applications")}
+                className={`${cardBg} rounded-xl shadow-lg p-6 border-l-4 border-purple-500 transform transition-all hover:-translate-y-1 hover:shadow-xl cursor-pointer text-left w-full block`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`${textSecondary} text-sm font-medium`}>Applied candidates</p>
+                    <h3 className={`text-3xl font-bold ${textColor} mt-2`}>{pendingAppsCount}</h3>
+                    <p className="text-purple-600 dark:text-purple-400 text-sm mt-2 flex items-center gap-1">
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-purple-500" />
+                      Pending admin review
+                    </p>
+                  </div>
+                  <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                    <FileText className="text-purple-500" size={28} />
+                  </div>
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      )}
+
+      {viewMode === "overview" && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div className={`${cardBg} rounded-xl shadow-lg p-6`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-lg font-bold ${textColor} flex items-center gap-2`}>
+                  <Users className="text-blue-500" size={20} />
+                  Recent candidates
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("candidates")}
+                  className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                >
+                  View all <ArrowRight size={14} />
+                </button>
+              </div>
+              <div className="space-y-3 text-sm">
+                {recentCandidates.map((c) => (
+                  <button
+                    type="button"
+                    key={c.id || c.user_id || c.email}
+                    onClick={() => handleViewDetails(c)}
+                    className="w-full flex items-center justify-between px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-full overflow-hidden bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-xs font-bold text-blue-700 dark:text-blue-300 flex-shrink-0">
+                        {c.logo ? (
+                          <img src={c.logo} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          getInitials(c.name)
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className={`text-sm font-semibold ${textColor} truncate`}>{c.name || "Candidate"}</p>
+                        <p className={`text-xs ${textSecondary} truncate`}>{c.email || "N/A"}</p>
+                      </div>
+                    </div>
+                    <span className={`text-xs ${textSecondary}`}>{formatDate(c.created_at)}</span>
+                  </button>
+                ))}
+                {recentCandidates.length === 0 && (
+                  <p className={`text-xs ${textSecondary}`}>No candidates yet.</p>
+                )}
               </div>
             </div>
-            <div className="px-4 py-2 rounded-lg bg-green-50 dark:bg-green-500/20">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-green-700 dark:text-green-400">
-                  {activeCount}
-                </span>
-                <span className="text-xs text-green-600 dark:text-green-500">Active</span>
+
+            <div className={`${cardBg} rounded-xl shadow-lg p-6`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-lg font-bold ${textColor} flex items-center gap-2`}>
+                  <Clock className="text-amber-500" size={20} />
+                  Recent application tasks
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("applications")}
+                  className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                >
+                  View all <ArrowRight size={14} />
+                </button>
               </div>
-            </div>
-            <div className="px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-500/20">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-400">
-                  {inactiveCount}
-                </span>
-                <span className="text-xs text-gray-600 dark:text-gray-500">Inactive</span>
-              </div>
-            </div>
-            <div className="px-4 py-2 rounded-lg bg-blue-50 dark:bg-blue-500/20">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-blue-700 dark:text-blue-400">
-                  {thisMonthCount}
-                </span>
-                <span className="text-xs text-blue-600 dark:text-blue-500">This Month</span>
+              <div className="space-y-3 text-sm">
+                {recentPendingApplicationTasks.map((task) => (
+                  <div
+                    key={task.task_id || `${task.job_id}-${task.student_id}`}
+                    className="flex items-center justify-between px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-sm font-semibold ${textColor} truncate`}>
+                        {task.title || `Job application${task.job_id ? ` · #${task.job_id}` : ""}`}
+                      </p>
+                      <p className={`text-xs ${textSecondary} truncate`}>
+                        {task.student_id != null ? `Candidate id ${task.student_id}` : "New application"}
+                      </p>
+                    </div>
+                    <span className={`text-xs ${textSecondary} flex-shrink-0 ml-2`}>{formatTaskDate(task)}</span>
+                  </div>
+                ))}
+                {recentPendingApplicationTasks.length === 0 && (
+                  <p className={`text-xs ${textSecondary}`}>No pending applications in queue.</p>
+                )}
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
+      {viewMode === "applications" && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between mb-4">
+            <button
+              type="button"
+              onClick={() => setViewMode("overview")}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+            >
+              ← Back to overview
+            </button>
+            <h2 className={`text-base font-bold ${textColor}`}>Applied candidates</h2>
+          </div>
+          <PendingJobApplications embedded />
+        </div>
+      )}
+
+      {viewMode === "candidates" && (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex items-center justify-between mb-4">
+          <button
+            type="button"
+            onClick={() => setViewMode("overview")}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+          >
+            ← Back to overview
+          </button>
+          <h2 className={`text-base font-bold ${textColor}`}>Candidates list</h2>
+        </div>
         {/* Message Display */}
         {message.text && (
           <div className={`mb-6 rounded-lg p-4 ${
@@ -605,6 +819,7 @@ const ManageCandidates = () => {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };

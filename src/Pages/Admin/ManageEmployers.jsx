@@ -177,21 +177,11 @@ const ManageEmployers = () => {
 
     // Apply approval filter
     if (approvalFilter === "pending") {
-      filtered = filtered.filter(recruiter =>
-        recruiter.hasadminapproved === false &&
-        recruiter.status !== 'rejected' &&
-        recruiter.status !== 'inactive' &&
-        recruiter.status !== 'blocked'
-      );
+      filtered = filtered.filter((recruiter) => isPendingEmployer(recruiter));
     } else if (approvalFilter === "approved") {
-      filtered = filtered.filter(recruiter => recruiter.hasadminapproved === true);
+      filtered = filtered.filter((recruiter) => isApprovedEmployer(recruiter));
     } else if (approvalFilter === "rejected") {
-      filtered = filtered.filter(recruiter =>
-        (recruiter.status === 'rejected' ||
-          recruiter.status === 'inactive' ||
-          recruiter.status === 'blocked') &&
-        recruiter.hasadminapproved === false
-      );
+      filtered = filtered.filter((recruiter) => !isApprovedEmployer(recruiter) && isRejectedEmployer(recruiter));
     }
 
     // Apply date filter
@@ -247,19 +237,31 @@ const ManageEmployers = () => {
     });
   };
 
+  const isApprovedEmployer = (recruiter) => {
+    const approvalValue = recruiter?.hasadminapproved;
+    return approvalValue === true || approvalValue === 1 || approvalValue === "1" || approvalValue === "true";
+  };
+
+  const isRejectedEmployer = (recruiter) => {
+    const status = (recruiter?.status || "").toLowerCase();
+    return status === "rejected" || status === "inactive" || status === "blocked";
+  };
+
+  const isPendingEmployer = (recruiter) => !isApprovedEmployer(recruiter) && !isRejectedEmployer(recruiter);
+
   const getApprovalColor = (recruiter) => {
-    if (recruiter.hasadminapproved) {
+    if (isApprovedEmployer(recruiter)) {
       return 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30';
     }
-    if (recruiter.status === 'rejected' || recruiter.status === 'inactive' || recruiter.status === 'blocked') {
+    if (isRejectedEmployer(recruiter)) {
       return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30';
     }
     return 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30';
   };
 
   const getApprovalLabel = (recruiter) => {
-    if (recruiter.hasadminapproved) return 'Approved';
-    if (recruiter.status === 'rejected' || recruiter.status === 'inactive' || recruiter.status === 'blocked') {
+    if (isApprovedEmployer(recruiter)) return 'Approved';
+    if (isRejectedEmployer(recruiter)) {
       return 'Rejected';
     }
     return 'Pending';
@@ -423,24 +425,16 @@ const ManageEmployers = () => {
   const endIndex = startIndex + recruitersPerPage;
   const currentRecruiters = filteredRecruiters.slice(startIndex, endIndex);
 
-  const pendingCount = recruiters.filter(r =>
-    r.hasadminapproved === false &&
-    r.status !== 'rejected' &&
-    r.status !== 'inactive' &&
-    r.status !== 'blocked'
-  ).length;
-  const approvedCount = recruiters.filter(r => r.hasadminapproved === true).length;
-  const rejectedCount = recruiters.filter(r =>
-    (r.status === 'rejected' || r.status === 'inactive' || r.status === 'blocked') &&
-    r.hasadminapproved === false
-  ).length;
+  const pendingCount = recruiters.filter((r) => isPendingEmployer(r)).length;
+  const approvedCount = recruiters.filter((r) => isApprovedEmployer(r)).length;
+  const rejectedCount = recruiters.filter((r) => !isApprovedEmployer(r) && isRejectedEmployer(r)).length;
 
   const totalEmployers = recruiters.length;
   const totalJobs = jobs.length;
 
   // Approved employers and recent lists
   const approvedEmployers = useMemo(
-    () => recruiters.filter((r) => r.hasadminapproved === true),
+    () => recruiters.filter((r) => isApprovedEmployer(r)),
     [recruiters]
   );
 
@@ -1052,8 +1046,15 @@ const ManageEmployers = () => {
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-1.5">
                       {/* Show Approve/Reject buttons only for pending employers */}
-                      {!recruiter.hasadminapproved && recruiter.status !== 'rejected' && recruiter.status !== 'inactive' && recruiter.status !== 'blocked' ? (
+                      {isPendingEmployer(recruiter) ? (
                         <>
+                          <button
+                            type="button"
+                            className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors`}
+                            style={{ fontSize: '0.7rem' }}
+                          >
+                            Remark
+                          </button>
                           <button
                             onClick={() => handleApproveEmployer(recruiter)}
                             disabled={actionLoading === `approve-${recruiter.employer_id}`}
@@ -1092,6 +1093,13 @@ const ManageEmployers = () => {
                         </>
                       ) : (
                         <>
+                          <button
+                            type="button"
+                            className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors`}
+                            style={{ fontSize: '0.7rem' }}
+                          >
+                            Remark
+                          </button>
                           <button
                             onClick={() => handleViewProfile(recruiter)}
                             className="flex-1 sm:flex-initial px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5"

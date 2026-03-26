@@ -5,7 +5,7 @@ import { recruiterExternalService } from "../../services";
 import { Check, X, FileText, Download, ExternalLink, Search, Briefcase, Building, Clock, Mail, Phone, Calendar, Eye, MapPin, ArrowUpDown } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
-function PendingJobApplications() {
+function PendingJobApplications({ embedded = false }) {
   const { theme } = useTheme();
   const [allApplications, setAllApplications] = useState([]);
   const [loadingApplications, setLoadingApplications] = useState({});
@@ -16,7 +16,7 @@ function PendingJobApplications() {
   const [showCandidateModal, setShowCandidateModal] = useState(false);
   const [companyFilter, setCompanyFilter] = useState("all");
   const [jobFilter, setJobFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("pending");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [jobTypes, setJobTypes] = useState({});
@@ -402,7 +402,7 @@ function PendingJobApplications() {
       setSearchQuery('');
       setCompanyFilter('all');
       setJobFilter('all');
-      setStatusFilter('pending');
+      setStatusFilter('all');
     } catch (error) {
       console.error('Failed to approve application:', error);
       alert('Failed to approve application. Please try again.');
@@ -427,7 +427,7 @@ function PendingJobApplications() {
       setSearchQuery('');
       setCompanyFilter('all');
       setJobFilter('all');
-      setStatusFilter('pending');
+      setStatusFilter('all');
     } catch (error) {
       console.error('Failed to reject application:', error);
       alert('Failed to reject application. Please try again.');
@@ -530,8 +530,9 @@ function PendingJobApplications() {
   const searchIconClass = `absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`;
 
   return (
-    <div className={`min-h-screen ${bgColor}`}>
-      {/* Header */}
+    <div className={embedded ? "" : `min-h-screen ${bgColor}`}>
+      {/* Header (hidden when embedded inside Manage Candidates) */}
+      {!embedded && (
       <div className={`${cardBg} border-b ${borderColor} sticky top-0 z-40`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col gap-4">
@@ -549,8 +550,9 @@ function PendingJobApplications() {
           </div>
         </div>
       </div>
+      )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className={embedded ? "" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"}>
         {/* Filters on Top */}
         <div className={`${cardBg} rounded-lg border ${borderColor} p-4 mb-6`}>
           <div className="flex flex-col gap-4">
@@ -675,17 +677,17 @@ function PendingJobApplications() {
             </div>
             <h3 className={`text-lg font-semibold ${textColor} mb-2`}>No applications found</h3>
             <p className={`${textSecondary} mb-6`}>
-              {searchQuery || companyFilter !== 'all' || jobFilter !== 'all' || statusFilter !== 'pending' || dateFilter !== 'all'
+              {searchQuery || companyFilter !== 'all' || jobFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all'
                 ? "Try adjusting your filters or search query"
                 : "No applications match the current criteria"}
             </p>
-            {(searchQuery || companyFilter !== 'all' || jobFilter !== 'all' || statusFilter !== 'pending' || dateFilter !== 'all') && (
+            {(searchQuery || companyFilter !== 'all' || jobFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all') && (
               <button
                 onClick={() => {
                   setSearchQuery('');
                   setCompanyFilter('all');
                   setJobFilter('all');
-                  setStatusFilter('pending');
+                  setStatusFilter('all');
                   setDateFilter('all');
                 }}
                 className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
@@ -834,6 +836,13 @@ function PendingJobApplications() {
                           <Eye size={13} />
                           <span className="hidden sm:inline">View Details</span>
                           <span className="sm:hidden">View</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors`}
+                          style={{ fontSize: '0.7rem' }}
+                        >
+                          Remark
                         </button>
                         {details.resumeUrl && (
                           <a

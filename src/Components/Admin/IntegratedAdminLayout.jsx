@@ -147,12 +147,12 @@ const IntegratedAdminLayout = () => {
           icon: FileText,
           path: '/admin/job-posting'
         },
-        {
-          id: 'jobs',
-          label: 'Pending Jobs',
-          icon: Briefcase,
-          path: '/admin/jobs'
-        },
+        // {
+        //   id: 'jobs',
+        //   label: 'Pending Jobs',
+        //   icon: Briefcase,
+        //   path: '/admin/jobs'
+        // },
        
         {
           id: 'government-jobs',
@@ -160,25 +160,25 @@ const IntegratedAdminLayout = () => {
           icon: Building2,
           path: '/admin/government-jobs'
         },
-        {
-          id: 'job-application-reports',
-          label: 'Recruiter Jobs',
-          icon: BarChart3,
-          path: '/admin/job-application-reports'
-        }
+        // {
+        //   id: 'job-application-reports',
+        //   label: 'Recruiter Jobs',
+        //   icon: BarChart3,
+        //   path: '/admin/job-application-reports'
+        // }
       ]
     },
-    {title: "Applied",
-      items: [
-         {
-          id: 'pending-applications',
-          label: 'Applied Candidates',
-          icon: Clock,
-          path: '/admin/pending-applications'
-        },
-      ]
+    // {title: "Applied",
+    //   items: [
+    //      {
+    //       id: 'pending-applications',
+    //       label: 'Applied Candidates',
+    //       icon: Clock,
+    //       path: '/admin/pending-applications'
+    //     },
+    //   ]
 
-    },
+    // },
     {
       title: "Forms & Leads",
       items: [
