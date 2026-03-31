@@ -4,7 +4,7 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import { useAuth } from "../../Contexts/AuthContext";
 import { adminService } from "../../services/adminService";
 import { candidateExternalService } from "../../services/candidateExternalService";
-import { Building2, Edit, CircleX, Trash2, Search, RefreshCw, Eye, Users, Plus, MapPin, Calendar, Briefcase, Award, ArrowUpDown } from "lucide-react";
+import { Building2, Edit, CircleX, Trash2, Search, RefreshCw, Users, Plus, MapPin, Calendar, Briefcase, Award, ArrowUpDown } from "lucide-react";
 
 /** API sends `job_logo_url`; fallbacks align with JobCard / AdminJobReports */
 const getJobLogoUrl = (job) =>
@@ -262,7 +262,12 @@ const AdminJobs = () => {
   const handleViewJob = (job) => {
     const id = job.job_id || job.id;
     if (!id) return;
-    navigate(`/admin/job-posting/job/${id}`, { state: { job } });
+    navigate(`/job/${id}`, {
+      state: {
+        fromAdmin: true,
+        job,
+      },
+    });
   };
 
   // Pagination
@@ -494,7 +499,8 @@ const AdminJobs = () => {
             return (
             <div
               key={job.id || job.job_id}
-              className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all`}
+              onClick={() => handleViewJob(job)}
+              className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all cursor-pointer`}
             >
               <div className="p-3 sm:p-4">
                 {/* Job Header */}
@@ -524,18 +530,7 @@ const AdminJobs = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                      <h3
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => handleViewJob(job)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            handleViewJob(job);
-                          }
-                        }}
-                        className={`text-sm sm:text-base font-bold ${textColor} hover:text-blue-600 cursor-pointer leading-tight break-words`}
-                      >
+                      <h3 className={`text-sm sm:text-base font-bold ${textColor} leading-tight break-words`}>
                         {job.job_title || 'N/A'}
                       </h3>
                       {job.is_premium && (
@@ -598,16 +593,10 @@ const AdminJobs = () => {
                 {/* Action Buttons */}
                 <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
                   <button
-                    type="button"
-                    onClick={() => handleViewJob(job)}
-                    className="col-span-2 sm:col-auto flex-1 sm:flex-initial px-3 py-2.5 sm:py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5 touch-manipulation"
-                    style={{ fontSize: '0.7rem' }}
-                  >
-                    <Eye size={13} />
-                    <span className="truncate">View job</span>
-                  </button>
-                  <button
-                    onClick={() => handleEdit(job)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(job);
+                    }}
                     className={`px-3 py-2.5 sm:py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5 touch-manipulation`}
                     style={{ fontSize: '0.7rem' }}
                   >
@@ -615,7 +604,10 @@ const AdminJobs = () => {
                     <span className="hidden sm:inline">Edit</span>
                   </button>
                   <button
-                    onClick={() => handleToggleStatus(job)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleStatus(job);
+                    }}
                     className={`px-3 py-2.5 sm:py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5 touch-manipulation`}
                     style={{ fontSize: '0.7rem' }}
                   >
@@ -625,7 +617,10 @@ const AdminJobs = () => {
                     </span>
                   </button>
                   <button
-                    onClick={() => handleDelete(job.job_id || job.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(job.job_id || job.id);
+                    }}
                     className={`px-3 py-2.5 sm:py-1.5 border border-red-200 dark:border-red-500/40 rounded-lg text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors flex items-center justify-center gap-1.5 touch-manipulation`}
                     style={{ fontSize: '0.7rem' }}
                   >

@@ -52,7 +52,17 @@ const StatCard = ({ to, icon, value, label, iconWrapClass }) => {
 
 /* ── Job Card ── */
 const JobCard = ({ job, navigate }) => (
-  <div className="border border-slate-200 rounded-xl p-4 bg-white hover:bg-blue-50/40 hover:border-blue-200 transition-all duration-150 mb-3 last:mb-0">
+  <div
+    onClick={() =>
+      navigate(`/job/${job.job_id}`, {
+        state: {
+          fromRecruiter: true,
+          job,
+        },
+      })
+    }
+    className="border border-slate-200 rounded-xl p-4 bg-white hover:bg-blue-50/40 hover:border-blue-200 transition-all duration-150 mb-3 last:mb-0 cursor-pointer"
+  >
     <div className="flex justify-between items-start gap-2 mb-2">
       <div className="flex-1 min-w-0">
         <h4 className="font-bold text-sm text-slate-800 truncate mb-1">{job.job_title}</h4>
@@ -95,13 +105,19 @@ const JobCard = ({ job, navigate }) => (
 
     <div className="flex flex-col sm:flex-row gap-2">
       <button
-        onClick={() => navigate(`/edit-job/${job.job_id}`)}
+        onClick={(e) => {
+          e.stopPropagation();
+          navigate(`/edit-job/${job.job_id}`);
+        }}
         className="w-full sm:flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-150"
       >
         <Edit size={13} /> Edit / View
       </button>
       <button
-        onClick={() => navigate(`/view-applications/${job.job_id}`)}
+        onClick={(e) => {
+          e.stopPropagation();
+          navigate(`/view-applications/${job.job_id}`);
+        }}
         className="w-full sm:flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm shadow-blue-200 transition-all duration-150"
       >
         <Eye size={13} /> View Applications ({job.application_count || 0})

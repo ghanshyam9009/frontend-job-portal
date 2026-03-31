@@ -18,6 +18,7 @@ const ManageJobs = () => {
   const [error, setError] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
@@ -68,6 +69,9 @@ const ManageJobs = () => {
           salary: formatSalary(job.salary_range),
           status: (job.status || "Open").toLowerCase() === "open" ? "Active" : job.status,
           postedDate: (job.created_at || "").split("T")[0] || "",
+          createdAt: job.created_at || "",
+          description: job.job_description || job.description || "",
+          rawJob: job,
           applications: job.application_count || 0,
           views: 0
         }));
@@ -89,6 +93,15 @@ const ManageJobs = () => {
 
   const handleViewApplications = (jobId) => {
     navigate(`/view-applications/${jobId}`);
+  };
+
+  const handleViewJobDetails = (job) => {
+    navigate(`/job/${job.id}`, {
+      state: {
+        fromRecruiter: true,
+        job: job.rawJob || null
+      }
+    });
   };
 
   const handleToggleStatus = async (jobId) => {
@@ -120,6 +133,13 @@ const ManageJobs = () => {
                          job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          job.location.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
+  });
+
+  const sortedFilteredJobs = [...filteredJobs].sort((a, b) => {
+    if (sortBy === "oldest") return new Date(a.createdAt || a.postedDate) - new Date(b.createdAt || b.postedDate);
+    if (sortBy === "title-az") return a.title.localeCompare(b.title);
+    if (sortBy === "applications") return b.applications - a.applications;
+    return new Date(b.createdAt || b.postedDate) - new Date(a.createdAt || a.postedDate);
   });
 
   const getStatusColor = (status) => {
@@ -307,6 +327,20 @@ const ManageJobs = () => {
                     ))}
                   </div>
                 </div>
+
+                <div className="mb-6">
+                  <label className={`block text-sm font-semibold ${textColor} mb-2`}>Sort By</label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+                  >
+                    <option value="newest">Newest first</option>
+                    <option value="oldest">Oldest first</option>
+                    <option value="applications">Most applications</option>
+                    <option value="title-az">Title A-Z</option>
+                  </select>
+                </div>
               </div>
             </div>
           )}
@@ -315,9 +349,24 @@ const ManageJobs = () => {
           <div className="flex-1 min-w-0">
             {/* Results Header - mobile compact */}
             <div className="mb-3 sm:mb-4 py-2 sm:py-0">
-              <p className={`text-sm ${textSecondary}`}>
-                Showing <span className={`font-semibold ${textColor}`}>{filteredJobs.length}</span> {filteredJobs.length === 1 ? 'job' : 'jobs'}
-              </p>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <p className={`text-sm ${textSecondary}`}>
+                  Showing <span className={`font-semibold ${textColor}`}>{sortedFilteredJobs.length}</span> {sortedFilteredJobs.length === 1 ? 'job' : 'jobs'}
+                </p>
+                <div className="flex items-center gap-2">
+                  <label className={`text-xs sm:text-sm font-medium ${textSecondary}`}>Sort by</label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className={`px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  >
+                    <option value="newest">Newest first</option>
+                    <option value="oldest">Oldest first</option>
+                    <option value="applications">Most applications</option>
+                    <option value="title-az">Title A-Z</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             {/* Loading State */}
@@ -346,7 +395,7 @@ const ManageJobs = () => {
             )}
 
             {/* Empty State */}
-            {!loading && !error && filteredJobs.length === 0 && (
+            {!loading && !error && sortedFilteredJobs.length === 0 && (
               <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center`}>
                 <div className={`w-16 h-16 ${isDark ? 'bg-blue-500/20' : 'bg-blue-100'} rounded-full flex items-center justify-center mx-auto mb-4`}>
                   <Briefcase size={32} className="text-blue-500" />
@@ -375,9 +424,12 @@ const ManageJobs = () => {
             
             {/* Job Listings - Mobile-first cards */}
             <div className="space-y-4 sm:space-y-3">
-              {filteredJobs.map(job => (
-                <div key={job.id} 
-                     className={`${cardBg} rounded-xl border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all overflow-hidden`}>
+              {sortedFilteredJobs.map(job => (
+                <div
+                  key={job.id}
+                  onClick={() => handleViewJobDetails(job)}
+                  className={`${cardBg} rounded-xl border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all overflow-hidden cursor-pointer`}
+                >
                   <div className="p-4 sm:p-3">
                     {/* Job Header */}
                     <div className="flex items-start justify-between gap-2 mb-3">
@@ -436,7 +488,10 @@ const ManageJobs = () => {
                     {/* Action Buttons - mobile: primary full-width, then Edit + Close row */}
                     <div className="flex flex-col sm:flex-row gap-2 sm:gap-1.5">
                       <button
-                        onClick={() => handleViewApplications(job.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewApplications(job.id);
+                        }}
                         className="w-full min-h-[44px] sm:min-h-0 sm:flex-1 px-4 py-3 sm:py-1.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 touch-manipulation order-first sm:order-none"
                       >
                         <Eye size={18} className="sm:w-[14px] sm:h-[14px]" />
@@ -444,14 +499,20 @@ const ManageJobs = () => {
                       </button>
                       <div className="flex gap-2 sm:gap-1.5">
                         <button
-                          onClick={() => handleEditJob(job.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditJob(job.id);
+                          }}
                           className={`flex-1 min-h-[44px] sm:min-h-0 px-4 py-3 sm:py-1.5 border ${borderColor} rounded-xl text-sm font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 touch-manipulation`}
                         >
                           <Edit size={18} className="sm:w-[14px] sm:h-[14px]" />
                           <span>Edit</span>
                         </button>
                         <button
-                          onClick={() => handleToggleStatus(job.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleStatus(job.id);
+                          }}
                           className={`flex-1 min-h-[44px] sm:min-h-0 px-4 py-3 sm:py-1.5 border ${borderColor} rounded-xl text-sm font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 touch-manipulation`}
                         >
                           <CircleX size={18} className="sm:w-[14px] sm:h-[14px]" />

@@ -218,7 +218,12 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
   const handleViewJob = (job) => {
     const jobId = job.job_id || job.id;
     if (!jobId) return;
-    navigate(`/admin/job-application-reports/job/${jobId}`, { state: { job } });
+    navigate(`/job/${jobId}`, {
+      state: {
+        fromAdmin: true,
+        job,
+      },
+    });
   };
 
   const isTaskReportTab = reportTab !== REPORT_TAB.ALL;
@@ -788,7 +793,8 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
             return (
               <div
                 key={String(job.task_id ?? job.job_id ?? job.id)}
-                className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all`}
+                onClick={() => !showTaskActions && handleViewJob(job)}
+                className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all ${!showTaskActions ? "cursor-pointer" : ""}`}
               >
                   <div className="p-3">
                     {/* Job Header */}
@@ -836,7 +842,10 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
                           <>
                             <button
                               type="button"
-                              onClick={() => handleOpenApproveModal(job)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenApproveModal(job);
+                              }}
                               disabled={
                                 actionLoading === `approve-${taskId}` ||
                                 actionLoading === `reject-${taskId}`
@@ -848,7 +857,10 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
                             </button>
                             <button
                               type="button"
-                              onClick={() => openRejectModal(job)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openRejectModal(job);
+                              }}
                               disabled={
                                 actionLoading === `approve-${taskId}` ||
                                 actionLoading === `reject-${taskId}`
@@ -886,25 +898,23 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
                           </div>
                         </div> */}
                         <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mt-3">
-                          <button
-                            type="button"
-                            onClick={() => handleViewJob(job)}
-                            className={`${showTaskActions ? "col-span-2" : "col-span-2 sm:col-auto"} px-4 py-2 sm:py-1.5 bg-blue-600 text-white rounded-lg text-sm sm:text-xs font-medium hover:bg-blue-700 flex items-center justify-center gap-1.5`}
-                          >
-                            <Eye size={14} />
-                            View job
-                          </button>
                           {!showTaskActions && (
                             <>
                           <button
-                            onClick={() => navigate(`/admin/edit-job/${job.id}`, { state: { employer_id: job.employer_id } })}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/admin/edit-job/${job.id}`, { state: { employer_id: job.employer_id } });
+                            }}
                             className="col-span-1 sm:col-auto px-2 py-2 sm:py-1.5 border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 dark:border-blue-500/30 dark:text-blue-300 dark:bg-blue-500/20 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5"
                           >
                             <Briefcase size={14} />
                             Edit
                           </button>
                           <button
-                            onClick={() => handleMarkPremium(job, !(job.premium_job || job.is_premium))}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkPremium(job, !(job.premium_job || job.is_premium));
+                            }}
                             disabled={actionLoading === `premium-${job.job_id || job.id}`}
                             className={`col-span-1 sm:col-auto px-2 py-2 sm:py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-yellow-50 dark:hover:bg-yellow-900/20 flex items-center justify-center gap-1.5 disabled:opacity-50`}
                           >
@@ -912,7 +922,10 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
                             {(job.premium_job || job.is_premium) ? 'Premium' : 'Feature Job'}
                           </button>
                           <button
-                            onClick={() => handleCloseJob(job)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCloseJob(job);
+                            }}
                             className="col-span-2 sm:col-auto px-4 py-2 sm:py-1.5 bg-red-600 text-white rounded-lg text-sm sm:text-xs font-medium hover:bg-red-700 flex items-center justify-center gap-1.5"
                             disabled={loading}
                           >

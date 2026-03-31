@@ -4,6 +4,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../Contexts/AuthContext";
 import { applicationService } from "../services/applicationService";
 import { candidateExternalService } from "../services/candidateExternalService";
+import { recruiterExternalService } from "../services/recruiterExternalService";
 import { studentService } from "../services/studentService";
 import HomeNav from "../Components/HomeNav";
 import { Bookmark, Briefcase, Contact, Contact2, MapPin, Sparkles, TrendingUp, ArrowLeft } from "lucide-react";
@@ -26,6 +27,7 @@ const JobDescription = () => {
   const [error, setError] = useState(null);
   const [hasApplied, setHasApplied] = useState(false);
   const [relatedJobs, setRelatedJobs] = useState([]);
+  const [adminApplicationCount, setAdminApplicationCount] = useState(null);
   // Mobile sidebar toggle
   const [showRelated, setShowRelated] = useState(false);
 
@@ -171,6 +173,7 @@ const JobDescription = () => {
   const jobId = id;
   const isAdminView = (user?.role === 'admin') || location.state?.fromAdmin;
   const isRecruiter = !!(user?.company_name || user?.role === 'Recruiter' || user?.role === 'Employer');
+  const resolvedJobId = job?.job_id || job?.id || jobId;
 
   useEffect(() => {
     fetchJobDetails();
@@ -198,17 +201,40 @@ const JobDescription = () => {
     if (job && !loading) checkAppliedStatus();
   }, [isAuthenticated, user, job, loading]);
 
+  useEffect(() => {
+    if (!isAdminView || !resolvedJobId) {
+      setAdminApplicationCount(null);
+      return;
+    }
+
+    let cancelled = false;
+    recruiterExternalService
+      .getApplicationCount(resolvedJobId)
+      .then((res) => {
+        if (cancelled) return;
+        setAdminApplicationCount(Number(res?.application_count ?? 0));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setAdminApplicationCount(Number(job?.application_count ?? 0));
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdminView, resolvedJobId, job?.application_count]);
+
   const fetchJobDetails = async () => {
     setLoading(true);
     setError(null);
     try {
-      // Admin View: job getalljobs me nahi ho sakti (pending) – state me pass ki hui job use karo
+      // If job is passed via route state (admin/recruiter), use it directly
+      // but still try to fetch related jobs from listing API.
       const stateJob = location.state?.job;
-      if (location.state?.fromAdmin && stateJob && (String(stateJob.job_id || stateJob.id) === String(jobId))) {
+      let baseJob = null;
+      if (stateJob && (String(stateJob.job_id || stateJob.id) === String(jobId))) {
         setJob(stateJob);
-        setRelatedJobs([]);
-        setLoading(false);
-        return;
+        baseJob = stateJob;
       }
 
       const apiUrl =
@@ -235,6 +261,10 @@ const JobDescription = () => {
           (j.job_id || j.id) === parseInt(jobId)
       );
 
+      if (!foundJob && baseJob) {
+        foundJob = baseJob;
+      }
+
       if (!foundJob) {
         throw new Error("Job not found");
       }
@@ -242,7 +272,11 @@ const JobDescription = () => {
       setJob(foundJob);
 
       const related = jobsArray
-        .filter((j) => (j.job_id || j.id) !== (foundJob.job_id || foundJob.id))
+        .filter((j) => {
+          const currentId = String(foundJob.job_id || foundJob.id);
+          const itemId = String(j.job_id || j.id);
+          return itemId !== currentId;
+        })
         .slice(0, 6);
       setRelatedJobs(related);
     } catch (err) {
@@ -624,9 +658,31 @@ const JobDescription = () => {
                 {/* Action buttons – Recruiter/Admin par Apply nahi */}
                 <div className="mt-4 flex gap-2 sm:gap-3">
                   {isAdminView ? (
-                    <div className="flex-1 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm border border-gray-300 text-gray-500 bg-gray-50 cursor-default text-center">
-                      Admin view only – applications disabled
-                    </div>
+                    <>
+                      <button
+                        onClick={() =>
+                          navigate(`/admin/job-reports/applications/${job?.job_id || job?.id || jobId}`, {
+                            state: {
+                              jobTitle: job?.job_title,
+                              companyName: job?.company_name,
+                            },
+                          })
+                        }
+                        className="flex-1 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-full hover:bg-blue-700 text-sm"
+                      >
+                        View Applications ({adminApplicationCount ?? Number(job?.application_count ?? 0)})
+                      </button>
+                      <button
+                        onClick={() =>
+                          navigate(`/admin/edit-job/${job?.job_id || job?.id || jobId}`, {
+                            state: { employer_id: job?.employer_id || job?.recruiter_id },
+                          })
+                        }
+                        className="flex-1 border border-blue-500 text-blue-600 px-3 sm:px-4 py-2 rounded-full hover:bg-blue-50 text-sm"
+                      >
+                        Edit Job
+                      </button>
+                    </>
                   ) : isRecruiter ? (
                     <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">View only</span>
                   ) : !isAuthenticated ? (

@@ -121,13 +121,6 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
   }, [user?.employer_id, user?.id]);
   */
 
-  // (Disabled) click-outside close for profile sidebar to avoid accidental closes
-  // Sidebar already has explicit close (X button + menu actions),
-  // and click on overlay / scrollbar should NOT close it.
-  useEffect(() => {
-    // intentionally left blank
-  }, [showProfileSidebar]);
-
   // Prevent body scroll when sidebars are open
   useEffect(() => {
     if (isMobileMenuOpen || showProfileSidebar) {
@@ -376,10 +369,10 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
         <>
           <div
             className="fixed inset-0 bg-black/50 z-50"
-            onClick={(e) => e.stopPropagation()}
+            onClick={() => setShowProfileSidebar(false)}
           ></div>
           <div className={`fixed right-0 top-0 bottom-0 w-80 ${dropdownBg} shadow-2xl z-50 overflow-y-auto`}>
-            <div className="p-6 flex flex-col gap-4">
+            <div className="p-4 flex flex-col gap-3">
               {/* Sidebar Header */}
               <div className="flex items-center justify-between mb-6">
                 <h3 className={`text-xl font-bold ${textColor}`}>Profile Menu</h3>
@@ -392,7 +385,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
               </div>
 
               {/* Profile Info (Candidate-style centered) */}
-              <div className={`mb-6 p-6 rounded-xl shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
+              <div className={`mb-4 p-4 rounded-xl shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
                 <div className="flex flex-col items-center justify-center text-center gap-2 mb-4">
                   <div
                     style={{ width: 220, height: 220 }}
@@ -438,10 +431,10 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
               </div>
 
               {/* Menu Items (Candidate-style) */}
-              <div className="space-y-3">
+              <div className="space-y-1.5">
                 <button
                   onMouseDown={() => { navigate('/recruiter/dashboard'); setShowProfileSidebar(false); }}
-                  className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 transition-all group`}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 transition-all group`}
                 >
                   <div className="p-2 rounded-lg bg-blue-50 dark:bg-[#2271B5]/15 group-hover:bg-blue-100 dark:group-hover:bg-[#2271B5]/25 transition-colors">
                     <LayoutDashboard size={18} className="text-[#2271B5] dark:text-blue-200" />
@@ -458,7 +451,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                     }
                   }}
                   disabled={!canAccessJobFeatures}
-                  className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border transition-all group ${
+                  className={`w-full flex items-center gap-1.5 px-4 py-1.5 rounded-xl border transition-all group ${
                     !canAccessJobFeatures
                       ? `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} opacity-50 cursor-not-allowed ${textSecondary}`
                       : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
@@ -479,7 +472,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                     }
                   }}
                   disabled={!canAccessJobFeatures}
-                  className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border transition-all group ${
+                  className={`w-full flex items-center gap-1.5 px-4 py-1.5 rounded-xl border transition-all group ${
                     !canAccessJobFeatures
                       ? `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} opacity-50 cursor-not-allowed ${textSecondary}`
                       : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
@@ -500,7 +493,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                     }
                   }}
                   disabled={!canAccessJobFeatures}
-                  className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border transition-all group ${
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${
                     !canAccessJobFeatures
                       ? `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} opacity-50 cursor-not-allowed ${textSecondary}`
                       : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
@@ -523,7 +516,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                     }
                   }}
                   disabled={!canAccessJobFeatures}
-                  className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border transition-all group ${
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${
                     !canAccessJobFeatures
                       ? `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} opacity-50 cursor-not-allowed ${textSecondary}`
                       : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
@@ -536,7 +529,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                 </button>
                 <button
                   onMouseDown={() => { navigate('/company-profile'); setShowProfileSidebar(false); }}
-                  className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 transition-all group`}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 transition-all group`}
                 >
                   <div className="p-2 rounded-lg bg-blue-50 dark:bg-[#2271B5]/15 group-hover:bg-blue-100 dark:group-hover:bg-[#2271B5]/25 transition-colors">
                     <Building size={18} className="text-[#2271B5] dark:text-blue-200" />
@@ -547,7 +540,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                 </button>
                 <button
                   onMouseDown={() => { navigate('/membership-tokens'); setShowProfileSidebar(false); }}
-                  className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 transition-all group`}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 transition-all group`}
                 >
                   <div className="p-2 rounded-lg bg-blue-50 dark:bg-[#2271B5]/15 group-hover:bg-blue-100 dark:group-hover:bg-[#2271B5]/25 transition-colors">
                     <CreditCard size={18} className="text-[#2271B5] dark:text-blue-200" />
@@ -558,7 +551,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                 </button>
                 <button
                   onMouseDown={() => { handleLogout(); setShowProfileSidebar(false); }}
-                  className="w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border border-red-100 bg-red-50 hover:bg-red-500 hover:border-red-500 transition-all group shadow-sm"
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl border border-red-100 bg-red-50 hover:bg-red-500 hover:border-red-500 transition-all group shadow-sm"
                 >
                   <div className="p-2 rounded-lg bg-red-100 group-hover:bg-red-400 transition-colors">
                     <LogOut size={18} className="text-red-500 group-hover:text-white transition-colors" />
@@ -581,9 +574,9 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
             className={`fixed right-0 top-0 bottom-0 w-80 ${bgColor} shadow-xl overflow-y-auto sidebar-slide-in`}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6">
+            <div className="p-4">
               {/* Mobile Header */}
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <Link to="/recruiter/dashboard" className="flex items-center space-x-2 text-xl font-bold">
                   <div className="w-9 h-9 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center">
                     <img src={logo1} alt="Logo" className="w-full h-full object-contain" loading="lazy" />
@@ -601,7 +594,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
               </div>
 
               {/* Mobile Profile Section (Candidate-style centered) */}
-              <div className={`p-5 rounded-2xl mb-5 shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} order-2`}>
+              <div className={`p-4 rounded-2xl mb-4 shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} order-2`}>
                 <div className="flex flex-col items-center justify-center text-center gap-2 mb-4">
                   <div className="w-20 h-20 rounded-md bg-blue-50 text-[#2271B5] shadow-inner border border-blue-100 flex items-center justify-center text-3xl font-bold overflow-hidden mb-2">
                     {recruiterProfile?.company_logo ? (
@@ -638,11 +631,11 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
 
               {/* Mobile Navigation Links */}
               <p className={`text-xs font-semibold uppercase tracking-wider px-2 mb-2 ${textSecondary} opacity-60 order-3`}>Navigation</p>
-              <ul className="space-y-1 mb-6 order-3">
+              <ul className="space-y-1 mb-4 order-3">
                 <li>
                   <button
                     onClick={() => { navigate('/'); closeMobileMenu(); }}
-                    className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border transition-all group ${
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${
                       isActive("/")
                         ? `border-[#2271B5] ${isDark ? 'bg-[#2271B5]/15' : 'bg-blue-50'} text-[#2271B5]`
                         : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white shadow-sm'} ${textSecondary} hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
@@ -665,7 +658,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                   <li>
                   <button
                     onClick={() => { navigate('/recruiter/dashboard'); closeMobileMenu(); }}
-                    className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border transition-all group ${
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${
                       isActive("/recruiter/dashboard")
                         ? `border-[#2271B5] ${isDark ? 'bg-[#2271B5]/15' : 'bg-blue-50'} text-[#2271B5]`
                         : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white shadow-sm'} ${textSecondary} hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
@@ -696,7 +689,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                       }
                     }}
                     disabled={!canAccessJobFeatures}
-                    className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border transition-all group ${
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${
                       !canAccessJobFeatures
                         ? `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} opacity-50 cursor-not-allowed ${textSecondary}`
                         : isActive("/post-job")
@@ -729,7 +722,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                       }
                     }}
                     disabled={!canAccessJobFeatures}
-                    className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border transition-all group ${
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${
                       !canAccessJobFeatures
                         ? `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} opacity-50 cursor-not-allowed ${textSecondary}`
                         : isActive("/manage-jobs")
@@ -762,7 +755,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                       }
                     }}
                     disabled={!canAccessJobFeatures}
-                    className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border transition-all group ${
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${
                       !canAccessJobFeatures
                         ? `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} opacity-50 cursor-not-allowed ${textSecondary}`
                         : isActive("/jobs")
@@ -796,7 +789,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                       }
                     }}
                     disabled={!canAccessJobFeatures}
-                    className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border transition-all group ${
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${
                       !canAccessJobFeatures
                         ? `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} opacity-50 cursor-not-allowed ${textSecondary}`
                         : isActive("/shortlist-candidates")
@@ -821,7 +814,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                 <li>
                   <button
                     onClick={() => { navigate('/company-profile'); closeMobileMenu(); }}
-                    className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border transition-all group ${
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${
                       isActive("/company-profile")
                         ? `border-[#2271B5] ${isDark ? 'bg-[#2271B5]/15' : 'bg-blue-50'} text-[#2271B5]`
                         : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white shadow-sm'} ${textSecondary} hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
@@ -844,7 +837,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                 <li>
                   <button
                     onClick={() => { navigate('/membership-tokens'); closeMobileMenu(); }}
-                    className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border transition-all group ${
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${
                       isActive("/membership-tokens")
                         ? `border-[#2271B5] ${isDark ? 'bg-[#2271B5]/15' : 'bg-blue-50'} text-[#2271B5]`
                         : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white shadow-sm'} ${textSecondary} hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
@@ -867,12 +860,12 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
               </ul>
 
               {/* Mobile Account Section (Dashboard / Settings / Logout) */}
-              <div className={`pt-4 mt-4 border-t ${borderColor}`}>
+              <div className={`pt-3 mt-3 border-t ${borderColor}`}>
                 <p className={`text-xs font-semibold uppercase tracking-wider px-2 mb-2 ${textSecondary} opacity-60`}>Account</p>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <button
                     onClick={() => { navigate('/recruiter/dashboard'); closeMobileMenu(); }}
-                    className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5] transition-all group`}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5] transition-all group`}
                   >
                     <div className="p-2 rounded-lg bg-blue-50 dark:bg-[#2271B5]/15 group-hover:bg-blue-100 dark:group-hover:bg-[#2271B5]/25 transition-colors">
                       <LayoutDashboard size={18} className="text-[#2271B5] dark:text-blue-200 transition-colors" />
@@ -881,7 +874,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                   </button>
                   <button
                     onClick={() => { navigate('/settings'); closeMobileMenu(); }}
-                    className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5] transition-all group`}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5] transition-all group`}
                   >
                     <div className="p-2 rounded-lg bg-blue-50 dark:bg-[#2271B5]/15 group-hover:bg-blue-100 dark:group-hover:bg-[#2271B5]/25 transition-colors">
                       <Settings size={18} className="text-[#2271B5] dark:text-blue-200 transition-colors" />
@@ -890,7 +883,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                   </button>
                   <button
                     onClick={() => { handleLogout(); closeMobileMenu(); }}
-                    className="w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border border-red-100 bg-red-50 hover:bg-red-500 hover:border-red-500 transition-all group shadow-sm"
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl border border-red-100 bg-red-50 hover:bg-red-500 hover:border-red-500 transition-all group shadow-sm"
                   >
                     <div className="p-2 rounded-lg bg-red-100 group-hover:bg-red-400 transition-colors">
                       <LogOut size={18} className="text-red-500 group-hover:text-white transition-colors" />

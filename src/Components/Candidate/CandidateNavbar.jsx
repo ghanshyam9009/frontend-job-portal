@@ -65,13 +65,6 @@ const CandidateNavbar = ({ toggleSidebar }) => {
   const dropdownRef = useRef(null);
   const searchRef = useRef(null);
 
-  // (Disabled) click-outside close for profile sidebar to avoid accidental closes
-  // Sidebar already has explicit close (X button + menu actions),
-  // and clicking scrollbar/overlay shouldn't close it.
-  useEffect(() => {
-    // intentionally left blank
-  }, [showProfileSidebar]);
-
   useEffect(() => {
     if (isMobileMenuOpen || showProfileSidebar) {
       document.body.style.overflow = 'hidden';
@@ -412,7 +405,7 @@ const CandidateNavbar = ({ toggleSidebar }) => {
           <>
             <div
               className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
-              onClick={(e) => e.stopPropagation()}
+              onClick={() => setShowProfileSidebar(false)}
             />
             <div className={`fixed right-0 top-0 bottom-0 w-80 ${dropdownBg} shadow-2xl z-50 overflow-y-auto sidebar-slide-in`}>
               <div className="p-5">
