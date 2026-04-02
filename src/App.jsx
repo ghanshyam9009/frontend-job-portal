@@ -128,7 +128,6 @@ function App() {
               <Route path="/payment-success" element={<PaymentSuccess />} />
               <Route path="/candidate/login" element={<CandidateLogin />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-
               <Route element={<ProtectedRoute role="candidate"><CandidateLayout /></ProtectedRoute>}>
                 <Route path="/my-applications" element={<AppliedJobs />} />
                 <Route path="/candidate-home" element={<HomePage />} />
@@ -185,7 +184,6 @@ function App() {
                 {/* <Route path="/admin/job-application-reports" element={<JobApplicationReports />} /> */}
                 <Route path="/admin/job-application-reports/job/:jobId" element={<AdminJobReportJobDetail />} />
                 <Route path="/admin/job-application-reports" element={<AdminJobReports />} />
-
                 <Route path="/admin/job-reports/applications/:jobId" element={<AdminJobReportApplications />} />
               </Route>
             </Routes>

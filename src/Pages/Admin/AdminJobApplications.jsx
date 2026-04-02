@@ -317,7 +317,7 @@ const AdminJobApplications = () => {
             <div className="flex items-center gap-4">
               <button
                 type="button"
-                onClick={() => navigate(`/admin/job-posting/job/${jobId}`)}
+                onClick={() => navigate(-1)}
                 className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors`}
               >
                 <ArrowLeft size={20} className={textColor} />

@@ -368,7 +368,7 @@ const CandidateNavbar = ({ toggleSidebar }) => {
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={handleProfileClick}
-                  className="w-12 h-12 rounded-xl bg-blue-50 text-[#2271B5] flex shadow-sm border border-gray-200 items-center justify-center font-bold hover:bg-blue-100 hover:shadow transition-all overflow-hidden"
+                  className="w-10 h-10 rounded-xl bg-blue-50 text-[#2271B5] flex shadow-sm border border-gray-200 items-center justify-center font-bold hover:bg-blue-100 hover:shadow transition-all overflow-hidden"
                 >
                   {user?.logo ? (
                     <img src={user.logo} alt="Profile" className="w-full h-full object-cover" loading="lazy" />
@@ -418,10 +418,10 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                 </div>
 
                 {/* Profile Info */}
-                <div className={`mb-6 p-6 rounded-xl shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
+                <div className={`mb-6 p-2 rounded-xl shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
                   <div className="flex flex-col items-center justify-center text-center gap-2 mb-4">
                     <div
-                      style={{ width: 220, height: 220 }}
+                      style={{ width: 180, height: 180 }}
                       className="rounded-xl bg-blue-50 text-[#2271B5] shadow-inner border border-blue-100 flex items-center justify-center text-3xl font-bold overflow-hidden mb-2"
                     >
                       {user?.logo ? (
@@ -446,14 +446,14 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                   </div>
 
                   {/* Profile Completion */}
-                  <div className="mt-5 pt-5 border-t border-gray-100 dark:border-gray-700">
-                    <div className="flex justify-between items-center mb-2">
+                  <div className="border-t border-gray-100 dark:border-gray-700">
+                    {/* <div className="flex justify-between items-center mb-2">
                       <span className={`text-sm font-semibold ${textSecondary}`}>Profile Status</span>
                       <span className={`text-sm font-bold text-[#2271B5]`}>{profileCompletion}%</span>
                     </div>
                     <div className={`w-full h-2 rounded-full ${isDark ? 'bg-gray-600' : 'bg-gray-200'}`}>
                       <div className="h-2 bg-gradient-to-r from-blue-400 to-[#2271B5] rounded-full transition-all duration-500" style={{ width: `${profileCompletion}%` }}></div>
-                    </div>
+                    </div> */}
                     <button
                       onMouseDown={() => { navigate('/profile'); setShowProfileSidebar(false); }}
                       className="block w-full mt-4 py-2.5 text-center text-sm font-bold text-white bg-[#2271B5] hover:bg-[#1a5a8f] shadow-md hover:shadow-lg rounded-lg transition-all"
@@ -464,10 +464,10 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                 </div>
 
                 {/* Menu Items */}
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <button
                     onMouseDown={() => { navigate('/my-applications'); setShowProfileSidebar(false); }}
-                    className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5] transition-all group`}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5] transition-all group`}
                   >
                     <div className="p-2 rounded-lg bg-blue-50 dark:bg-[#2271B5]/15 group-hover:bg-blue-100 dark:group-hover:bg-[#2271B5]/25 transition-colors">
                       <FileText size={18} className="text-[#2271B5] dark:text-blue-200 transition-colors" />
@@ -477,7 +477,7 @@ const CandidateNavbar = ({ toggleSidebar }) => {
 
                   <button
                     onMouseDown={() => { navigate('/shortlisted-jobs'); setShowProfileSidebar(false); }}
-                    className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-gray-700 hover:text-amber-600 transition-all group`}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-gray-700 hover:text-amber-600 transition-all group`}
                   >
                     <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-500/15 group-hover:bg-amber-100 dark:group-hover:bg-amber-500/25 transition-colors">
                       <Star size={18} className="text-amber-500 dark:text-amber-200 transition-colors" />
@@ -487,7 +487,7 @@ const CandidateNavbar = ({ toggleSidebar }) => {
 
                   <button
                     onMouseDown={() => { navigate('/saved-jobs'); setShowProfileSidebar(false); }}
-                    className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5] transition-all group`}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5] transition-all group`}
                   >
                     <div className="p-2 rounded-lg bg-blue-50 dark:bg-[#2271B5]/15 group-hover:bg-blue-100 dark:group-hover:bg-[#2271B5]/25 transition-colors">
                       <Heart size={18} className="text-[#2271B5] dark:text-blue-200 transition-colors" />
@@ -495,19 +495,19 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                     <span className={`font-semibold ${textSecondary} group-hover:text-[#2271B5] transition-colors`}>Saved Jobs</span>
                   </button>
 
-                  <button
+                  {/* <button
                     onMouseDown={() => { navigate('/userjoblistings'); setShowProfileSidebar(false); }}
-                    className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5] transition-all group`}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5] transition-all group`}
                   >
                     <div className="p-2 rounded-lg bg-blue-50 dark:bg-[#2271B5]/15 group-hover:bg-blue-100 dark:group-hover:bg-[#2271B5]/25 transition-colors">
                       <List size={18} className="text-[#2271B5] dark:text-blue-200 transition-colors" />
                     </div>
                     <span className={`font-semibold ${textSecondary} group-hover:text-[#2271B5] transition-colors`}>Job Listings</span>
-                  </button>
+                  </button> */}
 
                   <button
                     onMouseDown={() => { navigate('/membership-plans'); setShowProfileSidebar(false); }}
-                    className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5] transition-all group`}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5] transition-all group`}
                   >
                     <div className="p-2 rounded-lg bg-blue-50 dark:bg-[#2271B5]/15 group-hover:bg-blue-100 dark:group-hover:bg-[#2271B5]/25 transition-colors">
                       <CreditCard size={18} className="text-[#2271B5] dark:text-blue-200 transition-colors" />
@@ -515,10 +515,10 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                     <span className={`font-semibold ${textSecondary} group-hover:text-[#2271B5] transition-colors`}>Membership Plans</span>
                   </button>
 
-                  <div className="pt-4 mt-4 border-t border-gray-100 dark:border-gray-700">
+                  <div className="pt-2 mt-2 border-t border-gray-100 dark:border-gray-700">
                     <button
                       onMouseDown={() => { handleLogout(); setShowProfileSidebar(false); }}
-                      className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border border-red-100 bg-red-50 hover:bg-red-500 hover:border-red-500 transition-all group shadow-sm`}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-red-100 bg-red-50 hover:bg-red-500 hover:border-red-500 transition-all group shadow-sm`}
                     >
                       <div className="p-2 rounded-lg bg-red-100 group-hover:bg-red-400 transition-colors">
                         <LogOut size={18} className="text-red-500 group-hover:text-white transition-colors" />
@@ -636,12 +636,12 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                 </div>
 
                 {/* Navigation items */}
-                <div className="mt-3 space-y-4">
+                <div className="mt-3 space-y-3">
                   <div>
                     <p className={`text-[11px] font-semibold tracking-[0.18em] uppercase mb-2 ${textSecondary}`}>
                       Navigation
                     </p>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {mobileNavLinks.map((item) => (
                         <button
                           key={item.path}
@@ -649,7 +649,7 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                             navigate(item.path);
                             closeMobileMenu();
                           }}
-                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-semibold transition-all group ${
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all group ${
                             isActive(item.path)
                               ? 'border-[#2271B5] bg-blue-50 text-[#2271B5]'
                               : isDark
@@ -667,16 +667,16 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                   </div>
 
                   <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
-                    <p className={`mt-3 text-[11px] font-semibold tracking-[0.18em] uppercase mb-2 ${textSecondary}`}>
+                    <p className={`mt-2 text-[11px] font-semibold tracking-[0.18em] uppercase mb-2 ${textSecondary}`}>
                       Account
                     </p>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <button
                         onClick={() => {
                           navigate('/my-applications');
                           closeMobileMenu();
                         }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-semibold transition-all group ${
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all group ${
                           isActive('/my-applications')
                             ? 'border-[#2271B5] bg-blue-50 text-[#2271B5]'
                             : isDark
@@ -695,7 +695,7 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                           navigate('/saved-jobs');
                           closeMobileMenu();
                         }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-semibold transition-all group ${
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all group ${
                           isActive('/saved-jobs')
                             ? 'border-[#2271B5] bg-blue-50 text-[#2271B5]'
                             : isDark
@@ -713,13 +713,13 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                 </div>
 
                 {/* Logout */}
-                <div className="pt-3 mt-2 border-t border-gray-100 dark:border-gray-700">
+                <div className="pt-2 mt-1 border-t border-gray-100 dark:border-gray-700">
                   <button
                     onClick={() => {
                       handleLogout();
                       toggleMobileMenu();
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border border-red-100 bg-red-50 hover:bg-red-500 hover:border-red-500 transition-all group shadow-sm"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-red-100 bg-red-50 hover:bg-red-500 hover:border-red-500 transition-all group shadow-sm"
                   >
                     <div className="p-2 rounded-lg bg-red-100 group-hover:bg-red-400 transition-colors">
                       <LogOut size={18} className="text-red-500 group-hover:text-white transition-colors" />

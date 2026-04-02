@@ -5,7 +5,7 @@ import { useSidebar } from "../../Contexts/SidebarContext";
 import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
 import RecruiterSidebar from "../../Components/Recruiter/RecruiterSidebar";
 import { useTheme } from "../../Contexts/ThemeContext";
-import { Edit, Users, CircleX, MapPin, Plus, Eye, Filter, Search, Sliders, Calendar, Building, X, Briefcase } from "lucide-react";
+import { Edit, Users, CircleX, MapPin, Plus, Eye, Filter, Search, Sliders, Calendar, Building, X, Briefcase, Trash2 } from "lucide-react";
 import { recruiterExternalService } from "../../services";
 
 const ManageJobs = () => {
@@ -122,6 +122,21 @@ const ManageJobs = () => {
     } catch (e) {
       console.error(e);
       alert(`Failed to change job status to ${newStatus}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteJob = async (jobId) => {
+    if (!window.confirm("Are you sure you want to delete this job? This action cannot be undone.")) return;
+    try {
+      setLoading(true);
+      await recruiterExternalService.closeJobOpening(jobId); // Using same API as close per request
+      setJobs(prev => prev.filter(j => j.id !== jobId));
+      alert("Job deleted successfully");
+    } catch (e) {
+      console.error(e);
+      alert("Failed to delete job");
     } finally {
       setLoading(false);
     }
@@ -503,9 +518,9 @@ const ManageJobs = () => {
                             e.stopPropagation();
                             handleEditJob(job.id);
                           }}
-                          className={`flex-1 min-h-[44px] sm:min-h-0 px-4 py-3 sm:py-1.5 border ${borderColor} rounded-xl text-sm font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 touch-manipulation`}
+                          className={`flex-1 min-h-[44px] sm:min-h-0 px-2 py-3 sm:py-1.5 border ${borderColor} rounded-xl text-sm font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.99] transition-all flex items-center justify-center gap-1.5 touch-manipulation`}
                         >
-                          <Edit size={18} className="sm:w-[14px] sm:h-[14px]" />
+                          <Edit size={16} className="sm:w-[14px] sm:h-[14px]" />
                           <span>Edit</span>
                         </button>
                         <button
@@ -513,10 +528,20 @@ const ManageJobs = () => {
                             e.stopPropagation();
                             handleToggleStatus(job.id);
                           }}
-                          className={`flex-1 min-h-[44px] sm:min-h-0 px-4 py-3 sm:py-1.5 border ${borderColor} rounded-xl text-sm font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 touch-manipulation`}
+                          className={`flex-1 min-h-[44px] sm:min-h-0 px-2 py-3 sm:py-1.5 border ${borderColor} rounded-xl text-sm font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.99] transition-all flex items-center justify-center gap-1.5 touch-manipulation`}
                         >
-                          <CircleX size={18} className="sm:w-[14px] sm:h-[14px]" />
+                          <CircleX size={16} className="sm:w-[14px] sm:h-[14px]" />
                           <span>{job.status === 'Active' ? 'Close' : 'Reopen'}</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteJob(job.id);
+                          }}
+                          className={`flex-1 min-h-[44px] sm:min-h-0 px-2 py-3 sm:py-1.5 border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-500/10 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 active:scale-[0.99] transition-all flex items-center justify-center gap-1.5 touch-manipulation`}
+                        >
+                          <Trash2 size={16} className="sm:w-[14px] sm:h-[14px]" />
+                          <span>Delete</span>
                         </button>
                       </div>
                     </div>

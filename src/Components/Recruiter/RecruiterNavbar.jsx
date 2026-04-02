@@ -374,7 +374,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
           <div className={`fixed right-0 top-0 bottom-0 w-80 ${dropdownBg} shadow-2xl z-50 overflow-y-auto`}>
             <div className="p-4 flex flex-col gap-3">
               {/* Sidebar Header */}
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between ">
                 <h3 className={`text-xl font-bold ${textColor}`}>Profile Menu</h3>
                 <button
                   onClick={() => setShowProfileSidebar(false)}
@@ -385,10 +385,10 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
               </div>
 
               {/* Profile Info (Candidate-style centered) */}
-              <div className={`mb-4 p-4 rounded-xl shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
+              <div className={`mb-2 p-2 rounded-xl shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
                 <div className="flex flex-col items-center justify-center text-center gap-2 mb-4">
                   <div
-                    style={{ width: 220, height: 220 }}
+                    style={{ width: 180, height: 180 }}
                     className="rounded-xl bg-blue-50 text-[#2271B5] shadow-inner border border-blue-100 flex items-center justify-center text-3xl font-bold overflow-hidden mb-2"
                   >
                     {recruiterProfile?.company_logo ? (

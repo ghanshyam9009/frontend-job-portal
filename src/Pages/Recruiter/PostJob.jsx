@@ -5,16 +5,16 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import { jobService } from "../../services/jobService";
 import { recruiterService } from "../../services/recruiterService";
 import { calculateRecruiterProfileCompletion, isProfileComplete } from "../../utils/recruiterProfileUtils";
-import { 
-  Check, 
-  AlertTriangle, 
-  Building, 
-  Briefcase, 
-  MapPin, 
-  DollarSign, 
-  Clock, 
-  FileText, 
-  Users, 
+import {
+  Check,
+  AlertTriangle,
+  Building,
+  Briefcase,
+  MapPin,
+  DollarSign,
+  Clock,
+  FileText,
+  Users,
   Award,
   X,
   Plus,
@@ -53,7 +53,7 @@ const PostJob = () => {
     application_deadline: "",
     contact_email: user?.email || "",
     contact_number: user?.contact_number || user?.phone_number || "",
-    job_status: "open",
+    job_status: "pending",
     additional_benefits: []
   });
   const [logoFile, setLogoFile] = useState(null);
@@ -80,8 +80,8 @@ const PostJob = () => {
         setRestrictionReason("");
       }
     } else {
-        setCanPostJob(false);
-        setRestrictionReason("Unable to verify account status. Please refresh and try again.");
+      setCanPostJob(false);
+      setRestrictionReason("Unable to verify account status. Please refresh and try again.");
     }
   }, [user]);
 
@@ -94,7 +94,7 @@ const PostJob = () => {
           if (response.success && response.data) {
             const profileData = response.data.employer || response.data.profile || response.data;
             setRecruiterProfile(profileData);
-            
+
             // Update contact number from profile if available
             if (profileData.contact_number || profileData.phone_number) {
               setJobData(prev => ({
@@ -306,8 +306,8 @@ const PostJob = () => {
         )}
 
         {/* Form */}
-        <form 
-          onSubmit={handleSubmit} 
+        <form
+          onSubmit={handleSubmit}
           className={`space-y-6 ${!canPostJob ? 'opacity-50 pointer-events-none' : ''}`}
         >
           {/* Basic Information */}
@@ -316,7 +316,7 @@ const PostJob = () => {
               <FileText className="text-blue-500" size={20} />
               <h2 className={`text-lg font-bold ${textColor}`}>Basic Information</h2>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
@@ -661,8 +661,8 @@ const PostJob = () => {
 
               <div className="flex flex-wrap gap-2">
                 {jobData.skills_required.map((skill, index) => (
-                  <span 
-                    key={index} 
+                  <span
+                    key={index}
                     className={`inline-flex items-center gap-2 px-3 py-1.5 ${isDark ? 'bg-blue-900/30' : 'bg-blue-100'} text-blue-600 dark:text-blue-400 rounded-full text-sm font-medium`}
                   >
                     {skill}
@@ -723,15 +723,15 @@ const PostJob = () => {
 
           {/* Form Actions */}
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:items-center pt-1">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={handleSaveDraft}
               className={`w-full sm:w-auto px-6 py-2.5 border ${borderColor} ${textColor} rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium text-sm`}
             >
               Save as Draft
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={loading}
               className="w-full sm:w-auto px-6 py-2.5 bg-[#2271B5] text-white rounded-md hover:bg-[#1a5a8f] transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -743,21 +743,21 @@ const PostJob = () => {
 
       {/* Success Modal */}
       {showSuccessModal && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
           onClick={handleOverlayClick}
         >
           <div className={`${cardBg} rounded-lg shadow-2xl max-w-md w-full`}>
             <div className={`flex items-center justify-between p-5 border-b ${borderColor}`}>
               <h2 className={`text-xl font-bold ${textColor}`}>Success!</h2>
-              <button 
+              <button
                 onClick={handleCloseSuccessModal}
                 className={`${textSecondary} hover:${textColor} transition-colors`}
               >
                 <X size={24} />
               </button>
             </div>
-            
+
             <div className="p-6 text-center">
               <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Check className="text-green-600 dark:text-green-400" size={32} />
@@ -769,9 +769,9 @@ const PostJob = () => {
                 It will be reviewed by an admin and published soon.
               </p>
             </div>
-            
+
             <div className={`p-4 border-t ${borderColor}`}>
-              <button 
+              <button
                 onClick={handleCloseSuccessModal}
                 className="w-full px-4 py-2.5 bg-[#2271B5] text-white rounded-md hover:bg-[#1a5a8f] transition-colors font-medium"
               >

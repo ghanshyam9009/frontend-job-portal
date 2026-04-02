@@ -492,22 +492,46 @@ const ManageCandidates = () => {
                 </button>
               </div>
               <div className="space-y-3 text-sm">
-                {recentPendingApplicationTasks.map((task) => (
-                  <div
-                    key={task.task_id || `${task.job_id}-${task.student_id}`}
-                    className="flex items-center justify-between px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className={`text-sm font-semibold ${textColor} truncate`}>
-                        {task.title || `Job application${task.job_id ? ` · #${task.job_id}` : ""}`}
-                      </p>
-                      <p className={`text-xs ${textSecondary} truncate`}>
-                        {task.student_id != null ? `Candidate id ${task.student_id}` : "New application"}
-                      </p>
+                {recentPendingApplicationTasks.map((task) => {
+                  const matchedCandidate = task.student_id != null 
+                    ? candidates.find(c => String(c.id) === String(task.student_id) || String(c.user_id) === String(task.student_id))
+                    : null;
+                    
+                  const candidateName = matchedCandidate?.name || `Student ID: ${task.student_id}`;
+                  
+                  let displayTitle = task.title || `Job application${task.job_id ? ` · #${task.job_id}` : ""}`;
+                  if (task.student_id != null && task.title) {
+                    displayTitle = task.title
+                      .replace(`Student ID: ${task.student_id}`, candidateName)
+                      .replace(`Candidate id ${task.student_id}`, candidateName);
+                  }
+
+                  return (
+                    <div
+                      key={task.task_id || `${task.job_id}-${task.student_id}`}
+                      className="flex items-center justify-between px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-9 h-9 rounded-full overflow-hidden bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center text-xs font-bold text-amber-700 dark:text-amber-300 flex-shrink-0">
+                          {matchedCandidate?.logo ? (
+                            <img src={matchedCandidate.logo} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            getInitials(matchedCandidate?.name || "Candidate")
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-sm font-semibold ${textColor} truncate`}>
+                            {displayTitle}
+                          </p>
+                          <p className={`text-xs ${textSecondary} truncate`}>
+                            {task.student_id != null ? (matchedCandidate?.name || `Candidate id ${task.student_id}`) : "New application"}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={`text-xs ${textSecondary} flex-shrink-0 ml-2`}>{formatTaskDate(task)}</span>
                     </div>
-                    <span className={`text-xs ${textSecondary} flex-shrink-0 ml-2`}>{formatTaskDate(task)}</span>
-                  </div>
-                ))}
+                  );
+                })}
                 {recentPendingApplicationTasks.length === 0 && (
                   <p className={`text-xs ${textSecondary}`}>No pending applications in queue.</p>
                 )}

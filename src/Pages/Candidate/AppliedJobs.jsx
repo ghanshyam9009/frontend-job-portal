@@ -357,84 +357,80 @@ const AppliedJobs = () => {
 
           {/* Jobs Grid */}
           {!loading && !error && filteredJobs.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {filteredJobs.map(job => (
                 <div
                   key={job.id}
-                  className={`${cardBg} border ${borderColor} rounded-xl p-5 hover:shadow-xl transition-all hover:border-indigo-300 dark:hover:border-indigo-700 relative group`}
+                  className={`${cardBg} border ${borderColor} rounded-2xl p-4 sm:p-5 hover:shadow-xl transition-all hover:-translate-y-1 hover:border-[#2271B5]/50 group relative flex flex-col`}
                 >
-                  {/* Premium Badge */}
-                  {job.is_premium && (
-                    <div className="absolute top-4 right-4">
-                      <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-md">
-                        <Crown size={12} />
-                        PREMIUM
+                  {/* Header: Title & Status */}
+                  <div className="flex justify-between items-start gap-4 mb-2">
+                    <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className={`text-base font-extrabold ${textColor} leading-tight truncate`} title={job.title}>
+                          {job.title}
+                        </h3>
+                        {job.is_premium && (
+                          <span className="bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide shadow-sm uppercase shrink-0">
+                            Premium
+                          </span>
+                        )}
+                      </div>
+                      <div className={`text-sm font-bold truncate ${isDark ? 'text-indigo-400' : 'text-[#2271B5]'}`}>
+                        {job.company}
                       </div>
                     </div>
-                  )}
-
-                  {/* Status Badge */}
-                  <div className="mb-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 w-fit ${getStatusColor(job.status)}`}>
+                    
+                    {/* Status Badge at Top Right */}
+                    <span className={`shrink-0 px-2 py-1.5 rounded-lg text-[11px] font-extrabold uppercase tracking-wide flex items-center gap-1.5 shadow-sm border ${
+                      job.status.toLowerCase() === 'under review' ? 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/10 dark:border-yellow-500/30 dark:text-yellow-400' :
+                      job.status.toLowerCase() === 'shortlisted' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-400' :
+                      job.status.toLowerCase() === 'interview scheduled' ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/30 dark:text-blue-400' :
+                      job.status.toLowerCase() === 'offer received' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-400' :
+                      job.status.toLowerCase() === 'rejected' ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-400' :
+                      'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-500/10 dark:border-gray-500/30 dark:text-gray-400'
+                    }`}>
                       {getStatusIcon(job.status)}
                       {job.status}
                     </span>
                   </div>
 
-                  {/* Job Info */}
-                  <div className="mb-4">
-                    <h3 className={`text-lg font-bold ${textColor} mb-2 pr-20 line-clamp-2`}>
-                      {job.title}
-                    </h3>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Building size={14} className={textSecondary} />
-                      <p className={`text-sm ${textColor} font-medium truncate`}>
-                        {job.company}
-                      </p>
-                    </div>
+                  {/* Flex row for meta details */}
+                  <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 mb-4 text-[13px] font-semibold ${textSecondary}`}>
                     {job.location && (
-                      <div className="flex items-center gap-2 mb-2">
-                        <MapPin size={14} className={textSecondary} />
-                        <p className={`text-sm ${textSecondary} truncate`}>
-                          {job.location}
-                        </p>
+                      <div className="flex items-center gap-1.5 shrink-0 bg-gray-50 dark:bg-gray-800/50 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700/50">
+                        <MapPin size={13} className="opacity-70" />
+                        <span className="truncate max-w-[120px]">{job.location}</span>
                       </div>
                     )}
-                    <div className="flex items-center gap-2 mb-2">
-                      <DollarSign size={14} className={textSecondary} />
-                      <p className={`text-sm ${textSecondary} truncate`}>
-                        {job.salary}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock size={14} className={textSecondary} />
-                      <p className={`text-xs ${textSecondary}`}>
-                        Applied {getRelativeTime(job.appliedDateTime)} • {job.appliedDate}
-                      </p>
+                    <div className="flex items-center gap-1.5 shrink-0 bg-gray-50 dark:bg-gray-800/50 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700/50">
+                      <DollarSign size={13} className="opacity-70" />
+                      <span className="truncate">{job.salary}</span>
                     </div>
                   </div>
 
-                  {/* Interview Info */}
                   {job.interviewDate && (
-                    <div className={`${isDark ? 'bg-blue-500/20' : 'bg-blue-50'} border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4`}>
-                      <div className="flex items-center gap-2">
-                        <Calendar size={14} className="text-blue-600 dark:text-blue-400" />
-                        <span className="text-xs font-semibold text-blue-800 dark:text-blue-400">
-                          Interview: {job.interviewDate}
-                        </span>
-                      </div>
+                    <div className={`mt-auto mb-3 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border ${isDark ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>
+                      <Calendar size={14} />
+                      Interview: {job.interviewDate}
                     </div>
                   )}
 
-                  {/* Action Buttons – Track button remove, sirf View */}
-                  <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <button 
-                      onClick={() => handleJobClick(job)}
-                      className="flex-1 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                    >
-                      <Eye size={14} />
-                      View
-                    </button>
+                  <div className={`mt-auto flex items-center justify-between pt-4 border-t ${isDark ? 'border-gray-700' : 'border-gray-100'}`}>
+                     <div className="flex flex-col gap-0.5">
+                       <span className={`text-[10px] uppercase font-bold tracking-wider ${textSecondary}`}>Applied Focus</span>
+                       <span className={`text-xs font-bold ${textColor} flex items-center gap-1`}>
+                         <Clock size={12} className="opacity-70" /> {getRelativeTime(job.appliedDateTime)}
+                       </span>
+                     </div>
+
+                     <button 
+                        onClick={() => handleJobClick(job)}
+                        className="px-4 py-2 bg-gradient-to-r from-[#2271B5] to-[#1a5a8f] text-white rounded-lg hover:shadow-md hover:-translate-y-0.5 transition-all text-xs font-bold flex items-center justify-center gap-1.5"
+                      >
+                        <ExternalLink size={14} />
+                        View Job
+                      </button>
                   </div>
                 </div>
               ))}

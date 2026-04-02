@@ -533,23 +533,23 @@ function PendingJobApplications({ embedded = false }) {
     <div className={embedded ? "" : `min-h-screen ${bgColor}`}>
       {/* Header (hidden when embedded inside Manage Candidates) */}
       {!embedded && (
-      <div className={`${cardBg} border-b ${borderColor} sticky top-0 z-40`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col gap-4">
-            {/* Back button and title */}
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <h1 className={`text-xl sm:text-2xl font-bold ${textColor}`}>
-                  Job Applications Management
-                </h1>
-                <p className={`text-sm ${textSecondary} mt-1`}>
-                  Review and manage all job applications - approve, reject, or view details
-                </p>
+        <div className={`${cardBg} border-b ${borderColor} sticky top-0 z-40`}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex flex-col gap-4">
+              {/* Back button and title */}
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <h1 className={`text-xl sm:text-2xl font-bold ${textColor}`}>
+                    Job Applications Management
+                  </h1>
+                  <p className={`text-sm ${textSecondary} mt-1`}>
+                    Review and manage all job applications - approve, reject, or view details
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
       )}
 
       <div className={embedded ? "" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"}>
