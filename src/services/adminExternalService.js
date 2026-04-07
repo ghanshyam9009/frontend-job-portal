@@ -14,7 +14,7 @@ const GET_JOB_DETAIL_URL =
 
   const ADMIN_REOPEN_APPROVE_URL =
   import.meta.env.VITE_ADMIN_REOPEN_APPROVE_URL ||
-  'http://api.bigsources.in/api/job/admin/approve-reopen-job';
+  'https://api.bigsources.in/api/job/admin/approve-reopen-job';
 
 export const adminExternalService = {
   // Get all tasks
