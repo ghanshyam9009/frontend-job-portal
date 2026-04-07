@@ -7,18 +7,22 @@ import { candidateExternalService } from "../services/candidateExternalService";
 import { recruiterExternalService } from "../services/recruiterExternalService";
 import { studentService } from "../services/studentService";
 import HomeNav from "../Components/HomeNav";
-import { Bookmark, Briefcase, Contact, Contact2, MapPin, ArrowLeft, Clock, DollarSign, Building } from "lucide-react";
+import { Bookmark, Briefcase, Contact, Contact2, MapPin, Sparkles, TrendingUp, ArrowLeft } from "lucide-react";
 import Footer from "../Components/Footer";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import RecruiterNavbar from "../Components/Recruiter/RecruiterNavbar";
 
+
 const JobDescription = () => {
+  // theme
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
+  // job state
   const [isApplying, setIsApplying] = useState(false);
   const [applicationError, setApplicationError] = useState("");
   const [applicationSuccess, setApplicationSuccess] = useState("");
   const [job, setJob] = useState(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hasApplied, setHasApplied] = useState(false);
@@ -29,6 +33,102 @@ const JobDescription = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const location = useLocation();
+
+  // Calculate profile completion percentage
+  const calculateProfileCompletion = (userData) => {
+    const steps = [
+      {
+        title: 'Personal Info',
+        fields: [
+          { name: 'full_name', required: true, weight: 10 },
+          { name: 'phone_number', required: true, weight: 5 },
+          { name: 'username', required: true, weight: 3 },
+          { name: 'gender', required: true, weight: 2 }
+        ],
+        totalWeight: 20
+      },
+      {
+        title: 'Address',
+        fields: [
+          { name: 'address.city', required: true, weight: 8 },
+          { name: 'address.state', required: true, weight: 6 },
+          { name: 'address.country', required: true, weight: 6 }
+        ],
+        totalWeight: 20
+      },
+      {
+        title: 'Professional',
+        fields: [
+          { name: 'bio', required: true, weight: 15 },
+          { name: 'skills', required: true, weight: 5 }
+        ],
+        totalWeight: 20
+      },
+      {
+        title: 'Education',
+        fields: [],
+        totalWeight: 20,
+        isArray: true,
+        arrayField: 'education'
+      },
+      {
+        title: 'Experience',
+        fields: [],
+        totalWeight: 20,
+        isArray: true,
+        arrayField: 'experience'
+      }
+    ];
+
+    let totalCompleted = 0;
+
+    steps.forEach(step => {
+      let stepCompleted = 0;
+
+      if (step.isArray) {
+        const arrayData = userData[step.arrayField] || [];
+        if (Array.isArray(arrayData) && arrayData.length > 0) {
+          const hasValidEntry = arrayData.some(item => {
+            return Object.values(item).some(value =>
+              value && typeof value === 'string' && value.trim() !== ''
+            );
+          });
+          if (hasValidEntry) {
+            stepCompleted = step.totalWeight;
+          }
+        }
+      } else {
+        const totalFieldWeight = step.fields.reduce((sum, field) => sum + field.weight, 0);
+        let completedFieldWeight = 0;
+
+        step.fields.forEach(field => {
+          const keys = field.name.split('.');
+          let value = userData;
+          let hasValue = false;
+
+          for (const key of keys) {
+            value = value && value[key];
+          }
+
+          if (value && value.toString().trim() !== '') {
+            hasValue = true;
+          }
+
+          if (hasValue) {
+            completedFieldWeight += field.weight;
+          }
+        });
+
+        if (totalFieldWeight > 0) {
+          stepCompleted = Math.round((completedFieldWeight / totalFieldWeight) * step.totalWeight);
+        }
+      }
+
+      totalCompleted += stepCompleted;
+    });
+
+    return Math.min(100, Math.round(totalCompleted));
+  };
 
   const toggleBookmark = async (jobId) => {
     if (!isAuthenticated || !user) {
@@ -125,6 +225,8 @@ const JobDescription = () => {
     setLoading(true);
     setError(null);
     try {
+      // If job is passed via route state (admin/recruiter), use it directly
+      // but still try to fetch related jobs from listing API.
       const stateJob = location.state?.job;
       let baseJob = null;
       if (stateJob && (String(stateJob.job_id || stateJob.id) === String(jobId))) {
@@ -132,7 +234,8 @@ const JobDescription = () => {
         baseJob = stateJob;
       }
 
-      const apiUrl = "https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs";
+      const apiUrl =
+        "https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs";
       const response = await fetch(apiUrl, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
@@ -164,6 +267,7 @@ const JobDescription = () => {
       }
 
       setJob(foundJob);
+
     } catch (err) {
       console.error("Error fetching job details:", err);
       setError("Failed to load job details. Please try again.");
@@ -173,7 +277,10 @@ const JobDescription = () => {
   };
 
   const handleApplyClick = async () => {
-    if (isAdminView) return;
+    if (isAdminView) {
+      // Admins can't apply to jobs; just ignore click
+      return;
+    }
     if (!isAuthenticated) {
       alert("Please login first to apply for this job");
       navigate("/candidate/login");
@@ -189,6 +296,26 @@ const JobDescription = () => {
       alert("You must upload a resume before applying for jobs. Redirecting to profile management...");
       navigate("/profile");
       return;
+    }
+
+    if (user?.membership !== "premium") {
+      try {
+        const registrationDate = new Date(user.created_at);
+        const now = new Date();
+        const daysSinceRegistration = Math.floor(
+          (now - registrationDate) / (1000 * 60 * 60 * 24)
+        );
+        // Temporarily disabled 45-day trial restriction.
+        // if (daysSinceRegistration > 45) {
+        //   alert(
+        //     "Your 45-day free trial has expired. You need a premium membership to apply for jobs. Redirecting to membership plans..."
+        //   );
+        //   navigate("/membership");
+        //   return;
+        // }
+      } catch {
+        // if created_at invalid, continue
+      }
     }
 
     setIsApplying(true);
@@ -211,7 +338,9 @@ const JobDescription = () => {
       }
 
       if (!studentId) {
-        setApplicationError("Unable to identify student. Please try logging out and logging back in.");
+        setApplicationError(
+          "Unable to identify student. Please try logging out and logging back in."
+        );
         setIsApplying(false);
         return;
       }
@@ -252,9 +381,9 @@ const JobDescription = () => {
       if (diffDays === 0) return "Today";
       if (diffDays === 1) return "Yesterday";
       if (diffDays < 7) return `${diffDays} days ago`;
-      if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-      if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
-      return `${Math.floor(diffDays / 365)} years ago`;
+      if (diffDays < 30) return `${Math.floor(diffDays / 7)} week(s) ago`;
+      if (diffDays < 365) return `${Math.floor(diffDays / 30)} month(s) ago`;
+      return `${Math.floor(diffDays / 365)} year(s) ago`;
     } catch {
       return "Recently";
     }
@@ -262,16 +391,33 @@ const JobDescription = () => {
 
   const getSalaryDisplay = (job) => {
     const possibleFields = [
-      job.salary && typeof job.salary === 'object' && job.salary.min && job.salary.max ? `${job.salary.min} - ${job.salary.max}` : null,
-      job.salary_range && typeof job.salary_range === 'object' && job.salary_range.min && job.salary_range.max ? `${job.salary_range.min} - ${job.salary_range.max}` : null,
+      job.salary && typeof job.salary === 'object' && job.salary.min && job.salary.max ?
+        `${job.salary.min} - ${job.salary.max}` :
+        (job.salary && typeof job.salary === 'object' && job.salary.min ? `${job.salary.min}+` : null),
+      job.salary_range && typeof job.salary_range === 'object' && job.salary_range.min && job.salary_range.max ?
+        `${job.salary_range.min} - ${job.salary_range.max}` :
+        (job.salary_range && typeof job.salary_range !== 'object' ? job.salary_range : null),
       job.salary_min && job.salary_max ? `${job.salary_min} - ${job.salary_max}` : null,
       job.min_salary && job.max_salary ? `${job.min_salary} - ${job.max_salary}` : null,
+      job.salary_range?.min && job.salary_range?.max ? `${job.salary_range.min} - ${job.salary_range.max}` : null,
       job.salary_min ? `${job.salary_min}+` : null,
       job.min_salary ? `${job.min_salary}+` : null,
+      job.salary_range?.min ? `${job.salary_range.min}+` : null,
       job.salary_max ? `Up to ${job.salary_max}` : null,
       job.max_salary ? `Up to ${job.max_salary}` : null,
+      job.salary_range?.max ? `Up to ${job.salary_range.max}` : null,
+      job.salary && typeof job.salary === 'object' && job.salary.max ? `Up to ${job.salary.max}` : null,
     ];
-    return possibleFields.find(field => field) || "Not Disclosed";
+
+    const salaryInfo = possibleFields.find(field => field !== null && field !== undefined && field !== '');
+    return salaryInfo || "Not Disclosed";
+  };
+
+  const formatSalary = (min, max) => {
+    if (!min && !max) return "Not Disclosed";
+    if (min && max) return `${min} - ${max}`;
+    if (min) return `${min}+`;
+    return `Up to ${max}`;
   };
 
   const parseJobDescription = (description) => {
@@ -281,12 +427,14 @@ const JobDescription = () => {
       return description
         .map(item => {
           const cleanLine = String(item).trim().replace(/^•\s*/, '');
-          return `<p class="leading-relaxed mb-4 text-gray-700 dark:text-gray-300">${cleanLine}</p>`;
+          return `<p class="text-gray-900 dark:text-black leading-relaxed mb-4">${cleanLine}</p>`;
         })
         .join('');
     }
 
-    if (typeof description === 'object') return "";
+    if (typeof description === 'object') {
+      return "";
+    }
 
     const descStr = String(description);
     return descStr
@@ -294,343 +442,327 @@ const JobDescription = () => {
       .filter(line => line.trim())
       .map(line => {
         const cleanLine = line.trim().replace(/^•\s*/, '');
-        return `<p class="leading-relaxed mb-4 text-gray-700 dark:text-gray-300">${cleanLine}</p>`;
+        return `<p class="text-gray-900 dark:text-black leading-relaxed mb-4">${cleanLine}</p>`;
       })
       .join('');
   };
 
-  const cleanBulletPoints = (text) => text?.replace(/^•\s*/gm, '').replace(/\n•\s*/g, '\n') || text;
+  const cleanBulletPoints = (text) => {
+    if (!text) return text;
+    return text.replace(/^•\s*/gm, '').replace(/\n•\s*/g, '\n');
+  };
 
   if (loading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? "bg-[#0b0f19]" : "bg-slate-50"}`}>
-        <div className="flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin"></div>
-          <p className="mt-4 text-sm font-medium text-slate-500">Loading details...</p>
+      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? "bg-slate-900" : "bg-gray-100"}`}>
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin mx-auto" />
+          <p className="mt-4 text-gray-500">Loading job details...</p>
         </div>
       </div>
     );
   }
 
-  if (error || !job) {
+  if (error) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? "bg-[#0b0f19] text-white" : "bg-slate-50 text-slate-900"}`}>
-        <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm text-center max-w-sm w-full mx-4 border border-slate-100 dark:border-slate-700">
-          <div className="w-16 h-16 bg-rose-50 dark:bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl">⚠️</span>
-          </div>
-          <h2 className="text-xl font-bold mb-2">Unavailable</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 pb-6 border-b border-slate-100 dark:border-slate-700">
-            {error || "Job details could not be found."}
-          </p>
+      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? "bg-slate-900" : "bg-gray-100"}`}>
+        <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-lg shadow text-center max-w-md mx-4">
+          <div className="text-4xl mb-4">⚠️</div>
+          <h2 className="text-lg font-semibold mb-2">Error Loading Job</h2>
+          <p className="text-sm text-gray-600 mb-6">{error}</p>
           <button
-            onClick={() => navigate(-1)}
-            className="w-full py-3 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-semibold hover:opacity-90 transition-opacity"
+            onClick={fetchJobDetails}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
-            Go Back
+            Try Again
           </button>
         </div>
       </div>
     );
   }
 
-  const companyLogo = job.job_logo_url || job.job_logo || job.company_logo || job.logo || `https://ui-avatars.com/api/?name=${job.company_name}&background=10b981&color=fff&size=100`;
+  if (!job) {
+    return null;
+  }
 
   return (
     <>
       {!isAdminView && (user ? (user.company_name ? <RecruiterNavbar /> : <CandidateNavbar />) : <HomeNav />)}
 
-      <div className={`${isDarkMode ? "bg-[#0b0f19] text-slate-200" : "bg-slate-50 text-slate-800"} min-h-screen font-sans ${isAdminView ? 'pt-8 lg:pt-10' : 'pt-20 lg:pt-28'} pb-24`}>
-        
-        {/* Navigation & Container */}
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+      <div className={`${isDarkMode ? "bg-slate-900 text-slate-100" : "bg-gray-100 text-slate-900"} min-h-screen font-sans ${isAdminView ? "pt-4" : "pt-20 lg:pt-24"}`}>
+
+        {/* Back button – navbar ke niche, fixed spacing */}
+        <div className="max-w-5xl mx-auto px-3 sm:px-4 pt-4 pb-2">
           <button
+            type="button"
             onClick={() => navigate(-1)}
-            className={`group inline-flex items-center gap-2 mb-6 sm:mb-8 text-sm font-semibold transition-all ${isDarkMode ? "text-slate-400 hover:text-emerald-400" : "text-slate-500 hover:text-emerald-600"}`}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 shadow-sm"
           >
-            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-            Back to listings
+            <ArrowLeft className="w-4 h-4" />
+            Back
           </button>
+        </div>
 
-          {/* Main Job Card */}
-          <div className={`overflow-hidden rounded-3xl ${isDarkMode ? "bg-slate-800/60 border border-slate-700" : "bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/50"}`}>
-            
-            {/* Header / Banner */}
-            <div className={`px-6 sm:px-10 py-8 border-b ${isDarkMode ? "border-slate-700/50" : "border-slate-100"}`}>
-              <div className="flex flex-col sm:flex-row gap-6 sm:items-start justify-between">
-                
-                {/* Logo & Core Info */}
-                <div className="flex items-start gap-5">
-                  <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center flex-shrink-0 border p-1 sm:p-2 shadow-sm ${isDarkMode ? "bg-slate-800 border-slate-600" : "bg-white border-slate-200"}`}>
-                    <img
-                      src={companyLogo}
-                      alt={`${job.company_name} logo`}
-                      className="w-full h-full object-contain rounded-xl"
-                      onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${job.company_name}&background=10b981&color=fff&size=100`; }}
-                    />
-                  </div>
-                  
-                  <div>
-                    <div className="flex flex-wrap items-center gap-3 mb-2">
-                      <h1 className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${isDarkMode ? "text-white" : "text-slate-900"}`}>
-                        {job.job_title || "Job Title"}
-                      </h1>
+        <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+          <div className="grid lg:grid-cols-12 gap-4 sm:gap-6">
+
+            {/* LEFT / MAIN */}
+            <main className="space-y-4 sm:space-y-6 lg:col-span-12">
+
+              {/* Job header card */}
+              <div className={`bg-white ${isDarkMode ? "dark:bg-slate-800" : ""} rounded-xl p-4 sm:p-6 shadow`}>
+
+                {/* Title row */}
+                <div className="flex justify-between items-start gap-3 sm:gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 mb-2">
+                      <span className="font-extrabold text-lg sm:text-xl text-slate-800 dark:text-black break-words">
+                        {job.job_title || "Job_title"}
+                      </span>
+                      {job.company_rating && <span className="text-yellow-500">⭐ {job.company_rating}</span>}
+                      {job.company_reviews && <span className="text-gray-400">({job.company_reviews} Reviews)</span>}
                       {job.is_premium && (
-                        <span className="bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm">Premium</span>
+                        <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded text-xs">Premium</span>
                       )}
                     </div>
-
-                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 text-sm font-medium mb-4">
-                      <span className={`flex items-center gap-1.5 ${isDarkMode ? "text-emerald-400" : "text-emerald-600"}`}>
-                        <Building className="w-4 h-4" />
-                        {job.company_name || "Company Name"}
-                      </span>
-                      {job.company_rating && (
-                        <span className="flex items-center gap-1 text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded-md text-xs">
-                          ⭐ {job.company_rating}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Meta Pills */}
-                    <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${isDarkMode ? "bg-slate-700/50 text-slate-300" : "bg-slate-100 text-slate-700"}`}>
-                        <MapPin className="w-3.5 h-3.5 opacity-70" />
-                        {job.location || "Location Not Specified"}
-                      </span>
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${isDarkMode ? "bg-slate-700/50 text-slate-300" : "bg-slate-100 text-slate-700"}`}>
-                        <DollarSign className="w-3.5 h-3.5 opacity-70" />
-                        {getSalaryDisplay(job)}
-                      </span>
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${isDarkMode ? "bg-emerald-500/10 text-emerald-400" : "bg-emerald-50 text-emerald-700"}`}>
-                        <Clock className="w-3.5 h-3.5 opacity-70" />
-                        Posted {formatPostedDate(job.created_at)}
+                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                      <span className="font-semibold text-sm sm:text-base text-slate-800 dark:text-black">
+                        {job.company_name || "Company"}
                       </span>
                     </div>
+                    {/* Meta info - wraps gracefully on small screens */}
+                    <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
+                      <div className="flex items-center gap-1">💰 {getSalaryDisplay(job)}</div>
+                      <div className="flex items-center gap-1">📍 {job.location || "Remote"}</div>
+                    </div>
+                  </div>
+
+                  {/* Logo */}
+                  <div className="flex-shrink-0 w-14 h-14 sm:w-20 sm:h-20 rounded-lg p-1.5 sm:p-2 flex items-center justify-center bg-blue-50 overflow-hidden">
+                    {(() => {
+                      const companyLogo = job.job_logo_url || job.job_logo || job.company_logo || job.logo;
+                      if (companyLogo) {
+                        return (
+                          <img
+                            src={companyLogo}
+                            alt={`${job.company_name} logo`}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              e.target.src = `https://ui-avatars.com/api/?name=${job.company_name}&background=2563eb&color=fff&size=80`;
+                            }}
+                          />
+                        );
+                      } else {
+                        return (
+                          <img
+                            src={`https://ui-avatars.com/api/?name=${job.company_name}&background=2563eb&color=fff&size=80`}
+                            alt={`${job.company_name} logo`}
+                            className="w-full h-full object-contain rounded"
+                          />
+                        );
+                      }
+                    })()}
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex flex-col gap-3 min-w-[200px] mt-4 sm:mt-0">
+                {/* Posted / Contact info - stacks on mobile */}
+                <div className="mt-4 border-t pt-4 flex flex-wrap gap-3 sm:gap-6 text-xs sm:text-sm text-gray-600">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    📅 Posted: <strong className="text-gray-800 ml-1">{formatPostedDate(job.created_at)}</strong>
+                  </div>
+                  <div className="flex items-center gap-1 flex-wrap">
+                    📧 <strong className="text-gray-800">{job.contact_email}</strong>
+                  </div>
+                  {job.contact_number && (
+                    <div className="flex items-center gap-1 flex-wrap">
+                      📞 <strong className="text-gray-800">{job.contact_number}</strong>
+                    </div>
+                  )}
+                </div>
+
+                {/* Alerts – candidate ke liye hi (recruiter par apply nahi hota) */}
+                {!isRecruiter && (
+                  <div className="mt-4 space-y-2">
+                    {applicationSuccess && (
+                      <div className="bg-green-100 text-green-800 px-3 py-2 rounded text-sm">{applicationSuccess}</div>
+                    )}
+                    {applicationError && (
+                      <div className="bg-red-100 text-red-800 px-3 py-2 rounded text-sm">{applicationError}</div>
+                    )}
+                    {hasApplied && !applicationError && !applicationSuccess && (
+                      <div className="bg-blue-100 text-blue-800 px-3 py-2 rounded text-sm">You have already applied for this job</div>
+                    )}
+                  </div>
+                )}
+
+                {/* Action buttons – Recruiter/Admin par Apply nahi */}
+                <div className="mt-4 flex gap-2 sm:gap-3">
                   {isAdminView ? (
                     <>
                       <button
-                        onClick={() => {
-                          const isJobByAdmin = job?.posted_by?.toLowerCase() === 'admin';
-                          const routeId = job?.job_id || job?.id || jobId;
-                          const targetRoute = isJobByAdmin 
-                            ? `/admin/job-applications/${routeId}`
-                            : `/admin/job-reports/applications/${routeId}`;
-                          navigate(targetRoute, { state: { jobTitle: job?.job_title, companyName: job?.company_name } });
-                        }}
-                        className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold px-5 py-3 rounded-xl hover:opacity-90 transition-opacity shadow-lg"
+                        onClick={() =>
+                          navigate(`/admin/job-reports/applications/${job?.job_id || job?.id || jobId}`, {
+                            state: {
+                              jobTitle: job?.job_title,
+                              companyName: job?.company_name,
+                            },
+                          })
+                        }
+                        className="flex-1 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-full hover:bg-blue-700 text-sm"
                       >
-                        View Applicants ({adminApplicationCount ?? Number(job?.application_count ?? 0)})
+                        View Applications ({adminApplicationCount ?? Number(job?.application_count ?? 0)})
                       </button>
                       <button
-                        onClick={() => navigate(`/admin/edit-job/${job.job_id || job.id}`, { state: { employer_id: job?.employer_id || job?.recruiter_id }})}
-                        className={`w-full font-bold px-5 py-3 rounded-xl transition-colors border ${isDarkMode ? "border-slate-700 hover:bg-slate-700" : "border-slate-200 hover:bg-slate-50"}`}
+                        onClick={() =>
+                          navigate(`/admin/edit-job/${job?.job_id || job?.id || jobId}`, {
+                            state: { employer_id: job?.employer_id || job?.recruiter_id },
+                          })
+                        }
+                        className="flex-1 border border-blue-500 text-blue-600 px-3 sm:px-4 py-2 rounded-full hover:bg-blue-50 text-sm"
                       >
-                        Edit Details
+                        Edit Job
                       </button>
                     </>
                   ) : isRecruiter ? (
-                     <div className={`px-4 py-3 rounded-xl text-center text-sm font-semibold ${isDarkMode ? "bg-slate-700/50 text-slate-400" : "bg-slate-100 text-slate-500"}`}>
-                       Recruiter View Active
-                     </div>
+                    <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">View only</span>
                   ) : !isAuthenticated ? (
-                     <>
-                      <button onClick={() => navigate("/candidate/login")} className="w-full bg-emerald-600 text-white font-bold px-5 py-3 rounded-xl hover:bg-emerald-700 transition shadow-lg shadow-emerald-500/20 active:scale-[0.98]">
-                        Login to Apply
+                    <>
+                      <button
+                        onClick={() => navigate("/candidate/register")}
+                        className="flex-1 border border-blue-500 text-blue-500 px-3 sm:px-4 py-2 rounded-full hover:bg-blue-50 text-sm"
+                      >
+                        Register to apply
                       </button>
-                     </>
+                      <button
+                        onClick={() => navigate("/candidate/login")}
+                        className="flex-1 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-full hover:bg-blue-700 text-sm"
+                      >
+                        Login to apply
+                      </button>
+                    </>
                   ) : (
-                    <div className="flex gap-2 w-full">
+                    <>
                       <button
                         onClick={handleApplyClick}
                         disabled={hasApplied || isApplying}
-                        className={`flex-1 font-bold px-5 py-3 rounded-xl transition shadow-lg active:scale-[0.98] ${
-                          hasApplied 
-                            ? isDarkMode ? "bg-slate-700 text-slate-400 shadow-none" : "bg-slate-100 text-slate-400 shadow-none"
-                            : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
-                        }`}
+                        className={`flex-1 px-3 sm:px-4 py-2 rounded-full text-white text-sm sm:text-base ${hasApplied ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
                       >
-                        {isApplying ? "Sending..." : hasApplied ? "Application Submitted" : "Apply Now"}
+                        {isApplying ? "⏳ Applying..." : hasApplied ? "✓ Applied" : "Apply Now"}
                       </button>
                       <button
-                        onClick={() => toggleBookmark(job.job_id || job.id)}
-                        className={`flex items-center justify-center w-12 rounded-xl transition border ${
-                          bookmarkedJobs.has(job.job_id || job.id)
-                            ? "bg-yellow-50 border-yellow-200 text-yellow-500 dark:bg-yellow-500/10 dark:border-yellow-500/20"
-                            : isDarkMode ? "border-slate-700 hover:bg-slate-700" : "border-slate-200 hover:bg-slate-50 text-slate-400"
-                        }`}
-                        title="Bookmark Job"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleBookmark(job.job_id);
+                        }}
+                        className={`${textSecondary} hover:text-yellow-500 transition-colors p-1.5 rounded-lg flex-shrink-0`}
                       >
-                        <Bookmark size={20} fill={bookmarkedJobs.has(job.job_id || job.id) ? "currentColor" : "none"} />
+                        <Bookmark
+                          className="w-5 h-5"
+                          fill={bookmarkedJobs.has(job.job_id) ? "currentColor" : "none"}
+                        />
                       </button>
-                    </div>
-                  )}
-
-                  {/* Alerts below buttons */}
-                  {!isRecruiter && (
-                    <div className="text-center">
-                       {applicationSuccess && <p className="text-xs font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400 rounded-lg py-2">{applicationSuccess}</p>}
-                       {applicationError && <p className="text-xs font-semibold text-rose-600 bg-rose-50 dark:bg-rose-500/10 dark:text-rose-400 rounded-lg py-2">{applicationError}</p>}
-                    </div>
+                    </>
                   )}
                 </div>
               </div>
-            </div>
 
-            {/* Quick Details / Contact Section */}
-            <div className={`grid sm:grid-cols-2 gap-4 px-6 sm:px-10 py-5 sm:py-6 border-b ${isDarkMode ? "bg-slate-800/80 border-slate-700/50 text-slate-300" : "bg-slate-50 border-slate-100 text-slate-600"}`}>
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${isDarkMode ? "bg-slate-700" : "bg-white border shadow-sm"}`}>
-                  <Contact className="w-5 h-5 text-emerald-500" />
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wider font-semibold opacity-70 mb-0.5">Contact Email</p>
-                  <p className="font-medium text-sm truncate">{job.contact_email || "Not provided"}</p>
-                </div>
-              </div>
-              
-              {job.contact_number && (
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${isDarkMode ? "bg-slate-700" : "bg-white border shadow-sm"}`}>
-                    <Contact2 className="w-5 h-5 text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wider font-semibold opacity-70 mb-0.5">Phone Number</p>
-                    <p className="font-medium text-sm">{job.contact_number}</p>
-                  </div>
-                </div>
-              )}
-            </div>
+              {/* Job description card */}
+              <section className={`bg-white ${isDarkMode ? "dark:bg-slate-800" : ""} rounded-xl p-4 sm:p-6 shadow`}>
+                <h2 className="text-base sm:text-lg font-semibold mb-4">Job description</h2>
 
-            {/* Main Content Body */}
-            <div className="px-6 sm:px-10 py-8 sm:py-10">
-              
-              {/* Overview / Description */}
-              <div className="mb-10">
-                <h2 className={`text-xl font-bold mb-4 flex items-center gap-2 ${isDarkMode ? "text-white" : "text-slate-900"}`}>
-                  <span className="w-1.5 h-6 bg-emerald-500 rounded-full inline-block"></span>
-                  About the Role
-                </h2>
-                <div className="prose max-w-none prose-emerald dark:prose-invert text-base leading-relaxed opacity-90">
+                <div className="prose max-w-none prose-sm dark:prose-invert">
                   {job.description ? (
                     <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.description) }} />
                   ) : (
-                    <p>No overarching description is available for this role.</p>
+                    <p className="text-gray-900 dark:text-black">No description available.</p>
                   )}
                 </div>
-              </div>
 
-              {/* Responsibilities */}
-              {(job.responsibilities?.length > 0 || job.responsibilities_string) && (
-                <div className="mb-10">
-                  <h3 className={`text-xl font-bold mb-4 flex items-center gap-2 ${isDarkMode ? "text-white" : "text-slate-900"}`}>
-                    <span className="w-1.5 h-6 bg-blue-500 rounded-full inline-block"></span>
-                    Key Responsibilities
-                  </h3>
-                  <div className="space-y-3 opacity-90 text-base leading-relaxed">
-                    {job.responsibilities?.length > 0 ? (
-                      <ul className="list-disc pl-5 space-y-2">
-                        {job.responsibilities.map((r, i) => <li key={i}>{cleanBulletPoints(r)}</li>)}
-                      </ul>
-                    ) : (
-                      <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.responsibilities_string) }} />
-                    )}
+                {/* responsibilities */}
+                {(job.responsibilities?.length > 0 || job.responsibilities_string) && (
+                  <div className="mt-6">
+                    <h3 className="font-semibold mb-2 text-sm sm:text-base">Key Responsibilities</h3>
+                    <div className="text-gray-900 dark:text-black leading-relaxed space-y-2 text-sm sm:text-base">
+                      {job.responsibilities?.length > 0 ? (
+                        job.responsibilities.map((r, i) => <p key={i}>{cleanBulletPoints(r)}</p>)
+                      ) : (
+                        <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.responsibilities_string) }} />
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Requirements & Qualifications Grid */}
-              <div className="grid sm:grid-cols-2 gap-8 mb-10">
-                
-                {/* Requirements */}
+                {/* requirements */}
                 {(job.requirements?.length > 0 || job.requirements_string) && (
-                  <div>
-                    <h3 className={`text-lg font-bold mb-3 ${isDarkMode ? "text-white" : "text-slate-900"}`}>Requirements</h3>
-                    <div className="opacity-90 space-y-2 bg-rose-50 dark:bg-rose-500/5 p-4 sm:p-5 rounded-2xl border border-rose-100 dark:border-rose-500/10">
+                  <div className="mt-6">
+                    <h3 className="font-semibold mb-2 text-sm sm:text-base">Requirements</h3>
+                    <div className="text-gray-900 dark:text-black leading-relaxed space-y-2 text-sm sm:text-base">
                       {job.requirements?.length > 0 ? (
-                        <ul className="list-disc pl-4 space-y-1">
-                          {job.requirements.map((r, i) => <li key={i} className="text-sm">{cleanBulletPoints(r)}</li>)}
-                        </ul>
+                        job.requirements.map((r, i) => <p key={i}>{cleanBulletPoints(r)}</p>)
                       ) : (
-                        <div className="text-sm" dangerouslySetInnerHTML={{ __html: parseJobDescription(job.requirements_string) }} />
+                        <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.requirements_string) }} />
                       )}
                     </div>
                   </div>
                 )}
 
-                {/* Qualifications */}
+                {/* qualifications */}
                 {(job.qualifications?.length > 0 || job.qualifications_string || job.qualification) && (
-                  <div>
-                    <h3 className={`text-lg font-bold mb-3 ${isDarkMode ? "text-white" : "text-slate-900"}`}>Qualifications</h3>
-                    <div className="opacity-90 space-y-2 bg-indigo-50 dark:bg-indigo-500/5 p-4 sm:p-5 rounded-2xl border border-indigo-100 dark:border-indigo-500/10">
+                  <div className="mt-6">
+                    <h3 className="font-semibold mb-2 text-sm sm:text-base">Qualifications</h3>
+                    <div className="text-gray-900 dark:text-black leading-relaxed space-y-2 text-sm sm:text-base">
                       {job.qualifications?.length > 0 ? (
-                        <ul className="list-disc pl-4 space-y-1">
-                          {job.qualifications.map((q, i) => <li key={i} className="text-sm">{cleanBulletPoints(q)}</li>)}
-                        </ul>
+                        job.qualifications.map((q, i) => <p key={i}>{cleanBulletPoints(q)}</p>)
                       ) : job.qualifications_string ? (
-                        <div className="text-sm" dangerouslySetInnerHTML={{ __html: parseJobDescription(job.qualifications_string) }} />
-                      ) : (
-                        <div className="text-sm" dangerouslySetInnerHTML={{ __html: parseJobDescription(String(job.qualification)) }} />
+                        <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.qualifications_string) }} />
+                      ) : job.qualification ? (
+                        typeof job.qualification === 'string' ? (
+                          <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.qualification) }} />
+                        ) : (
+                          <p>{cleanBulletPoints(String(job.qualification))}</p>
+                        )
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+
+                {/* skills */}
+                {job.skills_required?.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="font-semibold mb-2 text-sm sm:text-base">Required Skills</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {job.skills_required.map((s, idx) => (
+                        <span key={idx} className="bg-blue-50 text-blue-700 px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm">
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* benefits */}
+                {(job.benefits?.length > 0 || job.benefits_string || job.additional_benefits) && (
+                  <div className="mt-6">
+                    <h3 className="font-semibold mb-2 text-sm sm:text-base">Benefits & Perks</h3>
+                    <div className="text-gray-900 dark:text-black leading-relaxed space-y-2 text-sm sm:text-base">
+                      {job.benefits?.length > 0 ? (
+                        job.benefits.map((b, i) => <p key={i}>{cleanBulletPoints(b)}</p>)
+                      ) : job.benefits_string ? (
+                        <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.benefits_string) }} />
+                      ) : null}
+
+                      {job.additional_benefits && (
+                        <div className="mt-3">
+                          <h4 className="font-medium text-sm mb-2">Additional Benefits:</h4>
+                          <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.additional_benefits) }} />
+                        </div>
                       )}
                     </div>
                   </div>
                 )}
-              </div>
+              </section>
+            </main>
 
-              {/* Skills required */}
-              {job.skills_required?.length > 0 && (
-                <div className="mb-10">
-                  <h3 className={`text-lg font-bold mb-3 ${isDarkMode ? "text-white" : "text-slate-900"}`}>Required Core Skills</h3>
-                  <div className="flex flex-wrap gap-2.5">
-                    {job.skills_required.map((s, idx) => (
-                      <span key={idx} className={`font-semibold px-4 py-1.5 rounded-full text-sm shadow-sm border transition-colors cursor-default ${
-                        isDarkMode ? "bg-slate-700/50 border-slate-600 text-emerald-400 hover:bg-slate-700" : "bg-emerald-50 border-emerald-100 text-emerald-700 hover:bg-emerald-100"
-                      }`}>
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Benefits */}
-              {(job.benefits?.length > 0 || job.benefits_string || job.additional_benefits) && (
-                <div className={`p-6 sm:p-8 rounded-3xl mb-4 ${isDarkMode ? "bg-gradient-to-br from-slate-800 to-slate-800/50 border border-slate-700/50" : "bg-gradient-to-br from-amber-50 to-orange-50/30 border border-amber-100/50"}`}>
-                  <h3 className={`text-xl font-bold mb-4 flex items-center gap-2 ${isDarkMode ? "text-white" : "text-slate-900"}`}>
-                    <span className="w-1.5 h-6 bg-amber-400 rounded-full inline-block"></span>
-                    Benefits & Perks
-                  </h3>
-                  
-                  <div className="opacity-90 space-y-3">
-                    {job.benefits?.length > 0 ? (
-                      <ul className="grid sm:grid-cols-2 gap-2 list-none">
-                        {job.benefits.map((b, i) => (
-                           <li key={i} className="flex items-start gap-2">
-                             <span className="text-amber-500 mt-0.5">✦</span> 
-                             <span>{cleanBulletPoints(b)}</span>
-                           </li>
-                        ))}
-                      </ul>
-                    ) : job.benefits_string ? (
-                      <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.benefits_string) }} />
-                    ) : null}
-
-                    {job.additional_benefits && (
-                      <div className="mt-4 pt-4 border-t border-amber-200/30 dark:border-slate-600">
-                        <h4 className="font-semibold text-sm mb-2 uppercase tracking-wide opacity-80">Plus Additional Benefits:</h4>
-                        <div dangerouslySetInnerHTML={{ __html: parseJobDescription(job.additional_benefits) }} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-            </div>
           </div>
         </div>
       </div>

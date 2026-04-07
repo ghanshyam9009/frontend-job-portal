@@ -12,6 +12,10 @@ const GET_JOB_DETAIL_URL =
   import.meta.env.VITE_ADMIN_GET_JOB_DETAIL_URL ||
   'https://md9s5hywf2.execute-api.ap-southeast-1.amazonaws.com/default/getjobdetail';
 
+  const ADMIN_REOPEN_APPROVE_URL =
+  import.meta.env.VITE_ADMIN_REOPEN_APPROVE_URL ||
+  'http://api.bigsources.in/api/job/admin/approve-reopen-job';
+
 export const adminExternalService = {
   // Get all tasks
   async getAllTasks() {
@@ -46,6 +50,11 @@ export const adminExternalService = {
   // Approve job posting
   async approveJobPosting(taskId, approve) {
     const { data } = await axios.post(ADMIN_POST_URL, { task_id: taskId, approve });
+    return data;
+  },
+
+  async approveReopenJob(taskId, jobId) {
+    const { data } = await axios.post(ADMIN_REOPEN_APPROVE_URL, { task_id: taskId, job_id :jobId });
     return data;
   },
 

@@ -230,6 +230,14 @@ export const adminService = {
     }
   },
 
+  async approveReopenJob(taskId, jobId) {
+    try {
+      return await adminExternalService.approveReopenJob(taskId, jobId);
+    } catch (error) {
+      throw error;
+    }
+  },
+
   async approveJobApplicationByStudent(taskId) {
     try {
       return await adminExternalService.approveJobApplicationByStudent(taskId);
@@ -990,12 +998,12 @@ export const adminService = {
 
   async getApplicationsForJob(jobId) {
     try {
-        const { recruiterExternalService } = await import('./recruiterExternalService');
-        const applicantsData = await recruiterExternalService.getAllApplicants(jobId);
-        return applicantsData;
+      const { recruiterExternalService } = await import('./recruiterExternalService');
+      const applicantsData = await recruiterExternalService.getAllApplicants(jobId);
+      return applicantsData;
     } catch (error) {
-        console.error(`Failed to fetch applications for job ${jobId}:`, error);
-        return { applications: [] };
+      console.error(`Failed to fetch applications for job ${jobId}:`, error);
+      return { applications: [] };
     }
   },
 };

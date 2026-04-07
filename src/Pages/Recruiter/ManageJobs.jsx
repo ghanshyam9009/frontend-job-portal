@@ -114,7 +114,7 @@ const ManageJobs = () => {
       if (newStatus === 'Closed') {
         await recruiterExternalService.closeJobOpening(jobId);
       } else {
-        // Assume there's a reopen endpoint or status update API
+        await recruiterExternalService.reopenJobOpening(jobId);
       }
       
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: newStatus } : j));

@@ -50,7 +50,6 @@ const ManageEmployers = () => {
 
   // State for job reports
   const [jobs, setJobs] = useState([]);
-  const [totalNewJobs, setTotalNewJobs] = useState(0);
   /** Syncs with AdminJobReports tabs: `all` | `newjob` (get-all-tasks postnewjob) */
   const [jobReportsInitialTab, setJobReportsInitialTab] = useState("all");
 
@@ -74,17 +73,6 @@ const ManageEmployers = () => {
           id: job.id || job.job_id,
         }))
       );
-
-      let tasks = [];
-      try {
-        tasks = await adminService.getPendingJobs();
-      } catch (err) {
-        console.warn("Failed to fetch tasks (get all tasks):", err);
-      }
-      const postNewCount = (tasks || []).filter(
-        (t) => t.category === "postnewjob"
-      ).length;
-      setTotalNewJobs(postNewCount);
     } catch (error) {
       console.error('Failed to fetch job reports:', error);
     }
@@ -460,17 +448,6 @@ const ManageEmployers = () => {
     setViewMode(mode);
   };
 
-  const handleTotalNewClick = () => {
-    setJobReportsInitialTab("newjob");
-    setViewMode("reports");
-  };
-
-  const handlePendingEmployersClick = () => {
-    // Show only pending employers in the main employers table
-    setApprovalFilter("pending");
-    setViewMode("employers");
-  };
-
   const isDark = theme === 'dark';
   const bgColor = isDark ? 'bg-gray-900' : 'bg-gray-50';
   const cardBg = isDark ? 'bg-gray-800' : 'bg-white';
@@ -527,7 +504,7 @@ const ManageEmployers = () => {
 
             {/* Stats Cards Skeleton */}
             <div className="mt-4 flex flex-col lg:flex-row lg:items-stretch gap-6 pb-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 flex-1">
+              <div className="grid grid-cols-1 gap-6 flex-1">
                 <SkeletonCard />
                 <SkeletonCard />
                 <SkeletonCard />
@@ -602,7 +579,7 @@ const ManageEmployers = () => {
           {/* 4 cards sirf overview par – Total Employee / Job Report open hone par nahi dikhenge */}
           {viewMode === "overview" && (
             <div className="mt-4 flex flex-col lg:flex-row lg:items-stretch gap-6 pb-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
                 {/* Total Employers */}
                 <button
                   type="button"
@@ -645,52 +622,6 @@ const ManageEmployers = () => {
                     </div>
                     <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center">
                       <Briefcase className="text-indigo-500" size={28} />
-                    </div>
-                  </div>
-                </button>
-
-                {/* New job tasks (get all tasks — postnewjob) */}
-                <button
-                  type="button"
-                  onClick={handleTotalNewClick}
-                  className={`${cardBg} rounded-xl shadow-lg p-6 border-l-4 border-emerald-500 transform transition-all hover:-translate-y-1 hover:shadow-xl text-left w-full`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className={`${textSecondary} text-sm font-medium`}>Total New</p>
-                      <h3 className={`text-3xl font-bold ${textColor} mt-2`}>
-                        {totalNewJobs}
-                      </h3>
-                      <p className="text-emerald-600 text-sm mt-2 flex items-center gap-1">
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        New job post tasks
-                      </p>
-                    </div>
-                    <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
-                      <Briefcase className="text-emerald-500" size={28} />
-                    </div>
-                  </div>
-                </button>
-
-                {/* Pending Employers */}
-                <button
-                  type="button"
-                  onClick={handlePendingEmployersClick}
-                  className={`${cardBg} rounded-xl shadow-lg p-6 border-l-4 border-amber-500 transform transition-all hover:-translate-y-1 hover:shadow-xl text-left w-full`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className={`${textSecondary} text-sm font-medium`}>Pending Employers</p>
-                      <h3 className={`text-3xl font-bold ${textColor} mt-2`}>
-                        {pendingCount}
-                      </h3>
-                      <p className="text-amber-600 text-sm mt-2 flex items-center gap-1">
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500" />
-                        Awaiting approval
-                      </p>
-                    </div>
-                    <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
-                      <Clock className="text-amber-500" size={28} />
                     </div>
                   </div>
                 </button>

@@ -17,12 +17,14 @@ const REPORT_TAB = {
   NEW_JOB: "newjob",
   EDIT_JOB: "editjob",
   CLOSE_JOB: "closejob",
+  REOPEN_JOB: "reopenjob",
 };
 
 const TASK_CATEGORY_BY_TAB = {
   [REPORT_TAB.NEW_JOB]: "postnewjob",
   [REPORT_TAB.EDIT_JOB]: "editjob",
   [REPORT_TAB.CLOSE_JOB]: "closedjob",
+  [REPORT_TAB.REOPEN_JOB]: "reopenjob",
 };
 
 const isValidReportTab = (tab) =>
@@ -234,6 +236,8 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
   const getTaskCategoryForJob = (job) =>
     job.category || TASK_CATEGORY_BY_TAB[reportTab];
 
+  const isReopenTaskCategory = (category) => category === "reopenjob";
+
   const handleOpenApproveModal = (job) => {
     setApprovalModalJob(job);
   };
@@ -273,12 +277,15 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
       return;
     }
     const cat = getTaskCategoryForJob(job);
+    const jobId = job.job_id || job.id;
     try {
       setActionLoading(`approve-${taskId}`);
       if (cat === "editjob") {
         await adminService.approveEditedJob(taskId);
       } else if (cat === "closedjob") {
         await adminService.approveJobClosing(taskId);
+      } else if (cat === "reopenjob") {
+        await adminService.approveReopenJob(taskId, jobId);
       } else {
         await adminService.approveJob(taskId);
       }
@@ -720,7 +727,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
           className={`${cardBg} rounded-2xl border ${borderColor} p-3 sm:p-4 mb-6 shadow-sm w-full`}
         >
           <div
-            className="grid w-full grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3"
+            className="grid w-full grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3"
             role="tablist"
             aria-label="Job report source"
           >
@@ -729,6 +736,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
               { id: REPORT_TAB.NEW_JOB, label: "New Job" },
               { id: REPORT_TAB.EDIT_JOB, label: "Edit Job" },
               { id: REPORT_TAB.CLOSE_JOB, label: "Close job" },
+              { id: REPORT_TAB.REOPEN_JOB, label: "Reopen job" },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -789,6 +797,8 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
           {currentJobs.map(job => {
             const showTaskActions =
               isTaskReportTab && isPendingTaskRow(job);
+            const taskCategory = getTaskCategoryForJob(job);
+            const isReopenTask = isReopenTaskCategory(taskCategory);
             const taskId = job.task_id ?? job.id;
             return (
               <div
@@ -855,21 +865,23 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
                               <CheckCircle size={14} />
                               Approve
                             </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openRejectModal(job);
-                              }}
-                              disabled={
-                                actionLoading === `approve-${taskId}` ||
-                                actionLoading === `reject-${taskId}`
-                              }
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-300 text-red-700 bg-red-50 hover:bg-red-100 dark:border-red-800 dark:text-red-300 dark:bg-red-950/40 dark:hover:bg-red-950/60 disabled:opacity-50"
-                            >
-                              <XCircle size={14} />
-                              Reject
-                            </button>
+                            {!isReopenTask && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openRejectModal(job);
+                                }}
+                                disabled={
+                                  actionLoading === `approve-${taskId}` ||
+                                  actionLoading === `reject-${taskId}`
+                                }
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-300 text-red-700 bg-red-50 hover:bg-red-100 dark:border-red-800 dark:text-red-300 dark:bg-red-950/40 dark:hover:bg-red-950/60 disabled:opacity-50"
+                              >
+                                <XCircle size={14} />
+                                Reject
+                              </button>
+                            )}
                           </>
                         ) : (
                         <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex-shrink-0 ${job.status === 'open' ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' :
@@ -990,7 +1002,9 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
               Approve request
             </h2>
             <p className={`text-sm ${textSecondary} mb-4`}>
-              Review the job, edit details if needed, then approve.
+              {isReopenTaskCategory(getTaskCategoryForJob(approvalModalJob))
+                ? "Review the reopen request and approve."
+                : "Review the job, edit details if needed, then approve."}
             </p>
             <div className="flex gap-3 items-start mb-6">
               <JobReportLogoBadge
@@ -1017,16 +1031,18 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
               >
                 Cancel
               </button>
-              <button
-                type="button"
-                onClick={handleModalEdit}
-                className="px-4 py-2 rounded-lg text-sm font-medium border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 dark:border-blue-600 dark:text-blue-300 dark:bg-blue-950/40"
-              >
-                <span className="inline-flex items-center justify-center gap-2">
-                  <Briefcase size={16} />
-                  Edit job
-                </span>
-              </button>
+              {!isReopenTaskCategory(getTaskCategoryForJob(approvalModalJob)) && (
+                <button
+                  type="button"
+                  onClick={handleModalEdit}
+                  className="px-4 py-2 rounded-lg text-sm font-medium border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 dark:border-blue-600 dark:text-blue-300 dark:bg-blue-950/40"
+                >
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <Briefcase size={16} />
+                    Edit job
+                  </span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleModalApprove}
