@@ -11,6 +11,9 @@ const ADMIN_GET_ALL_TASKS_URL = import.meta.env.VITE_ADMIN_GET_ALL_TASKS_URL || 
 const GET_JOB_DETAIL_URL =
   import.meta.env.VITE_ADMIN_GET_JOB_DETAIL_URL ||
   'https://md9s5hywf2.execute-api.ap-southeast-1.amazonaws.com/default/getjobdetail';
+const ADMIN_CLOSE_JOB_ADMIN_URL =
+  import.meta.env.VITE_ADMIN_CLOSE_JOB_ADMIN_URL ||
+  'https://sls3h02vab.execute-api.ap-southeast-1.amazonaws.com/dev/close-job-admin';
 
   const ADMIN_REOPEN_APPROVE_URL =
   import.meta.env.VITE_ADMIN_REOPEN_APPROVE_URL ||
@@ -55,6 +58,11 @@ export const adminExternalService = {
 
   async approveReopenJob(taskId, jobId) {
     const { data } = await axios.post(ADMIN_REOPEN_APPROVE_URL, { task_id: taskId, job_id :jobId });
+    return data;
+  },
+
+  async closeJobAdmin(jobId) {
+    const { data } = await axios.post(ADMIN_CLOSE_JOB_ADMIN_URL, { job_id: jobId });
     return data;
   },
 

@@ -238,6 +238,14 @@ export const adminService = {
     }
   },
 
+  async closeJobAdmin(jobId) {
+    try {
+      return await adminExternalService.closeJobAdmin(jobId);
+    } catch (error) {
+      throw error;
+    }
+  },
+
   async approveJobApplicationByStudent(taskId) {
     try {
       return await adminExternalService.approveJobApplicationByStudent(taskId);

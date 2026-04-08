@@ -558,24 +558,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
     try {
       setLoading(true);
       setError(null);
-
-      // Call the API to close the job
-      const response = await fetch(
-        `https://wxxi8h89m5.execute-api.ap-southeast-1.amazonaws.com/default/closedjobopening?job_id=${job.id}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('Job closed successfully:', result);
+      await adminService.closeJobAdmin(job.id);
 
       alert('Job closed successfully! The job has been removed from public display.');
       await refreshList();
@@ -583,6 +566,29 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
       console.error('Failed to close job:', error);
       setError('Failed to close job. Please try again.');
       alert('Failed to close job. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteJob = async (job) => {
+    if (!job || !job.id) return;
+
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete this job "${job.job_title}"? This action cannot be undone.`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      await adminService.deleteAdminJob(job.id);
+      alert("Job deleted successfully.");
+      await refreshList();
+    } catch (error) {
+      console.error("Failed to delete job:", error);
+      setError("Failed to delete job. Please try again.");
+      alert("Failed to delete job. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -937,6 +943,17 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
                             onClick={(e) => {
                               e.stopPropagation();
                               handleCloseJob(job);
+                            }}
+                            className="col-span-1 sm:col-auto px-4 py-2 sm:py-1.5 bg-amber-500 text-white rounded-lg text-sm sm:text-xs font-medium hover:bg-amber-600 flex items-center justify-center gap-1.5"
+                            disabled={loading}
+                          >
+                            <XCircle size={14} />
+                            Close Job
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteJob(job);
                             }}
                             className="col-span-2 sm:col-auto px-4 py-2 sm:py-1.5 bg-red-600 text-white rounded-lg text-sm sm:text-xs font-medium hover:bg-red-700 flex items-center justify-center gap-1.5"
                             disabled={loading}
