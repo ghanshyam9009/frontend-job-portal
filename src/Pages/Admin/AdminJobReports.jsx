@@ -558,7 +558,10 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
     try {
       setLoading(true);
       setError(null);
-      await adminService.closeJobAdmin(job.id);
+      await adminService.closeJobAdmin({
+        job_id: String(job.id),
+        action: "close",
+      });
 
       alert('Job closed successfully! The job has been removed from public display.');
       await refreshList();

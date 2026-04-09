@@ -238,9 +238,9 @@ export const adminService = {
     }
   },
 
-  async closeJobAdmin(jobId) {
+  async closeJobAdmin(payload) {
     try {
-      return await adminExternalService.closeJobAdmin(jobId);
+      return await adminExternalService.closeJobAdmin(payload);
     } catch (error) {
       throw error;
     }

@@ -14,12 +14,44 @@ const GET_JOB_DETAIL_URL =
 const ADMIN_CLOSE_JOB_ADMIN_URL =
   import.meta.env.VITE_ADMIN_CLOSE_JOB_ADMIN_URL ||
   'https://sls3h02vab.execute-api.ap-southeast-1.amazonaws.com/dev/close-job-admin';
+const ADMIN_GET_ALL_JOB_ADMIN_URL =
+  import.meta.env.VITE_ADMIN_GET_ALL_JOB_ADMIN_URL ||
+  'https://9voh0hfu5i.execute-api.ap-southeast-1.amazonaws.com/dev/getalljobadmin';
 
   const ADMIN_REOPEN_APPROVE_URL =
   import.meta.env.VITE_ADMIN_REOPEN_APPROVE_URL ||
   'https://api.bigsources.in/api/job/admin/approve-reopen-job';
 
 export const adminExternalService = {
+  // Get admin jobs from cursor-based paginated endpoint
+  async getAllJobAdminPage({ limit = 10, lastKey } = {}) {
+    const params = { limit };
+    if (lastKey) params.lastKey = lastKey;
+    const { data } = await axios.get(ADMIN_GET_ALL_JOB_ADMIN_URL, { params });
+    return data;
+  },
+
+  // Fetches all pages until API returns lastKey as null
+  async getAllJobAdmin({ limit = 100 } = {}) {
+    const allJobs = [];
+    let cursor;
+    let count = 0;
+
+    do {
+      const response = await this.getAllJobAdminPage({ limit, lastKey: cursor });
+      const jobs = Array.isArray(response?.jobs) ? response.jobs : [];
+      allJobs.push(...jobs);
+      count = response?.count ?? count;
+      cursor = response?.lastKey || null;
+    } while (cursor);
+
+    return {
+      count,
+      jobs: allJobs,
+      lastKey: null,
+    };
+  },
+
   // Get all tasks
   async getAllTasks() {
     const { data } = await axios.get(ADMIN_GET_ALL_TASKS_URL);
@@ -61,8 +93,8 @@ export const adminExternalService = {
     return data;
   },
 
-  async closeJobAdmin(jobId) {
-    const { data } = await axios.post(ADMIN_CLOSE_JOB_ADMIN_URL, { job_id: jobId });
+  async closeJobAdmin(payload) {
+    const { data } = await axios.post(ADMIN_CLOSE_JOB_ADMIN_URL, payload);
     return data;
   },
 

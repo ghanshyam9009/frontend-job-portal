@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { useAuth } from "../../Contexts/AuthContext";
 import { adminService } from "../../services/adminService";
-import { candidateExternalService } from "../../services/candidateExternalService";
+import { adminExternalService } from "../../services/adminExternalService";
 import { Building2, Edit, CircleX, Trash2, Search, RefreshCw, Users, Plus, MapPin, Calendar, Briefcase, Award, ArrowUpDown } from "lucide-react";
 
 /** API sends `job_logo_url`; fallbacks align with JobCard / AdminJobReports */
@@ -47,7 +47,7 @@ const AdminJobs = () => {
       setLoading(true);
       setError("");
 
-      const jobsData = await candidateExternalService.getAllJobs();
+      const jobsData = await adminExternalService.getAllJobAdmin({ limit: 100 });
       const currentAdminId = user?.admin_id || user?.id || user?.user_id;
       const adminJobs = (jobsData?.jobs || [])
         .filter(job => job.admin_id === currentAdminId)
@@ -205,7 +205,8 @@ const AdminJobs = () => {
 
     const currentStatus = (job.status || "").toLowerCase();
     const isCurrentlyClosed = currentStatus === "closed";
-    const targetStatus = isCurrentlyClosed ? "approved" : "closed";
+    const targetStatus = isCurrentlyClosed ? "open" : "closed";
+    const targetAction = isCurrentlyClosed ? "open" : "close";
 
     const confirmMessage = isCurrentlyClosed
       ? "Are you sure you want to reopen this job?"
@@ -215,12 +216,11 @@ const AdminJobs = () => {
 
     try {
       setLoading(true);
+      await adminService.closeJobAdmin({
+        job_id: String(jobId),
+        action: targetAction,
+      });
 
-      if (!isCurrentlyClosed) {
-        await adminService.closeAdminJob(jobId);
-      }
-
-      // Mirror recruiter ManageJobs behavior: close via API, reopen via local status toggle.
       setJobs((prev) =>
         prev.map((j) =>
           (j.job_id || j.id) === jobId
