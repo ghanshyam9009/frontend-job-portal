@@ -189,77 +189,78 @@ const AppliedJobs = () => {
         {/* Removed mx-auto to left-align content, kept max-width for readability */}
         <div className="max-w-full">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className={`text-3xl font-bold ${textColor} mb-2 flex items-center gap-3`}>
-              <Briefcase className="text-indigo-500" size={32} />
-              Applied Jobs
+          <div className="mb-8 relative">
+            <div className="absolute -top-10 -left-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl -z-10"></div>
+            <h1 className={`text-4xl sm:text-5xl font-extrabold ${textColor} mb-3 flex items-center justify-start gap-4 tracking-tight`}>
+              <div className="p-3 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl shadow-lg shadow-indigo-500/20">
+                <Briefcase className="text-white" size={32} />
+              </div>
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-blue-600 to-indigo-700">
+                Applied Jobs
+              </span>
             </h1>
-            <p className={`${textSecondary} text-lg`}>
-              Track the status of your {appliedJobs.length} job application{appliedJobs.length !== 1 ? 's' : ''}
+            <p className={`${textSecondary} text-lg font-medium max-w-2xl`}>
+              Manage and track all your job applications in one place. You have applied to <span className="text-indigo-600 font-bold">{appliedJobs.length}</span> positions.
             </p>
           </div>
 
-          {/* Stats Cards */}
+          {/* Stats Cards - Premium Version */}
           {appliedJobs.length > 0 && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-              <div className={`${cardBg} border ${borderColor} rounded-lg p-4`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`text-xs font-semibold ${textSecondary} uppercase tracking-wider mb-1`}>
-                      Total Applied
-                    </p>
-                    <p className={`text-2xl font-bold ${textColor}`}>{appliedJobs.length}</p>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <div className={`relative overflow-hidden ${cardBg} backdrop-blur-xl border border-white/20 dark:border-gray-700/50 rounded-[1.5rem] p-4 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group shadow-sm`}>
+                <div className="absolute -top-4 -right-4 w-16 h-16 bg-indigo-500/10 rounded-full blur-xl group-hover:bg-indigo-500/20 transition-colors"></div>
+                <div className="flex items-center gap-4 relative z-10">
+                  <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30 shrink-0 transform group-hover:rotate-6 transition-transform">
+                    <Briefcase size={20} className="text-white" />
                   </div>
-                  <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-500/20 rounded-lg flex items-center justify-center">
-                    <Briefcase size={20} className="text-indigo-600 dark:text-indigo-400" />
+                  <div>
+                    <p className={`text-[10px] font-black ${textSecondary} uppercase tracking-[0.2em] mb-0.5 opacity-70`}>Total Applied</p>
+                    <p className={`text-2xl font-black ${textColor} tracking-tight`}>{appliedJobs.length}</p>
                   </div>
                 </div>
               </div>
 
-              <div className={`${cardBg} border ${borderColor} rounded-lg p-4`}>
-                <div className="flex items-center justify-between">
+              <div className={`relative overflow-hidden ${cardBg} backdrop-blur-xl border border-white/20 dark:border-gray-700/50 rounded-[1.5rem] p-4 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group shadow-sm`}>
+                <div className="absolute -top-4 -right-4 w-16 h-16 bg-amber-500/10 rounded-full blur-xl group-hover:bg-amber-500/20 transition-colors"></div>
+                <div className="flex items-center gap-4 relative z-10">
+                  <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/30 shrink-0 transform group-hover:rotate-6 transition-transform">
+                    <Eye size={20} className="text-white" />
+                  </div>
                   <div>
-                    <p className={`text-xs font-semibold ${textSecondary} uppercase tracking-wider mb-1`}>
-                      Under Review
-                    </p>
-                    <p className={`text-2xl font-bold ${textColor}`}>
+                    <p className={`text-[10px] font-black ${textSecondary} uppercase tracking-[0.2em] mb-0.5 opacity-70`}>Reviewing</p>
+                    <p className={`text-2xl font-black ${textColor} tracking-tight`}>
                       {appliedJobs.filter(j => j.status.toLowerCase() === 'under review').length}
                     </p>
                   </div>
-                  <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-500/20 rounded-lg flex items-center justify-center">
-                    <Eye size={20} className="text-yellow-600 dark:text-yellow-400" />
-                  </div>
                 </div>
               </div>
 
-              <div className={`${cardBg} border ${borderColor} rounded-lg p-4`}>
-                <div className="flex items-center justify-between">
+              <div className={`relative overflow-hidden ${cardBg} backdrop-blur-xl border border-white/20 dark:border-gray-700/50 rounded-[1.5rem] p-4 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group shadow-sm`}>
+                <div className="absolute -top-4 -right-4 w-16 h-16 bg-indigo-600/10 rounded-full blur-xl group-hover:bg-indigo-600/20 transition-colors"></div>
+                <div className="flex items-center gap-4 relative z-10">
+                  <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30 shrink-0 transform group-hover:rotate-6 transition-transform">
+                    <Star size={20} className="text-white" />
+                  </div>
                   <div>
-                    <p className={`text-xs font-semibold ${textSecondary} uppercase tracking-wider mb-1`}>
-                      Shortlisted
-                    </p>
-                    <p className={`text-2xl font-bold ${textColor}`}>
+                    <p className={`text-[10px] font-black ${textSecondary} uppercase tracking-[0.2em] mb-0.5 opacity-70`}>Shortlisted</p>
+                    <p className={`text-2xl font-black ${textColor} tracking-tight`}>
                       {appliedJobs.filter(j => j.status.toLowerCase() === 'shortlisted').length}
                     </p>
                   </div>
-                  <div className="w-10 h-10 bg-amber-100 dark:bg-amber-500/20 rounded-lg flex items-center justify-center">
-                    <Star size={20} className="text-amber-600 dark:text-amber-400" />
-                  </div>
                 </div>
               </div>
 
-              <div className={`${cardBg} border ${borderColor} rounded-lg p-4`}>
-                <div className="flex items-center justify-between">
+              <div className={`relative overflow-hidden ${cardBg} backdrop-blur-xl border border-white/20 dark:border-gray-700/50 rounded-[1.5rem] p-4 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group shadow-sm`}>
+                <div className="absolute -top-4 -right-4 w-16 h-16 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-colors"></div>
+                <div className="flex items-center gap-4 relative z-10">
+                  <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30 shrink-0 transform group-hover:rotate-6 transition-transform">
+                    <PartyPopper size={20} className="text-white" />
+                  </div>
                   <div>
-                    <p className={`text-xs font-semibold ${textSecondary} uppercase tracking-wider mb-1`}>
-                      Offers
-                    </p>
-                    <p className={`text-2xl font-bold ${textColor}`}>
+                    <p className={`text-[10px] font-black ${textSecondary} uppercase tracking-[0.2em] mb-0.5 opacity-70`}>Offers</p>
+                    <p className={`text-2xl font-black ${textColor} tracking-tight`}>
                       {appliedJobs.filter(j => j.status.toLowerCase() === 'offer received').length}
                     </p>
-                  </div>
-                  <div className="w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-lg flex items-center justify-center">
-                    <PartyPopper size={20} className="text-green-600 dark:text-green-400" />
                   </div>
                 </div>
               </div>
@@ -268,42 +269,46 @@ const AppliedJobs = () => {
 
           {/* Search and Filters */}
           {appliedJobs.length > 0 && (
-            <div className={`${cardBg} border ${borderColor} rounded-lg p-4 mb-6 overflow-hidden`}>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1 min-w-0">
-                  <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`} />
+            <div className={`${cardBg} border ${borderColor} shadow-sm rounded-2xl p-5 mb-8 overflow-hidden relative`}>
+              <div className="absolute top-0 left-0 w-1 h-full bg-indigo-600"></div>
+              <div className="flex flex-col lg:flex-row gap-4">
+                <div className="relative flex-1 group">
+                  <Search size={20} className={`absolute left-4 top-1/2 -translate-y-1/2 ${textSecondary} group-focus-within:text-indigo-500 transition-colors`} />
                   <input
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search by job title, company..."
-                    className={`w-full min-w-0 pl-10 pr-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+                    placeholder="Search by job title, company, or location..."
+                    className={`w-full pl-12 pr-4 py-3.5 border-2 ${borderColor} rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-base ${cardBg} ${textColor} outline-none shadow-inner`}
                   />
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setStatusFilter('all')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                      statusFilter === 'all'
-                        ? 'bg-indigo-600 text-white'
-                        : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-                    }`}
-                  >
-                    All
-                  </button>
-                  {uniqueStatuses.map(status => (
+                <div className="flex flex-wrap gap-2 items-center">
+                  <span className={`text-sm font-bold ${textSecondary} mr-2 hidden sm:inline`}>Filter by Status:</span>
+                  <div className="flex flex-wrap gap-2">
                     <button
-                      key={status}
-                      onClick={() => setStatusFilter(status)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                        statusFilter === status
-                          ? 'bg-indigo-600 text-white'
-                          : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                      onClick={() => setStatusFilter('all')}
+                      className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
+                        statusFilter === 'all'
+                          ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-gray-900'
+                          : `${cardBg} ${textColor} border ${borderColor} hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400`
                       }`}
                     >
-                      {status}
+                      All
                     </button>
-                  ))}
+                    {uniqueStatuses.map(status => (
+                      <button
+                        key={status}
+                        onClick={() => setStatusFilter(status)}
+                        className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
+                          statusFilter === status
+                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-gray-900'
+                            : `${cardBg} ${textColor} border ${borderColor} hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400`
+                        }`}
+                      >
+                        {status}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -357,80 +362,93 @@ const AppliedJobs = () => {
 
           {/* Jobs Grid */}
           {!loading && !error && filteredJobs.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredJobs.map(job => (
                 <div
                   key={job.id}
-                  className={`${cardBg} border ${borderColor} rounded-2xl p-4 sm:p-5 hover:shadow-xl transition-all hover:-translate-y-1 hover:border-[#2271B5]/50 group relative flex flex-col`}
+                  className={`${cardBg} backdrop-blur-md border-2 ${borderColor} rounded-[2rem] p-5 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:border-indigo-500/50 group relative flex flex-col overflow-hidden shadow-sm`}
                 >
-                  {/* Header: Title & Status */}
-                  <div className="flex justify-between items-start gap-4 mb-2">
-                    <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                  {/* Decorative Elements */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-bl-full -mr-10 -mt-10 group-hover:bg-indigo-500/10 transition-colors duration-500"></div>
+                  <div className="absolute bottom-0 left-0 w-16 h-16 bg-blue-500/5 rounded-tr-full -ml-8 -mb-8"></div>
+                  
+                  {/* Header: Title & Company */}
+                  <div className="flex justify-between items-start gap-4 mb-2 relative">
+                    <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className={`text-base font-extrabold ${textColor} leading-tight truncate`} title={job.title}>
+                        <h3 className={`text-base font-extrabold ${textColor} leading-tight truncate group-hover:text-indigo-600 transition-colors duration-300`} title={job.title}>
                           {job.title}
                         </h3>
                         {job.is_premium && (
-                          <span className="bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide shadow-sm uppercase shrink-0">
-                            Premium
+                          <span className="bg-gradient-to-r from-amber-400 to-yellow-500 text-white px-1.5 py-0.5 rounded-full text-[8px] font-black tracking-widest shadow-md uppercase shrink-0 flex items-center gap-0.5">
+                            <Crown size={8} /> PRO
                           </span>
                         )}
                       </div>
-                      <div className={`text-sm font-bold truncate ${isDark ? 'text-indigo-400' : 'text-[#2271B5]'}`}>
+                      <div className={`text-[11px] font-bold flex items-center gap-1.5 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                        <Building size={12} className="opacity-70" />
                         {job.company}
                       </div>
                     </div>
-                    
-                    {/* Status Badge at Top Right */}
-                    <span className={`shrink-0 px-2 py-1.5 rounded-lg text-[11px] font-extrabold uppercase tracking-wide flex items-center gap-1.5 shadow-sm border ${
-                      job.status.toLowerCase() === 'under review' ? 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/10 dark:border-yellow-500/30 dark:text-yellow-400' :
-                      job.status.toLowerCase() === 'shortlisted' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-400' :
-                      job.status.toLowerCase() === 'interview scheduled' ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/30 dark:text-blue-400' :
-                      job.status.toLowerCase() === 'offer received' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-400' :
-                      job.status.toLowerCase() === 'rejected' ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-400' :
-                      'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-500/10 dark:border-gray-500/30 dark:text-gray-400'
-                    }`}>
-                      {getStatusIcon(job.status)}
-                      {job.status}
-                    </span>
                   </div>
 
-                  {/* Flex row for meta details */}
-                  <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 mb-4 text-[13px] font-semibold ${textSecondary}`}>
+                  {/* Meta details */}
+                  <div className="flex flex-wrap items-center gap-2 mb-3 relative">
                     {job.location && (
-                      <div className="flex items-center gap-1.5 shrink-0 bg-gray-50 dark:bg-gray-800/50 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700/50">
-                        <MapPin size={13} className="opacity-70" />
-                        <span className="truncate max-w-[120px]">{job.location}</span>
+                      <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold border ${isDark ? 'bg-gray-800/30 border-gray-700/30' : 'bg-gray-50 border-gray-100'} ${textSecondary}`}>
+                        <MapPin size={12} className="text-indigo-500" />
+                        <span className="truncate max-w-[100px]">{job.location}</span>
                       </div>
                     )}
-                    <div className="flex items-center gap-1.5 shrink-0 bg-gray-50 dark:bg-gray-800/50 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700/50">
-                      <DollarSign size={13} className="opacity-70" />
+                    <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold border ${isDark ? 'bg-gray-800/30 border-gray-700/30' : 'bg-gray-50 border-gray-100'} ${textSecondary}`}>
+                      <DollarSign size={12} className="text-emerald-500" />
                       <span className="truncate">{job.salary}</span>
                     </div>
                   </div>
 
                   {job.interviewDate && (
-                    <div className={`mt-auto mb-3 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border ${isDark ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>
-                      <Calendar size={14} />
-                      Interview: {job.interviewDate}
+                    <div className={`mb-3 flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black border ${isDark ? 'bg-blue-500/5 text-blue-400 border-blue-500/10' : 'bg-blue-50/50 text-blue-700 border-blue-100/50'} relative overflow-hidden`}>
+                      <Calendar size={12} />
+                      <span className="truncate uppercase">INTVR: {job.interviewDate}</span>
                     </div>
                   )}
 
-                  <div className={`mt-auto flex items-center justify-between pt-4 border-t ${isDark ? 'border-gray-700' : 'border-gray-100'}`}>
-                     <div className="flex flex-col gap-0.5">
-                       <span className={`text-[10px] uppercase font-bold tracking-wider ${textSecondary}`}>Applied Focus</span>
-                       <span className={`text-xs font-bold ${textColor} flex items-center gap-1`}>
-                         <Clock size={12} className="opacity-70" /> {getRelativeTime(job.appliedDateTime)}
-                       </span>
-                     </div>
+                  {/* Footer Action */}
+                  <div className={`mt-auto pt-3 border-t border-dashed ${isDark ? 'border-gray-700/50' : 'border-gray-100'} flex flex-col gap-3`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className={`text-[11px] font-bold ${textColor} flex items-center gap-1.5`}>
+                          <Clock size={12} className="text-indigo-500" /> {getRelativeTime(job.appliedDateTime)}
+                        </span>
+                      </div>
+                      
+                      <div className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 border ${
+                        job.status.toLowerCase() === 'under review' ? 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/10 dark:border-yellow-500/20' :
+                        job.status.toLowerCase() === 'shortlisted' ? 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/10 dark:border-indigo-500/20' :
+                        job.status.toLowerCase() === 'interview scheduled' ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/20' :
+                        job.status.toLowerCase() === 'offer received' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20' :
+                        job.status.toLowerCase() === 'rejected' ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:border-red-500/20' :
+                        'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-500/10 dark:border-gray-500/20'
+                      }`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${
+                          job.status.toLowerCase() === 'under review' ? 'bg-yellow-500' :
+                          job.status.toLowerCase() === 'shortlisted' ? 'bg-indigo-500' :
+                          job.status.toLowerCase() === 'interview scheduled' ? 'bg-blue-500' :
+                          job.status.toLowerCase() === 'offer received' ? 'bg-emerald-500' :
+                          job.status.toLowerCase() === 'rejected' ? 'bg-red-500' :
+                          'bg-gray-500'
+                        } animate-pulse`}></div>
+                        {job.status}
+                      </div>
+                    </div>
 
-                     <button 
-                        onClick={() => handleJobClick(job)}
-                        className="px-4 py-2 bg-gradient-to-r from-[#2271B5] to-[#1a5a8f] text-white rounded-lg hover:shadow-md hover:-translate-y-0.5 transition-all text-xs font-bold flex items-center justify-center gap-1.5"
-                      >
-                        <ExternalLink size={14} />
-                        View Job
-                      </button>
+                    <button 
+                      onClick={() => handleJobClick(job)}
+                      className="w-full py-2 bg-gradient-to-r from-indigo-600 to-blue-700 text-white rounded-xl hover:shadow-lg transition-all duration-300 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 group/btn active:scale-[0.98]"
+                    >
+                      <ExternalLink size={12} />
+                      View Application
+                    </button>
                   </div>
                 </div>
               ))}

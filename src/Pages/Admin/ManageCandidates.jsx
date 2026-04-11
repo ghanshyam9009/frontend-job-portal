@@ -509,10 +509,12 @@ const ManageCandidates = () => {
                   return (
                     <div
                       key={task.task_id || `${task.job_id}-${task.student_id}`}
-                      className="flex items-center justify-between px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      onClick={() => matchedCandidate && handleViewApplications(matchedCandidate)}
+                      className={`flex items-center justify-between px-2 py-2 rounded-lg transition-colors ${matchedCandidate ? "hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer group" : ""}`}
+                      title={matchedCandidate ? "View Candidate Applications" : ""}
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="w-9 h-9 rounded-full overflow-hidden bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center text-xs font-bold text-amber-700 dark:text-amber-300 flex-shrink-0">
+                        <div className="w-9 h-9 rounded-full overflow-hidden bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center text-xs font-bold text-amber-700 dark:text-amber-300 flex-shrink-0 group-hover:scale-105 transition-transform">
                           {matchedCandidate?.logo ? (
                             <img src={matchedCandidate.logo} alt="" className="w-full h-full object-cover" />
                           ) : (
@@ -520,15 +522,22 @@ const ManageCandidates = () => {
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className={`text-sm font-semibold ${textColor} truncate`}>
-                            {displayTitle}
+                          <p className={`text-sm font-semibold ${textColor} truncate ${matchedCandidate ? "group-hover:text-indigo-600 dark:group-hover:text-indigo-400" : ""}`}>
+                            {task.student_id != null ? (matchedCandidate?.name || `Candidate id ${task.student_id}`) : "New application"}
                           </p>
                           <p className={`text-xs ${textSecondary} truncate`}>
-                            {task.student_id != null ? (matchedCandidate?.name || `Candidate id ${task.student_id}`) : "New application"}
+                            {task.student_id != null ? (matchedCandidate?.email || `Candidate id ${task.student_id}`) : "New application"}
                           </p>
                         </div>
                       </div>
-                      <span className={`text-xs ${textSecondary} flex-shrink-0 ml-2`}>{formatTaskDate(task)}</span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className={`text-xs ${textSecondary} flex-shrink-0 ml-2`}>{formatTaskDate(task)}</span>
+                        {matchedCandidate && (
+                          <div className="flex items-center gap-1 text-[10px] text-indigo-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                            View Applications <ArrowRight size={10} />
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -572,8 +581,8 @@ const ManageCandidates = () => {
           {/* Message Display */}
           {message.text && (
             <div className={`mb-6 rounded-lg p-4 ${message.type === 'success'
-                ? 'bg-green-50 text-green-700 border border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800'
-                : 'bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800'
+              ? 'bg-green-50 text-green-700 border border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800'
+              : 'bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800'
               }`}>
               <div className="flex items-center gap-2">
                 {message.type === 'success' ? (
@@ -610,8 +619,8 @@ const ManageCandidates = () => {
                   <button
                     onClick={() => setStatusFilter('all')}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${statusFilter === 'all'
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
-                        : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
+                      : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
                       }`}
                   >
                     All ({candidates.length})
@@ -619,8 +628,8 @@ const ManageCandidates = () => {
                   <button
                     onClick={() => setStatusFilter('active')}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${statusFilter === 'active'
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
-                        : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
+                      : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
                       }`}
                   >
                     Active ({activeCount})
@@ -816,8 +825,8 @@ const ManageCandidates = () => {
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
                 className={`px-4 py-2 rounded-lg text-sm font-medium ${currentPage === 1
-                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
-                    : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+                  : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
                   }`}
               >
                 Previous
@@ -829,8 +838,8 @@ const ManageCandidates = () => {
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage === totalPages}
                 className={`px-4 py-2 rounded-lg text-sm font-medium ${currentPage === totalPages
-                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
-                    : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+                  : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
                   }`}
               >
                 Next

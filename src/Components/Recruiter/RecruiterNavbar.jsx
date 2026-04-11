@@ -384,12 +384,12 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                 </button>
               </div>
 
-              {/* Profile Info (Candidate-style centered) */}
-              <div className={`mb-2 p-2 rounded-xl shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
-                <div className="flex flex-col items-center justify-center text-center gap-2 mb-4">
+              {/* Profile Info (Candidate-style centered - Compact) */}
+              <div className={`mb-4 p-1.5 rounded-xl shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
+                <div className="flex flex-col items-center justify-center text-center gap-1.5 mb-3">
                   <div
-                    style={{ width: 180, height: 180 }}
-                    className="rounded-xl bg-blue-50 text-[#2271B5] shadow-inner border border-blue-100 flex items-center justify-center text-3xl font-bold overflow-hidden mb-2"
+                    style={{ width: 90, height: 90 }}
+                    className="rounded-xl bg-blue-50 text-[#2271B5] shadow-inner border border-blue-100 flex items-center justify-center text-xl font-bold overflow-hidden mb-1"
                   >
                     {recruiterProfile?.company_logo ? (
                       <img
@@ -403,10 +403,10 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                     )}
                   </div>
                   <div>
-                    <div className={`text-lg font-bold ${textColor}`}>
+                    <div className={`text-base font-bold ${textColor}`}>
                       {recruiterProfile?.company_name || recruiterProfile?.name || 'Company'}
                     </div>
-                    <div className={`text-sm ${textSecondary} mt-0.5 font-medium`}>
+                    <div className={`text-xs ${textSecondary} mt-0.5 font-medium`}>
                       {user?.email || 'recruiter@example.com'}
                     </div>
                   </div>
@@ -414,8 +414,8 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
 
                 {/* Access Status */}
                 {!canAccessJobFeatures && (
-                  <div className="mt-4 p-3 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-900/40">
-                    <p className="text-xs text-yellow-800 dark:text-yellow-200 leading-relaxed">
+                  <div className="mt-2 p-2.5 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-900/40">
+                    <p className="text-[11px] text-yellow-800 dark:text-yellow-200 leading-relaxed font-medium">
                       {restrictionMessage}
                     </p>
                   </div>
@@ -424,7 +424,7 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                 {/* Quick Action */}
                 <button
                   onMouseDown={() => { navigate('/company-profile'); setShowProfileSidebar(false); }}
-                  className="block w-full mt-4 py-2.5 text-center text-sm font-bold text-white bg-[#2271B5] hover:bg-[#1a5a8f] shadow-md hover:shadow-lg rounded-lg transition-all"
+                  className="block w-full mt-3 py-2 text-center text-sm font-bold text-white bg-[#2271B5] hover:bg-[#1a5a8f] shadow-md hover:shadow-lg rounded-lg transition-all"
                 >
                   {canAccessJobFeatures ? 'Edit Company Profile' : 'Complete Profile'}
                 </button>

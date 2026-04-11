@@ -334,6 +334,10 @@ const ManageEmployers = () => {
     navigate(`/admin/employers/jobs/${employerId}`);
   };
 
+  const handleViewJobDetail = (job) => {
+    navigate(`/job/${job.id || job.job_id}`);
+  };
+
   const handleBlockRecruiter = async (recruiter) => {
     if (!recruiter || !recruiter.email) {
       console.error('Invalid recruiter data:', recruiter);
@@ -548,88 +552,88 @@ const ManageEmployers = () => {
       {/* Header – Job Reports view par poora block (title, Export, Refresh, cards) hide */}
       <div className={`${cardBg} ${viewMode !== "reports" ? `border-b ${borderColor} sticky top-0 z-40` : ""}`}>
         {viewMode !== "reports" && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className={`text-xl sm:text-2xl font-bold ${textColor}`}>Manage Employers</h1>
-              <p className={`text-sm ${textSecondary} mt-1`}>View and manage all registered employers</p>
-            </div>
-            {/* Quick actions like dashboard refresh/export */}
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={handleDownloadCSV}
-                className={`px-4 py-2 bg-white dark:bg-gray-800 border ${borderColor} text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium flex items-center gap-2 shadow-sm`}
-              >
-                <Download size={18} />
-                <span className="hidden sm:inline">Export</span>
-              </button>
-              <button
-                onClick={() => {
-                  fetchRecruiters();
-                  fetchJobReports();
-                }}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center gap-2 shadow-sm"
-              >
-                <RefreshCw size={18} />
-                <span className="hidden sm:inline">Refresh</span>
-              </button>
-            </div>
-          </div>
-
-          {/* 4 cards sirf overview par – Total Employee / Job Report open hone par nahi dikhenge */}
-          {viewMode === "overview" && (
-            <div className="mt-4 flex flex-col lg:flex-row lg:items-stretch gap-6 pb-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
-                {/* Total Employers */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h1 className={`text-xl sm:text-2xl font-bold ${textColor}`}>Manage Employers</h1>
+                <p className={`text-sm ${textSecondary} mt-1`}>View and manage all registered employers</p>
+              </div>
+              {/* Quick actions like dashboard refresh/export */}
+              <div className="flex items-center space-x-4">
                 <button
-                  type="button"
-                  onClick={() => handleSummaryCardClick("employers")}
-                  className={`${cardBg} rounded-xl shadow-lg p-6 border-l-4 border-blue-500 transform transition-all hover:-translate-y-1 hover:shadow-xl cursor-pointer text-left w-full block`}
+                  onClick={handleDownloadCSV}
+                  className={`px-4 py-2 bg-white dark:bg-gray-800 border ${borderColor} text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium flex items-center gap-2 shadow-sm`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className={`${textSecondary} text-sm font-medium`}>Total Employers</p>
-                      <h3 className={`text-3xl font-bold ${textColor} mt-2`}>
-                        {totalEmployers}
-                      </h3>
-                      <p className="text-green-600 text-sm mt-2 flex items-center gap-1">
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" />
-                        Active companies
-                      </p>
-                    </div>
-                    <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                      <Building className="text-blue-500" size={28} />
-                    </div>
-                  </div>
+                  <Download size={18} />
+                  <span className="hidden sm:inline">Export</span>
                 </button>
-
-                {/* Employer Job Reports */}
                 <button
-                  type="button"
-                  onClick={() => handleSummaryCardClick("reports")}
-                  className={`${cardBg} rounded-xl shadow-lg p-6 border-l-4 border-indigo-500 transform transition-all hover:-translate-y-1 hover:shadow-xl cursor-pointer text-left w-full block`}
+                  onClick={() => {
+                    fetchRecruiters();
+                    fetchJobReports();
+                  }}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center gap-2 shadow-sm"
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className={`${textSecondary} text-sm font-medium`}>Job Reports</p>
-                      <h3 className={`text-3xl font-bold ${textColor} mt-2`}>
-                        {totalJobs}
-                      </h3>
-                      <p className="text-indigo-600 text-sm mt-2 flex items-center gap-1">
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                        Employer posted
-                      </p>
-                    </div>
-                    <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center">
-                      <Briefcase className="text-indigo-500" size={28} />
-                    </div>
-                  </div>
+                  <RefreshCw size={18} />
+                  <span className="hidden sm:inline">Refresh</span>
                 </button>
               </div>
             </div>
-          )}
 
-        </div>
+            {/* 4 cards sirf overview par – Total Employee / Job Report open hone par nahi dikhenge */}
+            {viewMode === "overview" && (
+              <div className="mt-4 flex flex-col lg:flex-row lg:items-stretch gap-6 pb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
+                  {/* Total Employers */}
+                  <button
+                    type="button"
+                    onClick={() => handleSummaryCardClick("employers")}
+                    className={`${cardBg} rounded-xl shadow-lg p-6 border-l-4 border-blue-500 transform transition-all hover:-translate-y-1 hover:shadow-xl cursor-pointer text-left w-full block`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className={`${textSecondary} text-sm font-medium`}>Total Employers</p>
+                        <h3 className={`text-3xl font-bold ${textColor} mt-2`}>
+                          {totalEmployers}
+                        </h3>
+                        <p className="text-green-600 text-sm mt-2 flex items-center gap-1">
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" />
+                          Active companies
+                        </p>
+                      </div>
+                      <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                        <Building className="text-blue-500" size={28} />
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Employer Job Reports */}
+                  <button
+                    type="button"
+                    onClick={() => handleSummaryCardClick("reports")}
+                    className={`${cardBg} rounded-xl shadow-lg p-6 border-l-4 border-indigo-500 transform transition-all hover:-translate-y-1 hover:shadow-xl cursor-pointer text-left w-full block`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className={`${textSecondary} text-sm font-medium`}>Job Reports</p>
+                        <h3 className={`text-3xl font-bold ${textColor} mt-2`}>
+                          {totalJobs}
+                        </h3>
+                        <p className="text-indigo-600 text-sm mt-2 flex items-center gap-1">
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                          Employer posted
+                        </p>
+                      </div>
+                      <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center">
+                        <Briefcase className="text-indigo-500" size={28} />
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+
+          </div>
         )}
 
         {viewMode === "overview" && (
@@ -655,10 +659,12 @@ const ManageEmployers = () => {
                   {recentApprovedEmployers.map((r) => (
                     <div
                       key={r.id || r.employer_id || r.email}
-                      className="flex items-center justify-between px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+                      onClick={() => handleViewProfile(r)}
+                      className="flex items-center justify-between px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-all group"
+                      title="View Employer Profile"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-full overflow-hidden bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-xs font-bold text-blue-700 dark:text-blue-300 flex-shrink-0">
+                        <div className="w-9 h-9 rounded-full overflow-hidden bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-xs font-bold text-blue-700 dark:text-blue-300 flex-shrink-0 group-hover:scale-105 transition-transform">
                           {(r.logo || r.company_logo) ? (
                             <img src={r.logo || r.company_logo} alt={r.company_name || 'Company'} className="w-full h-full object-cover" />
                           ) : (
@@ -666,13 +672,18 @@ const ManageEmployers = () => {
                           )}
                         </div>
                         <div className="min-w-0">
-                          <p className={`text-sm font-semibold ${textColor} truncate`}>{r.company_name || 'Company'}</p>
+                          <p className={`text-sm font-semibold ${textColor} truncate group-hover:text-blue-600 dark:group-hover:text-blue-400`}>{r.company_name || 'Company'}</p>
                           <p className={`text-xs ${textSecondary} truncate`}>{r.email || 'N/A'}</p>
                         </div>
                       </div>
-                      <span className={`text-xs ${textSecondary}`}>
-                        {formatDate(r)}
-                      </span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className={`text-xs ${textSecondary}`}>
+                          {formatDate(r)}
+                        </span>
+                        <div className="flex items-center gap-1 text-[10px] text-blue-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                          View Profile <ArrowRight size={10} />
+                        </div>
+                      </div>
                     </div>
                   ))}
                   {recentApprovedEmployers.length === 0 && (
@@ -700,52 +711,59 @@ const ManageEmployers = () => {
                   {recentJobs.map((job) => {
                     const logoUrl = getJobLogoUrl(job);
                     return (
-                    <div
-                      key={job.id || job.job_id}
-                      className="flex items-center justify-between gap-2 px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
-                    >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div
-                          className={`w-10 h-10 rounded-lg flex-shrink-0 overflow-hidden border ${borderColor} flex items-center justify-center ${isDark ? "bg-gray-700/80" : "bg-white"}`}
-                        >
-                          {logoUrl ? (
-                            <img
-                              src={logoUrl}
-                              alt=""
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                              onError={(e) => {
-                                e.currentTarget.onerror = null;
-                                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                                  job.company_name || "Company"
-                                )}&background=2563eb&color=fff&size=64`;
-                              }}
-                            />
-                          ) : (
-                            <span className={`text-xs font-bold ${textSecondary}`}>
-                              {getInitials(job.company_name || "Job")}
-                            </span>
-                          )}
+                      <div
+                        key={job.id || job.job_id}
+                        onClick={() => handleViewJobDetail(job)}
+                        className="flex items-center justify-between gap-2 px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-all group"
+                        title="View Job Details"
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div
+                            className={`w-10 h-10 rounded-lg flex-shrink-0 overflow-hidden border ${borderColor} flex items-center justify-center ${isDark ? "bg-gray-700/80" : "bg-white"} group-hover:scale-105 transition-transform`}
+                          >
+                            {logoUrl ? (
+                              <img
+                                src={logoUrl}
+                                alt=""
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                                onError={(e) => {
+                                  e.currentTarget.onerror = null;
+                                  e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                                    job.company_name || "Company"
+                                  )}&background=2563eb&color=fff&size=64`;
+                                }}
+                              />
+                            ) : (
+                              <span className={`text-xs font-bold ${textSecondary}`}>
+                                {getInitials(job.company_name || "Job")}
+                              </span>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className={`text-sm font-semibold ${textColor} truncate group-hover:text-green-600 dark:group-hover:text-green-400`}>
+                              {job.job_title || 'Job'}
+                            </p>
+                            <p className={`text-xs ${textSecondary} truncate`}>
+                              {job.company_name || 'Company'} • {job.location || 'N/A'}
+                            </p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className={`text-sm font-semibold ${textColor} truncate`}>
-                            {job.job_title || 'Job'}
-                          </p>
-                          <p className={`text-xs ${textSecondary} truncate`}>
-                            {job.company_name || 'Company'} • {job.location || 'N/A'}
-                          </p>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className={`text-xs ${textSecondary} flex-shrink-0`}>
+                            {job.created_at
+                              ? new Date(job.created_at).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })
+                              : 'N/A'}
+                          </span>
+                          <div className="flex items-center gap-1 text-[10px] text-green-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                            View Job <ArrowRight size={10} />
+                          </div>
                         </div>
                       </div>
-                      <span className={`text-xs ${textSecondary} flex-shrink-0`}>
-                        {job.created_at
-                          ? new Date(job.created_at).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })
-                          : 'N/A'}
-                      </span>
-                    </div>
                     );
                   })}
                   {recentJobs.length === 0 && (

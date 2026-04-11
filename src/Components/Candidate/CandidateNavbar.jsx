@@ -418,11 +418,11 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                 </div>
 
                 {/* Profile Info */}
-                <div className={`mb-6 p-2 rounded-xl shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
-                  <div className="flex flex-col items-center justify-center text-center gap-2 mb-4">
+                <div className={`mb-4 p-1.5 rounded-xl shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
+                  <div className="flex flex-col items-center justify-center text-center gap-1.5 mb-3">
                     <div
-                      style={{ width: 180, height: 180 }}
-                      className="rounded-xl bg-blue-50 text-[#2271B5] shadow-inner border border-blue-100 flex items-center justify-center text-3xl font-bold overflow-hidden mb-2"
+                      style={{ width: 90, height: 90 }}
+                      className="rounded-xl bg-blue-50 text-[#2271B5] shadow-inner border border-blue-100 flex items-center justify-center text-xl font-bold overflow-hidden mb-1"
                     >
                       {user?.logo ? (
                         <img
@@ -436,27 +436,20 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                       )}
                     </div>
                     <div>
-                      <div className={`text-lg font-bold ${textColor}`}>
+                      <div className={`text-base font-bold ${textColor}`}>
                         {user?.full_name || user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User'}
                       </div>
-                      <div className={`text-sm ${textSecondary} mt-0.5 font-medium`}>
-                        {user?.email || 'user@example.com'}
+                      <div className={`text-xs ${textSecondary} mt-0.5 font-medium`}>
+                        {user?.email || 'user@email.com'}
                       </div>
                     </div>
                   </div>
 
                   {/* Profile Completion */}
                   <div className="border-t border-gray-100 dark:border-gray-700">
-                    {/* <div className="flex justify-between items-center mb-2">
-                      <span className={`text-sm font-semibold ${textSecondary}`}>Profile Status</span>
-                      <span className={`text-sm font-bold text-[#2271B5]`}>{profileCompletion}%</span>
-                    </div>
-                    <div className={`w-full h-2 rounded-full ${isDark ? 'bg-gray-600' : 'bg-gray-200'}`}>
-                      <div className="h-2 bg-gradient-to-r from-blue-400 to-[#2271B5] rounded-full transition-all duration-500" style={{ width: `${profileCompletion}%` }}></div>
-                    </div> */}
                     <button
                       onMouseDown={() => { navigate('/profile'); setShowProfileSidebar(false); }}
-                      className="block w-full mt-4 py-2.5 text-center text-sm font-bold text-white bg-[#2271B5] hover:bg-[#1a5a8f] shadow-md hover:shadow-lg rounded-lg transition-all"
+                      className="block w-full mt-3 py-2 text-center text-sm font-bold text-white bg-[#2271B5] hover:bg-[#1a5a8f] shadow-md hover:shadow-lg rounded-lg transition-all"
                     >
                       Complete Profile
                     </button>

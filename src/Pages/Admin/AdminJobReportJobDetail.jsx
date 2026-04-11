@@ -148,7 +148,6 @@ const AdminJobReportJobDetail = () => {
     const load = async () => {
       setError("");
       try {
-        // getJobDetailForReport: getjobdetail → getalljobs?job_id= → full list
         const resolved = await adminService.getJobDetailForReport(jobId);
         if (cancelled) return;
         if (!resolved) {
@@ -189,7 +188,7 @@ const AdminJobReportJobDetail = () => {
         setApplicationCount(res?.application_count ?? 0);
       })
       .catch((e) => {
-        console.error("Failed to load application count from getallappplicants:", e);
+        console.error("Failed to load application count:", e);
         if (!cancelled) setApplicationCount(null);
       })
       .finally(() => {
@@ -201,14 +200,13 @@ const AdminJobReportJobDetail = () => {
   }, [jobId]);
 
   const isDark = theme === "dark";
-  const bgColor = isDark ? "bg-gray-900" : "bg-gray-50";
-  const cardBg = isDark ? "bg-gray-800" : "bg-white";
-  const textColor = isDark ? "text-white" : "text-gray-900";
-  const textSecondary = isDark ? "text-gray-400" : "text-gray-600";
-  const borderColor = isDark ? "border-gray-700" : "border-gray-200";
+  const bgColor = isDark ? "bg-[#0f172a]" : "bg-[#f8fafc]";
+  const cardBg = isDark ? "bg-[#1e293b]" : "bg-white";
+  const textColor = isDark ? "text-slate-100" : "text-slate-900";
+  const textSecondary = isDark ? "text-slate-400" : "text-slate-500";
+  const borderColor = isDark ? "border-slate-700/50" : "border-slate-200";
 
-  const description =
-    job?.job_description || job?.description || job?.new_description || "";
+  const description = job?.job_description || job?.description || job?.new_description || "";
   const responsibilitiesList = toStringArray(job?.responsibilities);
   const qualificationsList = toStringArray(job?.qualifications);
   const benefitsList = toStringArray(job?.additional_benefits);
@@ -221,15 +219,17 @@ const AdminJobReportJobDetail = () => {
   const logoUrl = job ? getJobLogoUrl(job) : null;
   const jobTypeLabel = (job?.job_type || "").toString().trim();
   const statusVerified = (job?.status_verified || "").toString().trim();
-  const editVerified = (job?.edit_verified || "").toString().trim();
-  const editState = (job?.edit || "").toString().trim();
 
   if (loading && !job) {
     return (
-      <div className={`min-h-screen ${bgColor} flex items-center justify-center`}>
-        <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center max-w-lg`}>
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4" />
-          <p className={textColor}>Loading job…</p>
+      <div className={`min-h-screen ${bgColor} flex items-center justify-center p-6`}>
+        <div className="relative group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
+          <div className={`${cardBg} relative rounded-2xl border ${borderColor} p-8 text-center max-w-sm w-full shadow-2xl backdrop-blur-xl`}>
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500/20 border-t-blue-500 mx-auto mb-6" />
+            <p className={`text-lg font-semibold ${textColor}`}>Fetching job details...</p>
+            <p className={`text-sm ${textSecondary} mt-2`}>Optimizing your workspace</p>
+          </div>
         </div>
       </div>
     );
@@ -237,492 +237,316 @@ const AdminJobReportJobDetail = () => {
 
   if (error && !job) {
     return (
-      <div className={`min-h-screen ${bgColor} px-4 py-8`}>
-        <div className="max-w-3xl mx-auto">
+      <div className={`min-h-screen ${bgColor} px-4 py-12`}>
+        <div className="max-w-xl mx-auto">
           <button
             type="button"
             onClick={() => navigate("/admin/job-application-reports")}
-            className={`flex items-center gap-2 mb-6 ${textSecondary} hover:opacity-80`}
+            className={`flex items-center gap-2 mb-8 ${textSecondary} hover:${textColor} transition-colors font-medium`}
           >
             <ArrowLeft size={20} />
-            Back to reports
+            Back to job reports
           </button>
-          <div className={`${cardBg} border ${borderColor} rounded-xl p-6 text-red-600 dark:text-red-400`}>
-            {error}
+          <div className={`${cardBg} border-l-4 border-red-500 rounded-2xl p-8 shadow-xl`}>
+            <div className="flex items-center gap-4 text-red-600 mb-4">
+              <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
+                <FileText size={24} />
+              </div>
+              <h3 className="text-xl font-bold">Oops! Something went wrong</h3>
+            </div>
+            <p className={`${textSecondary} text-lg leading-relaxed`}>{error}</p>
           </div>
         </div>
       </div>
     );
   }
 
-  const statusOpen =
-    job?.status === "open" || job?.job_status === "open";
-  const statusClosed =
-    job?.status === "closed" || job?.job_status === "closed";
+  const statusOpen = job?.status === "open" || job?.job_status === "open";
+  const statusClosed = job?.status === "closed" || job?.job_status === "closed";
 
   return (
-    <div className={`min-h-screen ${bgColor}`}>
-      <div className={`${cardBg} border-b ${borderColor} sticky top-0 z-40 shadow-sm`}>
-        <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <button
-              type="button"
-              onClick={() => navigate("/admin/job-application-reports")}
-              className={`inline-flex items-center justify-center p-2 rounded-xl shrink-0 hover:bg-gray-100 dark:hover:bg-gray-700 ${textColor}`}
-              aria-label="Back to reports"
-            >
-              <ArrowLeft size={22} />
-            </button>
-            {logoUrl ? (
-              <div
-                className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl overflow-hidden border ${borderColor} shrink-0 ${isDark ? "bg-gray-700" : "bg-white"}`}
+    <div className={`min-h-screen ${bgColor} pb-20`}>
+      {/* Sticky Top Header */}
+      <div className={`${cardBg} border-b ${borderColor} sticky top-0 z-50 backdrop-blur-md bg-opacity-80`}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 min-w-0">
+              <button
+                type="button"
+                onClick={() => navigate("/admin/job-application-reports")}
+                className={`flex items-center justify-center p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-all ${textColor} group`}
               >
-                <img
-                  src={logoUrl}
-                  alt=""
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                      job?.company_name || "Co"
-                    )}&background=2563eb&color=fff&size=64`;
-                  }}
-                />
+                <ArrowLeft size={22} className="group-hover:-translate-x-1 transition-transform" />
+              </button>
+              <div className="h-10 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+              <div className="flex items-center gap-3 min-w-0">
+                {logoUrl && (
+                  <div className={`w-10 h-10 rounded-xl overflow-hidden border ${borderColor} shrink-0 bg-white shadow-sm`}>
+                    <img
+                      src={logoUrl}
+                      alt=""
+                      className="w-full h-full object-contain p-1"
+                      onError={(e) => {
+                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(job?.company_name || "Co")}&background=random&color=fff`;
+                      }}
+                    />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <h1 className={`text-base sm:text-lg font-bold ${textColor} truncate leading-tight`}>
+                    {job?.job_title || "Job Details"}
+                  </h1>
+                  <p className={`text-xs ${textSecondary} truncate`}>
+                    {job?.company_name} · {job?.location}
+                  </p>
+                </div>
               </div>
-            ) : null}
-            <div className="flex-1 min-w-0">
-              <h1 className={`text-base sm:text-lg font-bold ${textColor} truncate`}>
-                {job?.job_title || "Job"}
-              </h1>
-              <p className={`text-xs sm:text-sm ${textSecondary} truncate`}>
-                {job?.company_name || "—"} · {job?.location || "—"}
-              </p>
+            </div>
+            
+            <div className="hidden sm:flex items-center gap-3">
+              <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${
+                statusOpen ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : 
+                statusClosed ? "bg-rose-500/10 text-rose-500 border border-rose-500/20" : 
+                "bg-slate-500/10 text-slate-500 border border-slate-500/20"
+              }`}>
+                {statusOpen ? "Active" : statusClosed ? "Closed" : "Unknown"}
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-4 sm:space-y-6">
-        {/* Hero — logo + title + status chips */}
-        <div className={`${cardBg} rounded-2xl border ${borderColor} overflow-hidden shadow-sm`}>
-          <div className="p-4 sm:p-6 lg:p-8">
-            <div className="flex flex-col sm:flex-row gap-5 sm:gap-8 items-center sm:items-start text-center sm:text-left">
-              <div
-                className={`w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-2xl overflow-hidden border-2 ${borderColor} flex items-center justify-center shrink-0 shadow-inner ${isDark ? "bg-gray-700/80" : "bg-white"}`}
-              >
-                {logoUrl ? (
-                  <img
-                    src={logoUrl}
-                    alt=""
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                        job?.company_name || "Co"
-                      )}&background=2563eb&color=fff&size=128`;
-                    }}
-                  />
-                ) : (
-                  <span className={`text-2xl sm:text-3xl font-bold ${textSecondary}`}>
-                    {getCompanyInitials(job?.company_name)}
-                  </span>
-                )}
-              </div>
-              <div className="flex-1 min-w-0 w-full space-y-4">
-                <div>
-                  <h2 className={`text-2xl sm:text-3xl font-bold ${textColor} leading-tight break-words`}>
-                    {job?.job_title || "—"}
-                  </h2>
-                  <p
-                    className={`mt-3 text-sm sm:text-base ${textSecondary} flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-x-3`}
-                  >
-                    <span className="inline-flex items-center justify-center sm:justify-start gap-2">
-                      <Building className="shrink-0 opacity-80" size={18} />
-                      <span className="break-words">{job?.company_name || "—"}</span>
-                    </span>
-                    <span className="hidden sm:inline opacity-40">|</span>
-                    <span className="inline-flex items-center justify-center sm:justify-start gap-2">
-                      <MapPin className="shrink-0 opacity-80" size={18} />
-                      <span>{job?.location || "—"}</span>
-                    </span>
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-                  <span
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
-                      statusOpen
-                        ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-600/40"
-                        : statusClosed
-                          ? "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-600/40"
-                          : "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
-                    }`}
-                  >
-                    {statusOpen ? "Active" : statusClosed ? "Closed" : job?.status || job?.job_status || "—"}
-                  </span>
-                  {job?.is_premium ? (
-                    <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border border-amber-300 bg-amber-50 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/40">
-                      <Star size={14} className="shrink-0" fill="currentColor" />
-                      Premium
-                    </span>
-                  ) : null}
-                  {jobTypeLabel ? (
-                    <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border border-indigo-200 bg-indigo-50 text-indigo-800 dark:bg-indigo-500/15 dark:text-indigo-300 dark:border-indigo-500/40">
-                      <Tag size={14} className="shrink-0" />
-                      {jobTypeLabel}
-                    </span>
-                  ) : null}
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${borderColor} ${textSecondary}`}
-                  >
-                    {applicationCountLoading ? (
-                      <>
-                        <span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin opacity-70" />
-                        Applications…
-                      </>
-                    ) : applicationCount !== null ? (
-                      <>
-                        <Users size={14} className="shrink-0 opacity-80" />
-                        {applicationCount} application{applicationCount === 1 ? "" : "s"}
-                      </>
-                    ) : job?.application_count != null ? (
-                      <>
-                        {job.application_count} application{job.application_count === 1 ? "" : "s"}{" "}
-                        <span className="opacity-70">(list)</span>
-                      </>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Main Content (Left Column) */}
+          <div className="lg:col-span-2 space-y-8">
+            
+            {/* Glassmorphic Hero Card */}
+            <div className="relative overflow-hidden rounded-3xl group">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-indigo-700 opacity-90 dark:opacity-80"></div>
+              <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl transition-transform group-hover:scale-125 duration-700"></div>
+              <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl"></div>
+              
+              <div className="relative p-8 sm:p-10 text-white">
+                <div className="flex flex-col sm:flex-row gap-6 items-start">
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 bg-white rounded-3xl p-3 shadow-2xl flex items-center justify-center shrink-0">
+                    {logoUrl ? (
+                      <img
+                        src={logoUrl}
+                        alt=""
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(job?.company_name || "Co")}&background=000&color=fff&size=128`;
+                        }}
+                      />
                     ) : (
-                      "Applications unavailable"
+                      <span className="text-3xl font-black text-indigo-600">
+                        {getCompanyInitials(job?.company_name)}
+                      </span>
                     )}
-                  </span>
-                  {statusVerified ? (
-                    <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border border-emerald-200 bg-emerald-50 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/40">
-                      <ShieldCheck size={14} className="shrink-0" />
-                      Listing {statusVerified}
-                    </span>
-                  ) : null}
-                  {editVerified ? (
-                    <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border border-sky-200 bg-sky-50 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300 dark:border-sky-500/40">
-                      <ShieldCheck size={14} className="shrink-0" />
-                      Edit {editVerified}
-                    </span>
-                  ) : null}
-                  {editState ? (
-                    <span
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium border ${borderColor} ${textSecondary}`}
-                    >
-                      Edit: {editState}
-                    </span>
-                  ) : null}
-                  {typeof job?.to_show_user === "boolean" ? (
-                    <span
-                      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border ${borderColor}`}
-                    >
-                      {job.to_show_user ? (
-                        <>
-                          <Eye size={14} className="shrink-0" />
-                          Public on site
-                        </>
-                      ) : (
-                        <>
-                          <EyeOff size={14} className="shrink-0" />
-                          Hidden from listings
-                        </>
-                      )}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className={`${cardBg} rounded-2xl border ${borderColor} p-4 sm:p-6 lg:p-8 shadow-sm space-y-6 sm:space-y-8`}>
-          <div>
-            <h2 className={`text-base font-semibold ${textColor} mb-3 flex items-center gap-2`}>
-              <Briefcase size={18} className="text-purple-500 shrink-0" />
-              Basic information
-            </h2>
-            <div className="grid sm:grid-cols-2 gap-4 text-sm">
-              <div className={`flex items-start gap-2 ${textSecondary}`}>
-                <Hash size={18} className="shrink-0 mt-0.5" />
-                <div>
-                  <span className={`block text-xs uppercase tracking-wide ${textSecondary}`}>
-                    Job ID
-                  </span>
-                  <span className={textColor}>{jobNumericId != null ? String(jobNumericId) : "—"}</span>
-                </div>
-              </div>
-              <div className={`flex items-start gap-2 ${textSecondary}`}>
-                <Building size={18} className="shrink-0 mt-0.5" />
-                <div>
-                  <span className={`block text-xs uppercase tracking-wide ${textSecondary}`}>
-                    Company
-                  </span>
-                  <span className={textColor}>{job?.company_name || "—"}</span>
-                </div>
-              </div>
-              <div className={`flex items-start gap-2 ${textSecondary}`}>
-                <MapPin size={18} className="shrink-0 mt-0.5" />
-                <div>
-                  <span className={`block text-xs uppercase tracking-wide ${textSecondary}`}>
-                    Location
-                  </span>
-                  <span className={textColor}>{job?.location || "—"}</span>
-                </div>
-              </div>
-              <div className={`flex items-start gap-2 ${textSecondary}`}>
-                <Briefcase size={18} className="shrink-0 mt-0.5" />
-                <div>
-                  <span className={`block text-xs uppercase tracking-wide ${textSecondary}`}>
-                    Employment type
-                  </span>
-                  <span className={textColor}>
-                    {job?.employment_type || job?.job_type_detail || "—"}
-                  </span>
-                </div>
-              </div>
-              <div className={`flex items-start gap-2 ${textSecondary}`}>
-                <Tag size={18} className="shrink-0 mt-0.5" />
-                <div>
-                  <span className={`block text-xs uppercase tracking-wide ${textSecondary}`}>
-                    Job category
-                  </span>
-                  <span className={textColor}>{jobTypeLabel || "—"}</span>
-                </div>
-              </div>
-              <div className={`flex items-start gap-2 ${textSecondary}`}>
-                <Laptop size={18} className="shrink-0 mt-0.5" />
-                <div>
-                  <span className={`block text-xs uppercase tracking-wide ${textSecondary}`}>
-                    Work mode
-                  </span>
-                  <span className={textColor}>{workMode || "—"}</span>
-                </div>
-              </div>
-              <div className={`flex items-start gap-2 ${textSecondary}`}>
-                <Calendar size={18} className="shrink-0 mt-0.5" />
-                <div>
-                  <span className={`block text-xs uppercase tracking-wide ${textSecondary}`}>
-                    Posted
-                  </span>
-                  <span className={textColor}>{formatDate(job?.created_at)}</span>
-                </div>
-              </div>
-              {job?.updated_at && (
-                <div className={`flex items-start gap-2 ${textSecondary}`}>
-                  <Calendar size={18} className="shrink-0 mt-0.5" />
-                  <div>
-                    <span className={`block text-xs uppercase tracking-wide ${textSecondary}`}>
-                      Last updated
-                    </span>
-                    <span className={textColor}>{formatDate(job.updated_at)}</span>
+                  </div>
+                  
+                  <div className="flex-1 space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {statusOpen && <span className="px-2.5 py-1 bg-emerald-400/20 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-widest text-emerald-300 border border-emerald-400/30">Live Now</span>}
+                        {job?.is_premium && <span className="px-2.5 py-1 bg-amber-400/20 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-widest text-amber-300 border border-amber-400/30 flex items-center gap-1.5"><Star size={12} fill="currentColor" /> Premium Listing</span>}
+                      </div>
+                      <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight">
+                        {job?.job_title}
+                      </h2>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-blue-100/80">
+                        <div className="flex items-center gap-1.5 hover:text-white transition-colors cursor-default">
+                          <Building size={18} className="opacity-70" />
+                          <span className="font-medium">{job?.company_name}</span>
+                        </div>
+                        <div className="w-1 h-1 bg-white/30 rounded-full hidden sm:block"></div>
+                        <div className="flex items-center gap-1.5 hover:text-white transition-colors cursor-default">
+                          <MapPin size={18} className="opacity-70" />
+                          <span className="font-medium">{job?.location}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              )}
-              {(postedBy || job?.employer_id != null || job?.recruiter_id != null) && (
-                <div className={`sm:col-span-2 flex flex-wrap gap-x-4 gap-y-1 text-xs ${textSecondary}`}>
-                  {postedBy && (
-                    <span>
-                      Posted by: <span className={textColor}>{postedBy}</span>
-                    </span>
-                  )}
-                  {job?.employer_id != null && (
-                    <span>
-                      Employer ID: <span className={textColor}>{String(job.employer_id)}</span>
-                    </span>
-                  )}
-                  {job?.recruiter_id != null && (
-                    <span>
-                      Recruiter ID: <span className={textColor}>{String(job.recruiter_id)}</span>
-                    </span>
-                  )}
+              </div>
+            </div>
+
+            {/* Content Sections */}
+            <div className={`${cardBg} rounded-[2rem] border ${borderColor} shadow-sm overflow-hidden`}>
+              <div className="p-8 sm:p-10 space-y-12">
+                
+                {/* Description */}
+                <section>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2.5 bg-blue-500/10 rounded-xl">
+                      <FileText size={22} className="text-blue-500" />
+                    </div>
+                    <h3 className={`text-xl font-bold ${textColor}`}>Job Description</h3>
+                  </div>
+                  <div className={`prose prose-slate dark:prose-invert max-w-none text-base leading-relaxed ${textSecondary}`}>
+                    {description || "No detailed description provided for this position."}
+                  </div>
+                </section>
+
+                {/* Responsibilities */}
+                {responsibilitiesList.length > 0 && (
+                  <section>
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2.5 bg-indigo-500/10 rounded-xl">
+                        <ShieldCheck size={22} className="text-indigo-500" />
+                      </div>
+                      <h3 className={`text-xl font-bold ${textColor}`}>Key Responsibilities</h3>
+                    </div>
+                    <ul className="grid sm:grid-cols-2 gap-4">
+                      {responsibilitiesList.map((item, idx) => (
+                        <li key={idx} className={`flex items-start gap-3 p-4 rounded-2xl border ${borderColor} hover:border-indigo-300 dark:hover:border-indigo-500 transition-all group`}>
+                          <div className="mt-1 w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0 group-hover:scale-150 transition-transform"></div>
+                          <span className={`${textSecondary} text-sm`}>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+
+                {/* Qualifications */}
+                {qualificationsList.length > 0 && (
+                  <section>
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2.5 bg-purple-500/10 rounded-xl">
+                        <Tag size={22} className="text-purple-500" />
+                      </div>
+                      <h3 className={`text-xl font-bold ${textColor}`}>Qualifications</h3>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      {qualificationsList.map((item, idx) => (
+                        <span key={idx} className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${borderColor} ${textSecondary} text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors`}>
+                          <div className="w-1.5 h-1.5 rounded-full bg-purple-400"></div>
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Sidebar (Details & Actions) */}
+          <div className="space-y-6">
+            
+            {/* Quick Summary Card */}
+            <div className={`${cardBg} rounded-3xl border ${borderColor} p-6 shadow-sm space-y-6`}>
+              <h3 className={`text-lg font-bold ${textColor} flex items-center gap-2`}>
+                <Clock size={20} className="text-indigo-500" />
+                Employment Summary
+              </h3>
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50">
+                  <div className="flex items-center gap-3">
+                    <Briefcase size={18} className="text-slate-400" />
+                    <span className={`text-sm ${textSecondary}`}>Job Type</span>
+                  </div>
+                  <span className={`text-sm font-bold ${textColor}`}>{jobTypeLabel || "Full-time"}</span>
                 </div>
-              )}
-            </div>
-          </div>
+                
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50">
+                  <div className="flex items-center gap-3">
+                    <Laptop size={18} className="text-slate-400" />
+                    <span className={`text-sm ${textSecondary}`}>Work Mode</span>
+                  </div>
+                  <span className={`text-sm font-bold ${textColor}`}>{workMode || "In-office"}</span>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50">
+                  <div className="flex items-center gap-3">
+                    <Hash size={18} className="text-slate-400" />
+                    <span className={`text-sm ${textSecondary}`}>Experience</span>
+                  </div>
+                  <span className={`text-sm font-bold ${textColor}`}>{formatExperience(job)}</span>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
+                  <div className="flex items-center gap-3">
+                    <Gift size={18} className="text-emerald-500" />
+                    <span className={`text-sm text-emerald-600 dark:text-emerald-400`}>Salary</span>
+                  </div>
+                  <span className={`text-sm font-black text-emerald-600 dark:text-emerald-400`}>{formatJobSalary(job)}</span>
+                </div>
+              </div>
 
-          <div className={`grid sm:grid-cols-2 gap-4 pt-2 border-t ${borderColor}`}>
-            <div>
-              <h3 className={`text-xs font-semibold uppercase tracking-wide ${textSecondary} mb-1`}>
-                Salary
-              </h3>
-              <p className={`text-sm ${textColor}`}>{formatJobSalary(job)}</p>
-            </div>
-            <div>
-              <h3 className={`text-xs font-semibold uppercase tracking-wide ${textSecondary} mb-1`}>
-                Experience
-              </h3>
-              <p className={`text-sm ${textColor}`}>{formatExperience(job)}</p>
-            </div>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className={`flex items-start gap-2 text-sm ${textSecondary}`}>
-              <Mail size={18} className="shrink-0 mt-0.5" />
-              <div className="min-w-0">
-                <span className={`block text-xs uppercase tracking-wide ${textSecondary}`}>
-                  Contact email
-                </span>
-                {contactEmail ? (
-                  <a
-                    href={`mailto:${contactEmail}`}
-                    className={`${textColor} break-all hover:underline`}
-                  >
-                    {contactEmail}
-                  </a>
-                ) : (
-                  <span className={textColor}>—</span>
-                )}
+              <div className="pt-4 space-y-3">
+                <button
+                  onClick={() => navigate(`/admin/job-reports/applications/${jobId}`, {
+                    state: { jobTitle: job?.job_title, companyName: job?.company_name },
+                  })}
+                  className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+                >
+                  <Users size={20} />
+                  View {applicationCountLoading ? "..." : applicationCount} Applications
+                </button>
+                
+                <button
+                  onClick={() => navigate(`/admin/edit-job/${job?.job_id || job?.id || jobId}`, {
+                    state: { employer_id: job?.employer_id },
+                  })}
+                  className={`w-full py-4 border-2 border-slate-200 dark:border-slate-700 ${textColor} hover:border-indigo-400 dark:hover:border-indigo-600 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95`}
+                >
+                  <Briefcase size={20} />
+                  Edit Position
+                </button>
               </div>
             </div>
-            <div className={`flex items-start gap-2 text-sm ${textSecondary}`}>
-              <Phone size={18} className="shrink-0 mt-0.5" />
-              <div className="min-w-0">
-                <span className={`block text-xs uppercase tracking-wide ${textSecondary}`}>
-                  Contact number
-                </span>
-                {contactPhone ? (
-                  <a href={`tel:${contactPhone.replace(/\s/g, "")}`} className={`${textColor} break-all hover:underline`}>
-                    {contactPhone}
-                  </a>
-                ) : (
-                  <span className={textColor}>—</span>
-                )}
+
+            {/* Contact Info Card */}
+            <div className={`${cardBg} rounded-3xl border border-dashed ${borderColor} p-6 space-y-5`}>
+              <h4 className={`text-sm font-black uppercase tracking-widest ${textSecondary}`}>Recruiter Contact</h4>
+              
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 group">
+                  <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl group-hover:bg-indigo-500 transition-colors">
+                    <Mail size={16} className="text-indigo-600 dark:text-indigo-400 group-hover:text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className={`text-[10px] font-bold uppercase ${textSecondary}`}>Email Address</p>
+                    <a href={`mailto:${contactEmail}`} className={`text-sm font-semibold ${textColor} truncate block hover:text-indigo-600`}>
+                      {contactEmail || "No email available"}
+                    </a>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 group">
+                  <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl group-hover:bg-indigo-500 transition-colors">
+                    <Phone size={16} className="text-indigo-600 dark:text-indigo-400 group-hover:text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className={`text-[10px] font-bold uppercase ${textSecondary}`}>Phone Number</p>
+                    <a href={`tel:${contactPhone}`} className={`text-sm font-semibold ${textColor} truncate block hover:text-indigo-600`}>
+                      {contactPhone || "No contact number"}
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div>
-            <h3 className={`text-xs font-semibold uppercase tracking-wide ${textSecondary} mb-1 flex items-center gap-2`}>
-              <Clock size={16} className="shrink-0" />
-              Application deadline
-            </h3>
-            <p className={`text-sm ${textColor}`}>
-              {job?.application_deadline ? formatDate(job.application_deadline) : "—"}
-            </p>
-          </div>
-
-          <div>
-            <h2 className={`text-base font-semibold ${textColor} mb-3 flex items-center gap-2`}>
-              <Gift size={18} className="text-amber-500 shrink-0" />
-              Additional benefits
-            </h2>
-            {benefitsList.length > 0 ? (
+            {/* Skills & Badges */}
+            <div className={`${cardBg} rounded-3xl border ${borderColor} p-6 shadow-sm space-y-6`}>
+              <h3 className={`text-lg font-bold ${textColor}`}>Desired Skills</h3>
               <div className="flex flex-wrap gap-2">
-                {benefitsList.map((b, i) => (
-                  <span
-                    key={`${b}-${i}`}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-lg border ${
-                      isDark
-                        ? "bg-amber-900/25 text-amber-200 border-amber-700/50"
-                        : "bg-amber-50 text-amber-900 border-amber-200"
-                    }`}
-                  >
-                    {b}
-                  </span>
-                ))}
+                {skillsList.length > 0 ? (
+                  skillsList.map((skill, i) => (
+                    <span key={i} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700">
+                      {skill}
+                    </span>
+                  ))
+                ) : (
+                  <span className={`text-sm ${textSecondary} italic`}>General requirements</span>
+                )}
               </div>
-            ) : (
-              <p className={`text-sm ${textSecondary}`}>—</p>
-            )}
-          </div>
-
-          <div>
-            <h2 className={`text-base font-semibold ${textColor} mb-3`}>Required skills</h2>
-            <div className="flex flex-wrap gap-2">
-              {skillsList.length > 0 ? (
-                skillsList.map((s, i) => (
-                  <span
-                    key={`${s}-${i}`}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-lg border ${
-                      isDark
-                        ? "bg-purple-900/30 text-purple-400 border-purple-700"
-                        : "bg-purple-100 text-purple-700 border-purple-200"
-                    }`}
-                  >
-                    {s}
-                  </span>
-                ))
-              ) : (
-                <span className={`text-sm ${textSecondary}`}>No skills specified</span>
-              )}
             </div>
-          </div>
-
-          <div>
-            <h2 className={`text-base font-semibold ${textColor} mb-3 flex items-center gap-2`}>
-              <FileText size={18} className="text-purple-500 shrink-0" />
-              Description
-            </h2>
-            {description ? (
-              <div
-                className={`prose prose-sm dark:prose-invert max-w-none text-sm ${textSecondary} whitespace-pre-wrap`}
-              >
-                {description}
-              </div>
-            ) : (
-              <p className={`text-sm ${textSecondary}`}>No description provided.</p>
-            )}
-          </div>
-
-          <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 pt-2 border-t ${borderColor}`}>
-            <div className="min-w-0">
-              <h3 className={`text-sm font-semibold ${textColor} mb-3`}>Responsibilities</h3>
-              {responsibilitiesList.length > 0 ? (
-                <ul className={`list-disc list-outside pl-5 space-y-2.5 text-sm ${textSecondary}`}>
-                  {responsibilitiesList.map((line, i) => (
-                    <li key={i} className={`leading-relaxed ${textColor}`}>
-                      {line}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className={`text-sm ${textSecondary}`}>—</p>
-              )}
-            </div>
-            <div className="min-w-0">
-              <h3 className={`text-sm font-semibold ${textColor} mb-3`}>Qualifications</h3>
-              {qualificationsList.length > 0 ? (
-                <ul className={`list-disc list-outside pl-5 space-y-2.5 text-sm ${textSecondary}`}>
-                  {qualificationsList.map((line, i) => (
-                    <li key={i} className={`leading-relaxed ${textColor}`}>
-                      {line}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className={`text-sm ${textSecondary}`}>—</p>
-              )}
-            </div>
-          </div>
-
-          <div className={`flex flex-col sm:flex-row flex-wrap gap-3 pt-2 border-t ${borderColor}`}>
-          <button
-              type="button"
-              onClick={() =>
-                navigate(`/admin/job-reports/applications/${jobId}`, {
-                  state: {
-                    jobTitle: job?.job_title,
-                    companyName: job?.company_name,
-                  },
-                })
-              }
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 shrink-0"
-            >
-              <Users size={18} />
-              View applications
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                navigate(`/admin/edit-job/${job?.job_id || job?.id || jobId}`, {
-                  state: { employer_id: job?.employer_id },
-                })
-              }
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-300 text-blue-700 bg-blue-50 dark:bg-blue-500/20 dark:text-blue-300 text-sm font-medium`}
-            >
-              <Briefcase size={16} />
-              Edit job
-            </button>
+            
           </div>
         </div>
       </div>

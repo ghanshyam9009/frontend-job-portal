@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
+import { recruiterExternalService } from "../../services/recruiterExternalService";
+import { useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   Users,
@@ -25,6 +27,7 @@ const AdminJobReportApplications = () => {
   const navigate = useNavigate();
   const { jobId } = useParams();
   const { theme } = useTheme();
+  const location = useLocation();
 
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,11 +36,19 @@ const AdminJobReportApplications = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [showCandidateModal, setShowCandidateModal] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("all"); // Default to all to show both pending and approved
+  const [statusFilter, setStatusFilter] = useState("all"); 
   const [loadingActions, setLoadingActions] = useState({});
-  const [pendingTasks, setPendingTasks] = useState([]); // Store pending tasks for approval
 
   useEffect(() => {
+    // Populate job details from location state if available to avoid extra API call
+    if (location.state?.jobTitle || location.state?.companyName) {
+      setJobDetails({
+        title: location.state.jobTitle || "Job",
+        company: location.state.companyName || "",
+        location: location.state.location || "",
+        postedDate: location.state.postedDate || "",
+      });
+    }
     fetchApplications();
   }, [jobId]);
 
@@ -52,215 +63,50 @@ const AdminJobReportApplications = () => {
       setLoading(true);
       setError("");
 
-      const job = await adminService.getRecruiterJobForReportById(jobId);
+      // Single API call as requested
+      const data = await recruiterExternalService.getAllApplicants(jobId);
+      const applicationsList = data.applications || [];
 
-      if (!job) {
-        setError("Job not found. Only jobs posted by recruiters are shown in the application report.");
-        setLoading(false);
-        return;
+      // If we don't have job details from state, try to get them from first application
+      if (!jobDetails && applicationsList.length > 0) {
+        setJobDetails({
+          title: applicationsList[0].job_title || "Job",
+          company: applicationsList[0].company_name || "",
+          location: applicationsList[0].location || "",
+          postedDate: applicationsList[0].created_at || "",
+        });
       }
 
-      setJobDetails({
-        title: job.job_title,
-        company: job.company_name || "",
-        location: job.location || "",
-        salary: job.salary_range || "",
-        postedDate: job.created_at || "",
-        applicationCount: job.application_count || 0
-      });
-
-      // Fetch pending tasks for this job (applications waiting for admin approval)
-      const pendingTasksData = await adminService.getPendingJobs();
-      const jobPendingTasks = pendingTasksData.filter(task => 
-        task.category === 'newapplication' && 
-        task.status === 'pending' && 
-        task.job_id === jobId
-      );
-      setPendingTasks(jobPendingTasks);
-
-      // Fetch all candidates once to use for matching student details
-      let allCandidates = [];
-      try {
-        allCandidates = await adminService.getCandidates();
-      } catch (candidateErr) {
-        console.warn('Failed to fetch candidates for student details:', candidateErr);
-      }
-
-      // Fetch applications (these are already approved and visible to recruiters)
-      const applicationsData = await adminService.getApplicationsForJob(jobId);
-      const applicationsList = applicationsData.applications || [];
-
-      // Create a map of task_id by student_id and application_id for matching
-      const taskMap = {};
-      jobPendingTasks.forEach(task => {
-        const key = `${task.student_id}_${task.application_id || ''}`;
-        taskMap[key] = task.task_id;
-      });
-
-      // Enrich applications with student data and task information
-      const applicationsWithDetails = applicationsList.map((app) => {
-        // Try to find matching task
-        const taskKey = `${app.student_id || app.student_email}_${app.application_id || ''}`;
-        const matchingTask = jobPendingTasks.find(task => 
-          (task.student_id && task.student_id.toString() === (app.student_id || '').toString()) ||
-          (task.application_id && task.application_id.toString() === (app.application_id || '').toString())
-        );
-
-        return {
-          ...app,
-          task_id: matchingTask?.task_id || null, // Add task_id if pending approval
-          needs_approval: !!matchingTask, // Flag if this application needs admin approval
-          student_details: {
-            name: app.student_name || "Unknown",
-            email: app.student_email || app.email || null,
-            phone: app.student_phone || null,
-            skills: app.student_skills
-              ? (typeof app.student_skills === 'string'
-                  ? app.student_skills.split(',').map(skill => skill.trim())
-                  : Array.isArray(app.student_skills)
-                  ? app.student_skills
-                  : [])
-              : [],
-            location: app.student_location || null,
-            experience: app.student_experience || null,
-            education: app.student_university ? [app.student_university] : [],
-            experience_years: app.student_experience_years || null,
-            bio: app.student_bio || null,
-            resumeUrl: app.resume_url || app.student_profile?.resume || null,
-            department: app.student_department || null,
-            cgpa: app.student_cgpa || null,
-            logo: app.student_profile?.logo || app.student_profile?.profile_image || null
-          }
-        };
-      });
-
-      // Also add pending applications that haven't been approved yet (not in applications list)
-      // Fetch details for pending applications
-      const pendingApplicationsPromises = jobPendingTasks.map(async (task) => {
-        // Try to find if this task already has an application
-        const existingApp = applicationsList.find(app => 
-          (task.student_id && task.student_id.toString() === (app.student_id || '').toString()) ||
-          (task.application_id && task.application_id.toString() === (app.application_id || '').toString())
-        );
-
-        // If not found, fetch application and student details
-        if (!existingApp && task.job_id) {
-          try {
-            // Try to get application details from the job applications
-            const appDetails = await adminService.getApplicationsForJob(task.job_id);
-            const matchingApp = (appDetails.applications || []).find(app =>
-              (task.student_id && task.student_id.toString() === (app.student_id || '').toString()) ||
-              (task.application_id && task.application_id.toString() === (app.application_id || '').toString())
-            );
-
-            if (matchingApp) {
-              return {
-                ...matchingApp,
-                task_id: task.task_id,
-                needs_approval: true,
-                status: 'pending',
-                student_details: {
-                  name: matchingApp.student_name || `Student ${task.student_id || 'Unknown'}`,
-                  email: matchingApp.student_email || matchingApp.email || null,
-                  phone: matchingApp.student_phone || null,
-                  skills: matchingApp.student_skills
-                    ? (typeof matchingApp.student_skills === 'string'
-                        ? matchingApp.student_skills.split(',').map(skill => skill.trim())
-                        : Array.isArray(matchingApp.student_skills)
-                        ? matchingApp.student_skills
-                        : [])
-                    : [],
-                  location: matchingApp.student_location || null,
-                  experience: matchingApp.student_experience || null,
-                  education: matchingApp.student_university ? [matchingApp.student_university] : [],
-                  experience_years: matchingApp.student_experience_years || null,
-                  bio: matchingApp.student_bio || null,
-                  resumeUrl: matchingApp.resume_url || matchingApp.student_profile?.resume || null,
-                  department: matchingApp.student_department || null,
-                  cgpa: matchingApp.student_cgpa || null,
-                  logo: matchingApp.student_profile?.logo || matchingApp.student_profile?.profile_image || null
-                }
-              };
-            }
-
-            // If not found in applications, try to fetch student details from pre-fetched candidates
-            if (task.student_id && allCandidates.length > 0) {
-              try {
-                const studentCandidate = allCandidates.find(c => 
-                  (c.id && c.id.toString() === task.student_id.toString()) ||
-                  (c.user_id && c.user_id.toString() === task.student_id.toString())
-                );
-
-                if (studentCandidate) {
-                  return {
-                    application_id: task.application_id || `pending_${task.task_id}`,
-                    task_id: task.task_id,
-                    needs_approval: true,
-                    status: 'pending',
-                    student_id: task.student_id,
-                    created_at: task.created_at || task.posted_date,
-                    student_details: {
-                      name: studentCandidate.name || `Student ${task.student_id || 'Unknown'}`,
-                      email: studentCandidate.email || null,
-                      phone: studentCandidate.phone || null,
-                      skills: Array.isArray(studentCandidate.skills) ? studentCandidate.skills : [],
-                      location: studentCandidate.location || studentCandidate.city || null,
-                      experience: studentCandidate.experience || null,
-                      education: studentCandidate.education || [],
-                      experience_years: null,
-                      bio: studentCandidate.bio || null,
-                      resumeUrl: studentCandidate.resume || null,
-                      department: null,
-                      cgpa: null,
-                      logo: studentCandidate.logo || studentCandidate.profile_image || null
-                    }
-                  };
-                }
-              } catch (candidateErr) {
-                console.warn(`Failed to fetch candidate details for student_id ${task.student_id}:`, candidateErr);
-              }     
-            }
-          } catch (err) {
-            console.warn(`Failed to fetch details for pending task ${task.task_id}:`, err);
-          }
-
-          // Fallback: create basic pending application entry
-          return {
-            application_id: task.application_id || `pending_${task.task_id}`,
-            task_id: task.task_id,
-            needs_approval: true,
-            status: 'pending',
-            student_id: task.student_id,
-            created_at: task.created_at || task.posted_date,
-            student_details: {
-              name: `Student ${task.student_id || 'Unknown'}`,
-              email: null,
-              phone: null,
-              skills: [],
-              location: null,
-              experience: null,
-              education: [],
-              experience_years: null,
-              bio: null,
-              resumeUrl: null,
-              department: null,
-              cgpa: null,
-              logo: null
-            }
-          };
+      // Enrich applications with student data
+      const enrichedApplications = applicationsList.map((app) => ({
+        ...app,
+        student_details: {
+          name: app.student_name || "Unknown",
+          email: app.student_email || app.email || null,
+          phone: app.student_phone || null,
+          skills: app.student_skills
+            ? (typeof app.student_skills === 'string'
+                ? app.student_skills.split(',').map(skill => skill.trim())
+                : Array.isArray(app.student_skills)
+                ? app.student_skills
+                : [])
+            : [],
+          location: app.student_location || null,
+          experience: app.student_experience || null,
+          education: app.student_university ? [app.student_university] : [],
+          experience_years: app.student_experience_years || null,
+          bio: app.student_bio || null,
+          resumeUrl: app.resume_url || app.student_profile?.resume || null,
+          department: app.student_department || null,
+          cgpa: app.student_cgpa || null,
+          logo: app.student_profile?.logo || app.student_profile?.profile_image || null
         }
-        return null;
-      });
+      }));
 
-      const pendingApplications = (await Promise.all(pendingApplicationsPromises)).filter(Boolean);
-
-      // Combine approved and pending applications
-      const allApplications = [...applicationsWithDetails, ...pendingApplications];
-
-      setApplications(allApplications);
+      setApplications(enrichedApplications);
     } catch (e) {
       console.error(e);
-      setError(typeof e === "string" ? e : e?.message || "Failed to load applications");
+      setError("Failed to load applications. Please try again later.");
     } finally {
       setLoading(false);
     }
