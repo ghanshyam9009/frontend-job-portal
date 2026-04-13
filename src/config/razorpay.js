@@ -1,7 +1,7 @@
 // Razorpay Configuration
 export const RAZORPAY_CONFIG = {
-  key_id: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_RNj6wvo7aRv2Zf', // Test Key ID as fallback
-  key_secret: import.meta.env.VITE_RAZORPAY_KEY_SECRET || 'KeySLEDDc94B7ZxlGCwS26G9', // Test Key Secret as fallback
+  key_id: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_SaAoyjTJuO8TWo', // Test Key ID as fallback
+  key_secret: import.meta.env.VITE_RAZORPAY_KEY_SECRET || 'UC5FZjrbFcgqJ2XHmtUhXI57', // Test Key Secret as fallback
 };
 
 // Razorpay Plan IDs (You need to create these in your Razorpay dashboard)
