@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
 import { recruiterExternalService } from "../../services";
-import { Check, X, FileText, Download, ExternalLink, Search, Briefcase, Building, Clock, Mail, Phone, Calendar, Eye, MapPin, ArrowUpDown } from "lucide-react";
+import { Check, X, FileText, Download, ExternalLink, Search, Briefcase, Building, Clock, Mail, Phone, Calendar, Eye, MapPin, ArrowUpDown, Sparkles, User } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 function PendingJobApplications({ embedded = false }) {
@@ -188,7 +188,9 @@ function PendingJobApplications({ embedded = false }) {
               resumeUrl: studentData.resume || studentData.resumeUrl || null,
               department: studentData.department || null,
               cgpa: studentData.cgpa || null,
-              logo: studentData.logo || studentData.profile_image || null
+              logo: studentData.logo || studentData.profile_image || null,
+              premium_user: studentData.premium_user || false,
+              plan: studentData.plan || null
             };
           } else {
             const applicationsList = await fetchAppsForJob(app.job_id);
@@ -229,7 +231,9 @@ function PendingJobApplications({ embedded = false }) {
                 resumeUrl: studentApplication.resume_url || studentApplication.student_profile?.resume || null,
                 department: studentApplication.student_department || null,
                 cgpa: studentApplication.student_cgpa || null,
-                logo: studentApplication.student_profile?.logo || studentApplication.student_profile?.profile_image || null
+                logo: studentApplication.student_profile?.logo || studentApplication.student_profile?.profile_image || null,
+                premium_user: studentApplication.student_profile?.premium_user || studentApplication.premium_user || false,
+                plan: studentApplication.student_profile?.plan || studentApplication.plan || null
               };
             }
           }
@@ -731,14 +735,36 @@ function PendingJobApplications({ embedded = false }) {
                       <div className="flex items-start justify-between gap-3 mb-2.5">
                         <div className="flex items-start gap-2 flex-1 min-w-0">
                           <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
-                            <div className={`w-full h-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm`}>
-                              {details.studentName?.charAt(0)?.toUpperCase() || 'U'}
-                            </div>
+                            {details.studentDetails?.logo ? (
+                              <img
+                                src={details.studentDetails.logo}
+                                alt={details.studentName}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className={`w-full h-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm`}>
+                                {details.studentName?.charAt(0)?.toUpperCase() || 'U'}
+                              </div>
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className={`text-base font-bold ${textColor} leading-tight mb-1`}>
-                              {details.studentName || 'Unknown Candidate'}
-                            </h3>
+                             <div className="flex items-center gap-2 mb-1">
+                              <h3 className={`text-base font-bold ${textColor} leading-tight`}>
+                                {details.studentName || 'Unknown Candidate'}
+                              </h3>
+                              {/* Membership Badge Next to Name - Enhanced Visibility */}
+                              <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-sm flex items-center gap-1.5 transition-all flex-shrink-0 ${
+                                (details.studentDetails?.premium_user === true || details.studentDetails?.premium_user === 'true') 
+                                  ? (details.studentDetails?.plan === 'premium' 
+                                      ? 'bg-gradient-to-r from-amber-400 to-amber-600 text-white border-amber-300 shadow-amber-200/50' 
+                                      : 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border-blue-300 shadow-blue-200/50'
+                                    ) 
+                                  : 'bg-gray-100 text-gray-600 border-gray-200'
+                              }`}>
+                                {(details.studentDetails?.premium_user === true || details.studentDetails?.premium_user === 'true') ? <Sparkles size={11} className="text-white" /> : <User size={11} />}
+                                {(details.studentDetails?.premium_user === true || details.studentDetails?.premium_user === 'true') ? (details.studentDetails?.plan === 'premium' ? 'Premium' : 'Basic') : 'Free'}
+                              </div>
+                            </div>
                             <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
                               <span className="flex items-center gap-1 truncate">
                                 <Mail size={13} className="flex-shrink-0" />
@@ -964,14 +990,36 @@ function PendingJobApplications({ embedded = false }) {
               <div className={`${isDark ? 'bg-gradient-to-r from-purple-900/20 to-blue-900/20' : 'bg-gradient-to-r from-purple-50 to-blue-50'} rounded-lg p-4 border ${borderColor}`}>
                 <div className="flex items-start gap-4">
                   <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
-                    <div className={`w-full h-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl`}>
-                      {selectedCandidate.details?.studentName?.charAt(0)?.toUpperCase() || 'U'}
-                    </div>
+                    {selectedCandidate.details?.studentDetails?.logo ? (
+                      <img
+                        src={selectedCandidate.details.studentDetails.logo}
+                        alt={selectedCandidate.details.studentName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className={`w-full h-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl`}>
+                        {selectedCandidate.details?.studentName?.charAt(0)?.toUpperCase() || 'U'}
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1">
-                    <h3 className={`text-2xl font-bold ${textColor} mb-2`}>
-                      {selectedCandidate.details?.studentName || 'Unknown Candidate'}
-                    </h3>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className={`text-2xl font-bold ${textColor}`}>
+                        {selectedCandidate.details?.studentName || 'Unknown Candidate'}
+                      </h3>
+                      {/* Membership Badge Next to Name in Modal - Enhanced Visibility */}
+                      <div className={`px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wider uppercase border shadow-md flex items-center gap-2 transition-all flex-shrink-0 ${
+                        (selectedCandidate.details?.studentDetails?.premium_user === true || selectedCandidate.details?.studentDetails?.premium_user === 'true') 
+                          ? (selectedCandidate.details?.studentDetails?.plan === 'premium' 
+                              ? 'bg-gradient-to-r from-amber-400 to-amber-600 text-white border-amber-300 shadow-amber-200/50' 
+                              : 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border-blue-300 shadow-blue-200/50'
+                            ) 
+                          : 'bg-gray-100 text-gray-600 border-gray-200'
+                      }`}>
+                        {(selectedCandidate.details?.studentDetails?.premium_user === true || selectedCandidate.details?.studentDetails?.premium_user === 'true') ? <Sparkles size={13} className="text-white" /> : <User size={13} />}
+                        {(selectedCandidate.details?.studentDetails?.premium_user === true || selectedCandidate.details?.studentDetails?.premium_user === 'true') ? (selectedCandidate.details?.studentDetails?.plan === 'premium' ? 'Premium' : 'Basic') : 'Free'}
+                      </div>
+                    </div>
                     <div className="flex flex-wrap gap-3 text-sm">
                       {selectedCandidate.details?.studentEmail && (
                         <span className={`flex items-center gap-1.5 ${textSecondary}`}>

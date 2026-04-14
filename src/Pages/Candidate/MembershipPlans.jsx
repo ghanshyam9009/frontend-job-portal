@@ -17,46 +17,47 @@ const MembershipPlans = () => {
 
   const candidatePlans = [
 
-    { id:'standard',
-      name: 'Standard',
-          description: 'Perfect for beginners starting their job search journey.',
-          price: "₹250",
-          priceValue:250,
-          validity: '1 Month',
-          popular: false,
-          icon: <User className="w-6 h-6 text-blue-600" />,
-          features: [
-            'Search and apply',
-            'Save job',
-            'Candidate panel',
-            'Email support',
-            'Free government job access',
-            'Access to all job listings',
-            'Filter job',
-            'Notification of job'
-          ]
+    {
+      id: 'standard',
+      name: 'Basic',
+      description: 'Perfect for beginners starting their job search journey.',
+      price: "₹250",
+      priceValue: 250,
+      validity: '3 Month',
+      popular: false,
+      icon: <User className="w-6 h-6 text-blue-600" />,
+      features: [
+        'Search and apply',
+        'Save job',
+        'Candidate panel',
+        'Email support',
+        'Free government job access',
+        'Access to all job listings',
+        'Filter job',
+        'Notification of job'
+      ]
     },
     {
-      id: 'preium',
-     name: 'Premium',
-           description: 'Go all in — with expert support & complete job search tools.',
-           price: "₹1000",
- priceValue:1000,
-          validity: '3 Months',
-           popular: true,
-           icon: <Sparkles className="w-6 h-6 text-yellow-500" />,
-           features: [
-             'Apply for all premium jobs',
-             'Interview guidance',
-             'Customer support',
-             'Resume improvement suggestion',
-             'Instant job alerts',
-             'Direct HR connection',
-             'Application tracking',
-             'Verified job posts only'
-           ]
+      id: 'premium',
+      name: 'Premium',
+      description: 'Go all in — with expert support & complete job search tools.',
+      price: "₹1000",
+      priceValue: 1000,
+      validity: '1 Months',
+      popular: true,
+      icon: <Sparkles className="w-6 h-6 text-yellow-500" />,
+      features: [
+        'Apply for all premium jobs',
+        'Interview guidance',
+        'Customer support',
+        'Resume improvement suggestion',
+        'Instant job alerts',
+        'Direct HR connection',
+        'Application tracking',
+        'Verified job posts only'
+      ]
     }
-    
+
   ];
 
   const benefits = [
@@ -168,7 +169,7 @@ const MembershipPlans = () => {
           }
         },
         modal: {
-          ondismiss: function() {
+          ondismiss: function () {
             setProcessingPlan(null);
             setLoading(false);
           }
@@ -199,12 +200,11 @@ const MembershipPlans = () => {
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
-      isDark 
-        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
-        : 'bg-gradient-to-br from-blue-50 via-white to-purple-50'
-    }`}>
-      
+    <div className={`min-h-screen transition-colors duration-300 ${isDark
+      ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900'
+      : 'bg-gradient-to-br from-blue-50 via-white to-purple-50'
+      }`}>
+
       {/* Navbar Placeholder - Add CandidateNavbar here */}
       <div className="h-20"></div>
 
@@ -215,139 +215,135 @@ const MembershipPlans = () => {
             CANDIDATE MEMBERSHIP PLANS
           </span>
 
-          <h1 className={`text-4xl md:text-5xl font-bold mt-4 leading-tight ${
-            isDark ? 'text-white' : 'text-gray-900'
-          }`}>
+          <h1 className={`text-4xl md:text-5xl font-bold mt-4 leading-tight ${isDark ? 'text-white' : 'text-gray-900'
+            }`}>
             Choose Your Career Growth Plan
           </h1>
 
-          <p className={`max-w-2xl mx-auto mt-2 text-base ${
-            isDark ? 'text-gray-300' : 'text-gray-600'
-          }`}>
+          <p className={`max-w-2xl mx-auto mt-2 text-base ${isDark ? 'text-gray-300' : 'text-gray-600'
+            }`}>
             Unlock premium features and accelerate your job search journey
           </p>
         </div>
 
         {/* Pricing Cards */}
-        
 
-        <div className={`grid gap-6 max-w-5xl mx-auto mb-16 ${
-                'md:grid-cols-2 max-w-xl'
-                }`}>
-                  {candidatePlans.map((plan, index) => (
-                    <div
-                      key={index}
-                      className={`rounded-xl shadow-lg overflow-hidden  transition-all hover:shadow-xl hover:-translate-y-2 ${
-                       isDark ? 'bg-gray-800' : 'bg-white'
-                      } ${plan.popular === "employers" ? 'ring-4 ring-blue-500 scale-105' : ''}`}
-                    >
-                      {plan.popular && (
-                        <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-center py-2 text-xs font-bold">
-                          ⭐ MOST POPULAR
+
+        <div className={`grid gap-6 max-w-5xl mx-auto mb-16 ${'md:grid-cols-2 max-w-xl'
+          }`}>
+          {candidatePlans.map((plan, index) => (
+            <div
+              key={index}
+              className={`rounded-xl shadow-lg overflow-hidden  transition-all hover:shadow-xl hover:-translate-y-2 ${isDark ? 'bg-gray-800' : 'bg-white'
+                } ${plan.popular === "employers" ? 'ring-4 ring-blue-500 scale-105' : ''}`}
+            >
+              {plan.popular && (
+                <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-center py-2 text-xs font-bold">
+                  ⭐ MOST POPULAR
+                </div>
+              )}
+
+              {/* Card Body - FIXED HEIGHT + FLEX COLUMN */}
+              <div className="p-6 flex flex-col h-full">
+
+                {/* Icon */}
+                <div className="flex justify-center mb-4">
+                  <div className={`p-3 rounded-full ${plan.popular
+                    ? 'bg-gradient-to-br from-yellow-100 to-orange-100'
+                    : isDark ? 'bg-gray-700' : 'bg-blue-50'
+                    }`}>
+                    {plan.icon}
+                  </div>
+                </div>
+
+                {/* Title */}
+                <h3 className={`text-xl font-bold text-center mb-2 ${isDark ? 'text-white' : 'text-gray-900'
+                  }`}>
+                  {plan.name}
+                </h3>
+
+                {/* Description */}
+                <p className={`text-center text-xs mb-4 min-h-[32px] ${isDark ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                  {plan.description}
+                </p>
+
+                {/* Price */}
+                <div className="text-center mb-5">
+                  <span className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    {plan.price === 0 ? 'Free' : `${plan.price}`}
+                  </span>
+                  <div>
+                    <span className={`text-xs font-semibold px-3 py-1 rounded-full ${isDark ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-700'
+                      }`}>
+                      {plan.validity}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Features */}
+                <div className="mb-6">
+                  <h4 className={`font-semibold mb-3 text-xs uppercase tracking-wide ${isDark ? 'text-gray-300' : 'text-gray-900'
+                    }`}>
+                    What's Included
+                  </h4>
+                  <ul className="space-y-2">
+                    {plan.features.map((feature, i) => (
+                      <li key={i} className="flex items-start">
+                        <div className="bg-green-100 rounded-full p-0.5 mr-2 mt-0.5 flex-shrink-0">
+                          <Check className="w-3 h-3 text-green-600" />
                         </div>
-                      )}
-        
-                      {/* Card Body - FIXED HEIGHT + FLEX COLUMN */}
-                      <div className="p-6 flex flex-col h-full">
-        
-                        {/* Icon */}
-                        <div className="flex justify-center mb-4">
-                          <div className={`p-3 rounded-full ${
-                            plan.popular
-                              ? 'bg-gradient-to-br from-yellow-100 to-orange-100'
-                              :isDark ? 'bg-gray-700' : 'bg-blue-50'
+                        <span className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'
                           }`}>
-                            {plan.icon}
-                          </div>
-                        </div>
-        
-                        {/* Title */}
-                        <h3 className={`text-xl font-bold text-center mb-2 ${
-                         isDark ? 'text-white' : 'text-gray-900'
-                        }`}>
-                          {plan.name}
-                        </h3>
-        
-                        {/* Description */}
-                        <p className={`text-center text-xs mb-4 min-h-[32px] ${
-                         isDark ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
-                          {plan.description}
-                        </p>
-        
-                        {/* Price */}
-                        <div className="text-center mb-5">
-                          <span className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                            {plan.price === 0 ? 'Free' : `${plan.price}`}
-                          </span>
-                          <div>
-                            <span className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                             isDark ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-700'
-                            }`}>
-                              {plan.validity}
-                            </span>
-                          </div>
-                        </div>
-        
-                        {/* Features */}
-                        <div className="mb-6">
-                          <h4 className={`font-semibold mb-3 text-xs uppercase tracking-wide ${
-                           isDark ? 'text-gray-300' : 'text-gray-900'
-                          }`}>
-                            What's Included
-                          </h4>
-                          <ul className="space-y-2">
-                            {plan.features.map((feature, i) => (
-                              <li key={i} className="flex items-start">
-                                <div className="bg-green-100 rounded-full p-0.5 mr-2 mt-0.5 flex-shrink-0">
-                                  <Check className="w-3 h-3 text-green-600" />
-                                </div>
-                                <span className={`text-xs ${
-                                 isDark ? 'text-gray-300' : 'text-gray-700'
-                                }`}>
-                                  {feature}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-        
-                         {/* Button */}
-                <button 
+                          {feature}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Button */}
+                <button
                   onClick={() => handleUpgrade(plan)}
-                  disabled={loading || processingPlan === plan.id}
-                   className={`w-full py-3 rounded-lg font-bold text-sm transition-all ${
-                    plan.popular
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                      : isDark
-                        ? ' mt-auto bg-gray-700 text-white hover:bg-blue-600'
-                        : 'bg-gray-100 mt-auto text-gray-900 hover:bg-blue-600 hover:text-white'
-                  } ${(loading || processingPlan === plan.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={loading || processingPlan === plan.id || user?.premium_user}
+                  className={`w-full py-3 rounded-lg font-bold text-sm transition-all ${plan.popular
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                    : isDark
+                      ? ' mt-auto bg-gray-700 text-white hover:bg-blue-600'
+                      : 'bg-gray-100 mt-auto text-gray-900 hover:bg-blue-600 hover:text-white'
+                    } ${(loading || processingPlan === plan.id || user?.premium_user) ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {processingPlan === plan.id ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
                       Processing...
                     </>
+                  ) : user?.premium_user ? (
+                    'Already Premium'
                   ) : (
                     'Buy Now'
                   )}
                 </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                {user?.premium_user && user?.plan === plan.id && (
+                  <div className="mt-2 text-center">
+                    <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full border border-green-100 dark:border-green-900/30">
+                      Your Active Plan
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
 
         {/* Benefits Section */}
         <div className="max-w-6xl mx-auto mb-16">
-          <h2 className={`text-3xl font-bold text-center mb-3 ${
-            isDark ? 'text-white' : 'text-gray-900'
-          }`}>
+          <h2 className={`text-3xl font-bold text-center mb-3 ${isDark ? 'text-white' : 'text-gray-900'
+            }`}>
             Why Upgrade?
           </h2>
-          <p className={`text-center mb-10 text-sm ${
-            isDark ? 'text-gray-400' : 'text-gray-600'
-          }`}>
+          <p className={`text-center mb-10 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'
+            }`}>
             Unlock powerful features to accelerate your career growth
           </p>
 
@@ -355,23 +351,19 @@ const MembershipPlans = () => {
             {benefits.map((benefit, index) => (
               <div
                 key={index}
-                className={`p-6 rounded-xl shadow-lg text-center transition-all hover:shadow-xl hover:-translate-y-1 ${
-                  isDark ? 'bg-gray-800' : 'bg-white'
-                }`}
+                className={`p-6 rounded-xl shadow-lg text-center transition-all hover:shadow-xl hover:-translate-y-1 ${isDark ? 'bg-gray-800' : 'bg-white'
+                  }`}
               >
-                <div className={`inline-flex p-4 rounded-full mb-4 ${
-                  isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-600'
-                }`}>
+                <div className={`inline-flex p-4 rounded-full mb-4 ${isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-600'
+                  }`}>
                   {benefit.icon}
                 </div>
-                <h4 className={`font-bold mb-2 ${
-                  isDark ? 'text-white' : 'text-gray-900'
-                }`}>
+                <h4 className={`font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'
+                  }`}>
                   {benefit.title}
                 </h4>
-                <p className={`text-sm ${
-                  isDark ? 'text-gray-400' : 'text-gray-600'
-                }`}>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
                   {benefit.description}
                 </p>
               </div>
@@ -381,15 +373,13 @@ const MembershipPlans = () => {
 
         {/* FAQ Section */}
         <div className="max-w-4xl mx-auto mt-16">
-          <h2 className={`text-3xl font-bold text-center mb-3 ${
-            isDark ? 'text-white' : 'text-gray-900'
-          }`}>
+          <h2 className={`text-3xl font-bold text-center mb-3 ${isDark ? 'text-white' : 'text-gray-900'
+            }`}>
             Frequently Asked Questions
           </h2>
 
-          <p className={`text-center mb-8 text-sm ${
-            isDark ? 'text-gray-400' : 'text-gray-600'
-          }`}>
+          <p className={`text-center mb-8 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'
+            }`}>
             Got questions? We've got answers.
           </p>
 
@@ -397,32 +387,28 @@ const MembershipPlans = () => {
             {faqs.map((faq, index) => (
               <div
                 key={index}
-                className={`rounded-lg shadow-md transition-all ${
-                  isDark ? 'bg-gray-800' : 'bg-white'
-                }`}
+                className={`rounded-lg shadow-md transition-all ${isDark ? 'bg-gray-800' : 'bg-white'
+                  }`}
               >
                 <button
                   onClick={() => toggleFaq(index)}
-                  className={`w-full px-5 py-4 flex justify-between items-center ${
-                    isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
-                  }`}
+                  className={`w-full px-5 py-4 flex justify-between items-center ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
+                    }`}
                 >
-                  <span className={`font-semibold text-sm text-left ${
-                    isDark ? 'text-white' : 'text-gray-900'
-                  }`}>
+                  <span className={`font-semibold text-sm text-left ${isDark ? 'text-white' : 'text-gray-900'
+                    }`}>
                     {faq.question}
                   </span>
 
-                  {expandedFaq === index 
+                  {expandedFaq === index
                     ? <ChevronUp className="w-5 h-5 text-blue-600 flex-shrink-0" />
                     : <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />}
                 </button>
 
                 {expandedFaq === index && (
                   <div className="px-5 pb-4">
-                    <p className={`text-sm ${
-                      isDark ? 'text-gray-300' : 'text-gray-600'
-                    }`}>
+                    <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'
+                      }`}>
                       {faq.answer}
                     </p>
                   </div>
@@ -442,7 +428,7 @@ const MembershipPlans = () => {
           </div>
         </div>
       </div>
-      <Footer/>
+      <Footer />
     </div>
 
   );

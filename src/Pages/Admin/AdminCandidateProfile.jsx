@@ -5,7 +5,7 @@ import { studentService } from '../../services/studentService';
 import { 
   ArrowLeft, User, MapPin, Briefcase, GraduationCap, Award, 
   AlertCircle, Edit, Mail, Phone, Calendar, FileText, Camera, 
-  Upload, XCircle, CheckCircle, Save, TrendingUp
+  Upload, XCircle, CheckCircle, Save, TrendingUp, Sparkles
 } from 'lucide-react';
 
 const AdminCandidateProfile = () => {
@@ -105,8 +105,10 @@ const AdminCandidateProfile = () => {
                 ? profileData.experience
                 : [],
               skills: profileData.skills || '',
-              experienceLevel: profileData.experienceLevel || 'Experienced',
-              status: profileData.status || 'active'
+               experienceLevel: profileData.experienceLevel || 'Experienced',
+              status: profileData.status || 'active',
+              premium_user: profileData.premium_user || false,
+              plan: profileData.plan || null
             };
             setFormData(loadedData);
           }
@@ -351,8 +353,22 @@ const AdminCandidateProfile = () => {
               </div>
               
               <div className="pt-12 pb-6 px-6">
-                <div className="text-center mb-6">
-                  <h2 className={`text-xl font-bold ${textColor}`}>{formData.full_name || "Candidate Name"}</h2>
+                 <div className="text-center mb-6">
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <h2 className={`text-xl font-bold ${textColor}`}>{formData.full_name || "Candidate Name"}</h2>
+                    {/* Membership Badge Next to Name in Profile Sidebar - Enhanced Visibility */}
+                    <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-md flex items-center gap-1.5 transition-all flex-shrink-0 ${
+                      (formData.premium_user === true || formData.premium_user === 'true') 
+                        ? (formData.plan === 'premium' 
+                            ? 'bg-gradient-to-r from-amber-400 to-amber-600 text-white border-amber-300 shadow-amber-200/50' 
+                            : 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border-blue-300 shadow-blue-200/50'
+                          ) 
+                        : 'bg-gray-100 text-gray-600 border-gray-200'
+                    }`}>
+                      {(formData.premium_user === true || formData.premium_user === 'true') ? <Sparkles size={11} className="text-white" /> : <User size={11} />}
+                      {(formData.premium_user === true || formData.premium_user === 'true') ? (formData.plan === 'premium' ? 'Premium' : 'Basic') : 'Free'}
+                    </div>
+                  </div>
                   <p className="text-sm text-blue-500 font-medium">{formData.experienceLevel}</p>
                   {formData.address.city && (
                     <p className={`text-xs ${textSecondary} mt-1`}>

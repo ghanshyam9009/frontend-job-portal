@@ -19,7 +19,9 @@ import {
   Briefcase,
   GraduationCap,
   Check,
-  Trash2
+  Trash2,
+  Sparkles,
+  User
 } from "lucide-react";
 import * as XLSX from 'xlsx';
 
@@ -83,7 +85,7 @@ const AdminJobReportApplications = () => {
         student_details: {
           name: app.student_name || "Unknown",
           email: app.student_email || app.email || null,
-          phone: app.student_phone || null,
+          phone: app.student_phone || app.student_profile?.phone_number || null,
           skills: app.student_skills
             ? (typeof app.student_skills === 'string'
                 ? app.student_skills.split(',').map(skill => skill.trim())
@@ -91,15 +93,17 @@ const AdminJobReportApplications = () => {
                 ? app.student_skills
                 : [])
             : [],
-          location: app.student_location || null,
-          experience: app.student_experience || null,
-          education: app.student_university ? [app.student_university] : [],
+          location: app.student_location || (app.student_profile?.address?.city ? `${app.student_profile.address.city}${app.student_profile.address.country ? `, ${app.student_profile.address.country}` : ''}` : null),
+          experience: app.student_experience || app.student_profile?.experienceLevel || null,
+          education: app.student_university ? [app.student_university] : (app.student_profile?.education || []),
           experience_years: app.student_experience_years || null,
-          bio: app.student_bio || null,
-          resumeUrl: app.resume_url || app.student_profile?.resume || null,
+          bio: app.student_bio || app.student_profile?.bio || null,
+          resumeUrl: app.resume_url || app.student_profile?.resume || app.student_profile?.resumeUrl || null,
           department: app.student_department || null,
           cgpa: app.student_cgpa || null,
-          logo: app.student_profile?.logo || app.student_profile?.profile_image || null
+          logo: app.student_profile?.logo || app.student_profile?.profile_image || null,
+          premium_user: app.student_profile?.premium_user || false,
+          plan: app.student_profile?.plan || null
         }
       }));
 
@@ -206,7 +210,7 @@ const AdminJobReportApplications = () => {
           student_details: {
             name: updatedApp.student_name || "Unknown",
             email: updatedApp.student_email || updatedApp.email || null,
-            phone: updatedApp.student_phone || null,
+            phone: updatedApp.student_phone || updatedApp.student_profile?.phone_number || null,
             skills: updatedApp.student_skills
               ? (typeof updatedApp.student_skills === 'string'
                   ? updatedApp.student_skills.split(',').map(skill => skill.trim())
@@ -214,15 +218,17 @@ const AdminJobReportApplications = () => {
                   ? updatedApp.student_skills
                   : [])
               : [],
-            location: updatedApp.student_location || null,
-            experience: updatedApp.student_experience || null,
-            education: updatedApp.student_university ? [updatedApp.student_university] : [],
+            location: updatedApp.student_location || (updatedApp.student_profile?.address?.city ? `${updatedApp.student_profile.address.city}${updatedApp.student_profile.address.country ? `, ${updatedApp.student_profile.address.country}` : ''}` : null),
+            experience: updatedApp.student_experience || updatedApp.student_profile?.experienceLevel || null,
+            education: updatedApp.student_university ? [updatedApp.student_university] : (updatedApp.student_profile?.education || []),
             experience_years: updatedApp.student_experience_years || null,
-            bio: updatedApp.student_bio || null,
-            resumeUrl: updatedApp.resume_url || updatedApp.student_profile?.resume || null,
+            bio: updatedApp.student_bio || updatedApp.student_profile?.bio || null,
+            resumeUrl: updatedApp.resume_url || updatedApp.student_profile?.resume || updatedApp.student_profile?.resumeUrl || null,
             department: updatedApp.student_department || null,
             cgpa: updatedApp.student_cgpa || null,
-            logo: updatedApp.student_profile?.logo || updatedApp.student_profile?.profile_image || null
+            logo: updatedApp.student_profile?.logo || updatedApp.student_profile?.profile_image || null,
+            premium_user: updatedApp.student_profile?.premium_user || false,
+            plan: updatedApp.student_profile?.plan || null
           }
         };
         handleViewCandidateDetails(enrichedApp);
@@ -519,9 +525,23 @@ const AdminJobReportApplications = () => {
                       </div>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h4 className={`text-xs font-bold ${textColor} truncate leading-tight`}>
-                        {application.student_details?.name || 'Unknown Candidate'}
-                      </h4>
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <h4 className={`text-xs font-bold ${textColor} truncate leading-tight`}>
+                          {application.student_details?.name || 'Unknown Candidate'}
+                        </h4>
+                        {/* Membership Badge Next to Name - Enhanced Visibility */}
+                        <div className={`px-1.5 py-0.5 rounded-full text-[8px] font-bold tracking-wider uppercase border shadow-sm flex items-center gap-1 transition-all flex-shrink-0 ${
+                          (application.student_details?.premium_user === true || application.student_details?.premium_user === 'true') 
+                            ? (application.student_details?.plan === 'premium' 
+                                ? 'bg-gradient-to-r from-amber-400 to-amber-600 text-white border-amber-300 shadow-amber-200/50' 
+                                : 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border-blue-300 shadow-blue-200/50'
+                              ) 
+                            : 'bg-gray-100 text-gray-600 border-gray-200'
+                        }`}>
+                          {(application.student_details?.premium_user === true || application.student_details?.premium_user === 'true') ? <Sparkles size={10} className="text-white" /> : <User size={10} />}
+                          {(application.student_details?.premium_user === true || application.student_details?.premium_user === 'true') ? (application.student_details?.plan === 'premium' ? 'Premium' : 'Basic') : 'Free'}
+                        </div>
+                      </div>
                       <p className={`text-xs ${textSecondary} truncate`} style={{ fontSize: '0.7rem' }}>
                         {application.student_details?.email || 'No email provided'}
                       </p>
@@ -652,109 +672,166 @@ const AdminJobReportApplications = () => {
       {/* Candidate Details Modal - Same as previous implementation */}
       {showCandidateModal && selectedCandidate && (
         <div
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setShowCandidateModal(false)}
         >
           <div
-            className={`${cardBg} rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto`}
+            className={`${cardBg} rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col`}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className={`flex items-center justify-between p-5 border-b ${borderColor}`}>
-              <h2 className={`text-xl font-bold ${textColor}`}>Candidate Details</h2>
+            {/* Modal Header */}
+            <div className={`relative p-6 border-b ${borderColor} flex items-center justify-between bg-gradient-to-r ${isDark ? 'from-blue-900/20 to-purple-900/20' : 'from-blue-50 to-purple-50'}`}>
+              <div className="flex items-center gap-4">
+                <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg bg-gradient-to-br from-blue-500 to-indigo-600`}>
+                  {selectedCandidate.student_details?.logo ? (
+                    <img 
+                      src={selectedCandidate.student_details.logo} 
+                      alt={selectedCandidate.student_details.name} 
+                      className="w-full h-full object-cover rounded-xl"
+                    />
+                  ) : (
+                    selectedCandidate.student_details?.name?.charAt(0)?.toUpperCase() || 'U'
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h2 className={`text-xl font-bold ${textColor}`}>
+                      {selectedCandidate.student_details?.name || 'Unknown Candidate'}
+                    </h2>
+                    {/* Membership Badge Next to Name in Modal - Enhanced Visibility */}
+                    <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-md flex items-center gap-1.5 transition-all flex-shrink-0 ${
+                      (selectedCandidate.student_details?.premium_user === true || selectedCandidate.student_details?.premium_user === 'true') 
+                        ? (selectedCandidate.student_details?.plan === 'premium' 
+                            ? 'bg-gradient-to-r from-amber-400 to-amber-600 text-white border-amber-300 shadow-amber-200/50' 
+                            : 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border-blue-300 shadow-blue-200/50'
+                          ) 
+                        : 'bg-gray-100 text-gray-600 border-gray-200'
+                    }`}>
+                      {(selectedCandidate.student_details?.premium_user === true || selectedCandidate.student_details?.premium_user === 'true') ? <Sparkles size={11} className="text-white" /> : <User size={11} />}
+                      {(selectedCandidate.student_details?.premium_user === true || selectedCandidate.student_details?.premium_user === 'true') ? (selectedCandidate.student_details?.plan === 'premium' ? 'Premium' : 'Basic') : 'Free'}
+                    </div>
+                  </div>
+                  <p className={`text-sm ${textSecondary} flex items-center gap-1.5`}>
+                    <Mail size={14} className="text-blue-500" />
+                    {selectedCandidate.student_details?.email || 'N/A'}
+                  </p>
+                </div>
+              </div>
               <button
                 onClick={() => setShowCandidateModal(false)}
-                className={`${textSecondary} hover:${textColor} transition-colors`}
+                className={`p-2 rounded-full ${isDark ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-100'} shadow-md transition-all group`}
               >
-                <X size={24} />
+                <X size={20} className={`${textSecondary} group-hover:text-red-500`} />
               </button>
             </div>
 
-            <div className="p-5 space-y-4">
-              {/* Basic Info */}
-              <div>
-                <h3 className={`text-lg font-bold ${textColor} mb-2`}>
-                  {selectedCandidate.student_details?.name || 'Unknown Candidate'}
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className={`block text-sm font-semibold ${textColor} mb-1`}>Email</label>
-                    <p className={`text-sm ${textSecondary}`}>{selectedCandidate.student_details?.email || 'Not provided'}</p>
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Contact Information Section */}
+              <section>
+                <h3 className={`text-xs font-bold uppercase tracking-wider text-blue-500 mb-4`}>Personal Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className={`p-3 rounded-xl border ${borderColor} ${isDark ? 'bg-gray-700/30' : 'bg-gray-50'}`}>
+                    <label className={`text-[10px] font-bold uppercase tracking-wide ${textSecondary} mb-1 block`}>Phone Number</label>
+                    <div className="flex items-center gap-2">
+                      <Phone size={14} className="text-blue-500" />
+                      <p className={`text-sm font-medium ${textColor}`}>{selectedCandidate.student_details?.phone || 'Not provided'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <label className={`block text-sm font-semibold ${textColor} mb-1`}>Phone</label>
-                    <p className={`text-sm ${textSecondary}`}>{selectedCandidate.student_details?.phone || 'Not provided'}</p>
+                  <div className={`p-3 rounded-xl border ${borderColor} ${isDark ? 'bg-gray-700/30' : 'bg-gray-50'}`}>
+                    <label className={`text-[10px] font-bold uppercase tracking-wide ${textSecondary} mb-1 block`}>Location</label>
+                    <div className="flex items-center gap-2">
+                      <MapPin size={14} className="text-red-500" />
+                      <p className={`text-sm font-medium ${textColor}`}>{selectedCandidate.student_details?.location || 'Not provided'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <label className={`block text-sm font-semibold ${textColor} mb-1`}>Location</label>
-                    <p className={`text-sm ${textSecondary}`}>{selectedCandidate.student_details?.location || 'Not provided'}</p>
+                  <div className={`p-3 rounded-xl border ${borderColor} ${isDark ? 'bg-gray-700/30' : 'bg-gray-50'}`}>
+                    <label className={`text-[10px] font-bold uppercase tracking-wide ${textSecondary} mb-1 block`}>Experience Level</label>
+                    <div className="flex items-center gap-2">
+                      <Briefcase size={14} className="text-indigo-500" />
+                      <p className={`text-sm font-medium ${textColor}`}>{selectedCandidate.student_details?.experience || 'Not provided'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <label className={`block text-sm font-semibold ${textColor} mb-1`}>Experience</label>
-                    <p className={`text-sm ${textSecondary}`}>{selectedCandidate.student_details?.experience || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <label className={`block text-sm font-semibold ${textColor} mb-1`}>Application Status</label>
-                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold border ${getStatusColor(selectedCandidate.status, selectedCandidate.needs_approval)}`}>
-                      {getStatusLabel(selectedCandidate.status, selectedCandidate.needs_approval)}
-                    </span>
-                  </div>
-                  <div>
-                    <label className={`block text-sm font-semibold ${textColor} mb-1`}>Applied Date</label>
-                    <p className={`text-sm ${textSecondary}`}>{formatDate(selectedCandidate.created_at || selectedCandidate.applied_date)}</p>
+                  <div className={`p-3 rounded-xl border ${borderColor} ${isDark ? 'bg-gray-700/30' : 'bg-gray-50'}`}>
+                    <label className={`text-[10px] font-bold uppercase tracking-wide ${textSecondary} mb-1 block`}>Applied Date</label>
+                    <div className="flex items-center gap-2">
+                      <Calendar size={14} className="text-purple-500" />
+                      <p className={`text-sm font-medium ${textColor}`}>{formatDate(selectedCandidate.created_at || selectedCandidate.applied_date)}</p>
+                    </div>
                   </div>
                 </div>
+              </section>
+
+              {/* Professional Profile Section */}
+              <div className="grid grid-cols-1 gap-6">
+                {/* Status Section */}
+                <div className={`p-4 rounded-xl border ${borderColor} ${isDark ? 'bg-gray-700/30' : 'bg-gray-50'} flex items-center justify-between`}>
+                  <div>
+                    <label className={`text-[10px] font-bold uppercase tracking-wide ${textSecondary} mb-0.5 block`}>Application Status</label>
+                    <p className={`text-sm font-bold ${textColor}`}>Current progression of this application</p>
+                  </div>
+                  <span className={`px-4 py-1.5 rounded-full text-xs font-bold border shadow-sm ${getStatusColor(selectedCandidate.status, selectedCandidate.needs_approval)}`}>
+                    {getStatusLabel(selectedCandidate.status, selectedCandidate.needs_approval)}
+                  </span>
+                </div>
+
+                {/* Skills Section */}
+                {selectedCandidate.student_details?.skills && selectedCandidate.student_details.skills.length > 0 && (
+                  <section>
+                    <h3 className={`text-xs font-bold uppercase tracking-wider text-green-500 mb-3 flex items-center gap-2`}>
+                      Professional Skills
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCandidate.student_details.skills.map((skill, index) => (
+                        <span
+                          key={index}
+                          className={`px-3 py-1.5 ${isDark ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-blue-50 text-blue-600 border-blue-100'} border rounded-lg text-xs font-bold tracking-tight shadow-sm`}
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* Cover Letter Section */}
+                {selectedCandidate.cover_letter && (
+                  <section>
+                    <h3 className={`text-xs font-bold uppercase tracking-wider text-amber-500 mb-3`}>Candidate Statement</h3>
+                    <div className={`${isDark ? 'bg-gray-800/80' : 'bg-white'} rounded-xl p-5 border ${borderColor} shadow-inner relative overflow-hidden`}>
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500"></div>
+                      <p className={`text-sm ${textSecondary} leading-relaxed whitespace-pre-wrap italic`}>
+                        "{selectedCandidate.cover_letter}"
+                      </p>
+                    </div>
+                  </section>
+                )}
               </div>
+            </div>
 
-              {/* Skills */}
-              {selectedCandidate.student_details?.skills && selectedCandidate.student_details.skills.length > 0 && (
-                <div>
-                  <h4 className={`text-md font-bold ${textColor} mb-2`}>Skills</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedCandidate.student_details.skills.map((skill, index) => (
-                      <span
-                        key={index}
-                        className={`px-3 py-1 ${isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-600'} rounded-full text-sm font-medium`}
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Cover Letter */}
-              {selectedCandidate.cover_letter && (
-                <div>
-                  <h4 className={`text-md font-bold ${textColor} mb-2`}>Cover Letter</h4>
-                  <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-3 border ${borderColor}`}>
-                    <p className={`text-sm ${textSecondary} whitespace-pre-wrap`}>{selectedCandidate.cover_letter}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Resume */}
-              {selectedCandidate.student_details?.resumeUrl && (
-                <div>
-                  <h4 className={`text-md font-bold ${textColor} mb-2`}>Resume</h4>
+            {/* Modal Footer */}
+            <div className={`p-6 border-t ${borderColor} bg-gray-50/50 dark:bg-gray-800/50 flex flex-col sm:flex-row gap-3 items-center justify-between`}>
+              <div>
+                {selectedCandidate.student_details?.resumeUrl ? (
                   <a
                     href={selectedCandidate.student_details.resumeUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-blue-500/25 active:scale-95 font-bold text-sm"
                   >
-                    <Download size={16} />
+                    <Download size={18} />
                     Download Resume
                   </a>
-                </div>
-              )}
-            </div>
-
-            <div className={`flex justify-end gap-2 p-5 border-t ${borderColor}`}>
+                ) : (
+                  <p className={`text-xs ${textSecondary} italic`}>No resume provided</p>
+                )}
+              </div>
+              
               <button
                 onClick={() => setShowCandidateModal(false)}
-                className={`px-6 py-2 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors`}
+                className={`w-full sm:w-auto px-8 py-2.5 rounded-xl border ${borderColor} ${textColor} font-bold text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-all active:scale-95 shadow-sm`}
               >
-               Close 
+               Dismiss
               </button>
             </div>
           </div>

@@ -21,7 +21,8 @@ import {
   Building,
   Info,
   Phone,
-  Star
+  Star,
+  Sparkles
 } from "lucide-react";
 import logo from "../../assets/favicon-icon.png";
 
@@ -365,17 +366,22 @@ const CandidateNavbar = ({ toggleSidebar }) => {
             {/* Desktop Right Menu */}
             <div className="hidden lg:flex items-center gap-3">
               {/* Profile Avatar */}
+              {/* Profile Avatar - Desktop */}
               <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={handleProfileClick}
-                  className="w-10 h-10 rounded-xl bg-blue-50 text-[#2271B5] flex shadow-sm border border-gray-200 items-center justify-center font-bold hover:bg-blue-100 hover:shadow transition-all overflow-hidden"
-                >
-                  {user?.logo ? (
-                    <img src={user.logo} alt="Profile" className="w-full h-full object-cover" loading="lazy" />
-                  ) : (
-                    userInitial
-                  )}
-                </button>
+                <div onClick={handleProfileClick} className="flex flex-col items-center">
+                  <button
+                    className="w-10 h-10 rounded-xl bg-blue-50 text-[#2271B5] flex shadow-md border border-gray-200 items-center justify-center font-bold hover:bg-blue-100 hover:border-[#2271B5] hover:shadow-lg transition-all overflow-hidden"
+                  >
+                    {user?.logo ? (
+                      <img src={user.logo} alt="Profile" className="w-full h-full object-cover" loading="lazy" />
+                    ) : (
+                      userInitial
+                    )}
+                  </button>
+                  {/* Bold horizontal bars below avatar */}
+                  <div className="w-10 h-[3px] bg-[#2271B5] mt-1 rounded-full shadow-sm" />
+                  <div className="w-10 h-[3px] bg-[#2271B5] mt-1 rounded-full shadow-sm opacity-60" />
+                </div>
               </div>
 
               {/* Logout Button */}
@@ -419,10 +425,22 @@ const CandidateNavbar = ({ toggleSidebar }) => {
 
                 {/* Profile Info */}
                 <div className={`mb-4 p-1.5 rounded-xl shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
-                  <div className="flex flex-col items-center justify-center text-center gap-1.5 mb-3">
+                  <div className="flex flex-col items-center justify-center text-center gap-1.5 mb-3 relative">
+                    {/* Floating Membership Badge */}
+                    <div className="absolute -top-1 -right-0 z-20">
+                      <div className={`px-2 py-0.5 rounded-full text-[9px] font-black tracking-wider uppercase border shadow-sm flex items-center gap-1 backdrop-blur-md ${
+                        (user?.premium_user === true || user?.premium_user === 'true') 
+                          ? 'bg-amber-100/90 text-amber-700 border-amber-200' 
+                          : 'bg-gray-100/90 text-gray-500 border-gray-200'
+                      }`}>
+                        {(user?.premium_user === true || user?.premium_user === 'true') ? <Sparkles size={10} /> : <User size={10} />}
+                        {(user?.premium_user === true || user?.premium_user === 'true') ? (user?.plan === 'premium' ? 'Premium' : 'Basic') : 'Free'}
+                      </div>
+                    </div>
+
                     <div
                       style={{ width: 90, height: 90 }}
-                      className="rounded-xl bg-blue-50 text-[#2271B5] shadow-inner border border-blue-100 flex items-center justify-center text-xl font-bold overflow-hidden mb-1"
+                      className="rounded-2xl bg-blue-50 text-[#2271B5] shadow-inner border border-blue-100 flex items-center justify-center text-xl font-bold overflow-hidden mb-1 relative"
                     >
                       {user?.logo ? (
                         <img
@@ -570,9 +588,8 @@ const CandidateNavbar = ({ toggleSidebar }) => {
 
                 {/* Profile card */}
                 <div
-                  className={`mt-2 mb-2 p-4 rounded-xl shadow-sm border flex flex-col items-center text-center gap-2 ${
-                    isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'
-                  }`}
+                  className={`mt-2 mb-2 p-4 rounded-xl shadow-sm border flex flex-col items-center text-center gap-2 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'
+                    }`}
                 >
                   <div className="w-16 h-16 rounded-xl bg-blue-50 text-[#2271B5] shadow-inner border border-blue-100 flex items-center justify-center text-2xl font-bold overflow-hidden mb-1.5">
                     {user?.logo ? (
@@ -642,13 +659,12 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                             navigate(item.path);
                             closeMobileMenu();
                           }}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all group ${
-                            isActive(item.path)
-                              ? 'border-[#2271B5] bg-blue-50 text-[#2271B5]'
-                              : isDark
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all group ${isActive(item.path)
+                            ? 'border-[#2271B5] bg-blue-50 text-[#2271B5]'
+                            : isDark
                               ? 'border-gray-700 bg-gray-800 text-gray-200'
                               : 'border-gray-100 bg-white text-gray-700 hover:border-[#2271B5] hover:bg-blue-50 hover:text-[#2271B5]'
-                          }`}
+                            }`}
                         >
                           <div className="p-2 rounded-lg bg-blue-50 dark:bg-[#2271B5]/15 group-hover:bg-blue-100 dark:group-hover:bg-[#2271B5]/25 transition-colors">
                             {item.icon}
@@ -669,13 +685,12 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                           navigate('/my-applications');
                           closeMobileMenu();
                         }}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all group ${
-                          isActive('/my-applications')
-                            ? 'border-[#2271B5] bg-blue-50 text-[#2271B5]'
-                            : isDark
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all group ${isActive('/my-applications')
+                          ? 'border-[#2271B5] bg-blue-50 text-[#2271B5]'
+                          : isDark
                             ? 'border-gray-700 bg-gray-800 text-gray-200'
                             : 'border-gray-100 bg-white text-gray-700 hover:border-[#2271B5] hover:bg-blue-50 hover:text-[#2271B5]'
-                        }`}
+                          }`}
                       >
                         <div className="p-2 rounded-lg bg-blue-50 dark:bg-[#2271B5]/15 group-hover:bg-blue-100 dark:group-hover:bg-[#2271B5]/25 transition-colors">
                           <FileText size={18} className="text-[#2271B5]" />
@@ -688,13 +703,12 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                           navigate('/saved-jobs');
                           closeMobileMenu();
                         }}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all group ${
-                          isActive('/saved-jobs')
-                            ? 'border-[#2271B5] bg-blue-50 text-[#2271B5]'
-                            : isDark
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all group ${isActive('/saved-jobs')
+                          ? 'border-[#2271B5] bg-blue-50 text-[#2271B5]'
+                          : isDark
                             ? 'border-gray-700 bg-gray-800 text-gray-200'
                             : 'border-gray-100 bg-white text-gray-700 hover:border-[#2271B5] hover:bg-blue-50 hover:text-[#2271B5]'
-                        }`}
+                          }`}
                       >
                         <div className="p-2 rounded-lg bg-blue-50 dark:bg-[#2271B5]/15 group-hover:bg-blue-100 dark:group-hover:bg-[#2271B5]/25 transition-colors">
                           <Heart size={18} className="text-[#2271B5]" />

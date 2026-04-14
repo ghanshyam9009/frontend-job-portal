@@ -18,7 +18,8 @@ import {
   ArrowUpDown,
   ArrowRight,
   FileText,
-  Clock
+  Clock,
+  Sparkles
 } from "lucide-react";
 
 const ManageCandidates = () => {
@@ -725,10 +726,24 @@ const ManageCandidates = () => {
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className={`text-sm font-bold ${textColor} truncate leading-tight`}>
-                          {candidate.name || 'N/A'}
-                        </h3>
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className={`text-sm font-bold ${textColor} truncate leading-tight`}>
+                            {candidate.name || 'N/A'}
+                          </h3>
+                          {/* Membership Badge Next to Name - Enhanced Visibility */}
+                          <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-sm flex items-center gap-1.5 transition-all ${
+                            (candidate.premium_user === true || candidate.premium_user === 'true') 
+                              ? (candidate.plan === 'premium' 
+                                  ? 'bg-gradient-to-r from-amber-400 to-amber-600 text-white border-amber-300 shadow-amber-200/50' 
+                                  : 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border-blue-300 shadow-blue-200/50'
+                                ) 
+                              : 'bg-gray-100 text-gray-600 border-gray-200'
+                          }`}>
+                            {(candidate.premium_user === true || candidate.premium_user === 'true') ? <Sparkles size={11} className="text-white" /> : null}
+                            {(candidate.premium_user === true || candidate.premium_user === 'true') ? (candidate.plan === 'premium' ? 'Premium' : 'Basic') : 'Free'}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
                           <p className={`text-xs ${textSecondary} truncate`}>
                             {candidate.email || 'N/A'}
                           </p>

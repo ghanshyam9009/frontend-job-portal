@@ -54,7 +54,8 @@ const PostJob = () => {
     contact_email: user?.email || "",
     contact_number: user?.contact_number || user?.phone_number || "",
     job_status: "pending",
-    additional_benefits: []
+    additional_benefits: [],
+    total_applicants: ""
   });
   const [logoFile, setLogoFile] = useState(null);
 
@@ -218,7 +219,8 @@ const PostJob = () => {
         contact_email: user?.email || "",
         contact_number: user?.contact_number || user?.phone_number || "",
         job_status: "open",
-        additional_benefits: []
+        additional_benefits: [],
+        total_applicants: ""
       });
       setLogoFile(null);
     } catch (err) {
@@ -434,6 +436,23 @@ const PostJob = () => {
 
               <div className="min-w-0">
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                  Total Applicants
+                </label>
+                <div className="relative">
+                  <Users className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${textSecondary}`} size={16} />
+                  <input
+                    type="number"
+                    min={0}
+                    value={jobData.total_applicants}
+                    onChange={(e) => handleInputChange('total_applicants', e.target.value)}
+                    placeholder="e.g., 50"
+                    className={`w-full pl-10 pr-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm`}
+                  />
+                </div>
+              </div>
+
+              <div className="min-w-0">
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>
                   Application Deadline
                 </label>
                 <div className="relative">
@@ -619,9 +638,9 @@ const PostJob = () => {
                   value={jobData.qualifications}
                   onChange={(e) => handleInputChange("qualifications", e.target.value)}
                   placeholder="List required qualifications (one per line)..."
-                  rows={6}
+                  rows={2}
                   required
-                  className={`w-full max-w-full min-h-[8rem] px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm box-border`}
+                  className={`w-full max-w-full min-h-[3rem] px-3 py-2 ${inputBg} border ${inputBorder} rounded-md ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm box-border`}
                 />
               </div>
             </div>

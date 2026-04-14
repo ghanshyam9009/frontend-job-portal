@@ -7,7 +7,7 @@ import { candidateExternalService } from "../services/candidateExternalService";
 import { recruiterExternalService } from "../services/recruiterExternalService";
 import { studentService } from "../services/studentService";
 import HomeNav from "../Components/HomeNav";
-import { Bookmark, Briefcase, Contact, Contact2, MapPin, Sparkles, TrendingUp, ArrowLeft } from "lucide-react";
+import { Bookmark, Briefcase, Contact, Contact2, MapPin, Sparkles, TrendingUp, ArrowLeft, X, Crown, ArrowRight, CheckCircle } from "lucide-react";
 import Footer from "../Components/Footer";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import RecruiterNavbar from "../Components/Recruiter/RecruiterNavbar";
@@ -22,6 +22,7 @@ const JobDescription = () => {
   const [applicationError, setApplicationError] = useState("");
   const [applicationSuccess, setApplicationSuccess] = useState("");
   const [job, setJob] = useState(null);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -298,24 +299,9 @@ const JobDescription = () => {
       return;
     }
 
-    if (user?.membership !== "premium") {
-      try {
-        const registrationDate = new Date(user.created_at);
-        const now = new Date();
-        const daysSinceRegistration = Math.floor(
-          (now - registrationDate) / (1000 * 60 * 60 * 24)
-        );
-        // Temporarily disabled 45-day trial restriction.
-        // if (daysSinceRegistration > 45) {
-        //   alert(
-        //     "Your 45-day free trial has expired. You need a premium membership to apply for jobs. Redirecting to membership plans..."
-        //   );
-        //   navigate("/membership");
-        //   return;
-        // }
-      } catch {
-        // if created_at invalid, continue
-      }
+    if (!user.premium_user) {
+      setShowPremiumModal(true);
+      return;
     }
 
     setIsApplying(true);
@@ -767,6 +753,77 @@ const JobDescription = () => {
         </div>
       </div>
       <Footer />
+
+      {/* Premium Upgrade Modal */}
+      {showPremiumModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 mb-10">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            onClick={() => setShowPremiumModal(false)}
+          />
+          
+          {/* Modal Content */}
+          <div className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-white/20 animate-in fade-in zoom-in duration-300">
+            {/* Header / Accent */}
+            <div className="h-2 bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600" />
+            
+            <button 
+              onClick={() => setShowPremiumModal(false)}
+              className="absolute right-4 top-6 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-400 transition-colors"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="p-8 pt-10 text-center">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-amber-50 dark:bg-amber-500/10 mb-6 shadow-inner">
+                <Crown size={40} className="text-amber-500" />
+              </div>
+
+              <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
+                Premium Feature Only
+              </h3>
+              
+              <p className="text-gray-600 dark:text-gray-400 text-base leading-relaxed mb-8">
+                To apply for this job and unlock higher priority, please upgrade to a <span className="text-amber-600 font-bold">Premium Plan</span>. 
+                Get direct HR access and much more!
+              </p>
+
+              <div className="space-y-4">
+                <button
+                  onClick={() => {
+                    setShowPremiumModal(false);
+                    navigate("/membership-plans");
+                  }}
+                  className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white py-4 px-6 rounded-2xl font-bold text-lg shadow-xl shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] group"
+                >
+                  Upgrade to Premium
+                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+                
+                <button
+                  onClick={() => setShowPremiumModal(false)}
+                  className="w-full py-3 text-gray-500 dark:text-gray-400 font-semibold text-sm hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                >
+                  Maybe later
+                </button>
+              </div>
+
+              {/* Benefits list (mini) */}
+              <div className="mt-8 pt-8 border-t border-gray-100 dark:border-slate-800 grid grid-cols-2 gap-4">
+                <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-tighter">
+                  <CheckCircle size={14} className="text-green-500" />
+                  Unlimited Apply
+                </div>
+                <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-tighter">
+                  <CheckCircle size={14} className="text-green-500" />
+                  Priority Views
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
