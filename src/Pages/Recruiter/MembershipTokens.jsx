@@ -129,7 +129,7 @@ const RecruiterMembership = () => {
 
       // Initialize Razorpay checkout
       const options = {
-        key: 'rzp_test_RNj6wvo7aRv2Zf', // Replace with your actual Razorpay key
+        key: 'rzp_live_SaAoyjTJuO8TWo', // Replace with your actual Razorpay key
         amount: amount * 100, // Amount in paisa
         currency: 'INR',
         name: 'Bigsources.in',
