@@ -120,7 +120,7 @@ const MembershipPlans = () => {
 
       // Initialize Razorpay checkout
       const options = {
-        key: 'rzp_test_RNj6wvo7aRv2Zf',
+        key: 'rzp_live_SaAoyjTJuO8TWo',
         amount: amount * 100,
         currency: 'INR',
         name: 'Job Portal',
