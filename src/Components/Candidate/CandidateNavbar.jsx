@@ -591,22 +591,33 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                   className={`mt-2 mb-2 p-4 rounded-xl shadow-sm border flex flex-col items-center text-center gap-2 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'
                     }`}
                 >
-                  <div className="w-16 h-16 rounded-xl bg-blue-50 text-[#2271B5] shadow-inner border border-blue-100 flex items-center justify-center text-2xl font-bold overflow-hidden mb-1.5">
-                    {user?.logo ? (
-                      <img
-                        src={user.logo}
-                        alt="Profile logo"
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      (user?.full_name ||
-                        user?.name ||
-                        `${user?.firstName || ''} ${user?.lastName || ''}`.trim() ||
-                        'User')
-                        .charAt(0)
-                        ?.toUpperCase() || 'U'
-                    )}
+                  {/* Membership Badge - Mobile (centered above avatar) */}
+                  <div className="flex flex-col items-center w-full">
+                    <div className={`mx-auto mb-1 -mt-2 px-2 py-0.5 rounded-full text-[9px] font-black tracking-wider uppercase border shadow-sm flex items-center gap-1 backdrop-blur-md ${
+                      (user?.premium_user === true || user?.premium_user === 'true') 
+                        ? 'bg-amber-100/90 text-amber-700 border-amber-200' 
+                        : 'bg-gray-100/90 text-gray-500 border-gray-200'
+                    }`}>
+                      {(user?.premium_user === true || user?.premium_user === 'true') ? <Sparkles size={10} /> : <User size={10} />}
+                      {(user?.premium_user === true || user?.premium_user === 'true') ? (user?.plan === 'premium' ? 'Premium' : 'Basic') : 'Free'}
+                    </div>
+                    <div className="w-16 h-16 rounded-xl bg-blue-50 text-[#2271B5] shadow-inner border border-blue-100 flex items-center justify-center text-2xl font-bold overflow-hidden mb-1.5">
+                      {user?.logo ? (
+                        <img
+                          src={user.logo}
+                          alt="Profile logo"
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        (user?.full_name ||
+                          user?.name ||
+                          `${user?.firstName || ''} ${user?.lastName || ''}`.trim() ||
+                          'User')
+                          .charAt(0)
+                          ?.toUpperCase() || 'U'
+                      )}
+                    </div>
                   </div>
                   <div>
                     <div className={`text-base font-bold ${textColor}`}>

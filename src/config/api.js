@@ -86,7 +86,8 @@ export const API_ENDPOINTS = {
     getAllRecruiters: '/admin/get-all-recruiter',
     approveRecruiter: '/admin/approved-recruiter',
     rejectRecruiter: '/admin/approved-recruiter',
-    updateCandidateStatus: (email) => `/admin/candidate/${email}/status`
+    updateCandidateStatus: (email) => `/admin/candidate/${email}/status`,
+    deleteAdminJob: (jobId) => `/job/deleteadminjobs/${jobId}`
   },
 
   // Users

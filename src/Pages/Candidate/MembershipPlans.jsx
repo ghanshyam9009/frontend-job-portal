@@ -303,34 +303,45 @@ const MembershipPlans = () => {
                 </div>
 
                 {/* Button */}
-                <button
-                  onClick={() => handleUpgrade(plan)}
-                  disabled={loading || processingPlan === plan.id || user?.premium_user}
-                  className={`w-full py-3 rounded-lg font-bold text-sm transition-all ${plan.popular
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                    : isDark
-                      ? ' mt-auto bg-gray-700 text-white hover:bg-blue-600'
-                      : 'bg-gray-100 mt-auto text-gray-900 hover:bg-blue-600 hover:text-white'
-                    } ${(loading || processingPlan === plan.id || user?.premium_user) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  {processingPlan === plan.id ? (
+                {(() => {
+                  const isCurrentPlan = user?.premium_user && user?.plan === plan.id;
+                  const isDisabled = loading || processingPlan === plan.id || isCurrentPlan;
+                  return (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Processing...
+                      <button
+                        onClick={() => handleUpgrade(plan)}
+                        disabled={isDisabled}
+                        className={`w-full py-3 rounded-lg font-bold text-sm transition-all ${
+                          isCurrentPlan
+                            ? 'bg-green-100 text-green-700 cursor-not-allowed'
+                            : plan.popular
+                              ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                              : isDark
+                                ? 'mt-auto bg-gray-700 text-white hover:bg-blue-600'
+                                : 'bg-gray-100 mt-auto text-gray-900 hover:bg-blue-600 hover:text-white'
+                        } ${isDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+                      >
+                        {processingPlan === plan.id ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Processing...
+                          </span>
+                        ) : isCurrentPlan ? (
+                          'Registered Member'
+                        ) : (
+                          'Buy Now'
+                        )}
+                      </button>
+                      {isCurrentPlan && (
+                        <div className="mt-2 text-center">
+                          <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full border border-green-100 dark:border-green-900/30">
+                            Your Active Plan
+                          </span>
+                        </div>
+                      )}
                     </>
-                  ) : user?.premium_user ? (
-                    'Already Premium'
-                  ) : (
-                    'Buy Now'
-                  )}
-                </button>
-                {user?.premium_user && user?.plan === plan.id && (
-                  <div className="mt-2 text-center">
-                    <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full border border-green-100 dark:border-green-900/30">
-                      Your Active Plan
-                    </span>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             </div>
           ))}

@@ -319,7 +319,7 @@ export const adminService = {
 
   async deleteAdminJob(jobId) {
     try {
-      const response = await adminApiClient.delete(`/job/adminjobs/${jobId}`);
+      const response = await adminApiClient.post(API_ENDPOINTS.admin.deleteAdminJob(jobId));
       return response.data;
     } catch (error) {
       console.error('Error deleting admin job:', error);
