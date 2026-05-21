@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
-import { recruiterExternalService } from "../../services";
-import { Check, X, FileText, Download, ExternalLink, Search, Briefcase, Building, Clock, Mail, Phone, Calendar, Eye, MapPin, ArrowUpDown, Sparkles, User } from "lucide-react";
+import adminApiClient from "../../services/adminApiClient";
+import { Check, X, FileText, Download, ExternalLink, Search, Briefcase, Building, Clock, Mail, Phone, Calendar, Eye, MapPin, ArrowUpDown, Sparkles, User, ChevronLeft, ChevronRight } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 function PendingJobApplications({ embedded = false }) {
@@ -21,373 +21,346 @@ function PendingJobApplications({ embedded = false }) {
   const [sortBy, setSortBy] = useState("newest");
   const [jobTypes, setJobTypes] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [showingRange, setShowingRange] = useState(null);
+  const [filterCompanies, setFilterCompanies] = useState([]);
+  const [filterJobs, setFilterJobs] = useState([]);
+  const [filterStatuses, setFilterStatuses] = useState([]);
   const itemsPerPage = 10;
 
   useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, companyFilter, jobFilter, statusFilter, dateFilter, sortBy]);
+  }, [debouncedSearch, companyFilter, jobFilter, statusFilter, dateFilter, sortBy]);
 
   useEffect(() => {
     fetchData();
-  }, [statusFilter]);
+  }, [currentPage, debouncedSearch, companyFilter, jobFilter, statusFilter, dateFilter, sortBy]);
+
+  useEffect(() => {
+    if (!embedded) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentPage, embedded]);
+
+  const parseShowingRange = (showing, page = 1, limit = itemsPerPage, total = 0) => {
+    if (typeof showing === 'number' && showing > 0) {
+      const from = (page - 1) * limit + 1;
+      const to = Math.min(from + showing - 1, total || from + showing - 1);
+      return { from, to };
+    }
+    if (!showing) return null;
+    if (typeof showing === 'object') {
+      const from = showing.from ?? showing.start;
+      const to = showing.to ?? showing.end;
+      if (from != null && to != null) return { from: Number(from), to: Number(to) };
+      return showing;
+    }
+    if (typeof showing === 'string') {
+      const match = showing.match(/(\d+)\s*[-–]\s*(\d+)/);
+      if (match) return { from: Number(match[1]), to: Number(match[2]) };
+    }
+    return null;
+  };
+
+  const buildPageList = (current, total) => {
+    if (total <= 1) return [1];
+    const pages = new Set([1, total]);
+    for (let i = current - 2; i <= current + 2; i += 1) {
+      if (i >= 1 && i <= total) pages.add(i);
+    }
+    const sorted = [...pages].sort((a, b) => a - b);
+    const result = [];
+    sorted.forEach((page, index) => {
+      if (index > 0 && page - sorted[index - 1] > 1) result.push('ellipsis');
+      result.push(page);
+    });
+    return result;
+  };
+
+  const parseSkills = (raw) => {
+    if (Array.isArray(raw)) return raw.filter(Boolean);
+    if (typeof raw === 'string') {
+      return raw.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    return [];
+  };
+
+  const mapTaskStatusFromApi = (taskStatus) => {
+    if (!taskStatus) return 'pending';
+    const s = String(taskStatus).toLowerCase();
+    if (s === 'fulfilled' || s === 'approved') return 'approved';
+    if (s === 'rejected') return 'rejected';
+    return 'pending';
+  };
+
+  const getStatusLabel = (statusKey) => {
+    if (statusKey === 'approved') return 'Approved';
+    if (statusKey === 'rejected') return 'Rejected';
+    return 'Pending';
+  };
+
+  const canManageTask = (application) => application?.taskStatus === 'pending';
+
+  const mapStatusToApi = (filter) => {
+    const map = { pending: 'Pending', approved: 'Approved', rejected: 'Rejected' };
+    return map[filter];
+  };
+
+  const getDateRangeFromFilter = (filter) => {
+    if (filter === 'all') return {};
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const toISO = (d) => d.toISOString().split('T')[0];
+
+    switch (filter) {
+      case 'today':
+        return { date_from: toISO(today), date_to: toISO(today) };
+      case 'yesterday': {
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return { date_from: toISO(yesterday), date_to: toISO(yesterday) };
+      }
+      case 'last7days': {
+        const from = new Date(today);
+        from.setDate(from.getDate() - 7);
+        return { date_from: toISO(from), date_to: toISO(today) };
+      }
+      case 'last30days': {
+        const from = new Date(today);
+        from.setDate(from.getDate() - 30);
+        return { date_from: toISO(from), date_to: toISO(today) };
+      }
+      case 'thisMonth': {
+        const from = new Date(now.getFullYear(), now.getMonth(), 1);
+        return { date_from: toISO(from), date_to: toISO(today) };
+      }
+      case 'lastMonth': {
+        const from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const to = new Date(now.getFullYear(), now.getMonth(), 0);
+        return { date_from: toISO(from), date_to: toISO(to) };
+      }
+      default:
+        return {};
+    }
+  };
+
+  const buildStudentDetails = (userDetails, candidate, appDetails = {}) => {
+    const ud = userDetails || {};
+    const c = candidate || {};
+    const profile = appDetails.student_profile || {};
+    const membership = c.membership_type || ud.membership_type || profile.plan || ud.plan;
+    const membershipLower = membership ? String(membership).toLowerCase() : '';
+    const plan = (ud.plan || profile.plan || membershipLower || '').toLowerCase();
+    const isPremium =
+      ud.premium_user === true ||
+      profile.premium_user === true ||
+      membershipLower === 'premium' ||
+      membershipLower === 'basic' ||
+      plan === 'premium' ||
+      plan === 'basic';
+
+    return {
+      name: c.name || ud.full_name || ud.name || 'Unknown',
+      email: c.email || ud.email || null,
+      phone: c.phone_number || ud.phone_number || profile.phone_number || null,
+      skills: parseSkills(ud.skills || appDetails.student_skills || profile.skills),
+      location: ud.address?.city || ud.city || ud.location || profile.address?.city || null,
+      experience: ud.experience || profile.experience || null,
+      education: ud.education || profile.education || [],
+      experience_years: ud.experience_years || null,
+      bio: ud.bio || profile.bio || null,
+      resumeUrl: ud.resume || ud.resumeUrl || profile.resume || profile.resumeUrl || null,
+      department: ud.department || appDetails.student_department || null,
+      cgpa: ud.cgpa || appDetails.student_cgpa || null,
+      logo: c.profile_picture_url || ud.logo || ud.profile_picture_url || profile.logo || null,
+      premium_user: isPremium,
+      plan: plan === 'premium' ? 'premium' : (plan === 'basic' ? 'basic' : (isPremium ? 'premium' : null)),
+    };
+  };
+
+  const mapAppliedCandidateItem = (item) => {
+    const candidate = item.candidate || {};
+    const job = item.job || {};
+    const application = item.application || {};
+    const userDetails = item.user_details || {};
+    const jobDetails = item.job_details || {};
+    const appDetails = item.application_details || {};
+    const taskDetails = item.task_details || item.task || {};
+    const task = item.task || taskDetails;
+
+    const taskId = taskDetails.task_id || task.task_id;
+    const rawTaskStatus = taskDetails.status || task.status || 'pending';
+    const taskStatus = mapTaskStatusFromApi(rawTaskStatus);
+
+    const studentSkills = parseSkills(
+      application.skills_tags || appDetails.skills_tags || appDetails.student_skills || userDetails.skills
+    );
+
+    const locations = job.locations || (jobDetails.location ? [jobDetails.location] : []);
+    const jobLocation = Array.isArray(locations)
+      ? (locations.length ? locations.join(', ') : (jobDetails.location || 'Not specified'))
+      : (locations || jobDetails.location || 'Not specified');
+
+    const studentDetails = buildStudentDetails(userDetails, candidate, appDetails);
+
+    const details = {
+      studentName: candidate.name || userDetails.full_name || userDetails.name || 'Unknown Candidate',
+      studentEmail: candidate.email || userDetails.email || appDetails.student_email || '',
+      resumeUrl:
+        application.resume_url ||
+        appDetails.resume_url ||
+        userDetails.resume ||
+        userDetails.resumeUrl ||
+        studentDetails.resumeUrl ||
+        '',
+      studentPhone: candidate.phone_number || userDetails.phone_number || appDetails.student_phone || '',
+      studentSkills,
+      jobTitle: job.job_title || jobDetails.job_title || 'Not specified',
+      jobLocation,
+      companyName: job.company_name || jobDetails.company_name || 'Unknown Company',
+      applicationDate: item.applied_date || application.applied_at || taskDetails.created_at || task.created_at || '',
+      studentDetails,
+    };
+
+    const app = {
+      task_id: taskId,
+      application_id: application.application_id || item.application_id || item.applied_id,
+      applied_id: item.applied_id,
+      student_id: candidate.student_id || userDetails.user_id || item.user_id,
+      job_id: job.job_id || jobDetails.job_id || item.job_id,
+      applicationStatus: taskStatus,
+      taskStatus,
+      rawTaskStatus,
+      status: rawTaskStatus,
+      task,
+      task_details: taskDetails,
+      user_details: userDetails,
+      job_details: jobDetails,
+      application_details: appDetails,
+      recruiter_id: jobDetails.recruiter_id || job.recruiter_id,
+      job_category_tag: job.job_category_tag || jobDetails.job_type || jobDetails.job_category_tag,
+      posted_by: jobDetails.posted_by,
+    };
+
+    return { app, details };
+  };
+
+  const getRowKey = (app) => app.task_id || app.application_id;
+
+  const getDetailsForApp = (app) => applicationDetails[getRowKey(app)] || {};
 
   const fetchData = async () => {
     try {
       setLoading(true);
 
-      let filteredApps = [];
+      const params = { page: currentPage };
 
-      if (statusFilter === 'pending') {
-        const pendingTasks = await adminService.getPendingJobs();
-        filteredApps = pendingTasks.filter(task =>
-          task.category === 'newapplication' && task.status === 'pending'
-        );
-      } else if (statusFilter === 'approved') {
-        const allTasks = await adminService.getPendingJobs();
-        filteredApps = allTasks.filter(task =>
-          task.category === 'newapplication' && task.status === 'fulfilled'
-        );
-      } else if (statusFilter === 'rejected') {
-        const allTasks = await adminService.getPendingJobs();
-        filteredApps = allTasks.filter(task =>
-          task.category === 'newapplication' && task.status === 'rejected'
-        );
-      } else if (statusFilter === 'all') {
-        const allTasks = await adminService.getPendingJobs();
-        filteredApps = allTasks.filter(task => task.category === 'newapplication');
-      }
+      if (debouncedSearch) params.search = debouncedSearch;
+      if (statusFilter !== 'all') params.status = mapStatusToApi(statusFilter);
+      if (companyFilter !== 'all') params.company = companyFilter;
+      if (jobFilter !== 'all') params.job_id = jobFilter;
+      if (sortBy === 'newest' || sortBy === 'oldest') params.sort = sortBy;
 
-      const appsWithStatus = filteredApps.map(app => ({
-        ...app,
-        applicationStatus: app.status === 'fulfilled' ? 'approved' :
-          app.status === 'rejected' ? 'rejected' : 'pending'
-      }));
+      Object.assign(params, getDateRangeFromFilter(dateFilter));
 
-      setAllApplications(appsWithStatus);
+      const response = await adminApiClient.get('/admin/applied-candidates', { params });
+      const payload = response.data ?? {};
+      const items = Array.isArray(payload.data) ? payload.data : [];
 
-      if (appsWithStatus.length > 0) {
-        await fetchApplicationDetails(appsWithStatus);
-        determineJobTypes(appsWithStatus);
-      }
+      const apps = [];
+      const detailsMap = {};
+      const jobTypeMap = {};
+
+      items.forEach((item) => {
+        const { app, details } = mapAppliedCandidateItem(item);
+        apps.push(app);
+        const mapKey = getRowKey(app);
+        if (mapKey) detailsMap[mapKey] = details;
+        if (app.job_id && !jobTypeMap[app.job_id]) {
+          const isAdminJob =
+            app.posted_by === 'ADMIN' ||
+            app.job_category_tag === 'PRIVATE' ||
+            !app.recruiter_id;
+          jobTypeMap[app.job_id] = isAdminJob ? 'Admin Private Job' : 'Recruiter Job';
+        }
+      });
+
+      setAllApplications(apps);
+      setApplicationDetails(detailsMap);
+      setJobTypes(jobTypeMap);
+
+      const total = Number(payload.total) || 0;
+      const page = Number(payload.page) || currentPage;
+      const limit = Number(payload.limit) || itemsPerPage;
+      const apiTotalPages = Number(payload.total_pages);
+      const computedPages = Math.max(1, Math.ceil(total / limit));
+
+      setTotalCount(total);
+      setTotalPages(
+        Number.isFinite(apiTotalPages) && apiTotalPages > 0 ? apiTotalPages : computedPages
+      );
+      setShowingRange(parseShowingRange(payload.showing, page, limit, total));
+
+      const filters = payload.filters || {};
+      setFilterCompanies(Array.isArray(filters.companies) ? filters.companies : []);
+      setFilterJobs(Array.isArray(filters.jobs) ? filters.jobs : []);
+      setFilterStatuses(Array.isArray(filters.statuses) ? filters.statuses : []);
     } catch (error) {
       console.error('Failed to fetch applications:', error);
       setAllApplications([]);
+      setApplicationDetails({});
+      setTotalCount(0);
+      setTotalPages(1);
+      setShowingRange(null);
+      setFilterCompanies([]);
+      setFilterJobs([]);
+      setFilterStatuses([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const determineJobTypes = (applications) => {
-    const jobTypeMap = {};
-    applications.forEach(app => {
-      if (app.job_id && !jobTypeMap[app.job_id]) {
-        jobTypeMap[app.job_id] = app.recruiter_id ? 'Recruiter Job' : 'Admin Private Job';
-      }
-    });
-
-    setJobTypes(jobTypeMap);
-  };
-  const fetchApplicationDetails = async (applications) => {
-    const detailsMap = {};
-    let allCandidates = [];
-    try {
-      allCandidates = await adminService.getCandidates();
-    } catch (error) {
-      console.warn('Failed to fetch candidates data:', error);
-      allCandidates = [];
-    }
-    let recruiterDataMap = {};
-    try {
-      recruiterDataMap = await adminService.getAllRecruiterData();
-    } catch (error) {
-      console.warn('Failed to fetch all recruiter data:', error);
-    }
-
-    const uniqueJobIds = [...new Set(applications.map(app => app.job_id).filter(Boolean))];
-    const jobDataMap = {};
-
-    const jobChunkSize = 5;
-    for (let i = 0; i < uniqueJobIds.length; i += jobChunkSize) {
-      const chunk = uniqueJobIds.slice(i, i + jobChunkSize);
-      await Promise.all(
-        chunk.map(async (jobId) => {
-          try {
-            const res = await fetch(`https://sbevtwyse8.execute-api.ap-southeast-1.amazonaws.com/default/getalljobs?job_id=${jobId}`);
-            if (res.ok) {
-              const jobData = await res.json();
-              const job = Array.isArray(jobData.jobs)
-                ? jobData.jobs.find(j => j.job_id === jobId) || jobData.jobs[0]
-                : jobData.job || jobData;
-              if (job) {
-                jobDataMap[jobId] = job;
-              }
-            }
-          } catch (error) {
-            console.warn(`Failed to fetch job ${jobId}:`, error);
-          }
-        })
-      );
-    }
-
-    const applicationsForJobCache = {};
-    const fetchAppsForJob = async (jobId) => {
-      if (!jobId) return [];
-      if (applicationsForJobCache[jobId]) return applicationsForJobCache[jobId];
-      try {
-        const res = await adminService.getApplicationsForJob(jobId);
-        applicationsForJobCache[jobId] = res.applications || [];
-        return applicationsForJobCache[jobId];
-      } catch (e) {
-        applicationsForJobCache[jobId] = [];
-        return [];
-      }
-    };
-
-    const appChunkSize = 10;
-    for (let i = 0; i < applications.length; i += appChunkSize) {
-      const chunk = applications.slice(i, i + appChunkSize);
-
-      const promises = chunk.map(async (app) => {
-        try {
-          const details = {
-            studentName: 'Loading...',
-            studentEmail: '',
-            resumeUrl: '',
-            studentPhone: '',
-            studentSkills: [],
-            jobTitle: 'Loading...',
-            jobLocation: '',
-            companyName: 'Loading...',
-            applicationDate: app.created_at || app.posted_date || '',
-            studentDetails: null
-          };
-
-          const studentData = allCandidates.find(candidate =>
-            candidate.id?.toString() === app.student_id?.toString() ||
-            candidate.candidate_id?.toString() === app.student_id?.toString() ||
-            candidate.user_id?.toString() === app.student_id?.toString()
-          );
-
-          if (studentData) {
-            details.studentName = studentData.name || studentData.full_name || `Student ${app.student_id}`;
-            details.studentEmail = studentData.email || '';
-            details.resumeUrl = studentData.resume || studentData.resumeUrl || '';
-            details.studentPhone = studentData.phone || studentData.phone_number || '';
-            details.studentSkills = studentData.skills || [];
-
-            details.studentDetails = {
-              name: studentData.name || studentData.full_name || "Unknown",
-              email: studentData.email || null,
-              phone: studentData.phone || studentData.phone_number || null,
-              skills: studentData.skills || [],
-              location: studentData.city || studentData.location || null,
-              experience: studentData.experience || null,
-              education: studentData.education || [],
-              experience_years: studentData.experience_years || null,
-              bio: studentData.bio || null,
-              resumeUrl: studentData.resume || studentData.resumeUrl || null,
-              department: studentData.department || null,
-              cgpa: studentData.cgpa || null,
-              logo: studentData.logo || studentData.profile_image || null,
-              premium_user: studentData.premium_user || false,
-              plan: studentData.plan || null
-            };
-          } else {
-            const applicationsList = await fetchAppsForJob(app.job_id);
-
-            const studentApplication = applicationsList.find(a =>
-              a.student_id?.toString() === app.student_id?.toString()
-            ) || applicationsList[0];
-
-            if (studentApplication) {
-              details.studentName = studentApplication.student_name || `Student ${app.student_id}`;
-              details.studentEmail = studentApplication.student_email || studentApplication.email || '';
-              details.resumeUrl = studentApplication.resume_url || studentApplication.resume || '';
-              details.studentPhone = studentApplication.student_phone || '';
-              details.studentSkills = studentApplication.student_skills
-                ? (typeof studentApplication.student_skills === 'string'
-                  ? studentApplication.student_skills.split(',').map(skill => skill.trim())
-                  : Array.isArray(studentApplication.student_skills)
-                    ? studentApplication.student_skills
-                    : [])
-                : [];
-
-              details.studentDetails = {
-                name: studentApplication.student_name || "Unknown",
-                email: studentApplication.student_email || studentApplication.email || null,
-                phone: studentApplication.student_phone || null,
-                skills: studentApplication.student_skills
-                  ? (typeof studentApplication.student_skills === 'string'
-                    ? studentApplication.student_skills.split(',').map(skill => skill.trim())
-                    : Array.isArray(studentApplication.student_skills)
-                      ? studentApplication.student_skills
-                      : [])
-                  : [],
-                location: studentApplication.student_location || null,
-                experience: studentApplication.student_experience || null,
-                education: studentApplication.student_university ? [studentApplication.student_university] : [],
-                experience_years: studentApplication.student_experience_years || null,
-                bio: studentApplication.student_bio || null,
-                resumeUrl: studentApplication.resume_url || studentApplication.student_profile?.resume || null,
-                department: studentApplication.student_department || null,
-                cgpa: studentApplication.student_cgpa || null,
-                logo: studentApplication.student_profile?.logo || studentApplication.student_profile?.profile_image || null,
-                premium_user: studentApplication.student_profile?.premium_user || studentApplication.premium_user || false,
-                plan: studentApplication.student_profile?.plan || studentApplication.plan || null
-              };
-            }
-          }
-
-          if (app.job_id && jobDataMap[app.job_id]) {
-            const job = jobDataMap[app.job_id];
-            details.jobTitle = job.job_title || job.title || 'Not specified';
-            details.jobLocation = job.location || 'Not specified';
-            details.companyName = job.company_name || 'Not specified';
-          }
-
-          if (app.recruiter_id && recruiterDataMap[app.recruiter_id] && (!details.companyName || details.companyName === 'Loading...' || details.companyName === 'Unknown Company' || details.companyName === 'Not specified')) {
-            details.companyName = recruiterDataMap[app.recruiter_id].company_name || 'Unknown Company';
-          } else if (app.recruiter_id && (!details.companyName || details.companyName === 'Loading...' || details.companyName === 'Unknown Company' || details.companyName === 'Not specified')) {
-            try {
-              const recruiterData = await recruiterExternalService.getRecruiterCompanyName(app.recruiter_id);
-              if (recruiterData && recruiterData.company_name) {
-                details.companyName = recruiterData.company_name;
-              }
-            } catch (err) {
-              console.warn(`Failed to fetch company:`, err);
-            }
-          }
-
-          if (!details.studentName || details.studentName === 'Loading...') {
-            details.studentName = `Student ${app.student_id || 'Unknown'}`;
-          }
-          if (!details.companyName || details.companyName === 'Loading...' || details.companyName === 'Unknown Company' || details.companyName === 'Not specified') {
-            details.companyName = app.company_name || 'Unknown Company';
-          }
-          if (!details.jobTitle || details.jobTitle === 'Loading...' || details.jobTitle === 'Not specified') {
-            details.jobTitle = app.title || 'Not specified';
-          }
-
-          detailsMap[app.task_id] = details;
-        } catch (error) {
-          console.error(`Error fetching details for app ${app.task_id}:`, error);
-          detailsMap[app.task_id] = {
-            studentName: `Student ${app.student_id || 'Unknown'}`,
-            studentEmail: '',
-            resumeUrl: '',
-            studentPhone: '',
-            studentSkills: [],
-            jobTitle: app.title || 'Not specified',
-            jobLocation: app.location || 'Not specified',
-            companyName: app.company_name || 'Unknown Company',
-            applicationDate: app.created_at || app.posted_date || '',
-            studentDetails: null
-          };
-        }
-      });
-
-      await Promise.all(promises);
-    }
-    setApplicationDetails(detailsMap);
-  };
-
-  const filterApplicationsByDate = (applications, dateFilter) => {
-    if (dateFilter === "all") return applications;
-
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    return applications.filter(app => {
-      const details = applicationDetails[app.task_id];
-      const appDateString = details?.applicationDate || app.created_at || app.posted_date;
-      if (!appDateString) return false;
-
-      const appDate = new Date(appDateString);
-      const appDateOnly = new Date(appDate.getFullYear(), appDate.getMonth(), appDate.getDate());
-
-      switch (dateFilter) {
-        case "today":
-          return appDateOnly.getTime() === today.getTime();
-        case "yesterday": {
-          const yesterday = new Date(today);
-          yesterday.setDate(yesterday.getDate() - 1);
-          return appDateOnly.getTime() === yesterday.getTime();
-        }
-        case "last7days": {
-          const weekAgo = new Date(today);
-          weekAgo.setDate(weekAgo.getDate() - 7);
-          return appDateOnly >= weekAgo;
-        }
-        case "last30days": {
-          const monthAgo = new Date(today);
-          monthAgo.setDate(monthAgo.getDate() - 30);
-          return appDateOnly >= monthAgo;
-        }
-        case "thisMonth": {
-          return appDate.getMonth() === now.getMonth() &&
-            appDate.getFullYear() === now.getFullYear();
-        }
-        case "lastMonth": {
-          const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-          return appDate.getMonth() === lastMonth.getMonth() &&
-            appDate.getFullYear() === lastMonth.getFullYear();
-        }
-        default:
-          return true;
-      }
-    });
-  };
-
-  const sortApplications = (applications, sortBy) => {
+  const sortApplications = (applications, sortKey) => {
     const sorted = [...applications];
-
-    switch (sortBy) {
-      case "newest":
-        sorted.sort((a, b) => {
-          const dateA = new Date(applicationDetails[a.task_id]?.applicationDate || a.created_at || 0);
-          const dateB = new Date(applicationDetails[b.task_id]?.applicationDate || b.created_at || 0);
-          return dateB - dateA;
-        });
-        break;
-      case "oldest":
-        sorted.sort((a, b) => {
-          const dateA = new Date(applicationDetails[a.task_id]?.applicationDate || a.created_at || 0);
-          const dateB = new Date(applicationDetails[b.task_id]?.applicationDate || b.created_at || 0);
-          return dateA - dateB;
-        });
-        break;
+    switch (sortKey) {
       case "nameAZ":
         sorted.sort((a, b) => {
-          const nameA = applicationDetails[a.task_id]?.studentName || '';
-          const nameB = applicationDetails[b.task_id]?.studentName || '';
+          const nameA = getDetailsForApp(a).studentName || '';
+          const nameB = getDetailsForApp(b).studentName || '';
           return nameA.localeCompare(nameB);
         });
         break;
       case "nameZA":
         sorted.sort((a, b) => {
-          const nameA = applicationDetails[a.task_id]?.studentName || '';
-          const nameB = applicationDetails[b.task_id]?.studentName || '';
+          const nameA = getDetailsForApp(a).studentName || '';
+          const nameB = getDetailsForApp(b).studentName || '';
           return nameB.localeCompare(nameA);
         });
         break;
       case "companyAZ":
         sorted.sort((a, b) => {
-          const companyA = applicationDetails[a.task_id]?.companyName || '';
-          const companyB = applicationDetails[b.task_id]?.companyName || '';
+          const companyA = getDetailsForApp(a).companyName || '';
+          const companyB = getDetailsForApp(b).companyName || '';
           return companyA.localeCompare(companyB);
         });
         break;
       case "companyZA":
         sorted.sort((a, b) => {
-          const companyA = applicationDetails[a.task_id]?.companyName || '';
-          const companyB = applicationDetails[b.task_id]?.companyName || '';
+          const companyA = getDetailsForApp(a).companyName || '';
+          const companyB = getDetailsForApp(b).companyName || '';
           return companyB.localeCompare(companyA);
         });
         break;
       default:
         break;
     }
-
     return sorted;
   };
 
@@ -396,17 +369,7 @@ function PendingJobApplications({ embedded = false }) {
       setLoadingApplications(prev => ({ ...prev, [taskId]: true }));
       await adminService.approveJobApplicationByStudent(taskId);
       alert('Application approved successfully! The recruiter can now review this application.');
-
-      setAllApplications(prev => prev.map(app =>
-        app.task_id === taskId
-          ? { ...app, applicationStatus: 'approved', status: 'fulfilled' }
-          : app
-      ));
-
-      setSearchQuery('');
-      setCompanyFilter('all');
-      setJobFilter('all');
-      setStatusFilter('all');
+      await fetchData();
     } catch (error) {
       console.error('Failed to approve application:', error);
       alert('Failed to approve application. Please try again.');
@@ -418,20 +381,11 @@ function PendingJobApplications({ embedded = false }) {
   const handleRejectApplication = async (taskId) => {
     const confirmReject = window.confirm('Are you sure you want to reject this application?');
     if (!confirmReject) return;
-
     try {
       setLoadingApplications(prev => ({ ...prev, [taskId]: true }));
       await adminService.rejectJob(taskId);
       alert('Application rejected successfully.');
-      setAllApplications(prev => prev.map(app =>
-        app.task_id === taskId
-          ? { ...app, applicationStatus: 'rejected', status: 'rejected' }
-          : app
-      ));
-      setSearchQuery('');
-      setCompanyFilter('all');
-      setJobFilter('all');
-      setStatusFilter('all');
+      await fetchData();
     } catch (error) {
       console.error('Failed to reject application:', error);
       alert('Failed to reject application. Please try again.');
@@ -441,28 +395,43 @@ function PendingJobApplications({ embedded = false }) {
   };
 
   const handleViewCandidateDetails = (application, details) => {
-    console.log('Opening modal for application:', application);
-    console.log('Application details:', details);
-    const candidateData = {
+    const ud = application.user_details || {};
+    const studentDetails = details.studentDetails || {
+      name: ud.name || ud.full_name || details.studentName,
+      email: ud.email || details.studentEmail,
+      phone: ud.phone_number || ud.phone || details.studentPhone,
+      skills: ud.skills || details.studentSkills || [],
+      location: ud.city || ud.location || ud.address?.city || null,
+      experience: ud.experience || null,
+      education: ud.education || [],
+      experience_years: ud.experience_years || null,
+      bio: ud.bio || null,
+      resumeUrl: ud.resume_url || ud.resume || details.resumeUrl,
+      department: ud.department || null,
+      cgpa: ud.cgpa || null,
+      logo: ud.profile_picture_url || ud.logo || ud.profile_image || null,
+      premium_user: details.studentDetails?.premium_user,
+      plan: details.studentDetails?.plan,
+    };
+    setSelectedCandidate({
       ...application,
       details: {
         ...details,
-        studentDetails: details.studentDetails || {
-          name: details.studentName,
-          email: details.studentEmail,
-          phone: details.studentPhone,
-          skills: details.studentSkills || [],
-          location: null,
-          experience: null,
-          education: [],
-          bio: null,
-          resumeUrl: details.resumeUrl
-        }
-      }
-    };
-
-    console.log('Setting candidate data:', candidateData);
-    setSelectedCandidate(candidateData);
+        jobTitle: application.job_details?.job_title || details.jobTitle,
+        companyName: application.job_details?.company_name || details.companyName,
+        jobLocation: Array.isArray(application.job_details?.locations)
+          ? application.job_details.locations.join(', ')
+          : (application.job_details?.location || details.jobLocation),
+        resumeUrl:
+          application.application_details?.resume_url ||
+          application.user_details?.resume ||
+          application.user_details?.resumeUrl ||
+          details.resumeUrl,
+        studentSkills: parseSkills(application.application_details?.skills_tags || details.studentSkills),
+        applicationDate: application.application_details?.applied_at || details.applicationDate,
+        studentDetails,
+      },
+    });
     setShowCandidateModal(true);
   };
 
@@ -475,51 +444,32 @@ function PendingJobApplications({ embedded = false }) {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
-  const uniqueCompanies = [...new Set(
-    allApplications.map(app => applicationDetails[app.task_id]?.companyName).filter(Boolean)
-  )];
+  const CLIENT_SORT_OPTIONS = ['nameAZ', 'nameZA', 'companyAZ', 'companyZA'];
+  let currentApplications = allApplications;
+  if (CLIENT_SORT_OPTIONS.includes(sortBy)) {
+    currentApplications = sortApplications(allApplications, sortBy);
+  }
 
-  const uniqueJobs = [...new Set(
-    allApplications.map(app => {
-      const details = applicationDetails[app.task_id];
-      return details ? `${details.jobTitle}|${details.companyName}` : null;
-    }).filter(Boolean)
-  )];
+  const hasResults = totalCount > 0 || currentApplications.length > 0;
+  const effectiveTotalPages = Math.max(totalPages, Math.ceil(totalCount / itemsPerPage) || 1, currentPage);
+  const showPaginationBar = !loading && currentApplications.length > 0;
+  const canGoPrevious = currentPage > 1;
+  const canGoNext = currentPage < effectiveTotalPages || currentApplications.length >= itemsPerPage;
+  const displayTotalPages = Math.max(effectiveTotalPages, canGoNext ? currentPage + 1 : currentPage);
+  const pageNumbers = buildPageList(currentPage, displayTotalPages);
+  const parsedShowing = parseShowingRange(showingRange);
+  const rangeFrom = parsedShowing?.from ?? ((currentPage - 1) * itemsPerPage + (currentApplications.length ? 1 : 0));
+  const rangeTo = parsedShowing?.to ?? Math.min(currentPage * itemsPerPage, totalCount);
 
-  let filteredApplications = allApplications.filter(app => {
-    const details = applicationDetails[app.task_id] || {};
+  const goToPage = (page) => {
+    const next = Math.max(1, page);
+    if (next !== currentPage) setCurrentPage(next);
+  };
 
-    const matchesStatus = statusFilter === "all" || app.applicationStatus === statusFilter;
-    const matchesSearch =
-      details.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      details.studentEmail?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      details.companyName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      details.jobTitle?.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesCompany = companyFilter === "all" || details.companyName === companyFilter;
-
-    // Job filter
-    const jobKey = `${details.jobTitle}|${details.companyName}`;
-    const matchesJob = jobFilter === "all" || jobKey === jobFilter;
-
-    return matchesStatus && matchesSearch && matchesCompany && matchesJob;
-  });
-
-  // Apply date filter
-  filteredApplications = filterApplicationsByDate(filteredApplications, dateFilter);
-
-  // Apply sorting
-  filteredApplications = sortApplications(filteredApplications, sortBy);
-
-  // Pagination logic
-  const totalPages = Math.ceil(filteredApplications.length / itemsPerPage);
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentApplications = filteredApplications.slice(indexOfFirstItem, indexOfLastItem);
 
   const isDark = theme === 'dark';
   const bgColor = isDark ? 'bg-gray-900' : 'bg-gray-50';
@@ -584,9 +534,19 @@ function PendingJobApplications({ embedded = false }) {
                   className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
                 >
                   <option value="all">All Status</option>
-                  <option value="pending">Pending</option>
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option>
+                  {filterStatuses.length > 0 ? (
+                    filterStatuses.map((status) => (
+                      <option key={status} value={status.toLowerCase()}>
+                        {status}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                    </>
+                  )}
                 </select>
               </div>
 
@@ -598,7 +558,7 @@ function PendingJobApplications({ embedded = false }) {
                   className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
                 >
                   <option value="all">All Companies</option>
-                  {uniqueCompanies.map(company => (
+                  {filterCompanies.map((company) => (
                     <option key={company} value={company}>{company}</option>
                   ))}
                 </select>
@@ -612,10 +572,11 @@ function PendingJobApplications({ embedded = false }) {
                   className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
                 >
                   <option value="all">All Jobs</option>
-                  {uniqueJobs.map(jobKey => {
-                    const [title, company] = jobKey.split('|');
+                  {filterJobs.map((job) => {
+                    const jobId = job.job_id || job.id;
+                    const title = job.job_title || job.title || 'Job';
                     return (
-                      <option key={jobKey} value={jobKey}>{title} - {company}</option>
+                      <option key={jobId} value={jobId}>{title}</option>
                     );
                   })}
                 </select>
@@ -674,7 +635,7 @@ function PendingJobApplications({ embedded = false }) {
         )}
 
         {/* Empty State */}
-        {!loading && filteredApplications.length === 0 && (
+        {!loading && !hasResults && (
           <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center`}>
             <div className={`w-16 h-16 ${isDark ? 'bg-blue-500/20' : 'bg-blue-100'} rounded-full flex items-center justify-center mx-auto mb-4`}>
               <FileText size={32} className="text-blue-500" />
@@ -703,10 +664,15 @@ function PendingJobApplications({ embedded = false }) {
         )}
 
         {/* Results Header */}
-        {!loading && filteredApplications.length > 0 && (
+        {!loading && hasResults && (
           <div className="mb-4">
             <p className={`text-sm ${textSecondary}`}>
-              Showing <span className={`font-semibold ${textColor}`}>{filteredApplications.length}</span> {filteredApplications.length === 1 ? 'application' : 'applications'}
+              Showing <span className={`font-semibold ${textColor}`}>{totalCount}</span> {totalCount === 1 ? 'application' : 'applications'}
+              {showPaginationBar && (
+                <span className="ml-1">
+                  · Page <span className={`font-semibold ${textColor}`}>{currentPage}</span> of <span className={`font-semibold ${textColor}`}>{displayTotalPages}</span>
+                </span>
+              )}
               {statusFilter !== 'all' && ` with status "${statusFilter}"`}
               {dateFilter !== 'all' && (
                 <span className="ml-2">
@@ -718,16 +684,18 @@ function PendingJobApplications({ embedded = false }) {
         )}
 
         {/* Applications List - Compact Cards */}
-        {!loading && filteredApplications.length > 0 && (
+        {!loading && hasResults && (
           <div className="flex flex-col gap-4">
             <div className="space-y-3">
               {currentApplications.map((application) => {
-                const details = applicationDetails[application.task_id] || {};
-                const isLoadingAction = loadingApplications[application.task_id];
+                const rowKey = getRowKey(application);
+                const details = getDetailsForApp(application);
+                const isLoadingAction = loadingApplications[rowKey];
+                const showTaskActions = application.task_id && canManageTask(application);
 
                 return (
                   <div
-                    key={application.task_id}
+                    key={rowKey}
                     className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all`}
                   >
                     <div className="p-3">
@@ -780,14 +748,13 @@ function PendingJobApplications({ embedded = false }) {
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-1.5">
-                          <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${application.applicationStatus === 'approved'
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${application.taskStatus === 'approved'
                             ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30'
-                            : application.applicationStatus === 'rejected'
+                            : application.taskStatus === 'rejected'
                               ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30'
                               : 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30'
                             }`} style={{ fontSize: '0.7rem' }}>
-                            {application.applicationStatus === 'approved' ? 'Approved' :
-                              application.applicationStatus === 'rejected' ? 'Rejected' : 'Pending'}
+                            {getStatusLabel(application.taskStatus)}
                           </span>
                           {jobTypes[application.job_id] && (
                             <span className={`px-2 py-0.5 rounded text-xs font-medium ${jobTypes[application.job_id] === 'Admin Private Job'
@@ -882,7 +849,7 @@ function PendingJobApplications({ embedded = false }) {
                             Resume
                           </a>
                         )}
-                        {application.applicationStatus === 'pending' && (
+                        {showTaskActions && (
                           <>
                             <button
                               onClick={() => handleRejectApplication(application.task_id)}
@@ -912,13 +879,13 @@ function PendingJobApplications({ embedded = false }) {
                             </button>
                           </>
                         )}
-                        {application.applicationStatus === 'approved' && (
+                        {!showTaskActions && application.taskStatus === 'approved' && (
                           <span className="flex-1 sm:flex-initial px-3 py-1.5 text-green-700 dark:text-green-400 text-xs font-medium flex items-center justify-center gap-1.5" style={{ fontSize: '0.7rem' }}>
                             <Check size={13} />
                             Approved
                           </span>
                         )}
-                        {application.applicationStatus === 'rejected' && (
+                        {!showTaskActions && application.taskStatus === 'rejected' && (
                           <span className="flex-1 sm:flex-initial px-3 py-1.5 text-red-700 dark:text-red-400 text-xs font-medium flex items-center justify-center gap-1.5" style={{ fontSize: '0.7rem' }}>
                             <X size={13} />
                             Rejected
@@ -931,35 +898,70 @@ function PendingJobApplications({ embedded = false }) {
               })}
             </div>
 
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-4 mt-2 gap-4">
-                <div className="flex items-center">
-                  <p className={`text-sm ${textSecondary}`}>
-                    Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to <span className="font-medium">{Math.min(indexOfLastItem, filteredApplications.length)}</span> of <span className="font-medium">{filteredApplications.length}</span> results
-                  </p>
+          </div>
+        )}
+
+        {showPaginationBar && (
+          <div className={`${cardBg} rounded-lg border ${borderColor} p-4 mt-4 shadow-sm`}>
+            <p className={`text-sm ${textSecondary} text-center mb-4`}>
+              Showing <span className={`font-medium ${textColor}`}>{rangeFrom}</span> to{' '}
+              <span className={`font-medium ${textColor}`}>{rangeTo}</span> of{' '}
+              <span className={`font-medium ${textColor}`}>{totalCount}</span> results
+              <span className="mx-2">·</span>
+              Page <span className={`font-medium ${textColor}`}>{currentPage}</span> of{' '}
+              <span className={`font-medium ${textColor}`}>{displayTotalPages}</span>
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={!canGoPrevious || loading}
+                className={`inline-flex items-center justify-center gap-1.5 min-w-[7.5rem] px-4 py-2.5 rounded-lg border-2 text-sm font-semibold transition-colors ${
+                  canGoPrevious && !loading
+                    ? 'border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30'
+                    : 'border-gray-200 dark:border-gray-600 text-gray-400 cursor-not-allowed'
+                } ${cardBg}`}
+              >
+                <ChevronLeft size={18} />
+                Previous
+              </button>
+              {displayTotalPages > 1 && (
+                <div className="flex flex-wrap items-center justify-center gap-1 px-1">
+                  {pageNumbers.map((page, index) =>
+                    page === 'ellipsis' ? (
+                      <span key={`ellipsis-${index}`} className={`px-2 text-sm ${textSecondary}`}>…</span>
+                    ) : (
+                      <button
+                        key={page}
+                        type="button"
+                        onClick={() => goToPage(page)}
+                        disabled={loading}
+                        className={`min-w-[2.5rem] h-10 px-2 rounded-lg text-sm font-medium transition-colors ${
+                          page === currentPage
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                        } disabled:opacity-50`}
+                      >
+                        {page}
+                      </button>
+                    )
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    className={`px-3 py-1.5 rounded-lg border ${borderColor} text-sm font-medium ${textColor} disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors bg-white dark:bg-gray-800 shadow-sm`}
-                  >
-                    Previous
-                  </button>
-                  <div className={`text-sm font-medium ${textColor} px-2`}>
-                    Page {currentPage} of {totalPages}
-                  </div>
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                    className={`px-3 py-1.5 rounded-lg border ${borderColor} text-sm font-medium ${textColor} disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors bg-white dark:bg-gray-800 shadow-sm`}
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            )}
+              )}
+              <button
+                type="button"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={!canGoNext || loading}
+                className={`inline-flex items-center justify-center gap-1.5 min-w-[7.5rem] px-4 py-2.5 rounded-lg border-2 text-sm font-semibold transition-colors ${
+                  canGoNext && !loading
+                    ? 'border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30'
+                    : 'border-gray-200 dark:border-gray-600 text-gray-400 cursor-not-allowed'
+                } ${cardBg}`}
+              >
+                Next
+                <ChevronRight size={18} />
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -1183,14 +1185,14 @@ function PendingJobApplications({ embedded = false }) {
               <div>
                 <h4 className={`text-lg font-bold ${textColor} mb-3`}>Application Status</h4>
                 <div className="flex items-center gap-3">
-                  <span className={`px-4 py-2 rounded-lg text-sm font-semibold border ${selectedCandidate.applicationStatus === 'approved'
+                  <span className={`px-4 py-2 rounded-lg text-sm font-semibold border ${selectedCandidate.taskStatus === 'approved'
                     ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30'
-                    : selectedCandidate.applicationStatus === 'rejected'
+                    : selectedCandidate.taskStatus === 'rejected'
                       ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30'
                       : 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30'
                     }`}>
-                    {selectedCandidate.applicationStatus === 'approved' ? '✓ Approved' :
-                      selectedCandidate.applicationStatus === 'rejected' ? '✗ Rejected' : '⏳ Pending Review'}
+                    {selectedCandidate.taskStatus === 'approved' ? '✓ Approved' :
+                      selectedCandidate.taskStatus === 'rejected' ? '✗ Rejected' : '⏳ Pending Review'}
                   </span>
                   {jobTypes[selectedCandidate.job_id] && (
                     <span className={`px-3 py-2 rounded-lg text-sm font-medium border ${jobTypes[selectedCandidate.job_id] === 'Admin Private Job'
