@@ -168,6 +168,12 @@ const AdminSidebar = ({ isOpen, onClose }) => {
       title: "Forms & Plans",
       items: [
         {
+          id: 'plans',
+          label: 'Plans',
+          icon: CreditCard,
+          path: '/admin/plans'
+        },
+        {
           id: 'membership',
           label: 'Membership Plans',
           icon: CreditCard,

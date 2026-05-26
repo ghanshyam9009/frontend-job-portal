@@ -1,64 +1,82 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Check, Crown, Sparkles, User, ChevronDown, ChevronUp, Loader2, Rocket, MessageCircle, BarChart3, Shield } from "lucide-react";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import Footer from "../../Components/Footer";
+import { planService } from "../../services/planService";
 
+const normalizePlansList = (response) => {
+  const payload = response?.data ?? response;
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.plans)) return payload.plans;
+  return [];
+};
+
+const mapApiPlanToCard = (plan) => {
+  const id = plan.plan_id || plan.id;
+  const priceValue = Number(plan.price) || 0;
+  const popular = Boolean(plan.popular);
+  const features = Array.isArray(plan.features)
+    ? plan.features
+    : typeof plan.features === "string"
+      ? plan.features.split(",").map((s) => s.trim()).filter(Boolean)
+      : [];
+
+  return {
+    id,
+    name: plan.name || "Plan",
+    description: plan.description || "",
+    price: priceValue === 0 ? "Free" : `₹${priceValue}`,
+    priceValue,
+    validity: plan.validity_days || plan.validity || plan.duration || "",
+    popular,
+    features,
+  };
+};
 
 const MembershipPlans = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { theme } = useTheme();
 
+  const [plansLoading, setPlansLoading] = useState(true);
+  const [plansError, setPlansError] = useState(null);
+  const [apiPlans, setApiPlans] = useState([]);
   const [loading, setLoading] = useState(false);
   const [processingPlan, setProcessingPlan] = useState(null);
   const [expandedFaq, setExpandedFaq] = useState(null);
 
   const isDark = theme === 'dark';
 
-  const candidatePlans = [
+  useEffect(() => {
+    const loadPlans = async () => {
+      setPlansLoading(true);
+      setPlansError(null);
+      try {
+        const response = await planService.getPlansByType("candidate");
+        const list = normalizePlansList(response)
+          .filter((p) => !p.status || String(p.status).toLowerCase() === "active")
+          .map(mapApiPlanToCard);
+        setApiPlans(list);
+      } catch (err) {
+        console.error("Failed to load candidate plans:", err);
+        setPlansError("Could not load membership plans. Please try again later.");
+        setApiPlans([]);
+      } finally {
+        setPlansLoading(false);
+      }
+    };
+    loadPlans();
+  }, []);
 
-    {
-      id: 'standard',
-      name: 'Basic',
-      description: 'Perfect for beginners starting their job search journey.',
-      price: "₹250",
-      priceValue: 250,
-      validity: '3 Month',
-      popular: false,
-      icon: <User className="w-6 h-6 text-blue-600" />,
-      features: [
-        'Search and apply',
-        'Save job',
-        'Candidate panel',
-        'Email support',
-        'Free government job access',
-        'Access to all job listings',
-        'Filter job',
-        'Notification of job'
-      ]
-    },
-    {
-      id: 'premium',
-      name: 'Premium',
-      description: 'Go all in — with expert support & complete job search tools.',
-      price: "₹1000",
-      priceValue: 1000,
-      validity: '1 Months',
-      popular: true,
-      icon: <Sparkles className="w-6 h-6 text-yellow-500" />,
-      features: [
-        'Apply for all premium jobs',
-        'Interview guidance',
-        'Customer support',
-        'Resume improvement suggestion',
-        'Instant job alerts',
-        'Direct HR connection',
-        'Application tracking',
-        'Verified job posts only'
-      ]
-    }
+  const candidatePlans = useMemo(() => apiPlans, [apiPlans]);
 
-  ];
+  const getPlanIcon = (plan) =>
+    plan.popular ? (
+      <Sparkles className="w-6 h-6 text-yellow-500" />
+    ) : (
+      <User className="w-6 h-6 text-blue-600" />
+    );
 
   const benefits = [
     {
@@ -140,7 +158,7 @@ const MembershipPlans = () => {
         theme: {
           color: '#3399cc'
         },
-        handler: async function (response) {
+        handler: async (response) => {
           try {
             const membershipResponse = await fetch('https://api.bigsources.in/api/premium/mark-student-premium', {
               method: 'POST',
@@ -160,12 +178,20 @@ const MembershipPlans = () => {
               throw new Error('Failed to update membership');
             }
 
-            alert(`Successfully upgraded to ${plan.name} plan! Welcome to premium.`);
-            // navigate('/candidate/dashboard');
+            updateUser({
+              premium_user: true,
+              is_premium: true,
+              plan: plan.id,
+            });
 
+            alert(`Successfully upgraded to ${plan.name} plan! Welcome to premium.`);
+            window.location.reload();
           } catch (verifyError) {
             console.error('Membership update failed:', verifyError);
             alert('Payment successful but membership update failed. Please contact support.');
+          } finally {
+            setProcessingPlan(null);
+            setLoading(false);
           }
         },
         modal: {
@@ -227,15 +253,27 @@ const MembershipPlans = () => {
         </div>
 
         {/* Pricing Cards */}
+        {plansError && (
+          <div className="max-w-xl mx-auto mb-6 p-4 rounded-lg bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/30 text-center text-sm text-red-700 dark:text-red-400">
+            {plansError}
+          </div>
+        )}
 
-
-        <div className={`grid gap-6 max-w-5xl mx-auto mb-16 ${'md:grid-cols-2 max-w-xl'
-          }`}>
-          {candidatePlans.map((plan, index) => (
+        {plansLoading ? (
+          <div className="flex justify-center items-center py-20 mb-16">
+            <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+          </div>
+        ) : candidatePlans.length === 0 ? (
+          <div className={`max-w-xl mx-auto mb-16 p-8 rounded-xl text-center border ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+            <p className={isDark ? "text-gray-300" : "text-gray-600"}>No membership plans available right now.</p>
+          </div>
+        ) : (
+        <div className={`grid gap-6 max-w-5xl mx-auto mb-16 md:grid-cols-2 max-w-xl`}>
+          {candidatePlans.map((plan) => (
             <div
-              key={index}
-              className={`rounded-xl shadow-lg overflow-hidden  transition-all hover:shadow-xl hover:-translate-y-2 ${isDark ? 'bg-gray-800' : 'bg-white'
-                } ${plan.popular === "employers" ? 'ring-4 ring-blue-500 scale-105' : ''}`}
+              key={plan.id}
+              className={`rounded-xl shadow-lg overflow-hidden transition-all hover:shadow-xl hover:-translate-y-2 ${isDark ? 'bg-gray-800' : 'bg-white'
+                } ${plan.popular ? 'ring-4 ring-blue-500 scale-105' : ''}`}
             >
               {plan.popular && (
                 <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-center py-2 text-xs font-bold">
@@ -252,7 +290,7 @@ const MembershipPlans = () => {
                     ? 'bg-gradient-to-br from-yellow-100 to-orange-100'
                     : isDark ? 'bg-gray-700' : 'bg-blue-50'
                     }`}>
-                    {plan.icon}
+                    {getPlanIcon(plan)}
                   </div>
                 </div>
 
@@ -346,6 +384,7 @@ const MembershipPlans = () => {
             </div>
           ))}
         </div>
+        )}
 
         {/* Benefits Section */}
         <div className="max-w-6xl mx-auto mb-16">

@@ -65,11 +65,23 @@ export const planService = {
     }
   },
 
-  // Get plans by user type
+  // Get plans by user type (legacy param: user_type)
   async getPlansByUserType(userType) {
     try {
       const response = await apiClient.get(API_ENDPOINTS.plans.getAll, {
         params: { user_type: userType, status: 'Active' }
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /** GET /plans?type=candidate | employer */
+  async getPlansByType(type) {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.plans.getAll, {
+        params: { type, status: 'Active' }
       });
       return response;
     } catch (error) {

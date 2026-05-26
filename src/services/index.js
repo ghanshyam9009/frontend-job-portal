@@ -27,6 +27,7 @@ export { default as taskService } from './taskService';
 
 // Admin Services
 export { default as adminService } from './adminService';
+export { default as adminPlanService } from './adminPlanService';
 export { default as adminApiClient } from './adminApiClient';
 export { default as adminExternalService } from './adminExternalService';
 
