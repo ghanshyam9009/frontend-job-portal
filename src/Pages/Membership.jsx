@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Check, Crown, Briefcase, User, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import HomeNav from '../Components/HomeNav';
+import { planService } from '../services/planService';
 
 export default function Membership() {
   const [activeTab, setActiveTab] = useState('employers');
   const [expandedFaq, setExpandedFaq] = useState(null);
   const [darkMode, setDarkMode] = useState(false);
+  const [plansLoading, setPlansLoading] = useState(true);
+  const [plansError, setPlansError] = useState('');
+  const [plans, setPlans] = useState([]);
 
   // Check if user is logged in and get user type
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
@@ -61,97 +65,78 @@ export default function Membership() {
     }
   };
 
-  const employerPlans = [
-    {
-      name: 'Free Posting',
-      description: 'Free basic plan with 15 days trial and first job premium apply free.',
-      price: 0,
-      duration: '15 Days',
-      popular: false,
-      icon: <Briefcase className="w-6 h-6 text-blue-600" />,
-      features: [
-        'Free job posting',
-        '50 applies',
-        'Post expiry 15 days',
-        'Email support',
-        'Basic job postings',
-        'Access to candidate profiles'
-      ]
-    },
-    {
-      name: 'Employer Plan',
-      description: 'Simple per-post payment model for flexible recruitment needs.',
-      price: 350,
-      duration: 'Per Job Post',
-      popular: true,
-      icon: <Crown className="w-6 h-6 text-yellow-500" />,
-      features: [
-        'Up to 220 candidate applications',
-        '24/7 Customer support',
-        'Email support',
-        'Experience candidate',
-        'Personal HR/Recruiter support',
-        'Basic candidate filtering'
-      ]
-    },
-    {
-      name: 'Premium Job',
-      description: 'Complete recruitment platform with unlimited features.',
-      price: 1000,
-      duration: '1 Month',
-      popular: false,
-      icon: <Crown className="w-6 h-6 text-purple-600" />,
-      features: [
-        'Unlimited applications',
-        '24/7 Customer support',
-        'Email support',
-        'Personal HR/Recruiter support',
-        'Post expiry 1 month',
-        'Show Premium banner',
-        'Candidate filtering',
-        'Candidate matching'
-      ]
-    }
-  ];
+  useEffect(() => {
+    const loadPlans = async () => {
+      setPlansLoading(true);
+      setPlansError('');
+      try {
+        const response = await planService.getAllPlans({ status: 'Active' });
+        const payload = response?.data ?? response;
+        const apiPlans = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : Array.isArray(payload?.plans)
+              ? payload.plans
+              : [];
+        setPlans(apiPlans);
+      } catch (error) {
+        console.error('Failed to load membership plans:', error);
+        setPlansError('Unable to load plans right now. Please try again.');
+        setPlans([]);
+      } finally {
+        setPlansLoading(false);
+      }
+    };
 
-  const candidatePlans = [
-    {
-      name: 'Standard',
-      description: 'Perfect for beginners starting their job search journey.',
-      price: 250,
-      duration: '1 Month',
-      popular: false,
-      icon: <User className="w-6 h-6 text-blue-600" />,
-      features: [
-        'Search and apply',
-        'Save job',
-        'Candidate panel',
-        'Email support',
-        'Free government job access',
-        'Access to all job listings',
-        'Filter job',
-        'Notification of job'
-      ]
-    },
-    {
-      name: 'Premium',
-      description: 'Go all in — with expert support & complete job search tools.',
-      price: 1000,
-      duration: '3 Months',
-      popular: true,
-      icon: <Sparkles className="w-6 h-6 text-yellow-500" />,
-      features: [
-        'Apply for all premium jobs',
-        'Interview guidance',
-        'Customer support',
-        'Resume improvement suggestion',
-        'Instant job alerts',
-        'Direct HR connection',
-        'Application tracking',
-        'Verified job posts only'
-      ]
+    loadPlans();
+  }, []);
+
+  const getPlanIcon = (plan) => {
+    const type = String(plan?.type || '').toLowerCase();
+    if (type === 'candidate') {
+      return plan?.popular
+        ? <Sparkles className="w-6 h-6 text-yellow-500" />
+        : <User className="w-6 h-6 text-blue-600" />;
     }
-  ];
+    return plan?.popular
+      ? <Crown className="w-6 h-6 text-yellow-500" />
+      : <Briefcase className="w-6 h-6 text-blue-600" />;
+  };
+
+  const normalizePlanCard = (plan) => {
+    const price = Number(plan?.price) || 0;
+    const features = Array.isArray(plan?.features)
+      ? plan.features
+      : typeof plan?.features === 'string'
+        ? plan.features.split(',').map((item) => item.trim()).filter(Boolean)
+        : [];
+
+    return {
+      id: plan?.plan_id || plan?.id,
+      name: plan?.name || 'Plan',
+      description: plan?.description || '',
+      price,
+      duration: plan?.validity_days || plan?.duration || '',
+      popular: Boolean(plan?.popular),
+      icon: getPlanIcon(plan),
+      features
+    };
+  };
+
+  const employerPlans = useMemo(
+    () => plans
+      .filter((plan) => String(plan?.type || '').toLowerCase() === 'employer')
+      .map(normalizePlanCard),
+    [plans]
+  );
+
+  const candidatePlans = useMemo(
+    () => plans
+      .filter((plan) => String(plan?.type || '').toLowerCase() === 'candidate')
+      .map(normalizePlanCard),
+    [plans]
+  );
 
   const faqs = [
     {
@@ -247,12 +232,31 @@ export default function Membership() {
         </div>
 
         {/* Pricing Cards */}
-        <div className={`grid gap-6 max-w-5xl mx-auto mb-16 ${
-          currentPlans.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2 max-w-xl'
-        }`}>
-          {currentPlans.map((plan, index) => (
+        {plansError && (
+          <div className="max-w-2xl mx-auto mb-8 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-700">
+            {plansError}
+          </div>
+        )}
+
+        {plansLoading ? (
+          <div className={`rounded-xl border p-8 text-center text-sm mb-16 ${
+            darkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white border-gray-200 text-gray-600'
+          }`}>
+            Loading plans...
+          </div>
+        ) : currentPlans.length === 0 ? (
+          <div className={`rounded-xl border p-8 text-center text-sm mb-16 ${
+            darkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white border-gray-200 text-gray-600'
+          }`}>
+            No plans available for this category right now.
+          </div>
+        ) : (
+          <div className={`grid gap-6 max-w-5xl mx-auto mb-16 ${
+            currentPlans.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2 max-w-xl'
+          }`}>
+            {currentPlans.map((plan, index) => (
             <div
-              key={index}
+              key={plan.id || index}
               className={`rounded-xl shadow-lg overflow-hidden transition-all hover:shadow-xl hover:-translate-y-2 ${
                 darkMode ? 'bg-gray-800' : 'bg-white'
               } ${plan.popular && activeTab === "employers" ? 'ring-4 ring-blue-500 scale-105' : ''}`}
@@ -335,8 +339,9 @@ export default function Membership() {
                 </button>
               </div>
             </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* FAQ */}
         <div className="max-w-4xl mx-auto mt-16">

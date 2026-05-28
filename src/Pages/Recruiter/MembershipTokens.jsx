@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../Contexts/AuthContext';
 import { useTheme } from '../../Contexts/ThemeContext';
 import { Check, Crown, Briefcase, ChevronDown, ChevronUp, ArrowLeft, Loader2, X } from 'lucide-react';
+import { planService } from '../../services/planService';
 
 const RecruiterMembership = () => {
   const navigate = useNavigate();
@@ -11,6 +12,9 @@ const RecruiterMembership = () => {
   const [expandedFaq, setExpandedFaq] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [plansLoading, setPlansLoading] = useState(true);
+  const [plansError, setPlansError] = useState(null);
+  const [employerPlans, setEmployerPlans] = useState([]);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
 
@@ -26,58 +30,55 @@ const RecruiterMembership = () => {
     };
   }, []);
 
-  const employerPlans = [
-    {
-      name: 'Free Posting',
-      description: 'Free basic plan with 15 days trial and first job premium apply free.',
-      price: 0,
-      duration: '15 Days',
-      popular: false,
-      icon: <Briefcase className="w-6 h-6 text-blue-600" />,
-      features: [
-        'Free job posting',
-        '50 applies',
-        'Post expiry 15 days',
-        'Email support',
-        'Basic job postings',
-        'Access to candidate profiles'
-      ]
-    },
-    {
-      name: 'Employer Plan',
-      description: 'Simple per-post payment model for flexible recruitment needs.',
-      price: 350,
-      duration: 'Per Job Post',
-      popular: true,
-      icon: <Crown className="w-6 h-6 text-yellow-500" />,
-      features: [
-        'Up to 220 candidate applications',
-        '24/7 Customer support',
-        'Email support',
-        'Experience candidate',
-        'Personal HR/Recruiter support',
-        'Basic candidate filtering'
-      ]
-    },
-    {
-      name: 'Premium Job',
-      description: 'Complete recruitment platform with unlimited features.',
-      price: 1000,
-      duration: '1 Month',
-      popular: false,
-      icon: <Crown className="w-6 h-6 text-purple-600" />,
-      features: [
-        'Unlimited applications',
-        '24/7 Customer support',
-        'Email support',
-        'Personal HR/Recruiter support',
-        'Post expiry 1 month',
-        'Show Premium banner',
-        'Candidate filtering',
-        'Candidate matching'
-      ]
-    }
-  ];
+  useEffect(() => {
+    const normalizePlansList = (response) => {
+      const payload = response?.data ?? response;
+      if (Array.isArray(payload)) return payload;
+      if (Array.isArray(payload?.data)) return payload.data;
+      if (Array.isArray(payload?.plans)) return payload.plans;
+      return [];
+    };
+
+    const mapApiPlanToCard = (plan) => {
+      const price = Number(plan.price) || 0;
+      const features = Array.isArray(plan.features)
+        ? plan.features
+        : typeof plan.features === 'string'
+          ? plan.features.split(',').map((item) => item.trim()).filter(Boolean)
+          : [];
+
+      return {
+        id: plan.plan_id || plan.id,
+        name: plan.name || 'Plan',
+        description: plan.description || '',
+        price,
+        duration: plan.validity_days || plan.validity || plan.duration || '',
+        popular: Boolean(plan.popular),
+        icon: plan.popular
+          ? <Crown className="w-6 h-6 text-yellow-500" />
+          : <Briefcase className="w-6 h-6 text-blue-600" />,
+        features
+      };
+    };
+
+    const loadEmployerPlans = async () => {
+      setPlansLoading(true);
+      setPlansError(null);
+      try {
+        const response = await planService.getPlansByType('employer');
+        const list = normalizePlansList(response).map(mapApiPlanToCard);
+        setEmployerPlans(list);
+      } catch (err) {
+        console.error('Failed to load employer plans:', err);
+        setPlansError('Unable to load membership plans right now. Please try again.');
+        setEmployerPlans([]);
+      } finally {
+        setPlansLoading(false);
+      }
+    };
+
+    loadEmployerPlans();
+  }, []);
 
   const faqs = [
     {
@@ -276,11 +277,31 @@ const RecruiterMembership = () => {
           </div>
         )}
 
+        {plansError && (
+          <div className="max-w-5xl mx-auto mb-6">
+            <div className="bg-red-100 dark:bg-red-900/30 border border-red-400 text-red-700 dark:text-red-400 px-4 py-3 rounded-md text-sm">
+              {plansError}
+            </div>
+          </div>
+        )}
+
         {/* Pricing Cards */}
-        <div className="grid gap-6 max-w-5xl mx-auto mb-16 md:grid-cols-3">
+        {plansLoading ? (
+          <div className={`max-w-5xl mx-auto mb-16 rounded-xl p-8 text-center border ${borderColor} ${cardBg}`}>
+            <span className={`inline-flex items-center gap-2 text-sm ${textSecondary}`}>
+              <Loader2 className="animate-spin" size={16} />
+              Loading plans...
+            </span>
+          </div>
+        ) : employerPlans.length === 0 ? (
+          <div className={`max-w-5xl mx-auto mb-16 rounded-xl p-8 text-center border ${borderColor} ${cardBg}`}>
+            <p className={`text-sm ${textSecondary}`}>No employer plans available right now.</p>
+          </div>
+        ) : (
+        <div className={`grid gap-6 max-w-5xl mx-auto mb-16 ${employerPlans.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2 max-w-xl'}`}>
           {employerPlans.map((plan, index) => (
             <div
-              key={index}
+              key={plan.id || index}
               className={`rounded-xl shadow-lg overflow-hidden transition-all hover:shadow-xl hover:-translate-y-2 ${cardBg} ${
                 plan.popular ? 'ring-4 ring-blue-500 scale-105' : ''
               }`}
@@ -365,6 +386,7 @@ const RecruiterMembership = () => {
             </div>
           ))}
         </div>
+        )}
 
         {/* Benefits Section */}
         <div className={`${cardBg} rounded-xl shadow-lg p-8 mb-16 border ${borderColor}`}>
