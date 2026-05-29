@@ -21,6 +21,24 @@ const REPORT_TAB = {
   REOPEN_JOB: "reopen",
 };
 
+/** Backend task categories (ManageJobs / Lambda) */
+const TAB_TASK_CATEGORY = {
+  [REPORT_TAB.NEW_JOB]: "postnewjob",
+  [REPORT_TAB.EDIT_JOB]: "editjob",
+  [REPORT_TAB.CLOSE_JOB]: "closedjob",
+  [REPORT_TAB.REOPEN_JOB]: "reopenjob",
+};
+
+const normalizeTaskCategory = (value) => {
+  const c = String(value ?? "").trim().toLowerCase();
+  if (!c) return "";
+  if (c === "new" || c === "postnewjob") return "postnewjob";
+  if (c === "edit" || c === "editjob") return "editjob";
+  if (c === "close" || c === "closejob" || c === "closedjob") return "closedjob";
+  if (c === "reopen" || c === "reopenjob") return "reopenjob";
+  return c;
+};
+
 const isValidReportTab = (tab) =>
   tab != null && Object.values(REPORT_TAB).includes(tab);
 
@@ -216,20 +234,31 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
       .toString()
       .toLowerCase();
 
+  const getTaskIdForJob = (job) =>
+    job?.task_id ||
+    job?.latest_task?.task_id ||
+    job?.latest_task?.id ||
+    job?.task?.task_id ||
+    job?.task?.id ||
+    null;
+
   const isPendingTaskRow = (job) => getTaskStatusForJob(job) === "pending";
 
-  const getTaskCategoryForJob = (job) =>
-    (
-      job?.category ||
-      job?.tab_category ||
+  const getTaskCategoryForJob = (job) => {
+    // On task-queue tabs, active tab decides approve API (avoids stale job.category e.g. closed)
+    if (reportTab !== REPORT_TAB.ALL && TAB_TASK_CATEGORY[reportTab]) {
+      return TAB_TASK_CATEGORY[reportTab];
+    }
+    const raw =
       job?.latest_task?.category ||
-      reportTab
-    )
-      .toString()
-      .toLowerCase();
+      job?.tab_category ||
+      job?.category ||
+      "";
+    return normalizeTaskCategory(raw);
+  };
 
   const isReopenTaskCategory = (category) =>
-    category === "reopenjob" || category === "reopen";
+    normalizeTaskCategory(category) === "reopenjob";
 
   const handleOpenApproveModal = (job) => {
     setApprovalModalJob(job);
@@ -239,7 +268,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
     const job = approvalModalJob;
     if (!job) return;
     const jid = job.job_id || job.id;
-    const taskId = job.task_id ?? job.id;
+    const taskId = getTaskIdForJob(job);
     const cat = getTaskCategoryForJob(job);
     if (!jid) {
       alert("Job ID missing for edit.");
@@ -264,7 +293,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
   const handleModalApprove = async () => {
     const job = approvalModalJob;
     if (!job) return;
-    const taskId = job.task_id ?? job.id;
+    const taskId = getTaskIdForJob(job);
     if (!taskId) {
       alert("Task ID missing.");
       return;
@@ -273,11 +302,13 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
     const jobId = job.job_id || job.id;
     try {
       setActionLoading(`approve-${taskId}`);
-      if (cat === "editjob" || cat === "edit") {
+      if (cat === "postnewjob") {
+        await adminService.approveJob(taskId);
+      } else if (cat === "editjob") {
         await adminService.approveEditedJob(taskId);
-      } else if (cat === "closedjob" || cat === "closejob" || cat === "close") {
+      } else if (cat === "closedjob" || cat === "closejob") {
         await adminService.approveJobClosing(taskId);
-      } else if (cat === "reopenjob" || cat === "reopen") {
+      } else if (cat === "reopenjob") {
         await adminService.approveReopenJob(taskId, jobId);
       } else {
         await adminService.approveJob(taskId);
@@ -311,7 +342,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
   const handleSubmitReject = async () => {
     const job = rejectModalJob;
     if (!job) return;
-    const taskId = job.task_id ?? job.id;
+    const taskId = getTaskIdForJob(job);
     if (!taskId) return;
 
     const trimmed = rejectReason.trim();
@@ -669,7 +700,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
               isTaskReportTab && isPendingTaskRow(job);
             const taskCategory = getTaskCategoryForJob(job);
             const isReopenTask = isReopenTaskCategory(taskCategory);
-            const taskId = job.task_id ?? job.id;
+            const taskId = getTaskIdForJob(job);
             return (
               <div
                 key={String(job.task_id ?? job.job_id ?? job.id)}
@@ -932,12 +963,12 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
                 disabled={
                   !!actionLoading &&
                   actionLoading ===
-                    `approve-${approvalModalJob.task_id ?? approvalModalJob.id}`
+                    `approve-${getTaskIdForJob(approvalModalJob)}`
                 }
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 inline-flex items-center justify-center gap-2"
               >
                 {actionLoading ===
-                `approve-${approvalModalJob.task_id ?? approvalModalJob.id}` ? (
+                `approve-${getTaskIdForJob(approvalModalJob)}` ? (
                   <>
                     <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     Approving…
@@ -1032,12 +1063,12 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
                 disabled={
                   !!actionLoading &&
                   actionLoading ===
-                    `reject-${rejectModalJob.task_id ?? rejectModalJob.id}`
+                    `reject-${getTaskIdForJob(rejectModalJob)}`
                 }
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 inline-flex items-center justify-center gap-2"
               >
                 {actionLoading ===
-                `reject-${rejectModalJob.task_id ?? rejectModalJob.id}` ? (
+                `reject-${getTaskIdForJob(rejectModalJob)}` ? (
                   <>
                     <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     Rejecting…

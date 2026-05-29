@@ -36,7 +36,7 @@ const AdminSidebar = ({ isOpen, onClose }) => {
     const fetchPendingRecruiters = async () => {
       try {
         const response = await adminService.getAllRecruiters();
-        const pendingCount = response.recruiters?.filter(r => r.hasadminapproved === false).length || 0;
+        const pendingCount = response.counts?.pending ?? response.recruiters?.filter((r) => r.hasadminapproved === false).length ?? 0;
         setPendingRecruiters(pendingCount);
       } catch (error) {
         console.error('Failed to fetch pending recruiters count:', error);

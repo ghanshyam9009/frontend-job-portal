@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
@@ -29,7 +29,13 @@ const ManageCandidates = () => {
   const [pendingAppsCount, setPendingAppsCount] = useState(0);
   const [recentPendingApplicationTasks, setRecentPendingApplicationTasks] = useState([]);
   const [candidates, setCandidates] = useState([]);
-  const [filteredCandidates, setFilteredCandidates] = useState([]);
+  const [candidateMeta, setCandidateMeta] = useState({
+    page: 1,
+    limit: 25,
+    total: 0,
+    total_pages: 1,
+    showing: 0,
+  });
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
@@ -40,23 +46,40 @@ const ManageCandidates = () => {
   const [actionLoading, setActionLoading] = useState(null);
   const candidatesPerPage = 25;
 
-  const processCandidatesData = (candidatesData) => {
-    const activeCandidates = (candidatesData || []).filter((candidate) => {
-      const isClosed = candidate.is_admin_closed === true ||
-        candidate.is_admin_closed === "true" ||
-        candidate.is_admin_closed === 1 ||
-        candidate.is_admin_closed === "1";
-      const isBlocked = candidate.status?.toLowerCase() === 'blocked' ||
-        candidate.status?.toLowerCase() === 'inactive';
-      const isBlockedField = candidate.blocked === true ||
-        candidate.blocked === "true" ||
-        candidate.blocked === 1 ||
-        candidate.blocked === "1";
-      return !isClosed && !isBlocked && !isBlockedField;
+  const applyCandidatesResponse = (response) => {
+    setCandidates(response.candidates || []);
+    setCandidateMeta({
+      page: response.page ?? 1,
+      limit: response.limit ?? candidatesPerPage,
+      total: response.total ?? 0,
+      total_pages: response.total_pages ?? 1,
+      showing: response.showing ?? (response.candidates?.length ?? 0),
     });
-    return activeCandidates.sort((a, b) =>
-      new Date(b.created_at) - new Date(a.created_at)
-    );
+  };
+
+  const getCandidateCity = (candidate) =>
+    candidate?.address?.city?.trim() || null;
+
+  const getMembershipBadge = (candidate) => {
+    if (candidate.plan_name) {
+      return { label: candidate.plan_name, premium: Boolean(candidate.premium_user) };
+    }
+    if (candidate.premium_user || candidate.plan_id) {
+      const isPremium =
+        candidate.plan_id === "premium" ||
+        (candidate.membership_type || "").toUpperCase() === "PREMIUM";
+      return { label: isPremium ? "Premium" : "Basic", premium: true };
+    }
+    return { label: "Free", premium: false };
+  };
+
+  const parseSkills = (skills) => {
+    if (!skills) return [];
+    if (Array.isArray(skills)) return skills.filter(Boolean);
+    if (typeof skills === "string" && skills.trim()) {
+      return skills.split(",").map((s) => s.trim()).filter(Boolean);
+    }
+    return [];
   };
 
   const fetchApplicationSummary = async () => {
@@ -81,28 +104,44 @@ const ManageCandidates = () => {
     }
   };
 
-  const loadDashboard = async () => {
+  const fetchCandidates = useCallback(async (page = currentPage) => {
     try {
       setLoading(true);
-      const [candidatesData] = await Promise.all([
-        adminService.getCandidates(),
-        fetchApplicationSummary(),
-      ]);
-      const sortedCandidates = processCandidatesData(candidatesData);
-      setCandidates(sortedCandidates);
-      setFilteredCandidates(sortedCandidates);
+      const status =
+        statusFilter === "active" ? "Active" : undefined;
+
+      const response = await adminService.getCandidates({
+        page,
+        limit: candidatesPerPage,
+        ...(status && { status }),
+      });
+      applyCandidatesResponse(response);
     } catch (error) {
       console.error("Failed to fetch candidates:", error);
       setCandidates([]);
-      setFilteredCandidates([]);
+      setCandidateMeta({
+        page: 1,
+        limit: candidatesPerPage,
+        total: 0,
+        total_pages: 1,
+        showing: 0,
+      });
     } finally {
       setLoading(false);
     }
+  }, [statusFilter, currentPage, candidatesPerPage]);
+
+  const refreshDashboard = async () => {
+    await Promise.all([fetchCandidates(currentPage), fetchApplicationSummary()]);
   };
 
   useEffect(() => {
-    loadDashboard();
+    fetchApplicationSummary();
   }, []);
+
+  useEffect(() => {
+    fetchCandidates(currentPage);
+  }, [fetchCandidates, currentPage]);
 
   // Helper function to filter by date
   const filterByDate = (candidate) => {
@@ -147,56 +186,45 @@ const ManageCandidates = () => {
     }
   };
 
-  // Filter candidates based on search, status, and date
-  useEffect(() => {
-    let filtered = candidates;
+  const displayCandidates = useMemo(() => {
+    let list = candidates;
 
-    if (searchTerm) {
-      filtered = filtered.filter(candidate =>
-        (candidate.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (candidate.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (statusFilter !== "all") {
-      filtered = filtered.filter(candidate =>
-        candidate.status?.toLowerCase() === statusFilter.toLowerCase()
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      list = list.filter(
+        (c) =>
+          (c.full_name?.toLowerCase() || "").includes(q) ||
+          (c.email?.toLowerCase() || "").includes(q)
       );
     }
 
     if (dateFilter !== "all") {
-      filtered = filtered.filter(filterByDate);
+      list = list.filter(filterByDate);
     }
 
-    // Apply sorting
-    const sorted = [...filtered].sort((a, b) => {
+    return [...list].sort((a, b) => {
       switch (sortBy) {
-        case "newest":
-          return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-
         case "oldest":
           return new Date(a.created_at || 0) - new Date(b.created_at || 0);
-
         case "nameAZ":
-          return (a.name || '').localeCompare(b.name || '');
-
+          return (a.full_name || "").localeCompare(b.full_name || "");
         case "nameZA":
-          return (b.name || '').localeCompare(a.name || '');
-
+          return (b.full_name || "").localeCompare(a.full_name || "");
         case "emailAZ":
-          return (a.email || '').localeCompare(b.email || '');
-
+          return (a.email || "").localeCompare(b.email || "");
         case "emailZA":
-          return (b.email || '').localeCompare(a.email || '');
-
+          return (b.email || "").localeCompare(a.email || "");
+        case "newest":
         default:
-          return 0;
+          return new Date(b.created_at || 0) - new Date(a.created_at || 0);
       }
     });
+  }, [candidates, searchTerm, dateFilter, sortBy]);
 
-    setFilteredCandidates(sorted);
+  const handleStatusFilterChange = (filter) => {
+    setStatusFilter(filter);
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, dateFilter, sortBy, candidates]);
+  };
 
   const getInitials = (name) => {
     if (!name) return 'U';
@@ -229,8 +257,7 @@ const ManageCandidates = () => {
   };
 
   const handleViewApplications = (candidate) => {
-    const candidateId = candidate.user_id || candidate.id;
-    navigate(`/admin/candidates/applications/${candidateId}`);
+    navigate(`/admin/candidates/applications/${candidate.user_id}`);
   };
 
   const handleBlockStudent = async (candidate) => {
@@ -241,19 +268,22 @@ const ManageCandidates = () => {
     }
 
     const confirmBlock = window.confirm(
-      `Are you sure you want to block ${candidate.name}? This will remove them from the system.`
+      `Are you sure you want to block ${candidate.full_name || "this candidate"}? This will remove them from the system.`
     );
 
     if (!confirmBlock) return;
 
     try {
-      setActionLoading(candidate.id || candidate.user_id);
+      setActionLoading(candidate.user_id);
       await adminService.blockStudent(candidate.email);
 
-      // Refetch candidates to ensure the blocked candidate is properly filtered out
-      await loadDashboard();
+      if (currentPage === 1) {
+        await fetchCandidates(1);
+      } else {
+        setCurrentPage(1);
+      }
 
-      setMessage({ type: 'success', text: `${candidate.name} has been blocked and removed from the system.` });
+      setMessage({ type: 'success', text: `${candidate.full_name || "Candidate"} has been blocked and removed from the system.` });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } catch (error) {
       console.error('Error blocking student:', error);
@@ -264,20 +294,9 @@ const ManageCandidates = () => {
     }
   };
 
-  // Pagination
-  const totalPages = Math.ceil(filteredCandidates.length / candidatesPerPage);
-  const startIndex = (currentPage - 1) * candidatesPerPage;
-  const endIndex = startIndex + candidatesPerPage;
-  const currentCandidates = filteredCandidates.slice(startIndex, endIndex);
-
-  const activeCount = candidates.filter(c => c.status?.toLowerCase() === 'active').length;
-  const inactiveCount = candidates.filter(c => c.status?.toLowerCase() === 'inactive').length;
-  const thisMonthCount = candidates.filter(c => {
-    if (!c.created_at) return false;
-    const date = new Date(c.created_at);
-    const now = new Date();
-    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-  }).length;
+  const totalPages = candidateMeta.total_pages;
+  const currentCandidates = displayCandidates;
+  const totalCandidates = candidateMeta.total;
 
   const recentCandidates = useMemo(() => candidates.slice(0, 5), [candidates]);
 
@@ -376,7 +395,7 @@ const ManageCandidates = () => {
               </div>
               <button
                 type="button"
-                onClick={loadDashboard}
+                onClick={refreshDashboard}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center gap-2 shadow-sm"
               >
                 <RefreshCw size={18} />
@@ -394,7 +413,7 @@ const ManageCandidates = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className={`${textSecondary} text-sm font-medium`}>Total candidates</p>
-                      <h3 className={`text-3xl font-bold ${textColor} mt-2`}>{candidates.length}</h3>
+                        <h3 className={`text-3xl font-bold ${textColor} mt-2`}>{totalCandidates}</h3>
                       <p className="text-green-600 dark:text-green-400 text-sm mt-2 flex items-center gap-1">
                         <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" />
                         Registered seekers
@@ -452,7 +471,7 @@ const ManageCandidates = () => {
                 {recentCandidates.map((c) => (
                   <button
                     type="button"
-                    key={c.id || c.user_id || c.email}
+                    key={c.user_id || c.email}
                     onClick={() => handleViewDetails(c)}
                     className="w-full flex items-center justify-between px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors text-left"
                   >
@@ -461,11 +480,11 @@ const ManageCandidates = () => {
                         {c.logo ? (
                           <img src={c.logo} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          getInitials(c.name)
+                          getInitials(c.full_name)
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className={`text-sm font-semibold ${textColor} truncate`}>{c.name || "Candidate"}</p>
+                        <p className={`text-sm font-semibold ${textColor} truncate`}>{c.full_name || "Candidate"}</p>
                         <p className={`text-xs ${textSecondary} truncate`}>{c.email || "N/A"}</p>
                       </div>
                     </div>
@@ -495,10 +514,10 @@ const ManageCandidates = () => {
               <div className="space-y-3 text-sm">
                 {recentPendingApplicationTasks.map((task) => {
                   const matchedCandidate = task.student_id != null
-                    ? candidates.find(c => String(c.id) === String(task.student_id) || String(c.user_id) === String(task.student_id))
+                    ? candidates.find((c) => String(c.user_id) === String(task.student_id))
                     : null;
 
-                  const candidateName = matchedCandidate?.name || `Student ID: ${task.student_id}`;
+                  const candidateName = matchedCandidate?.full_name || `Student ID: ${task.student_id}`;
 
                   let displayTitle = task.title || `Job application${task.job_id ? ` · #${task.job_id}` : ""}`;
                   if (task.student_id != null && task.title) {
@@ -519,12 +538,12 @@ const ManageCandidates = () => {
                           {matchedCandidate?.logo ? (
                             <img src={matchedCandidate.logo} alt="" className="w-full h-full object-cover" />
                           ) : (
-                            getInitials(matchedCandidate?.name || "Candidate")
+                            getInitials(matchedCandidate?.full_name || "Candidate")
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className={`text-sm font-semibold ${textColor} truncate ${matchedCandidate ? "group-hover:text-indigo-600 dark:group-hover:text-indigo-400" : ""}`}>
-                            {task.student_id != null ? (matchedCandidate?.name || `Candidate id ${task.student_id}`) : "New application"}
+                            {task.student_id != null ? (matchedCandidate?.full_name || `Candidate id ${task.student_id}`) : "New application"}
                           </p>
                           <p className={`text-xs ${textSecondary} truncate`}>
                             {task.student_id != null ? (matchedCandidate?.email || `Candidate id ${task.student_id}`) : "New application"}
@@ -618,22 +637,22 @@ const ManageCandidates = () => {
                 {/* Status Filters */}
                 <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={() => setStatusFilter('all')}
+                    onClick={() => handleStatusFilterChange("all")}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${statusFilter === 'all'
                       ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
                       : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
                       }`}
                   >
-                    All ({candidates.length})
+                    All ({totalCandidates})
                   </button>
                   <button
-                    onClick={() => setStatusFilter('active')}
+                    onClick={() => handleStatusFilterChange("active")}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${statusFilter === 'active'
                       ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
                       : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
                       }`}
                   >
-                    Active ({activeCount})
+                    Active
                   </button>
                 </div>
 
@@ -679,7 +698,9 @@ const ManageCandidates = () => {
           {/* Results Header */}
           <div className="mb-4">
             <p className={`text-sm ${textSecondary}`}>
-              Showing <span className={`font-semibold ${textColor}`}>{filteredCandidates.length}</span> {filteredCandidates.length === 1 ? 'candidate' : 'candidates'}
+              Showing <span className={`font-semibold ${textColor}`}>{displayCandidates.length}</span> of{" "}
+              <span className={`font-semibold ${textColor}`}>{candidateMeta.total}</span>{" "}
+              {candidateMeta.total === 1 ? "candidate" : "candidates"}
               {dateFilter !== 'all' && (
                 <span className="ml-2">
                   ({dateFilter.replace(/([A-Z])/g, ' $1').trim()})
@@ -689,7 +710,7 @@ const ManageCandidates = () => {
           </div>
 
           {/* Empty State */}
-          {filteredCandidates.length === 0 && !loading && (
+          {displayCandidates.length === 0 && !loading && (
             <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center`}>
               <div className={`w-16 h-16 ${isDark ? 'bg-blue-500/20' : 'bg-blue-100'} rounded-full flex items-center justify-center mx-auto mb-4`}>
                 <Users size={32} className="text-blue-500" />
@@ -703,9 +724,14 @@ const ManageCandidates = () => {
 
           {/* Candidates - Compact Cards */}
           <div className="space-y-3">
-            {currentCandidates.map(candidate => (
+            {currentCandidates.map((candidate) => {
+              const membership = getMembershipBadge(candidate);
+              const skills = parseSkills(candidate.skills);
+              const city = getCandidateCity(candidate);
+
+              return (
               <div
-                key={candidate.id}
+                key={candidate.user_id || candidate.email}
                 className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all`}
               >
                 <div className="p-3">
@@ -716,31 +742,30 @@ const ManageCandidates = () => {
                         {candidate.logo ? (
                           <img
                             src={candidate.logo}
-                            alt={candidate.name || 'Candidate'}
+                            alt={candidate.full_name || 'Candidate'}
                             className="w-full h-full object-cover"
                           />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm">
-                            {getInitials(candidate.name)}
+                            {getInitials(candidate.full_name)}
                           </div>
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className={`text-sm font-bold ${textColor} truncate leading-tight`}>
-                            {candidate.name || 'N/A'}
+                            {candidate.full_name || 'N/A'}
                           </h3>
-                          {/* Membership Badge Next to Name - Enhanced Visibility */}
                           <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-sm flex items-center gap-1.5 transition-all ${
-                            (candidate.premium_user === true || candidate.premium_user === 'true') 
-                              ? (candidate.plan === 'premium' 
-                                  ? 'bg-gradient-to-r from-amber-400 to-amber-600 text-white border-amber-300 shadow-amber-200/50' 
+                            membership.premium
+                              ? (candidate.plan_id === 'premium'
+                                  ? 'bg-gradient-to-r from-amber-400 to-amber-600 text-white border-amber-300 shadow-amber-200/50'
                                   : 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border-blue-300 shadow-blue-200/50'
-                                ) 
-                              : 'bg-gray-100 text-gray-600 border-gray-200'
+                                )
+                              : 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
                           }`}>
-                            {(candidate.premium_user === true || candidate.premium_user === 'true') ? <Sparkles size={11} className="text-white" /> : null}
-                            {(candidate.premium_user === true || candidate.premium_user === 'true') ? (candidate.plan === 'premium' ? 'Premium' : 'Basic') : 'Free'}
+                            {membership.premium ? <Sparkles size={11} className="text-white" /> : null}
+                            {membership.label}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -750,29 +775,29 @@ const ManageCandidates = () => {
                         </div>
                       </div>
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold border flex-shrink-0 ${getStatusColor(candidate.status || 'active')}`} style={{ fontSize: '0.7rem' }}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold border flex-shrink-0 ${getStatusColor(candidate.status)}`} style={{ fontSize: '0.7rem' }}>
                       {candidate.status || 'Active'}
                     </span>
                   </div>
 
                   {/* Candidate Details */}
                   <div className="flex flex-wrap gap-1.5 mb-2.5">
-                    {candidate.phone && (
+                    {candidate.phone_number && (
                       <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'} flex items-center gap-1`} style={{ fontSize: '0.7rem' }}>
                         <Phone size={11} />
-                        {candidate.phone}
+                        {candidate.phone_number}
                       </span>
                     )}
-                    {candidate.city && (
+                    {city && (
                       <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'} flex items-center gap-1`} style={{ fontSize: '0.7rem' }}>
                         <MapPin size={11} />
-                        {candidate.city}
+                        {city}
                       </span>
                     )}
-                    {candidate.experience && (
+                    {candidate.experienceLevel && (
                       <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'} flex items-center gap-1`} style={{ fontSize: '0.7rem' }}>
                         <Briefcase size={11} />
-                        {candidate.experience}
+                        {candidate.experienceLevel}
                       </span>
                     )}
                     <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`} style={{ fontSize: '0.7rem' }}>
@@ -781,9 +806,9 @@ const ManageCandidates = () => {
                   </div>
 
                   {/* Skills */}
-                  {candidate.skills && candidate.skills.length > 0 && (
+                  {skills.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-2.5">
-                      {candidate.skills.slice(0, 3).map((skill, index) => (
+                      {skills.slice(0, 3).map((skill, index) => (
                         <span
                           key={index}
                           className={`px-2 py-0.5 ${isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-600'} rounded-full text-xs font-medium`}
@@ -792,9 +817,9 @@ const ManageCandidates = () => {
                           {skill}
                         </span>
                       ))}
-                      {candidate.skills.length > 3 && (
+                      {skills.length > 3 && (
                         <span className={`px-2 py-0.5 ${isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'} rounded-full text-xs font-medium`} style={{ fontSize: '0.65rem' }}>
-                          +{candidate.skills.length - 3}
+                          +{skills.length - 3}
                         </span>
                       )}
                     </div>
@@ -820,17 +845,18 @@ const ManageCandidates = () => {
                     </button>
                     <button
                       onClick={() => handleBlockStudent(candidate)}
-                      disabled={actionLoading === (candidate.id || candidate.user_id)}
+                      disabled={actionLoading === candidate.user_id}
                       className={`flex-1 sm:flex-initial px-3 py-1.5 border border-red-300 dark:border-red-800 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50`}
                       style={{ fontSize: '0.7rem' }}
                     >
                       <Trash2 size={13} />
-                      {actionLoading === (candidate.id || candidate.user_id) ? 'Deleting...' : 'Delete'}
+                      {actionLoading === candidate.user_id ? 'Deleting...' : 'Delete'}
                     </button>
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
 
           {/* Pagination */}
