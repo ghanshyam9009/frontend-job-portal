@@ -317,6 +317,57 @@ export const adminService = {
     }
   },
 
+  async getAdminJobs(params = {}) {
+    try {
+      const response = await adminApiClient.get(API_ENDPOINTS.admin.getAdminJobs, { params });
+      const data = response.data;
+
+      const empty = {
+        jobs: [],
+        page: 1,
+        total: 0,
+        total_pages: 1,
+        showing: 0,
+        counts: { total: 0, approved: 0, pending: 0, total_applications: 0 },
+      };
+
+      if (!data) return empty;
+
+      if (Array.isArray(data)) {
+        return {
+          ...empty,
+          jobs: data,
+          total: data.length,
+          showing: data.length,
+          counts: { total: data.length, approved: 0, pending: 0, total_applications: 0 },
+        };
+      }
+
+      const jobs =
+        (Array.isArray(data.jobs) && data.jobs) ||
+        (Array.isArray(data.data) && data.data) ||
+        [];
+
+      return {
+        ...data,
+        jobs,
+        page: data.page ?? 1,
+        total: data.total ?? jobs.length,
+        total_pages: data.total_pages ?? 1,
+        showing: data.showing ?? jobs.length,
+        counts: data.counts ?? {
+          total: data.total ?? jobs.length,
+          approved: 0,
+          pending: 0,
+          total_applications: 0,
+        },
+      };
+    } catch (error) {
+      console.error('Error fetching admin jobs:', error);
+      throw error;
+    }
+  },
+
   async deleteAdminJob(jobId) {
     try {
       const response = await adminApiClient.post(API_ENDPOINTS.admin.deleteAdminJob(jobId));

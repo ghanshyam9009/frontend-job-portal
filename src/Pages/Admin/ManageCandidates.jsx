@@ -19,7 +19,8 @@ import {
   ArrowRight,
   FileText,
   Clock,
-  Sparkles
+  Sparkles,
+  CreditCard
 } from "lucide-react";
 
 const ManageCandidates = () => {
@@ -35,9 +36,11 @@ const ManageCandidates = () => {
     total: 0,
     total_pages: 1,
     showing: 0,
+    filters: { plans: [] },
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [planFilter, setPlanFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
@@ -54,8 +57,11 @@ const ManageCandidates = () => {
       total: response.total ?? 0,
       total_pages: response.total_pages ?? 1,
       showing: response.showing ?? (response.candidates?.length ?? 0),
+      filters: response.filters ?? { plans: [] },
     });
   };
+
+  const availablePlans = candidateMeta.filters?.plans ?? [];
 
   const getCandidateCity = (candidate) =>
     candidate?.address?.city?.trim() || null;
@@ -114,6 +120,7 @@ const ManageCandidates = () => {
         page,
         limit: candidatesPerPage,
         ...(status && { status }),
+        ...(planFilter !== "all" && { plan_id: planFilter }),
       });
       applyCandidatesResponse(response);
     } catch (error) {
@@ -125,11 +132,12 @@ const ManageCandidates = () => {
         total: 0,
         total_pages: 1,
         showing: 0,
+        filters: { plans: [] },
       });
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, currentPage, candidatesPerPage]);
+  }, [statusFilter, planFilter, currentPage, candidatesPerPage]);
 
   const refreshDashboard = async () => {
     await Promise.all([fetchCandidates(currentPage), fetchApplicationSummary()]);
@@ -224,6 +232,17 @@ const ManageCandidates = () => {
   const handleStatusFilterChange = (filter) => {
     setStatusFilter(filter);
     setCurrentPage(1);
+  };
+
+  const handlePlanFilterChange = (value) => {
+    setPlanFilter(value);
+    setCurrentPage(1);
+  };
+
+  const getPlanFilterLabel = () => {
+    if (planFilter === "all") return null;
+    const plan = availablePlans.find((p) => p.plan_id === planFilter);
+    return plan?.name || planFilter;
   };
 
   const getInitials = (name) => {
@@ -656,6 +675,23 @@ const ManageCandidates = () => {
                   </button>
                 </div>
 
+                {/* Plan Filter Dropdown */}
+                <div className="flex items-center gap-2">
+                  <CreditCard size={18} className={textSecondary} />
+                  <select
+                    value={planFilter}
+                    onChange={(e) => handlePlanFilterChange(e.target.value)}
+                    className={`px-4 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer min-w-[10rem]`}
+                  >
+                    <option value="all">All Plans</option>
+                    {availablePlans.map((plan) => (
+                      <option key={plan.plan_id} value={plan.plan_id}>
+                        {plan.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Date Filter Dropdown */}
                 <div className="flex items-center gap-2">
                   <Calendar size={18} className={textSecondary} />
@@ -701,9 +737,12 @@ const ManageCandidates = () => {
               Showing <span className={`font-semibold ${textColor}`}>{displayCandidates.length}</span> of{" "}
               <span className={`font-semibold ${textColor}`}>{candidateMeta.total}</span>{" "}
               {candidateMeta.total === 1 ? "candidate" : "candidates"}
+              {getPlanFilterLabel() && (
+                <span className="ml-2">· Plan: {getPlanFilterLabel()}</span>
+              )}
               {dateFilter !== 'all' && (
                 <span className="ml-2">
-                  ({dateFilter.replace(/([A-Z])/g, ' $1').trim()})
+                  · {dateFilter.replace(/([A-Z])/g, ' $1').trim()}
                 </span>
               )}
             </p>
@@ -717,7 +756,7 @@ const ManageCandidates = () => {
               </div>
               <h3 className={`text-lg font-semibold ${textColor} mb-2`}>No candidates found</h3>
               <p className={`${textSecondary} mb-6`}>
-                {searchTerm || statusFilter !== 'all' || dateFilter !== 'all' ? "Try adjusting your filters" : "No candidates registered yet"}
+                {searchTerm || statusFilter !== 'all' || planFilter !== 'all' || dateFilter !== 'all' ? "Try adjusting your filters" : "No candidates registered yet"}
               </p>
             </div>
           )}
