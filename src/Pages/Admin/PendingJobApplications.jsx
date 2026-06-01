@@ -155,16 +155,19 @@ function PendingJobApplications({ embedded = false }) {
     const ud = userDetails || {};
     const c = candidate || {};
     const profile = appDetails.student_profile || {};
-    const membership = c.membership_type || ud.membership_type || profile.plan || ud.plan;
-    const membershipLower = membership ? String(membership).toLowerCase() : '';
-    const plan = (ud.plan || profile.plan || membershipLower || '').toLowerCase();
-    const isPremium =
-      ud.premium_user === true ||
-      profile.premium_user === true ||
-      membershipLower === 'premium' ||
-      membershipLower === 'basic' ||
-      plan === 'premium' ||
-      plan === 'basic';
+    const rawMembership = c.membership_type || ud.membership_type || profile.plan || ud.plan || '';
+    const normalizePlan = (value) => {
+      const normalized = String(value || '').trim().toLowerCase();
+      if (!normalized) return '';
+      if (normalized === 'premium') return 'premium';
+      if (normalized === 'basic' || normalized === 'standard') return 'basic';
+      return normalized;
+    };
+    let plan = normalizePlan(rawMembership);
+    if (!plan && (ud.premium_user === true || profile.premium_user === true)) {
+      plan = 'premium';
+    }
+    const isPaidMember = plan === 'premium' || plan === 'basic';
 
     return {
       name: c.name || ud.full_name || ud.name || 'Unknown',
@@ -180,8 +183,8 @@ function PendingJobApplications({ embedded = false }) {
       department: ud.department || appDetails.student_department || null,
       cgpa: ud.cgpa || appDetails.student_cgpa || null,
       logo: c.profile_picture_url || ud.logo || ud.profile_picture_url || profile.logo || null,
-      premium_user: isPremium,
-      plan: plan === 'premium' ? 'premium' : (plan === 'basic' ? 'basic' : (isPremium ? 'premium' : null)),
+      premium_user: isPaidMember,
+      plan: plan || null,
     };
   };
 
@@ -410,8 +413,8 @@ function PendingJobApplications({ embedded = false }) {
       department: ud.department || null,
       cgpa: ud.cgpa || null,
       logo: ud.profile_picture_url || ud.logo || ud.profile_image || null,
-      premium_user: details.studentDetails?.premium_user,
-      plan: details.studentDetails?.plan,
+      premium_user: details.user_details?.premium_user,
+      plan: details.user_details?.plan,
     };
     setSelectedCandidate({
       ...application,
