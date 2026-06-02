@@ -5,6 +5,13 @@ import adminApiClient from "../../services/adminApiClient";
 import { Check, X, FileText, Download, ExternalLink, Search, Briefcase, Building, Clock, Mail, Phone, Calendar, Eye, MapPin, ArrowUpDown, Sparkles, User, ChevronLeft, ChevronRight } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
+const isRecruiterJob = (app) => {
+  const pb = (app?.posted_by ?? "").toString().trim().toUpperCase();
+  if (pb === "ADMIN") return false;
+  if (pb === "RECRUITER" || pb === "EMPLOYER") return true;
+  return Boolean(app?.recruiter_id);
+};
+
 function PendingJobApplications({ embedded = false, role = "recruiter" }) {
   const { theme } = useTheme();
   const [allApplications, setAllApplications] = useState([]);
@@ -247,9 +254,8 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
       user_details: userDetails,
       job_details: jobDetails,
       application_details: appDetails,
-      recruiter_id: jobDetails.recruiter_id || job.recruiter_id,
-      job_category_tag: job.job_category_tag || jobDetails.job_type || jobDetails.job_category_tag,
-      posted_by: jobDetails.posted_by,
+      recruiter_id: job.recruiter_id || jobDetails.recruiter_id,
+      posted_by: job.posted_by || jobDetails.posted_by,
     };
 
     return { app, details };
@@ -288,11 +294,7 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
         const mapKey = getRowKey(app);
         if (mapKey) detailsMap[mapKey] = details;
         if (app.job_id && !jobTypeMap[app.job_id]) {
-          const isAdminJob =
-            app.posted_by === 'ADMIN' ||
-            app.job_category_tag === 'PRIVATE' ||
-            !app.recruiter_id;
-          jobTypeMap[app.job_id] = isAdminJob ? 'Admin Private Job' : 'Recruiter Job';
+          jobTypeMap[app.job_id] = isRecruiterJob(app) ? 'Recruiter Job' : 'Admin Private Job';
         }
       });
 
