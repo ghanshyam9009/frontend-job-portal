@@ -15,7 +15,8 @@ import {
   Settings, 
   LogOut,
   Briefcase,
-  X
+  X,
+  Image
 } from "lucide-react";
 import { adminService } from "../../services/adminService";
 import { contactService } from "../../services/contactService";
@@ -185,6 +186,12 @@ const AdminSidebar = ({ isOpen, onClose }) => {
           icon: FileText,
           path: '/admin/homepage-forms',
           badge: homepageFormsCount > 0 ? homepageFormsCount : null
+        },
+        {
+          id: 'banners',
+          label: 'Banners',
+          icon: Image,
+          path: '/admin/banners'
         },
         {
           id: 'contact-forms',

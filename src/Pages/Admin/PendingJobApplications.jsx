@@ -5,7 +5,7 @@ import adminApiClient from "../../services/adminApiClient";
 import { Check, X, FileText, Download, ExternalLink, Search, Briefcase, Building, Clock, Mail, Phone, Calendar, Eye, MapPin, ArrowUpDown, Sparkles, User, ChevronLeft, ChevronRight } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
-function PendingJobApplications({ embedded = false }) {
+function PendingJobApplications({ embedded = false, role = "recruiter" }) {
   const { theme } = useTheme();
   const [allApplications, setAllApplications] = useState([]);
   const [loadingApplications, setLoadingApplications] = useState({});
@@ -41,7 +41,7 @@ function PendingJobApplications({ embedded = false }) {
 
   useEffect(() => {
     fetchData();
-  }, [currentPage, debouncedSearch, companyFilter, jobFilter, statusFilter, dateFilter, sortBy]);
+  }, [currentPage, debouncedSearch, companyFilter, jobFilter, statusFilter, dateFilter, sortBy, role]);
 
   useEffect(() => {
     if (!embedded) {
@@ -263,7 +263,8 @@ function PendingJobApplications({ embedded = false }) {
     try {
       setLoading(true);
 
-      const params = { page: currentPage };
+      const normalizedRole = String(role || "recruiter").toLowerCase() === "admin" ? "admin" : "RECRUITER";
+      const params = { page: currentPage, role: normalizedRole };
 
       if (debouncedSearch) params.search = debouncedSearch;
       if (statusFilter !== 'all') params.status = mapStatusToApi(statusFilter);

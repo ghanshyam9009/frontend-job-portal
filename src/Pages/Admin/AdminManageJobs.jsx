@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
+import PendingJobApplications from "./PendingJobApplications";
 import {
   Building2,
   Edit,
@@ -16,6 +17,7 @@ import {
   Award,
   ArrowUpDown,
   Users,
+  FileText,
 } from "lucide-react";
 
 /** API sends `job_logo_url`; fallbacks align with JobCard / AdminJobReports */
@@ -82,6 +84,7 @@ const getDateRangeParams = (dateFilter) => {
 const AdminJobs = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const [viewMode, setViewMode] = useState("overview"); // overview | jobs | applications
   const [jobs, setJobs] = useState([]);
   const [jobsMeta, setJobsMeta] = useState({
     page: 1,
@@ -307,10 +310,12 @@ const AdminJobs = () => {
           <div className="flex items-center justify-between gap-2 sm:gap-4 min-h-[40px]">
             <div className="min-w-0 flex-1">
               <h1 className={`text-base sm:text-xl md:text-2xl font-bold ${textColor} truncate`}>
-                Manage Jobs
+                Admin Job Posting
               </h1>
               <p className={`text-xs sm:text-sm ${textSecondary} mt-0.5 truncate`}>
-                Create and manage job postings
+                {viewMode === "applications"
+                  ? "Review applications for admin posted jobs"
+                  : "Create and manage job postings"}
               </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -325,7 +330,7 @@ const AdminJobs = () => {
               <button
                 onClick={() => {
                   setError("");
-                  fetchJobs(currentPage);
+                  if (viewMode !== "applications") fetchJobs(currentPage);
                 }}
                 disabled={fetching}
                 className={`p-2 sm:px-4 sm:py-2.5 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors inline-flex items-center justify-center touch-manipulation min-h-[40px] min-w-[40px] disabled:opacity-50`}
@@ -336,6 +341,51 @@ const AdminJobs = () => {
             </div>
           </div>
 
+          {viewMode === "overview" && (
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-6 pb-4">
+              <button
+                type="button"
+                onClick={() => setViewMode("jobs")}
+                className={`${cardBg} rounded-xl shadow-lg p-6 border-l-4 border-blue-500 transform transition-all hover:-translate-y-1 hover:shadow-xl cursor-pointer text-left w-full block`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`${textSecondary} text-sm font-medium`}>Admin jobs</p>
+                    <h3 className={`text-3xl font-bold ${textColor} mt-2`}>{counts.total}</h3>
+                    <p className="text-blue-600 dark:text-blue-400 text-sm mt-2 flex items-center gap-1">
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500" />
+                      Posted by admin
+                    </p>
+                  </div>
+                  <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                    <Briefcase className="text-blue-500" size={28} />
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode("applications")}
+                className={`${cardBg} rounded-xl shadow-lg p-6 border-l-4 border-purple-500 transform transition-all hover:-translate-y-1 hover:shadow-xl cursor-pointer text-left w-full block`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`${textSecondary} text-sm font-medium`}>Applied candidates</p>
+                    <h3 className={`text-3xl font-bold ${textColor} mt-2`}>{counts.total_applications}</h3>
+                    <p className="text-purple-600 dark:text-purple-400 text-sm mt-2 flex items-center gap-1">
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-purple-500" />
+                      Applications queue
+                    </p>
+                  </div>
+                  <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                    <FileText className="text-purple-500" size={28} />
+                  </div>
+                </div>
+              </button>
+            </div>
+          )}
+
+          {viewMode === "jobs" && (
           <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-4 mt-3 sm:mt-4">
             <div className={`px-3 py-2 sm:px-4 sm:py-2 rounded-lg ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
               <div className="flex items-center gap-2">
@@ -370,10 +420,50 @@ const AdminJobs = () => {
               </div>
             </div>
           </div>
+          )}
         </div>
       </div>
 
+      {viewMode === "overview" && (
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-8">
+          <div className={`${cardBg} rounded-lg border ${borderColor} p-8 text-center`}>
+            <h3 className={`text-lg font-semibold ${textColor}`}>Choose a section</h3>
+            <p className={`${textSecondary} mt-2`}>
+              Open Admin jobs or Applied candidates from the cards above.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {viewMode === "applications" && (
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <div className="flex items-center justify-between mb-4">
+            <button
+              type="button"
+              onClick={() => setViewMode("overview")}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border ${borderColor} ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700`}
+            >
+              ← Back to overview
+            </button>
+            <h2 className={`text-base font-bold ${textColor}`}>Applied candidates</h2>
+          </div>
+          <PendingJobApplications embedded role="admin" />
+        </div>
+      )}
+
+      {viewMode === "jobs" && (
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+        <div className="flex items-center justify-between mb-4">
+          <button
+            type="button"
+            onClick={() => setViewMode("overview")}
+            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border ${borderColor} ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700`}
+          >
+            ← Back to overview
+          </button>
+          <h2 className={`text-base font-bold ${textColor}`}>Admin jobs</h2>
+        </div>
+
         <div className={`${cardBg} rounded-lg border ${borderColor} p-3 sm:p-4 mb-4 sm:mb-6 w-full`}>
           <div className="flex flex-col gap-3">
             <div className="relative w-full">
@@ -693,6 +783,7 @@ const AdminJobs = () => {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };

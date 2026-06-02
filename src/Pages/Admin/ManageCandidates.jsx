@@ -601,7 +601,7 @@ const ManageCandidates = () => {
             </button>
             <h2 className={`text-base font-bold ${textColor}`}>Applied candidates</h2>
           </div>
-          <PendingJobApplications embedded />
+          <PendingJobApplications embedded role="recruiter" />
         </div>
       )}
 
