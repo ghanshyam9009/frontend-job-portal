@@ -5,7 +5,14 @@ import adminApiClient from "../../services/adminApiClient";
 import { Check, X, FileText, Download, ExternalLink, Search, Briefcase, Building, Clock, Mail, Phone, Calendar, Eye, MapPin, ArrowUpDown, Sparkles, User, ChevronLeft, ChevronRight } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
-function PendingJobApplications({ embedded = false }) {
+const isRecruiterJob = (app) => {
+  const pb = (app?.posted_by ?? "").toString().trim().toUpperCase();
+  if (pb === "ADMIN") return false;
+  if (pb === "RECRUITER" || pb === "EMPLOYER") return true;
+  return Boolean(app?.recruiter_id);
+};
+
+function PendingJobApplications({ embedded = false, role = "recruiter" }) {
   const { theme } = useTheme();
   const [allApplications, setAllApplications] = useState([]);
   const [loadingApplications, setLoadingApplications] = useState({});
@@ -41,7 +48,7 @@ function PendingJobApplications({ embedded = false }) {
 
   useEffect(() => {
     fetchData();
-  }, [currentPage, debouncedSearch, companyFilter, jobFilter, statusFilter, dateFilter, sortBy]);
+  }, [currentPage, debouncedSearch, companyFilter, jobFilter, statusFilter, dateFilter, sortBy, role]);
 
   useEffect(() => {
     if (!embedded) {
@@ -155,16 +162,19 @@ function PendingJobApplications({ embedded = false }) {
     const ud = userDetails || {};
     const c = candidate || {};
     const profile = appDetails.student_profile || {};
-    const membership = c.membership_type || ud.membership_type || profile.plan || ud.plan;
-    const membershipLower = membership ? String(membership).toLowerCase() : '';
-    const plan = (ud.plan || profile.plan || membershipLower || '').toLowerCase();
-    const isPremium =
-      ud.premium_user === true ||
-      profile.premium_user === true ||
-      membershipLower === 'premium' ||
-      membershipLower === 'basic' ||
-      plan === 'premium' ||
-      plan === 'basic';
+    const rawMembership = c.membership_type || ud.membership_type || profile.plan || ud.plan || '';
+    const normalizePlan = (value) => {
+      const normalized = String(value || '').trim().toLowerCase();
+      if (!normalized) return '';
+      if (normalized === 'premium') return 'premium';
+      if (normalized === 'basic' || normalized === 'standard') return 'basic';
+      return normalized;
+    };
+    let plan = normalizePlan(rawMembership);
+    if (!plan && (ud.premium_user === true || profile.premium_user === true)) {
+      plan = 'premium';
+    }
+    const isPaidMember = plan === 'premium' || plan === 'basic';
 
     return {
       name: c.name || ud.full_name || ud.name || 'Unknown',
@@ -180,8 +190,8 @@ function PendingJobApplications({ embedded = false }) {
       department: ud.department || appDetails.student_department || null,
       cgpa: ud.cgpa || appDetails.student_cgpa || null,
       logo: c.profile_picture_url || ud.logo || ud.profile_picture_url || profile.logo || null,
-      premium_user: isPremium,
-      plan: plan === 'premium' ? 'premium' : (plan === 'basic' ? 'basic' : (isPremium ? 'premium' : null)),
+      premium_user: isPaidMember,
+      plan: plan || null,
     };
   };
 
@@ -244,9 +254,8 @@ function PendingJobApplications({ embedded = false }) {
       user_details: userDetails,
       job_details: jobDetails,
       application_details: appDetails,
-      recruiter_id: jobDetails.recruiter_id || job.recruiter_id,
-      job_category_tag: job.job_category_tag || jobDetails.job_type || jobDetails.job_category_tag,
-      posted_by: jobDetails.posted_by,
+      recruiter_id: job.recruiter_id || jobDetails.recruiter_id,
+      posted_by: job.posted_by || jobDetails.posted_by,
     };
 
     return { app, details };
@@ -260,7 +269,8 @@ function PendingJobApplications({ embedded = false }) {
     try {
       setLoading(true);
 
-      const params = { page: currentPage };
+      const normalizedRole = String(role || "recruiter").toLowerCase() === "admin" ? "admin" : "RECRUITER";
+      const params = { page: currentPage, role: normalizedRole };
 
       if (debouncedSearch) params.search = debouncedSearch;
       if (statusFilter !== 'all') params.status = mapStatusToApi(statusFilter);
@@ -284,11 +294,7 @@ function PendingJobApplications({ embedded = false }) {
         const mapKey = getRowKey(app);
         if (mapKey) detailsMap[mapKey] = details;
         if (app.job_id && !jobTypeMap[app.job_id]) {
-          const isAdminJob =
-            app.posted_by === 'ADMIN' ||
-            app.job_category_tag === 'PRIVATE' ||
-            !app.recruiter_id;
-          jobTypeMap[app.job_id] = isAdminJob ? 'Admin Private Job' : 'Recruiter Job';
+          jobTypeMap[app.job_id] = isRecruiterJob(app) ? 'Recruiter Job' : 'Admin Private Job';
         }
       });
 
@@ -410,8 +416,8 @@ function PendingJobApplications({ embedded = false }) {
       department: ud.department || null,
       cgpa: ud.cgpa || null,
       logo: ud.profile_picture_url || ud.logo || ud.profile_image || null,
-      premium_user: details.studentDetails?.premium_user,
-      plan: details.studentDetails?.plan,
+      premium_user: details.user_details?.premium_user,
+      plan: details.user_details?.plan,
     };
     setSelectedCandidate({
       ...application,

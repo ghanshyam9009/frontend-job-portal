@@ -200,7 +200,7 @@ export const adminService = {
   async approveJob(taskId) {
     try {
       // Using the external service for job posting approval
-      return await adminExternalService.approveJobPosting(taskId, 1);
+      return await adminExternalService.approveJobPosting(taskId);
     } catch (error) {
       throw error;
     }
@@ -317,6 +317,57 @@ export const adminService = {
     }
   },
 
+  async getAdminJobs(params = {}) {
+    try {
+      const response = await adminApiClient.get(API_ENDPOINTS.admin.getAdminJobs, { params });
+      const data = response.data;
+
+      const empty = {
+        jobs: [],
+        page: 1,
+        total: 0,
+        total_pages: 1,
+        showing: 0,
+        counts: { total: 0, approved: 0, pending: 0, total_applications: 0 },
+      };
+
+      if (!data) return empty;
+
+      if (Array.isArray(data)) {
+        return {
+          ...empty,
+          jobs: data,
+          total: data.length,
+          showing: data.length,
+          counts: { total: data.length, approved: 0, pending: 0, total_applications: 0 },
+        };
+      }
+
+      const jobs =
+        (Array.isArray(data.jobs) && data.jobs) ||
+        (Array.isArray(data.data) && data.data) ||
+        [];
+
+      return {
+        ...data,
+        jobs,
+        page: data.page ?? 1,
+        total: data.total ?? jobs.length,
+        total_pages: data.total_pages ?? 1,
+        showing: data.showing ?? jobs.length,
+        counts: data.counts ?? {
+          total: data.total ?? jobs.length,
+          approved: 0,
+          pending: 0,
+          total_applications: 0,
+        },
+      };
+    } catch (error) {
+      console.error('Error fetching admin jobs:', error);
+      throw error;
+    }
+  },
+
   async deleteAdminJob(jobId) {
     try {
       const response = await adminApiClient.post(API_ENDPOINTS.admin.deleteAdminJob(jobId));
@@ -338,157 +389,49 @@ export const adminService = {
   },
 
   // Candidate Management Functions
-  async getCandidates() {
+  async getCandidates(params = {}) {
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('https://api.bigsources.in/api/admin/get-all-candidates', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` })
-        },
-      });
+      const response = await adminApiClient.get(API_ENDPOINTS.admin.getAllCandidates, { params });
+      const data = response.data;
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      const empty = {
+        candidates: [],
+        page: 1,
+        limit: params.limit ?? 10,
+        total: 0,
+        total_pages: 1,
+        showing: 0,
+        filters: { plans: [] },
+      };
 
-      const data = await response.json();
-      console.log('API Response:', data);
-
-      // Transform the API response to match the expected format
-      let candidateArray = [];
+      if (!data) return empty;
 
       if (Array.isArray(data)) {
-        candidateArray = data;
-      } else if (data && typeof data === 'object') {
-        // Check for multiple possible array keys
-        if (Array.isArray(data.candidates)) {
-          candidateArray = data.candidates;
-        } else if (Array.isArray(data.recruiters)) {  // API uses "recruiters" for candidates
-          candidateArray = data.recruiters;
-        } else if (Array.isArray(data.data)) {
-          candidateArray = data.data;
-        } else if (Array.isArray(data.students)) {
-          candidateArray = data.students;
-        } else {
-          // If no arrays found, wrap object in array or treat as empty
-          candidateArray = [];
-        }
-      } else {
-        candidateArray = [];
+        return {
+          ...empty,
+          candidates: data,
+          total: data.length,
+          showing: data.length,
+          limit: data.length,
+        };
       }
 
-      console.log('Candidate Array:', candidateArray);
+      const candidates =
+        (Array.isArray(data.candidates) && data.candidates) ||
+        (Array.isArray(data.data) && data.data) ||
+        (Array.isArray(data.students) && data.students) ||
+        [];
 
-      const candidates = candidateArray.map(candidate => {
-        const normalizeSkills = (skillsValue) => {
-          if (!skillsValue) return [];
-          if (Array.isArray(skillsValue)) {
-            return skillsValue.map(skill => {
-              if (typeof skill === 'string') return skill.trim();
-              if (skill && typeof skill === 'object') {
-                return [skill.name, skill.level].filter(Boolean).join(' - ') || 'Skill';
-              }
-              return 'Skill';
-            }).filter(Boolean);
-          }
-          if (typeof skillsValue === 'object') {
-            return Object.values(skillsValue).map(value => value?.toString().trim()).filter(Boolean);
-          }
-          return skillsValue.split(',').map(s => s.trim()).filter(Boolean);
-        };
-
-        const normalizeExperience = () => {
-          if (candidate.experience_years) {
-            return typeof candidate.experience_years === 'string'
-              ? candidate.experience_years
-              : `${candidate.experience_years} years`;
-          }
-          const experienceData = candidate.experience;
-          if (!experienceData) return 'Not specified';
-          if (typeof experienceData === 'string') return experienceData;
-          if (Array.isArray(experienceData)) {
-            if (experienceData.length === 0) return 'Not specified';
-            return experienceData
-              .map(exp => {
-                if (typeof exp === 'string') return exp;
-                if (exp && typeof exp === 'object') {
-                  return [exp.title, exp.company, exp.duration].filter(Boolean).join(' | ');
-                }
-                return '';
-              })
-              .filter(Boolean)
-              .join(', ');
-          }
-          if (typeof experienceData === 'object') {
-            return [experienceData.title, experienceData.company, experienceData.duration]
-              .filter(Boolean)
-              .join(' | ') || 'Not specified';
-          }
-          return 'Not specified';
-        };
-
-        const normalizeLocation = () => {
-          const locationData = candidate.location || candidate.address;
-          if (!locationData) return 'Not specified';
-          if (typeof locationData === 'string') return locationData;
-          if (typeof locationData === 'object') {
-            if (Array.isArray(locationData)) {
-              return locationData.join(', ');
-            }
-            return [locationData.street, locationData.city, locationData.state, locationData.country]
-              .filter(Boolean)
-              .join(', ') || 'Not specified';
-          }
-          return 'Not specified';
-        };
-
-        // Extract city from location data
-        const getCityOnly = () => {
-          const locationData = candidate.location || candidate.address;
-          if (!locationData) return 'Not specified';
-          if (typeof locationData === 'string') {
-            // If it's already a string, take first part before comma (likely the city)
-            return locationData.split(',')[0].trim() || 'Not specified';
-          }
-          if (typeof locationData === 'object') {
-            if (Array.isArray(locationData)) {
-              return locationData[0] || 'Not specified'; // First element might be city
-            }
-            // Return only the city from the object, ignore street
-            return locationData.city || 'Not specified';
-          }
-          return 'Not specified';
-        };
-
-        return {
-          id: candidate.candidate_id || candidate.user_id || candidate.id,
-          name: candidate.full_name || candidate.name || `${candidate.first_name || ''} ${candidate.last_name || ''}`.trim() || 'Unknown',
-          email: candidate.email || '',
-          phone: candidate.phone_number || candidate.phone || '',
-          location: normalizeLocation(), // Keep full address for other uses
-          city: getCityOnly(), // Add separate city field for display
-          experience: normalizeExperience(),
-          skills: normalizeSkills(candidate.skills),
-          status: candidate.status || 'active',
-          is_admin_closed: candidate.is_admin_closed, // Include the blocking field
-          created_at: candidate.created_at || candidate.registration_date || new Date().toISOString(),
-          profile_image: candidate.profile_image || null,
-          logo: candidate.profile_image || candidate.logo || null, // Include logo field for compatibility
-          resume: candidate.resume || candidate.resumeUrl || null, // Use resume or resumeUrl directly from candidate
-          bio: candidate.bio || '',
-          education: candidate.education || [],
-          dob: candidate.dob || null,
-          gender: candidate.gender || null,
-          role: candidate.role || 'Candidate',
-          premium_user: candidate.premium_user || false,
-          plan: candidate.plan || null
-        };
-      });
-
-      console.log('Transformed candidates:', candidates);
-      return candidates;
+      return {
+        ...data,
+        candidates,
+        page: data.page ?? 1,
+        limit: data.limit ?? params.limit ?? 10,
+        total: data.total ?? candidates.length,
+        total_pages: data.total_pages ?? 1,
+        showing: data.showing ?? candidates.length,
+        filters: data.filters ?? { plans: [] },
+      };
     } catch (error) {
       console.error('Error fetching candidates from API:', error);
       throw error;
@@ -579,37 +522,55 @@ export const adminService = {
   },
 
   // Recruiter Management Functions
-  async getAllRecruiters() {
+  async getAllRecruiters(params = {}) {
     try {
-      const response = await adminApiClient.get(API_ENDPOINTS.admin.getAllRecruiters);
+      const response = await adminApiClient.get(API_ENDPOINTS.admin.getAllRecruiters, { params });
+      const data = response.data;
 
-      // Handle different response structures
-      let recruitersArray = [];
+      const empty = {
+        recruiters: [],
+        counts: { all: 0, approved: 0, pending: 0 },
+        page: 1,
+        limit: params.limit ?? 10,
+        total: 0,
+        total_pages: 1,
+        showing: 0,
+      };
 
-      if (response.data) {
-        // Check if response.data is already an array
-        if (Array.isArray(response.data)) {
-          recruitersArray = response.data;
-        }
-        // Check if response.data has a recruiters array
-        else if (response.data.recruiters && Array.isArray(response.data.recruiters)) {
-          recruitersArray = response.data.recruiters;
-        }
-        // Check if response.data has an employers array
-        else if (response.data.employers && Array.isArray(response.data.employers)) {
-          recruitersArray = response.data.employers;
-        }
-        // Check if response.data has a single employer object
-        else if (response.data.employer) {
-          recruitersArray = [response.data.employer];
-        }
-        // Check if response.data itself is the recruiter object
-        else if (response.data.email || response.data.employer_id) {
-          recruitersArray = [response.data];
-        }
+      if (!data) return empty;
+
+      if (Array.isArray(data)) {
+        return {
+          ...empty,
+          recruiters: data,
+          counts: { all: data.length, approved: 0, pending: 0 },
+          total: data.length,
+          showing: data.length,
+          limit: data.length,
+        };
       }
 
-      return { recruiters: recruitersArray };
+      const recruiters =
+        (Array.isArray(data.recruiters) && data.recruiters) ||
+        (Array.isArray(data.data) && data.data) ||
+        (Array.isArray(data.employers) && data.employers) ||
+        (data.employer ? [data.employer] : []) ||
+        (data.email || data.employer_id ? [data] : []);
+
+      return {
+        ...data,
+        recruiters,
+        counts: data.counts ?? {
+          all: data.total ?? recruiters.length,
+          approved: 0,
+          pending: 0,
+        },
+        page: data.page ?? 1,
+        limit: data.limit ?? params.limit ?? 10,
+        total: data.total ?? recruiters.length,
+        total_pages: data.total_pages ?? 1,
+        showing: data.showing ?? recruiters.length,
+      };
     } catch (error) {
       console.error('Error fetching recruiters:', error);
       throw error;

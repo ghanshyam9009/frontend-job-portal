@@ -1,5 +1,6 @@
 // API Configuration - Use environment variable for flexibility
-const API_BASE_URL_ENV = import.meta.env.VITE_API_BASE_URL || 'https://api.bigsources.in/api';
+const API_BASE_URL_ENV = "https://api.bigsources.in/api";
+// const API_BASE_URL_ENV = "http://localhost:4000/api";
 
 const API_CONFIG = {
   development: {
@@ -84,10 +85,12 @@ export const API_ENDPOINTS = {
     update: (id) => `/admin/${id}`,
     delete: (id) => `/admin/${id}`,
     getAllRecruiters: '/admin/get-all-recruiter',
+    getAllCandidates: '/admin/get-all-candidates',
     approveRecruiter: '/admin/approved-recruiter',
     rejectRecruiter: '/admin/approved-recruiter',
     updateCandidateStatus: (email) => `/admin/candidate/${email}/status`,
-    deleteAdminJob: (jobId) => `/job/deleteadminjobs/${jobId}`
+    deleteAdminJob: (jobId) => `/job/deleteadminjobs/${jobId}`,
+    getAdminJobs: '/job/admin-jobs'
   },
 
   // Users

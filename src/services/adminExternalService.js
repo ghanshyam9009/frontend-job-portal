@@ -18,7 +18,7 @@ const ADMIN_GET_ALL_JOB_ADMIN_URL =
   import.meta.env.VITE_ADMIN_GET_ALL_JOB_ADMIN_URL ||
   'https://9voh0hfu5i.execute-api.ap-southeast-1.amazonaws.com/dev/getalljobadmin';
 
-  const ADMIN_REOPEN_APPROVE_URL =
+const ADMIN_REOPEN_APPROVE_URL =
   import.meta.env.VITE_ADMIN_REOPEN_APPROVE_URL ||
   'https://api.bigsources.in/api/job/admin/approve-reopen-job';
 
@@ -72,19 +72,22 @@ export const adminExternalService = {
 
   // Approve edited job (fulfill edit task)
   async approveEditedJob(taskId) {
+    if (!taskId) throw new Error('task_id is required for edit approval');
     const { data } = await axios.post(ADMIN_EDIT_URL, { task_id: taskId });
     return data;
   },
 
   // Approve job closing
   async approveJobClosing(taskId) {
+    if (!taskId) throw new Error('task_id is required for close approval');
     const { data } = await axios.get(ADMIN_CLOSE_URL, { params: { task_id: taskId } });
     return data;
   },
 
-  // Approve job posting
-  async approveJobPosting(taskId, approve) {
-    const { data } = await axios.post(ADMIN_POST_URL, { task_id: taskId, approve });
+  // Approve new job posting
+  async approveJobPosting(taskId) {
+    if (!taskId) throw new Error('task_id is required for new job approval');
+    const { data } = await axios.post(ADMIN_POST_URL, { task_id: taskId, approve: 1 });
     return data;
   },
 

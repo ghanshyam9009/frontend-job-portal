@@ -62,31 +62,28 @@ const AdminDashboard = () => {
       setLoading(true);
 
       // Fetch candidates data first (usually fastest)
-      const candidatesPromise = adminService.getCandidates()
-        .then(candidatesData => {
-          // Filter out blocked candidates where is_admin_closed is true, status is blocked/inactive, or blocked field is true
-          const activeCandidates = candidatesData.filter(candidate => {
-            const isClosed = candidate.is_admin_closed === true ||
-                            candidate.is_admin_closed === "true" ||
-                            candidate.is_admin_closed === 1 ||
-                            candidate.is_admin_closed === "1";
-            const isBlocked = candidate.status?.toLowerCase() === 'blocked' ||
-                             candidate.status?.toLowerCase() === 'inactive';
-            const isBlockedField = candidate.blocked === true ||
-                                  candidate.blocked === "true" ||
-                                  candidate.blocked === 1 ||
-                                  candidate.blocked === "1";
-
-            return !isClosed && !isBlocked && !isBlockedField;
+      const candidatesPromise = adminService.getCandidates({ page: 1, limit: 10 })
+        .then((response) => {
+          const candidatesData = response.candidates || [];
+          const activeCandidates = candidatesData.filter((candidate) => {
+            const isClosed =
+              candidate.is_admin_closed === true ||
+              candidate.is_admin_closed === "true" ||
+              candidate.is_admin_closed === 1 ||
+              candidate.is_admin_closed === "1";
+            const isBlocked =
+              candidate.status?.toLowerCase() === "blocked" ||
+              candidate.status?.toLowerCase() === "inactive";
+            return !isClosed && !isBlocked;
           });
-          console.log('Candidates data:', activeCandidates.length, 'active candidates found');
-          setLoadingStates(prev => ({ ...prev, candidates: false }));
-          return activeCandidates;
+          console.log("Candidates data:", response.total ?? activeCandidates.length, "total");
+          setLoadingStates((prev) => ({ ...prev, candidates: false }));
+          return { list: activeCandidates, total: response.total ?? activeCandidates.length };
         })
         .catch(err => {
           console.error('Candidates fetch error:', err);
           setLoadingStates(prev => ({ ...prev, candidates: false }));
-          return [];
+          return { list: [], total: 0 };
         });
 
       // Fetch recruiters data
@@ -139,16 +136,20 @@ const AdminDashboard = () => {
         });
 
       // Wait for all promises to resolve
-      const [candidates, recruitersData, jobs, pendingTasks] = await Promise.all([
+      const [candidatesResult, recruitersData, jobs, pendingTasks] = await Promise.all([
         candidatesPromise,
         recruitersPromise,
         jobsPromise,
         tasksPromise
       ]);
 
+      const candidates = candidatesResult?.list ?? candidatesResult ?? [];
+      const totalCandidatesCount =
+        candidatesResult?.total ?? (Array.isArray(candidates) ? candidates.length : 0);
+
       // Debug logging
       console.log('=== Dashboard Data Summary ===');
-      console.log('Total Candidates:', candidates.length);
+      console.log('Total Candidates:', totalCandidatesCount);
       console.log('Total Recruiters:', recruitersData.length);
       console.log('Total Jobs:', jobs.length);
       console.log('Sample Candidate:', candidates[0]);
@@ -170,7 +171,7 @@ const AdminDashboard = () => {
       const now = new Date();
       const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       
-      const candidatesThisMonth = candidates.filter(c => {
+      const candidatesThisMonth = (Array.isArray(candidates) ? candidates : []).filter(c => {
         if (!c.created_at) return false;
         const date = new Date(c.created_at);
         return date >= lastMonthDate;
@@ -188,8 +189,8 @@ const AdminDashboard = () => {
         return date >= lastMonthDate;
       }).length;
 
-      const candidateGrowth = candidates.length > 0 
-        ? Math.round((candidatesThisMonth / candidates.length) * 100)
+      const candidateGrowth = totalCandidatesCount > 0 
+        ? Math.round((candidatesThisMonth / totalCandidatesCount) * 100)
         : 0;
       
       const recruiterGrowth = recruitersData.length > 0
@@ -212,7 +213,7 @@ const AdminDashboard = () => {
 
       // Set dashboard stats
       setDashboardStats({
-        totalCandidates: candidates.length,
+        totalCandidates: totalCandidatesCount,
         totalRecruiters: recruitersData.length,
         activeJobs: activeJobsCount,
         totalApplications: totalApps,
@@ -223,20 +224,20 @@ const AdminDashboard = () => {
       });
 
       // Get recent candidates (last 5, sorted by created date)
-      const sortedCandidates = [...candidates].sort((a, b) => 
+      const sortedCandidates = [...(Array.isArray(candidates) ? candidates : [])].sort((a, b) => 
         new Date(b.created_at || 0) - new Date(a.created_at || 0)
       );
       
       const recent = sortedCandidates.slice(0, 5).map(candidate => ({
-        id: candidate.id || candidate.user_id,
-        name: candidate.name || candidate.full_name || 'Unknown',
+        id: candidate.user_id,
+        name: candidate.full_name || 'Unknown',
         email: candidate.email || '',
-        position: candidate.experience || 'Not specified',
-        experience: candidate.experience_years || 0,
+        position: candidate.experienceLevel || 'Not specified',
+        experience: 0,
         created_at: candidate.created_at,
-        logo: candidate.logo || candidate.profile_image || candidate.profile_pic || null,
-        initials: getInitials(candidate.name || candidate.full_name || 'U'),
-        color: getAvatarColor(candidate.id || Math.random())
+        logo: candidate.logo || null,
+        initials: getInitials(candidate.full_name || 'U'),
+        color: getAvatarColor(candidate.user_id || Math.random())
       }));
       setRecentCandidates(recent);
 

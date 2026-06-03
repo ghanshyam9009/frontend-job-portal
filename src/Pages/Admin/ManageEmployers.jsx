@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
@@ -37,7 +37,14 @@ const ManageEmployers = () => {
   const { theme } = useTheme();
   const [viewMode, setViewMode] = useState("overview"); // overview | employers | reports
   const [recruiters, setRecruiters] = useState([]);
-  const [filteredRecruiters, setFilteredRecruiters] = useState([]);
+  const [recruiterMeta, setRecruiterMeta] = useState({
+    page: 1,
+    limit: 25,
+    total: 0,
+    total_pages: 1,
+    showing: 0,
+    counts: { all: 0, approved: 0, pending: 0 },
+  });
   const [searchTerm, setSearchTerm] = useState("");
   const [approvalFilter, setApprovalFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
@@ -48,16 +55,22 @@ const ManageEmployers = () => {
   const [actionLoading, setActionLoading] = useState(null);
   const recruitersPerPage = 25;
 
+  const applyRecruitersResponse = (response) => {
+    setRecruiters(response.recruiters || []);
+    setRecruiterMeta({
+      page: response.page ?? 1,
+      limit: response.limit ?? recruitersPerPage,
+      total: response.total ?? 0,
+      total_pages: response.total_pages ?? 1,
+      showing: response.showing ?? (response.recruiters?.length ?? 0),
+      counts: response.counts ?? { all: 0, approved: 0, pending: 0 },
+    });
+  };
+
   // State for job reports
   const [jobs, setJobs] = useState([]);
   /** Syncs with AdminJobReports tabs: `all` | `newjob` (get-all-tasks postnewjob) */
   const [jobReportsInitialTab, setJobReportsInitialTab] = useState("all");
-
-  // Fetch recruiters and jobs data from API
-  useEffect(() => {
-    fetchRecruiters();
-    fetchJobReports();
-  }, []);
 
   const fetchJobReports = async () => {
     try {
@@ -78,37 +91,49 @@ const ManageEmployers = () => {
     }
   };
 
-  const fetchRecruiters = async () => {
+  const fetchRecruiters = useCallback(async (page = currentPage) => {
     try {
       setLoading(true);
-      const response = await adminService.getAllRecruiters();
-      const recruitersData = response.recruiters || response.data || response || [];
-      // Filter out blocked recruiters where is_admin_closed is true
-      const activeRecruiters = recruitersData.filter(recruiter =>
-        recruiter.is_admin_closed !== true &&
-        recruiter.is_admin_closed !== "true" &&
-        recruiter.is_admin_closed !== 1 &&
-        recruiter.is_admin_closed !== "1"
-      );
-      const sortedRecruiters = activeRecruiters.sort((a, b) => {
-        const dateA = new Date(a.created_at || a.createdAt || 0);
-        const dateB = new Date(b.created_at || b.createdAt || 0);
-        return dateB - dateA;
+      const status =
+        approvalFilter === "pending"
+          ? "Pending"
+          : approvalFilter === "approved"
+            ? "Approved"
+            : undefined;
+
+      const response = await adminService.getAllRecruiters({
+        page,
+        limit: recruitersPerPage,
+        ...(status && { status }),
       });
-      setRecruiters(sortedRecruiters);
-      setFilteredRecruiters(sortedRecruiters);
+      applyRecruitersResponse(response);
     } catch (error) {
-      console.error('Failed to fetch recruiters:', error);
+      console.error("Failed to fetch recruiters:", error);
       setRecruiters([]);
-      setFilteredRecruiters([]);
+      setRecruiterMeta({
+        page: 1,
+        limit: recruitersPerPage,
+        total: 0,
+        total_pages: 1,
+        showing: 0,
+        counts: { all: 0, approved: 0, pending: 0 },
+      });
     } finally {
       setLoading(false);
     }
-  };
+  }, [approvalFilter, currentPage, recruitersPerPage]);
+
+  useEffect(() => {
+    fetchJobReports();
+  }, []);
+
+  useEffect(() => {
+    fetchRecruiters(currentPage);
+  }, [fetchRecruiters, currentPage]);
 
   // Helper function to filter by date
   const filterByDate = (recruiter) => {
-    const dateString = recruiter.created_at || recruiter.createdAt || recruiter.date_created;
+    const dateString = recruiter.created_at;
     if (!dateString) return false;
 
     const recruiterDate = new Date(dateString);
@@ -150,65 +175,50 @@ const ManageEmployers = () => {
     }
   };
 
-  // Filter recruiters based on search, approval status, date, and sort
-  useEffect(() => {
-    let filtered = recruiters;
+  const displayRecruiters = useMemo(() => {
+    let list = recruiters;
 
-    if (searchTerm) {
-      filtered = filtered.filter(recruiter =>
-        (recruiter.company_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (recruiter.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (recruiter.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (recruiter.industry?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      list = list.filter(
+        (r) =>
+          (r.company_name?.toLowerCase() || "").includes(q) ||
+          (r.email?.toLowerCase() || "").includes(q) ||
+          (r.full_name?.toLowerCase() || "").includes(q) ||
+          (r.industry?.toLowerCase() || "").includes(q)
       );
     }
 
-    // Apply approval filter
-    if (approvalFilter === "pending") {
-      filtered = filtered.filter((recruiter) => isPendingEmployer(recruiter));
-    } else if (approvalFilter === "approved") {
-      filtered = filtered.filter((recruiter) => isApprovedEmployer(recruiter));
-    } else if (approvalFilter === "rejected") {
-      filtered = filtered.filter((recruiter) => !isApprovedEmployer(recruiter) && isRejectedEmployer(recruiter));
-    }
-
-    // Apply date filter
     if (dateFilter !== "all") {
-      filtered = filtered.filter(filterByDate);
+      list = list.filter(filterByDate);
     }
 
-    // Apply sorting
-    const sorted = [...filtered].sort((a, b) => {
-      const dateA = new Date(a.created_at || a.createdAt || 0);
-      const dateB = new Date(b.created_at || b.createdAt || 0);
+    return [...list].sort((a, b) => {
+      const dateA = new Date(a.created_at || 0);
+      const dateB = new Date(b.created_at || 0);
 
       switch (sortBy) {
-        case "newest":
-          return dateB - dateA;
-
         case "oldest":
           return dateA - dateB;
-
         case "companyAZ":
-          return (a.company_name || '').localeCompare(b.company_name || '');
-
+          return (a.company_name || "").localeCompare(b.company_name || "");
         case "companyZA":
-          return (b.company_name || '').localeCompare(a.company_name || '');
-
+          return (b.company_name || "").localeCompare(a.company_name || "");
         case "emailAZ":
-          return (a.email || '').localeCompare(b.email || '');
-
+          return (a.email || "").localeCompare(b.email || "");
         case "emailZA":
-          return (b.email || '').localeCompare(a.email || '');
-
+          return (b.email || "").localeCompare(a.email || "");
+        case "newest":
         default:
-          return 0;
+          return dateB - dateA;
       }
     });
+  }, [recruiters, searchTerm, dateFilter, sortBy]);
 
-    setFilteredRecruiters(sorted);
+  const handleApprovalFilterChange = (filter) => {
+    setApprovalFilter(filter);
     setCurrentPage(1);
-  }, [searchTerm, approvalFilter, dateFilter, sortBy, recruiters]);
+  };
 
   const getInitials = (name) => {
     if (!name) return 'C';
@@ -216,43 +226,29 @@ const ManageEmployers = () => {
   };
 
   const formatDate = (recruiter) => {
-    const dateString = recruiter.created_at || recruiter.createdAt || recruiter.date_created;
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString("en-US", {
+    if (!recruiter?.created_at) return "N/A";
+    return new Date(recruiter.created_at).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
     });
   };
 
-  const isApprovedEmployer = (recruiter) => {
-    const approvalValue = recruiter?.hasadminapproved;
-    return approvalValue === true || approvalValue === 1 || approvalValue === "1" || approvalValue === "true";
-  };
+  const getStatusLabel = (recruiter) =>
+    (recruiter?.status_label || "Pending").trim();
 
-  const isRejectedEmployer = (recruiter) => {
-    const status = (recruiter?.status || "").toLowerCase();
-    return status === "rejected" || status === "inactive" || status === "blocked";
-  };
-
-  const isPendingEmployer = (recruiter) => !isApprovedEmployer(recruiter) && !isRejectedEmployer(recruiter);
+  const isPendingEmployer = (recruiter) =>
+    getStatusLabel(recruiter).toLowerCase() === "pending";
 
   const getApprovalColor = (recruiter) => {
-    if (isApprovedEmployer(recruiter)) {
-      return 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30';
+    const label = getStatusLabel(recruiter).toLowerCase();
+    if (label === "approved") {
+      return "bg-green-50 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30";
     }
-    if (isRejectedEmployer(recruiter)) {
-      return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30';
+    if (label === "rejected") {
+      return "bg-red-50 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30";
     }
-    return 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30';
-  };
-
-  const getApprovalLabel = (recruiter) => {
-    if (isApprovedEmployer(recruiter)) return 'Approved';
-    if (isRejectedEmployer(recruiter)) {
-      return 'Rejected';
-    }
-    return 'Pending';
+    return "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30";
   };
 
   const handleApproveEmployer = async (recruiter) => {
@@ -266,14 +262,16 @@ const ManageEmployers = () => {
 
       await adminService.approveRecruiter(recruiter);
 
-      const response = await adminService.getAllRecruiters();
-      const recruitersData = response.recruiters || [];
-      const sortedRecruiters = recruitersData.sort((a, b) => {
-        const dateA = new Date(a.created_at || a.createdAt || 0);
-        const dateB = new Date(b.created_at || b.createdAt || 0);
-        return dateB - dateA;
+      const response = await adminService.getAllRecruiters({
+        page: currentPage,
+        limit: recruitersPerPage,
+        ...(approvalFilter === "pending"
+          ? { status: "Pending" }
+          : approvalFilter === "approved"
+            ? { status: "Approved" }
+            : {}),
       });
-      setRecruiters(sortedRecruiters);
+      applyRecruitersResponse(response);
 
       setMessage({ type: 'success', text: `${recruiter.company_name} approved successfully!` });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
@@ -305,14 +303,16 @@ const ManageEmployers = () => {
 
       await adminService.rejectRecruiter(recruiter);
 
-      const response = await adminService.getAllRecruiters();
-      const recruitersData = response.recruiters || [];
-      const sortedRecruiters = recruitersData.sort((a, b) => {
-        const dateA = new Date(a.created_at || a.createdAt || 0);
-        const dateB = new Date(b.created_at || b.createdAt || 0);
-        return dateB - dateA;
+      const response = await adminService.getAllRecruiters({
+        page: currentPage,
+        limit: recruitersPerPage,
+        ...(approvalFilter === "pending"
+          ? { status: "Pending" }
+          : approvalFilter === "approved"
+            ? { status: "Approved" }
+            : {}),
       });
-      setRecruiters(sortedRecruiters);
+      applyRecruitersResponse(response);
 
       setMessage({ type: 'success', text: `${recruiter.company_name} rejected successfully!` });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
@@ -354,9 +354,11 @@ const ManageEmployers = () => {
       setActionLoading(recruiter.employer_id);
       await adminService.blockRecruiter(recruiter.email);
 
-      const updatedRecruiters = recruiters.filter(r => r.email !== recruiter.email);
-      setRecruiters(updatedRecruiters);
-      setCurrentPage(1);
+      if (currentPage === 1) {
+        await fetchRecruiters(1);
+      } else {
+        setCurrentPage(1);
+      }
 
       setMessage({ type: 'success', text: `${recruiter.company_name} has been blocked and removed from the system.` });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
@@ -380,11 +382,11 @@ const ManageEmployers = () => {
         recruiter.company_name || '',
         recruiter.full_name || '',
         recruiter.email || '',
-        recruiter.phone_number || recruiter.phone || '',
+        recruiter.phone_number || '',
         recruiter.industry || '',
         recruiter.company_size || '',
         recruiter.location || '',
-        getApprovalLabel(recruiter),
+        getStatusLabel(recruiter),
         formatDate(recruiter)
       ]);
 
@@ -411,22 +413,20 @@ const ManageEmployers = () => {
     }
   };
 
-  // Pagination
-  const totalPages = Math.ceil(filteredRecruiters.length / recruitersPerPage);
-  const startIndex = (currentPage - 1) * recruitersPerPage;
-  const endIndex = startIndex + recruitersPerPage;
-  const currentRecruiters = filteredRecruiters.slice(startIndex, endIndex);
+  const totalPages = recruiterMeta.total_pages;
+  const currentRecruiters = displayRecruiters;
+  const { all: allCount, approved: approvedCount, pending: pendingCount } =
+    recruiterMeta.counts;
 
-  const pendingCount = recruiters.filter((r) => isPendingEmployer(r)).length;
-  const approvedCount = recruiters.filter((r) => isApprovedEmployer(r)).length;
-  const rejectedCount = recruiters.filter((r) => !isApprovedEmployer(r) && isRejectedEmployer(r)).length;
-
-  const totalEmployers = recruiters.length;
+  const totalEmployers = allCount;
   const totalJobs = jobs.length;
 
   // Approved employers and recent lists
   const approvedEmployers = useMemo(
-    () => recruiters.filter((r) => isApprovedEmployer(r)),
+    () =>
+      recruiters.filter(
+        (r) => getStatusLabel(r).toLowerCase() === "approved"
+      ),
     [recruiters]
   );
 
@@ -658,15 +658,15 @@ const ManageEmployers = () => {
                 <div className="space-y-3 text-sm">
                   {recentApprovedEmployers.map((r) => (
                     <div
-                      key={r.id || r.employer_id || r.email}
+                      key={r.employer_id || r.email}
                       onClick={() => handleViewProfile(r)}
                       className="flex items-center justify-between px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-all group"
                       title="View Employer Profile"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-9 h-9 rounded-full overflow-hidden bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-xs font-bold text-blue-700 dark:text-blue-300 flex-shrink-0 group-hover:scale-105 transition-transform">
-                          {(r.logo || r.company_logo) ? (
-                            <img src={r.logo || r.company_logo} alt={r.company_name || 'Company'} className="w-full h-full object-cover" />
+                          {r.logo ? (
+                            <img src={r.logo} alt={r.company_name || 'Company'} className="w-full h-full object-cover" />
                           ) : (
                             getInitials(r.company_name || 'Company')
                           )}
@@ -826,16 +826,16 @@ const ManageEmployers = () => {
                   {/* Approval Filters */}
                   <div className="flex flex-wrap gap-2">
                     <button
-                      onClick={() => setApprovalFilter('all')}
+                      onClick={() => handleApprovalFilterChange("all")}
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${approvalFilter === 'all'
                         ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
                         : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
                         }`}
                     >
-                      All ({recruiters.length})
+                      All ({allCount})
                     </button>
                     <button
-                      onClick={() => setApprovalFilter('pending')}
+                      onClick={() => handleApprovalFilterChange("pending")}
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${approvalFilter === 'pending'
                         ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
                         : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
@@ -844,7 +844,7 @@ const ManageEmployers = () => {
                       Pending ({pendingCount})
                     </button>
                     <button
-                      onClick={() => setApprovalFilter('approved')}
+                      onClick={() => handleApprovalFilterChange("approved")}
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${approvalFilter === 'approved'
                         ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
                         : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
@@ -896,7 +896,9 @@ const ManageEmployers = () => {
             {/* Results Header */}
             <div className="mb-4">
               <p className={`text-sm ${textSecondary}`}>
-                Showing <span className={`font-semibold ${textColor}`}>{filteredRecruiters.length}</span> {filteredRecruiters.length === 1 ? 'employer' : 'employers'}
+                Showing <span className={`font-semibold ${textColor}`}>{displayRecruiters.length}</span> of{" "}
+                <span className={`font-semibold ${textColor}`}>{recruiterMeta.total}</span>{" "}
+                {recruiterMeta.total === 1 ? "employer" : "employers"}
                 {dateFilter !== 'all' && (
                   <span className="ml-2">
                     ({dateFilter.replace(/([A-Z])/g, ' $1').trim()})
@@ -906,7 +908,7 @@ const ManageEmployers = () => {
             </div>
 
             {/* Empty State */}
-            {filteredRecruiters.length === 0 && !loading && (
+            {displayRecruiters.length === 0 && !loading && (
               <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center`}>
                 <div className={`w-16 h-16 ${isDark ? 'bg-blue-500/20' : 'bg-blue-100'} rounded-full flex items-center justify-center mx-auto mb-4`}>
                   <Building size={32} className="text-blue-500" />
@@ -922,7 +924,7 @@ const ManageEmployers = () => {
             <div className="space-y-3">
               {currentRecruiters.map(recruiter => (
                 <div
-                  key={recruiter.id || recruiter.employer_id}
+                  key={recruiter.employer_id || recruiter.email}
                   className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all`}
                 >
                   <div className="p-3">
@@ -930,9 +932,9 @@ const ManageEmployers = () => {
                     <div className="flex items-start justify-between gap-3 mb-2.5">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-blue-100 dark:bg-blue-900/30">
-                          {(recruiter.logo || recruiter.company_logo) ? (
+                          {recruiter.logo ? (
                             <img
-                              src={recruiter.logo || recruiter.company_logo}
+                              src={recruiter.logo}
                               alt={recruiter.company_name || 'Company'}
                               className="w-full h-full object-cover"
                             />
@@ -954,7 +956,7 @@ const ManageEmployers = () => {
                         </div>
                       </div>
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold border flex-shrink-0 ${getApprovalColor(recruiter)}`} style={{ fontSize: '0.7rem' }}>
-                        {getApprovalLabel(recruiter)}
+                        {getStatusLabel(recruiter)}
                       </span>
                     </div>
 
@@ -965,12 +967,12 @@ const ManageEmployers = () => {
                           👤 {recruiter.full_name}
                         </span>
                       )}
-                      {recruiter.phone_number || recruiter.phone ? (
+                      {recruiter.phone_number && (
                         <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'} flex items-center gap-1`} style={{ fontSize: '0.7rem' }}>
                           <Phone size={11} />
-                          {recruiter.phone_number || recruiter.phone}
+                          {recruiter.phone_number}
                         </span>
-                      ) : null}
+                      )}
                       {recruiter.industry && (
                         <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-purple-900/30 text-purple-400 border-purple-800' : 'bg-purple-100 text-purple-600 border-purple-200'}`} style={{ fontSize: '0.7rem' }}>
                           {recruiter.industry}

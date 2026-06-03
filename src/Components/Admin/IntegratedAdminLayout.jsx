@@ -19,7 +19,8 @@ import {
   Menu,
   Sun,
   Moon,
-  ChevronDown
+  ChevronDown,
+  Image
 } from "lucide-react";
 import { adminService } from "../../services/adminService";
 import { contactService } from "../../services/contactService";
@@ -43,7 +44,7 @@ const IntegratedAdminLayout = () => {
     const fetchPendingRecruiters = async () => {
       try {
         const response = await adminService.getAllRecruiters();
-        const pendingCount = response.recruiters?.filter(r => r.hasadminapproved === false).length || 0;
+        const pendingCount = response.counts?.pending ?? response.recruiters?.filter((r) => r.hasadminapproved === false).length ?? 0;
         setPendingRecruiters(pendingCount);
       } catch (error) {
         console.error('Failed to fetch pending recruiters count:', error);
@@ -189,6 +190,12 @@ const IntegratedAdminLayout = () => {
           icon: FileText,
           path: '/admin/homepage-forms',
           badge: homepageFormsCount > 0 ? homepageFormsCount : null
+        },
+        {
+          id: 'banners',
+          label: 'Banners',
+          icon: Image,
+          path: '/admin/banners'
         },
         {
           id: 'contact-forms',
@@ -377,7 +384,7 @@ const IntegratedAdminLayout = () => {
                         <item.icon className="h-5 w-5" />
                         <span>{item.label}</span>
                       </div>
-                      {item.badge && (
+                      {/* {item.badge && (
                         <span className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-xs font-semibold ${
                           isActive(item.path)
                             ? 'bg-white text-blue-500'
@@ -385,7 +392,7 @@ const IntegratedAdminLayout = () => {
                         }`}>
                           {item.badge}
                         </span>
-                      )}
+                      )} */}
                     </button>
                   ))}
                 </div>

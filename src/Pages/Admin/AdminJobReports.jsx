@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
-import { Search, Users, Building, MapPin, Calendar, Eye, Briefcase, RefreshCw, Trash2, ArrowUpDown, Star, CheckCircle, XCircle } from "lucide-react";
+import { adminRecruiterJobService } from "../../services/adminRecruiterJobService";
+import { Search, Building, MapPin, Calendar, Briefcase, RefreshCw, Trash2, Star, CheckCircle, XCircle } from "lucide-react";
 import * as XLSX from 'xlsx';
 
 const isRecruiterJob = (job) => {
@@ -14,17 +15,28 @@ const isRecruiterJob = (job) => {
 
 const REPORT_TAB = {
   ALL: "all",
-  NEW_JOB: "newjob",
-  EDIT_JOB: "editjob",
-  CLOSE_JOB: "closejob",
-  REOPEN_JOB: "reopenjob",
+  NEW_JOB: "new",
+  EDIT_JOB: "edit",
+  CLOSE_JOB: "close",
+  REOPEN_JOB: "reopen",
 };
 
-const TASK_CATEGORY_BY_TAB = {
+/** Backend task categories (ManageJobs / Lambda) */
+const TAB_TASK_CATEGORY = {
   [REPORT_TAB.NEW_JOB]: "postnewjob",
   [REPORT_TAB.EDIT_JOB]: "editjob",
   [REPORT_TAB.CLOSE_JOB]: "closedjob",
   [REPORT_TAB.REOPEN_JOB]: "reopenjob",
+};
+
+const normalizeTaskCategory = (value) => {
+  const c = String(value ?? "").trim().toLowerCase();
+  if (!c) return "";
+  if (c === "new" || c === "postnewjob") return "postnewjob";
+  if (c === "edit" || c === "editjob") return "editjob";
+  if (c === "close" || c === "closejob" || c === "closedjob") return "closedjob";
+  if (c === "reopen" || c === "reopenjob") return "reopenjob";
+  return c;
 };
 
 const isValidReportTab = (tab) =>
@@ -117,10 +129,11 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
   const location = useLocation();
   const { theme } = useTheme();
   const [allJobsFromApi, setAllJobsFromApi] = useState([]);
-  const [filteredJobs, setFilteredJobs] = useState([]);
+  const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [dateFilter, setDateFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("newest");
+  const [companyFilter, setCompanyFilter] = useState("");
+  const [recruiterFilter, setRecruiterFilter] = useState("");
+  const [jobTitleFilter, setJobTitleFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -135,71 +148,47 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
     if (isValidReportTab(fromRouter)) return fromRouter;
     return REPORT_TAB.ALL;
   });
-  const jobsPerPage = 25;
+  const [paginationMeta, setPaginationMeta] = useState({
+    page: 1,
+    total_pages: 1,
+    total: 0,
+    showing: 0,
+    limit: 10,
+  });
 
   const fetchJobReports = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-
-      const allJobs = await adminService.getAllJobsForAdmin();
-      const recruiterJobs = (allJobs || [])
-        .filter((j) => j.job_type !== "GOVERNMENT")
-        .filter(isRecruiterJob);
-
-      const withIds = recruiterJobs.map((job) => {
-        const id = job.job_id || job.id;
-        return {
-          ...job,
-          id,
-          application_count: job.application_count ?? 0,
-        };
+      const response = await adminRecruiterJobService.getRecruiterJobs({
+        tab: reportTab,
+        page: currentPage,
+        company_name: companyFilter || undefined,
+        recruiter_name: recruiterFilter || undefined,
+        job_title: jobTitleFilter || undefined,
+        search: searchTerm || undefined,
       });
-      const sortedJobs = withIds.sort(
-        (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
-      );
-      setAllJobsFromApi(sortedJobs);
-    } catch (error) {
-      console.error('Failed to fetch job application reports:', error);
-      setError('Failed to fetch job application reports. Please try again.');
+
+      const jobs = Array.isArray(response?.data) ? response.data : [];
+      setAllJobsFromApi(jobs.filter(isRecruiterJob));
+      setPaginationMeta({
+        page: Number(response?.page || currentPage),
+        total_pages: Number(response?.total_pages || 1),
+        total: Number(response?.total || jobs.length),
+        showing: Number(response?.showing || jobs.length),
+        limit: Number(response?.limit || 10),
+      });
+    } catch (err) {
+      console.error("Failed to fetch recruiter jobs:", err);
+      setError("Failed to fetch job reports. Please try again.");
       setAllJobsFromApi([]);
-      setFilteredJobs([]);
+      setPaginationMeta((prev) => ({ ...prev, total: 0, showing: 0, total_pages: 1 }));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [reportTab, currentPage, companyFilter, recruiterFilter, jobTitleFilter, searchTerm]);
 
-  const fetchTaskReports = useCallback(async (category) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const tasks = await adminService.getPendingJobs();
-      const filtered = (tasks || []).filter((t) => {
-        if (t.category !== category) return false;
-        const st = (t.status || "pending").toString().toLowerCase();
-        return st === "pending";
-      });
-      const mapped = filtered
-        .map(mapTaskToReportJob)
-        .sort(
-          (a, b) =>
-            new Date(b.created_at || 0) - new Date(a.created_at || 0)
-        );
-      setAllJobsFromApi(mapped);
-    } catch (error) {
-      console.error("Failed to fetch task queue:", error);
-      setError("Failed to load tasks. Please try again.");
-      setAllJobsFromApi([]);
-      setFilteredJobs([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const refreshList = useCallback(() => {
-    if (reportTab === REPORT_TAB.ALL) return fetchJobReports();
-    return fetchTaskReports(TASK_CATEGORY_BY_TAB[reportTab]);
-  }, [reportTab, fetchJobReports, fetchTaskReports]);
+  const refreshList = useCallback(() => fetchJobReports(), [fetchJobReports]);
 
   useEffect(() => {
     if (isValidReportTab(initialReportTabProp)) return;
@@ -210,12 +199,16 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
   }, [location.key, location.state?.reportTab, initialReportTabProp]);
 
   useEffect(() => {
-    if (reportTab === REPORT_TAB.ALL) {
-      fetchJobReports();
-    } else {
-      fetchTaskReports(TASK_CATEGORY_BY_TAB[reportTab]);
-    }
-  }, [reportTab, fetchJobReports, fetchTaskReports]);
+    fetchJobReports();
+  }, [fetchJobReports]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput.trim());
+      setCurrentPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const handleViewJob = (job) => {
     const jobId = job.job_id || job.id;
@@ -230,13 +223,42 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
 
   const isTaskReportTab = reportTab !== REPORT_TAB.ALL;
 
-  const isPendingTaskRow = (job) =>
-    (job.status || "pending").toString().toLowerCase() === "pending";
+  const getTaskStatusForJob = (job) =>
+    (
+      job?.latest_task?.status ||
+      job?.latest_task_status ||
+      job?.task_status ||
+      job?.status ||
+      "pending"
+    )
+      .toString()
+      .toLowerCase();
 
-  const getTaskCategoryForJob = (job) =>
-    job.category || TASK_CATEGORY_BY_TAB[reportTab];
+  const getTaskIdForJob = (job) =>
+    job?.task_id ||
+    job?.latest_task?.task_id ||
+    job?.latest_task?.id ||
+    job?.task?.task_id ||
+    job?.task?.id ||
+    null;
 
-  const isReopenTaskCategory = (category) => category === "reopenjob";
+  const isPendingTaskRow = (job) => getTaskStatusForJob(job) === "pending";
+
+  const getTaskCategoryForJob = (job) => {
+    // On task-queue tabs, active tab decides approve API (avoids stale job.category e.g. closed)
+    if (reportTab !== REPORT_TAB.ALL && TAB_TASK_CATEGORY[reportTab]) {
+      return TAB_TASK_CATEGORY[reportTab];
+    }
+    const raw =
+      job?.latest_task?.category ||
+      job?.tab_category ||
+      job?.category ||
+      "";
+    return normalizeTaskCategory(raw);
+  };
+
+  const isReopenTaskCategory = (category) =>
+    normalizeTaskCategory(category) === "reopenjob";
 
   const handleOpenApproveModal = (job) => {
     setApprovalModalJob(job);
@@ -246,7 +268,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
     const job = approvalModalJob;
     if (!job) return;
     const jid = job.job_id || job.id;
-    const taskId = job.task_id ?? job.id;
+    const taskId = getTaskIdForJob(job);
     const cat = getTaskCategoryForJob(job);
     if (!jid) {
       alert("Job ID missing for edit.");
@@ -271,7 +293,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
   const handleModalApprove = async () => {
     const job = approvalModalJob;
     if (!job) return;
-    const taskId = job.task_id ?? job.id;
+    const taskId = getTaskIdForJob(job);
     if (!taskId) {
       alert("Task ID missing.");
       return;
@@ -280,9 +302,11 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
     const jobId = job.job_id || job.id;
     try {
       setActionLoading(`approve-${taskId}`);
-      if (cat === "editjob") {
+      if (cat === "postnewjob") {
+        await adminService.approveJob(taskId);
+      } else if (cat === "editjob") {
         await adminService.approveEditedJob(taskId);
-      } else if (cat === "closedjob") {
+      } else if (cat === "closedjob" || cat === "closejob") {
         await adminService.approveJobClosing(taskId);
       } else if (cat === "reopenjob") {
         await adminService.approveReopenJob(taskId, jobId);
@@ -318,7 +342,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
   const handleSubmitReject = async () => {
     const job = rejectModalJob;
     if (!job) return;
-    const taskId = job.task_id ?? job.id;
+    const taskId = getTaskIdForJob(job);
     if (!taskId) return;
 
     const trimmed = rejectReason.trim();
@@ -356,7 +380,6 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
       const updatePremium = (j) =>
         (j.job_id || j.id) === jobId ? { ...j, premium_job: isPremium, is_premium: isPremium } : j;
       setAllJobsFromApi(prev => prev.map(updatePremium));
-      setFilteredJobs(prev => prev.map(updatePremium));
     } catch (err) {
       console.error('Failed to mark job as premium:', err);
       alert('Failed to update premium status. Please try again.');
@@ -364,116 +387,6 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
       setActionLoading(null);
     }
   };
-
-  // Helper function to filter jobs by date
-  const filterJobsByDate = (jobs, dateFilter) => {
-    if (dateFilter === "all") return jobs;
-
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    return jobs.filter(job => {
-      const jobDate = new Date(job.created_at);
-      const jobDateOnly = new Date(jobDate.getFullYear(), jobDate.getMonth(), jobDate.getDate());
-
-      switch (dateFilter) {
-        case "today":
-          return jobDateOnly.getTime() === today.getTime();
-        case "yesterday": {
-          const yesterday = new Date(today);
-          yesterday.setDate(yesterday.getDate() - 1);
-          return jobDateOnly.getTime() === yesterday.getTime();
-        }
-        case "last7days": {
-          const weekAgo = new Date(today);
-          weekAgo.setDate(weekAgo.getDate() - 7);
-          return jobDateOnly >= weekAgo;
-        }
-        case "last30days": {
-          const monthAgo = new Date(today);
-          monthAgo.setDate(monthAgo.getDate() - 30);
-          return jobDateOnly >= monthAgo;
-        }
-        case "thisMonth": {
-          return jobDate.getMonth() === now.getMonth() &&
-            jobDate.getFullYear() === now.getFullYear();
-        }
-        case "lastMonth": {
-          const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-          return jobDate.getMonth() === lastMonth.getMonth() &&
-            jobDate.getFullYear() === lastMonth.getFullYear();
-        }
-        default:
-          return true;
-      }
-    });
-  };
-
-  // Helper function to sort jobs
-  const sortJobs = (jobs, sortBy) => {
-    const sorted = [...jobs];
-
-    switch (sortBy) {
-      case "newest":
-        sorted.sort((a, b) => {
-          const dateA = new Date(a.created_at || 0);
-          const dateB = new Date(b.created_at || 0);
-          return dateB - dateA;
-        });
-        break;
-      case "oldest":
-        sorted.sort((a, b) => {
-          const dateA = new Date(a.created_at || 0);
-          const dateB = new Date(b.created_at || 0);
-          return dateA - dateB;
-        });
-        break;
-      case "mostApplications":
-        sorted.sort((a, b) => (b.application_count || 0) - (a.application_count || 0));
-        break;
-      case "leastApplications":
-        sorted.sort((a, b) => (a.application_count || 0) - (b.application_count || 0));
-        break;
-      case "companyAZ":
-        sorted.sort((a, b) =>
-          (a.company_name || '').localeCompare(b.company_name || '')
-        );
-        break;
-      case "companyZA":
-        sorted.sort((a, b) =>
-          (b.company_name || '').localeCompare(a.company_name || '')
-        );
-        break;
-      case "titleAZ":
-        sorted.sort((a, b) =>
-          (a.job_title || '').localeCompare(b.job_title || '')
-        );
-        break;
-      case "titleZA":
-        sorted.sort((a, b) =>
-          (b.job_title || '').localeCompare(a.job_title || '')
-        );
-        break;
-      default:
-        break;
-    }
-
-    return sorted;
-  };
-
-  useEffect(() => {
-    let filtered = allJobsFromApi.filter(job =>
-      job.job_title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.location?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    filtered = filterJobsByDate(filtered, dateFilter);
-    filtered = sortJobs(filtered, sortBy);
-
-    setFilteredJobs(filtered);
-    setCurrentPage(1);
-  }, [searchTerm, dateFilter, sortBy, allJobsFromApi]);
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -597,11 +510,9 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
     }
   };
 
-  // Pagination
-  const totalPages = Math.ceil(filteredJobs.length / jobsPerPage);
-  const startIndex = (currentPage - 1) * jobsPerPage;
-  const endIndex = startIndex + jobsPerPage;
-  const currentJobs = filteredJobs.slice(startIndex, endIndex);
+  // Server-side pagination (API returns 10 records/page)
+  const totalPages = paginationMeta.total_pages || 1;
+  const currentJobs = allJobsFromApi;
 
   const isDark = theme === 'dark';
   const bgColor = isDark ? 'bg-gray-900' : 'bg-gray-50';
@@ -666,9 +577,9 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
 
         <input
           type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search job, company, location..."
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Search job/company/recruiter..."
           className={`w-full pl-10 pr-4 py-2.5 sm:py-3 border ${borderColor} rounded-xl
           focus:ring-2 focus:ring-indigo-500 focus:border-transparent
           text-sm transition-all duration-200 ${cardBg} ${textColor}`}
@@ -678,55 +589,37 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
     </div>
 
     {/* Filters */}
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:flex gap-3 w-full lg:w-auto">
-
-      {/* Date Filter */}
-      <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/60 
-      rounded-xl px-3 sm:px-4 py-2 border border-gray-200 dark:border-gray-700 
-      hover:border-indigo-400 transition">
-
-        <Calendar size={16} className={textSecondary} />
-
-        <select
-          value={dateFilter}
-          onChange={(e) => setDateFilter(e.target.value)}
-          className={`bg-transparent outline-none text-xs sm:text-sm ${textColor} cursor-pointer`}
-        >
-          <option value="all">All time</option>
-          <option value="today">Today</option>
-          <option value="yesterday">Yesterday</option>
-          <option value="last7days">Last 7 days</option>
-          <option value="last30days">Last 30 days</option>
-          <option value="thisMonth">This month</option>
-          <option value="lastMonth">Last month</option>
-        </select>
-
-      </div>
-
-      {/* Sort Filter */}
-      <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/60 
-      rounded-xl px-3 sm:px-4 py-2 border border-gray-200 dark:border-gray-700 
-      hover:border-indigo-400 transition">
-
-        <ArrowUpDown size={16} className={textSecondary} />
-
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-          className={`bg-transparent outline-none text-xs sm:text-sm ${textColor} cursor-pointer`}
-        >
-          <option value="newest">Newest</option>
-          <option value="oldest">Oldest</option>
-          <option value="mostApplications">Most applications</option>
-          <option value="leastApplications">Least applications</option>
-          <option value="companyAZ">Company A–Z</option>
-          <option value="companyZA">Company Z–A</option>
-          <option value="titleAZ">Job title A–Z</option>
-          <option value="titleZA">Job title Z–A</option>
-        </select>
-
-      </div>
-
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full lg:w-auto">
+      <input
+        type="text"
+        value={companyFilter}
+        onChange={(e) => {
+          setCompanyFilter(e.target.value);
+          setCurrentPage(1);
+        }}
+        placeholder="Company filter"
+        className={`px-3 py-2.5 border ${borderColor} rounded-xl text-sm ${cardBg} ${textColor}`}
+      />
+      <input
+        type="text"
+        value={recruiterFilter}
+        onChange={(e) => {
+          setRecruiterFilter(e.target.value);
+          setCurrentPage(1);
+        }}
+        placeholder="Recruiter filter"
+        className={`px-3 py-2.5 border ${borderColor} rounded-xl text-sm ${cardBg} ${textColor}`}
+      />
+      <input
+        type="text"
+        value={jobTitleFilter}
+        onChange={(e) => {
+          setJobTitleFilter(e.target.value);
+          setCurrentPage(1);
+        }}
+        placeholder="Job title filter"
+        className={`px-3 py-2.5 border ${borderColor} rounded-xl text-sm ${cardBg} ${textColor}`}
+      />
     </div>
   </div>
 </div>
@@ -752,7 +645,10 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
                 type="button"
                 role="tab"
                 aria-selected={reportTab === tab.id}
-                onClick={() => setReportTab(tab.id)}
+                onClick={() => {
+                  setReportTab(tab.id);
+                  setCurrentPage(1);
+                }}
                 className={`w-full min-h-[44px] sm:min-h-[48px] px-2 sm:px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium border transition-colors flex items-center justify-center text-center leading-tight whitespace-normal break-words ${
                   reportTab === tab.id
                     ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 shadow-sm"
@@ -775,28 +671,24 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
         {/* Results Header */}
         <div className="mb-4">
           <p className={`text-sm ${textSecondary}`}>
-            Showing <span className={`font-semibold ${textColor}`}>{filteredJobs.length}</span> {filteredJobs.length === 1 ? 'job' : 'jobs'}
-            {dateFilter !== 'all' && (
-              <span className="ml-2">
-                ({dateFilter.replace(/([A-Z])/g, ' $1').trim()})
-              </span>
-            )}
+            Showing <span className={`font-semibold ${textColor}`}>{paginationMeta.showing}</span> of{" "}
+            <span className={`font-semibold ${textColor}`}>{paginationMeta.total}</span> jobs
           </p>
         </div>
 
         {/* Empty State */}
-        {filteredJobs.length === 0 && !loading && (
+        {currentJobs.length === 0 && !loading && (
           <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center`}>
             <div className={`w-16 h-16 ${isDark ? 'bg-blue-500/20' : 'bg-blue-100'} rounded-full flex items-center justify-center mx-auto mb-4`}>
               <Building size={32} className="text-blue-500" />
             </div>
             <h3 className={`text-lg font-semibold ${textColor} mb-2`}>No job reports found</h3>
             <p className={`${textSecondary} mb-6`}>
-              {searchTerm || dateFilter !== 'all'
+              {searchTerm || companyFilter || recruiterFilter || jobTitleFilter
                 ? "Try adjusting your filters"
                 : reportTab === REPORT_TAB.ALL
                   ? "No jobs available for reporting"
-                  : "No tasks in this category"}
+                  : "No jobs found in this tab"}
             </p>
           </div>
         )}
@@ -808,7 +700,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
               isTaskReportTab && isPendingTaskRow(job);
             const taskCategory = getTaskCategoryForJob(job);
             const isReopenTask = isReopenTaskCategory(taskCategory);
-            const taskId = job.task_id ?? job.id;
+            const taskId = getTaskIdForJob(job);
             return (
               <div
                 key={String(job.task_id ?? job.job_id ?? job.id)}
@@ -911,13 +803,15 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
                         {formatDate(job.created_at)}
                       </span>
                     </div>
-                        {/* <div className={`flex items-center gap-4 p-2 rounded-lg mb-2.5 border ${borderColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                          <div className="flex items-center gap-1.5">
-                            <Users size={13} className="text-blue-500" />
-                            <span className={`text-xs font-semibold ${textColor}`}>{job.application_count ?? 0}</span>
-                            <span className={`text-xs ${textSecondary}`} style={{ fontSize: '0.65rem' }}>applications (from listings)</span>
-                          </div>
-                        </div> */}
+                        <div className={`flex flex-wrap items-center gap-2 p-2 rounded-lg mb-2.5 border ${borderColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
+                          <span className={`text-xs ${textSecondary}`}>
+                            Recruiter: <span className={`font-semibold ${textColor}`}>{job.recruiter_name || 'N/A'}</span>
+                          </span>
+                          <span className="hidden sm:block w-1 h-1 rounded-full bg-gray-400"></span>
+                          <span className={`text-xs ${textSecondary}`}>
+                            Applications: <span className={`font-semibold ${textColor}`}>{job.application_count ?? 0}</span>
+                          </span>
+                        </div>
                         <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mt-3">
                           {!showTaskActions && (
                             <>
@@ -1069,12 +963,12 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
                 disabled={
                   !!actionLoading &&
                   actionLoading ===
-                    `approve-${approvalModalJob.task_id ?? approvalModalJob.id}`
+                    `approve-${getTaskIdForJob(approvalModalJob)}`
                 }
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 inline-flex items-center justify-center gap-2"
               >
                 {actionLoading ===
-                `approve-${approvalModalJob.task_id ?? approvalModalJob.id}` ? (
+                `approve-${getTaskIdForJob(approvalModalJob)}` ? (
                   <>
                     <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     Approving…
@@ -1169,12 +1063,12 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
                 disabled={
                   !!actionLoading &&
                   actionLoading ===
-                    `reject-${rejectModalJob.task_id ?? rejectModalJob.id}`
+                    `reject-${getTaskIdForJob(rejectModalJob)}`
                 }
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 inline-flex items-center justify-center gap-2"
               >
                 {actionLoading ===
-                `reject-${rejectModalJob.task_id ?? rejectModalJob.id}` ? (
+                `reject-${getTaskIdForJob(rejectModalJob)}` ? (
                   <>
                     <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     Rejecting…

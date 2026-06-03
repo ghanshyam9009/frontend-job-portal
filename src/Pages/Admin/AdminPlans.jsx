@@ -397,7 +397,7 @@ const AdminPlans = () => {
                       </ul>
                     </div>
 
-                    <div
+                    {/* <div
                       className={`flex items-center justify-between gap-2 mb-4 py-2.5 px-3 rounded-lg ${
                         isDark ? "bg-gray-700/30" : "bg-blue-50/60"
                       }`}
@@ -409,7 +409,7 @@ const AdminPlans = () => {
                       <span className={`text-sm font-bold ${textColor}`}>
                         {plan.userCount ?? plan.subscriber_count ?? 0}
                       </span>
-                    </div>
+                    </div> */}
 
                     <div className="flex gap-2 mt-auto pt-1">
                       <button

@@ -77,6 +77,7 @@ const AdminCandidateProfile = lazy(() => import('./Pages/Admin/AdminCandidatePro
 const AdminCandidateApplications = lazy(() => import('./Pages/Admin/AdminCandidateApplications'));
 const AdminEmployerProfile = lazy(() => import('./Pages/Admin/AdminEmployerProfile'));
 const AdminEmployerJobs = lazy(() => import('./Pages/Admin/AdminEmployerJobs'));
+const AdminBanners = lazy(() => import('./Pages/Admin/AdminBanners'));
 // import JobListing from './Pages/default'
 
 function Loader() {
@@ -183,6 +184,7 @@ function App() {
                 <Route path="/admin/government-jobs" element={<AdminGovernmentJobs />} />
                 <Route path="/admin/government-jobs/post" element={<AdminPostGovernmentJob />} />
                 <Route path="/admin/government-jobs/edit/:jobId" element={<AdminPostGovernmentJob />} />
+                <Route path="/admin/banners" element={<AdminBanners />} />
                 {/* <Route path="/admin/job-application-reports" element={<JobApplicationReports />} /> */}
                 <Route path="/admin/job-application-reports/job/:jobId" element={<AdminJobReportJobDetail />} />
                 <Route path="/admin/job-application-reports" element={<AdminJobReports />} />
