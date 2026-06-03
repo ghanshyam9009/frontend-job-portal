@@ -3,8 +3,11 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../Contexts/AuthContext";
 import { applicationService } from "../services/applicationService";
+import {
+  canCandidateApply,
+  isAdminPostedJob,
+} from "../utils/jobApplicationRules";
 import { candidateExternalService } from "../services/candidateExternalService";
-import { recruiterExternalService } from "../services/recruiterExternalService";
 import { studentService } from "../services/studentService";
 import HomeNav from "../Components/HomeNav";
 import { Bookmark, Briefcase, Contact, Contact2, MapPin, Sparkles, TrendingUp, ArrowLeft, X, Crown, ArrowRight, CheckCircle } from "lucide-react";
@@ -23,113 +26,18 @@ const JobDescription = () => {
   const [applicationSuccess, setApplicationSuccess] = useState("");
   const [job, setJob] = useState(null);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [premiumModalReason, setPremiumModalReason] = useState("membership_required");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hasApplied, setHasApplied] = useState(false);
-  const [adminApplicationCount, setAdminApplicationCount] = useState(null);
-
   const textSecondary = isDarkMode ? 'text-gray-300' : 'text-gray-600';
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const location = useLocation();
 
-  // Calculate profile completion percentage
-  const calculateProfileCompletion = (userData) => {
-    const steps = [
-      {
-        title: 'Personal Info',
-        fields: [
-          { name: 'full_name', required: true, weight: 10 },
-          { name: 'phone_number', required: true, weight: 5 },
-          { name: 'username', required: true, weight: 3 },
-          { name: 'gender', required: true, weight: 2 }
-        ],
-        totalWeight: 20
-      },
-      {
-        title: 'Address',
-        fields: [
-          { name: 'address.city', required: true, weight: 8 },
-          { name: 'address.state', required: true, weight: 6 },
-          { name: 'address.country', required: true, weight: 6 }
-        ],
-        totalWeight: 20
-      },
-      {
-        title: 'Professional',
-        fields: [
-          { name: 'bio', required: true, weight: 15 },
-          { name: 'skills', required: true, weight: 5 }
-        ],
-        totalWeight: 20
-      },
-      {
-        title: 'Education',
-        fields: [],
-        totalWeight: 20,
-        isArray: true,
-        arrayField: 'education'
-      },
-      {
-        title: 'Experience',
-        fields: [],
-        totalWeight: 20,
-        isArray: true,
-        arrayField: 'experience'
-      }
-    ];
-
-    let totalCompleted = 0;
-
-    steps.forEach(step => {
-      let stepCompleted = 0;
-
-      if (step.isArray) {
-        const arrayData = userData[step.arrayField] || [];
-        if (Array.isArray(arrayData) && arrayData.length > 0) {
-          const hasValidEntry = arrayData.some(item => {
-            return Object.values(item).some(value =>
-              value && typeof value === 'string' && value.trim() !== ''
-            );
-          });
-          if (hasValidEntry) {
-            stepCompleted = step.totalWeight;
-          }
-        }
-      } else {
-        const totalFieldWeight = step.fields.reduce((sum, field) => sum + field.weight, 0);
-        let completedFieldWeight = 0;
-
-        step.fields.forEach(field => {
-          const keys = field.name.split('.');
-          let value = userData;
-          let hasValue = false;
-
-          for (const key of keys) {
-            value = value && value[key];
-          }
-
-          if (value && value.toString().trim() !== '') {
-            hasValue = true;
-          }
-
-          if (hasValue) {
-            completedFieldWeight += field.weight;
-          }
-        });
-
-        if (totalFieldWeight > 0) {
-          stepCompleted = Math.round((completedFieldWeight / totalFieldWeight) * step.totalWeight);
-        }
-      }
-
-      totalCompleted += stepCompleted;
-    });
-
-    return Math.min(100, Math.round(totalCompleted));
-  };
+  // Calculate profile completion percentag
 
   const toggleBookmark = async (jobId) => {
     if (!isAuthenticated || !user) {
@@ -199,29 +107,6 @@ const JobDescription = () => {
     if (job && !loading) checkAppliedStatus();
   }, [isAuthenticated, user, job, loading]);
 
-  useEffect(() => {
-    if (!isAdminView || !resolvedJobId) {
-      setAdminApplicationCount(null);
-      return;
-    }
-
-    let cancelled = false;
-    recruiterExternalService
-      .getApplicationCount(resolvedJobId)
-      .then((res) => {
-        if (cancelled) return;
-        setAdminApplicationCount(Number(res?.application_count ?? 0));
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setAdminApplicationCount(Number(job?.application_count ?? 0));
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isAdminView, resolvedJobId, job?.application_count]);
-
   const fetchJobDetails = async () => {
     setLoading(true);
     setError(null);
@@ -267,7 +152,15 @@ const JobDescription = () => {
         throw new Error("Job not found");
       }
 
-      setJob(foundJob);
+      // Keep applications from route state / list API when getalljobs omits them
+      const mergedJob = {
+        ...foundJob,
+        ...(baseJob?.applications != null && { applications: baseJob.applications }),
+        ...(baseJob?.applications_count != null && {
+          applications_count: baseJob.applications_count,
+        }),
+      };
+      setJob(mergedJob);
 
     } catch (err) {
       console.error("Error fetching job details:", err);
@@ -299,8 +192,17 @@ const JobDescription = () => {
       return;
     }
 
-    if (!user.premium_user) {
+    const eligibility = canCandidateApply(user, job);
+    if (!eligibility.allowed) {
+      setPremiumModalReason(eligibility.reason);
       setShowPremiumModal(true);
+      if (eligibility.reason === "premium_plan_required") {
+        setApplicationError(
+          "Your Standard plan lets you apply to recruiter jobs only. Upgrade to Premium to apply for admin-posted jobs."
+        );
+      } else {
+        setApplicationError("");
+      }
       return;
     }
 
@@ -340,7 +242,8 @@ const JobDescription = () => {
 
       const response = await applicationService.applyForJob(
         job.job_id || job.id,
-        applicationData
+        applicationData,
+        { postedBy: job.posted_by || job.postedBy }
       );
 
       if (response?.success) {
@@ -351,7 +254,9 @@ const JobDescription = () => {
       }
     } catch (err) {
       console.error("Application error:", err);
-      setApplicationError("An error occurred while submitting the application");
+      setApplicationError(
+        err?.message || err?.error || "An error occurred while submitting the application"
+      );
     } finally {
       setIsApplying(false);
     }
@@ -471,6 +376,12 @@ const JobDescription = () => {
     return null;
   }
 
+  const applyEligibility =
+    isAuthenticated && !isRecruiter && !isAdminView
+      ? canCandidateApply(user, job)
+      : null;
+  const jobIsAdminPosted = isAdminPostedJob(job);
+
   return (
     <>
       {!isAdminView && (user ? (user.company_name ? <RecruiterNavbar /> : <CandidateNavbar />) : <HomeNav />)}
@@ -511,11 +422,27 @@ const JobDescription = () => {
                         <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded text-xs">Premium</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 mb-3">
                       <span className="font-semibold text-sm sm:text-base text-slate-800 dark:text-black">
                         {job.company_name || "Company"}
                       </span>
+                      {job.posted_by && (
+                        <span
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                            jobIsAdminPosted
+                              ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                              : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          }`}
+                        >
+                          Posted by {(job.posted_by || "").toString().replace(/_/g, " ")}
+                        </span>
+                      )}
                     </div>
+                    {applyEligibility?.reason === "premium_plan_required" && (
+                      <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2">
+                        Standard plan: apply to recruiter jobs only. Upgrade to Premium for admin-posted jobs.
+                      </p>
+                    )}
                     {/* Meta info - wraps gracefully on small screens */}
                     <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
                       <div className="flex items-center gap-1">💰 {getSalaryDisplay(job)}</div>
@@ -584,31 +511,16 @@ const JobDescription = () => {
                 {/* Action buttons – Recruiter/Admin par Apply nahi */}
                 <div className="mt-4 flex gap-2 sm:gap-3">
                   {isAdminView ? (
-                    <>
-                      <button
-                        onClick={() =>
-                          navigate(`/admin/job-reports/applications/${job?.job_id || job?.id || jobId}`, {
-                            state: {
-                              jobTitle: job?.job_title,
-                              companyName: job?.company_name,
-                            },
-                          })
-                        }
-                        className="flex-1 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-full hover:bg-blue-700 text-sm"
-                      >
-                        View Applications ({adminApplicationCount ?? Number(job?.application_count ?? 0)})
-                      </button>
-                      <button
-                        onClick={() =>
-                          navigate(`/admin/edit-job/${job?.job_id || job?.id || jobId}`, {
-                            state: { employer_id: job?.employer_id || job?.recruiter_id },
-                          })
-                        }
-                        className="flex-1 border border-blue-500 text-blue-600 px-3 sm:px-4 py-2 rounded-full hover:bg-blue-50 text-sm"
-                      >
-                        Edit Job
-                      </button>
-                    </>
+                    <button
+                      onClick={() =>
+                        navigate(`/admin/edit-job/${job?.job_id || job?.id || jobId}`, {
+                          state: { employer_id: job?.employer_id || job?.recruiter_id },
+                        })
+                      }
+                      className="flex-1 border border-blue-500 text-blue-600 px-3 sm:px-4 py-2 rounded-full hover:bg-blue-50 text-sm"
+                    >
+                      Edit Job
+                    </button>
                   ) : isRecruiter ? (
                     <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">View only</span>
                   ) : !isAuthenticated ? (
@@ -630,10 +542,26 @@ const JobDescription = () => {
                     <>
                       <button
                         onClick={handleApplyClick}
-                        disabled={hasApplied || isApplying}
-                        className={`flex-1 px-3 sm:px-4 py-2 rounded-full text-white text-sm sm:text-base ${hasApplied ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
+                        disabled={
+                          hasApplied ||
+                          isApplying ||
+                          applyEligibility?.allowed === false
+                        }
+                        className={`flex-1 px-3 sm:px-4 py-2 rounded-full text-white text-sm sm:text-base ${
+                          hasApplied || applyEligibility?.allowed === false
+                            ? "bg-gray-400 cursor-not-allowed"
+                            : "bg-blue-600 hover:bg-blue-700"
+                        }`}
                       >
-                        {isApplying ? "⏳ Applying..." : hasApplied ? "✓ Applied" : "Apply Now"}
+                        {isApplying
+                          ? "⏳ Applying..."
+                          : hasApplied
+                            ? "✓ Applied"
+                            : applyEligibility?.reason === "premium_plan_required"
+                              ? "Premium plan required"
+                              : applyEligibility?.reason === "membership_required"
+                                ? "Membership required"
+                                : "Apply Now"}
                       </button>
                       <button
                         onClick={(e) => {
@@ -781,12 +709,28 @@ const JobDescription = () => {
               </div>
 
               <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
-                Premium Feature Only
+                {premiumModalReason === "premium_plan_required"
+                  ? "Premium plan required"
+                  : "Membership required"}
               </h3>
               
               <p className="text-gray-600 dark:text-gray-400 text-base leading-relaxed mb-8">
-                To apply for this job and unlock higher priority, please upgrade to a <span className="text-amber-600 font-bold">Premium Plan</span>. 
-                Get direct HR access and much more!
+                {premiumModalReason === "premium_plan_required" ? (
+                  <>
+                    Your <span className="font-bold text-slate-800 dark:text-white">Standard</span> plan
+                    lets you apply to recruiter-posted jobs. This job was posted by{" "}
+                    <span className="font-bold text-indigo-600">Admin</span> — upgrade to a{" "}
+                    <span className="text-amber-600 font-bold">Premium</span> plan to apply here
+                    and unlock all job types.
+                  </>
+                ) : (
+                  <>
+                    You need an active membership to apply. Choose a{" "}
+                    <span className="font-bold text-slate-800 dark:text-white">Standard</span> plan
+                    for recruiter jobs, or <span className="text-amber-600 font-bold">Premium</span>{" "}
+                    to apply on both recruiter and admin jobs.
+                  </>
+                )}
               </p>
 
               <div className="space-y-4">
@@ -797,7 +741,9 @@ const JobDescription = () => {
                   }}
                   className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white py-4 px-6 rounded-2xl font-bold text-lg shadow-xl shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] group"
                 >
-                  Upgrade to Premium
+                  {premiumModalReason === "premium_plan_required"
+                    ? "Upgrade to Premium plan"
+                    : "View membership plans"}
                   <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                 </button>
                 

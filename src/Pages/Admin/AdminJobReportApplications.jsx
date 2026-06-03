@@ -24,6 +24,10 @@ import {
   User
 } from "lucide-react";
 import * as XLSX from 'xlsx';
+import {
+  enrichApplicationsList,
+  enrichApplicationForAdminReport,
+} from '../../utils/adminJobApplications';
 
 const AdminJobReportApplications = () => {
   const navigate = useNavigate();
@@ -41,8 +45,7 @@ const AdminJobReportApplications = () => {
   const [statusFilter, setStatusFilter] = useState("all"); 
   const [loadingActions, setLoadingActions] = useState({});
 
-  useEffect(() => {
-    // Populate job details from location state if available to avoid extra API call
+  const applyJobDetailsFromState = () => {
     if (location.state?.jobTitle || location.state?.companyName) {
       setJobDetails({
         title: location.state.jobTitle || "Job",
@@ -50,14 +53,46 @@ const AdminJobReportApplications = () => {
         location: location.state.location || "",
         postedDate: location.state.postedDate || "",
       });
+      return true;
     }
-    fetchApplications();
+    return false;
+  };
+
+  useEffect(() => {
+    applyJobDetailsFromState();
+    fetchApplications(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId]);
 
-  const fetchApplications = async () => {
+  const fetchApplications = async (forceRefresh = false) => {
     if (!jobId) {
       setError("Job ID is missing");
       setLoading(false);
+      return;
+    }
+
+    const preloaded =
+      !forceRefresh &&
+      location.state?.applicationsPreloaded &&
+      Array.isArray(location.state?.applications);
+
+    if (preloaded) {
+      try {
+        setLoading(true);
+        setError("");
+        const enriched = enrichApplicationsList(location.state.applications);
+        setApplications(enriched);
+        if (!applyJobDetailsFromState() && enriched.length > 0) {
+          setJobDetails({
+            title: enriched[0].job_title || "Job",
+            company: enriched[0].company_name || "",
+            location: enriched[0].location || "",
+            postedDate: enriched[0].created_at || "",
+          });
+        }
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
@@ -65,12 +100,10 @@ const AdminJobReportApplications = () => {
       setLoading(true);
       setError("");
 
-      // Single API call as requested
       const data = await recruiterExternalService.getAllApplicants(jobId);
       const applicationsList = data.applications || [];
 
-      // If we don't have job details from state, try to get them from first application
-      if (!jobDetails && applicationsList.length > 0) {
+      if (!location.state?.jobTitle && applicationsList.length > 0) {
         setJobDetails({
           title: applicationsList[0].job_title || "Job",
           company: applicationsList[0].company_name || "",
@@ -79,35 +112,7 @@ const AdminJobReportApplications = () => {
         });
       }
 
-      // Enrich applications with student data
-      const enrichedApplications = applicationsList.map((app) => ({
-        ...app,
-        student_details: {
-          name: app.student_name || "Unknown",
-          email: app.student_email || app.email || null,
-          phone: app.student_phone || app.student_profile?.phone_number || null,
-          skills: app.student_skills
-            ? (typeof app.student_skills === 'string'
-                ? app.student_skills.split(',').map(skill => skill.trim())
-                : Array.isArray(app.student_skills)
-                ? app.student_skills
-                : [])
-            : [],
-          location: app.student_location || (app.student_profile?.address?.city ? `${app.student_profile.address.city}${app.student_profile.address.country ? `, ${app.student_profile.address.country}` : ''}` : null),
-          experience: app.student_experience || app.student_profile?.experienceLevel || null,
-          education: app.student_university ? [app.student_university] : (app.student_profile?.education || []),
-          experience_years: app.student_experience_years || null,
-          bio: app.student_bio || app.student_profile?.bio || null,
-          resumeUrl: app.resume_url || app.student_profile?.resume || app.student_profile?.resumeUrl || null,
-          department: app.student_department || null,
-          cgpa: app.student_cgpa || null,
-          logo: app.student_profile?.logo || app.student_profile?.profile_image || null,
-          premium_user: app.student_profile?.premium_user || false,
-          plan: app.student_profile?.plan || null
-        }
-      }));
-
-      setApplications(enrichedApplications);
+      setApplications(enrichApplicationsList(applicationsList));
     } catch (e) {
       console.error(e);
       setError("Failed to load applications. Please try again later.");
@@ -193,45 +198,18 @@ const AdminJobReportApplications = () => {
       alert('Application approved successfully! The application is now visible to the recruiter.');
       
       // Refresh applications to update status and fetch newly approved applications
-      await fetchApplications();
-      
-      // Find and show the approved candidate details if available
-      await fetchApplications(); // Fetch again to get updated data
+      await fetchApplications(true);
+
       const updatedApps = await adminService.getApplicationsForJob(jobId);
-      const updatedApp = (updatedApps.applications || []).find(app => 
-        app.application_id === application.application_id ||
-        (app.student_id && app.student_id.toString() === (application.student_id || '').toString())
+      const updatedApp = (updatedApps.applications || []).find(
+        (app) =>
+          app.application_id === application.application_id ||
+          (app.student_id &&
+            app.student_id.toString() === (application.student_id || "").toString())
       );
-      
+
       if (updatedApp) {
-        // Enrich with student details
-        const enrichedApp = {
-          ...updatedApp,
-          student_details: {
-            name: updatedApp.student_name || "Unknown",
-            email: updatedApp.student_email || updatedApp.email || null,
-            phone: updatedApp.student_phone || updatedApp.student_profile?.phone_number || null,
-            skills: updatedApp.student_skills
-              ? (typeof updatedApp.student_skills === 'string'
-                  ? updatedApp.student_skills.split(',').map(skill => skill.trim())
-                  : Array.isArray(updatedApp.student_skills)
-                  ? updatedApp.student_skills
-                  : [])
-              : [],
-            location: updatedApp.student_location || (updatedApp.student_profile?.address?.city ? `${updatedApp.student_profile.address.city}${updatedApp.student_profile.address.country ? `, ${updatedApp.student_profile.address.country}` : ''}` : null),
-            experience: updatedApp.student_experience || updatedApp.student_profile?.experienceLevel || null,
-            education: updatedApp.student_university ? [updatedApp.student_university] : (updatedApp.student_profile?.education || []),
-            experience_years: updatedApp.student_experience_years || null,
-            bio: updatedApp.student_bio || updatedApp.student_profile?.bio || null,
-            resumeUrl: updatedApp.resume_url || updatedApp.student_profile?.resume || updatedApp.student_profile?.resumeUrl || null,
-            department: updatedApp.student_department || null,
-            cgpa: updatedApp.student_cgpa || null,
-            logo: updatedApp.student_profile?.logo || updatedApp.student_profile?.profile_image || null,
-            premium_user: updatedApp.student_profile?.premium_user || false,
-            plan: updatedApp.student_profile?.plan || null
-          }
-        };
-        handleViewCandidateDetails(enrichedApp);
+        handleViewCandidateDetails(enrichApplicationForAdminReport(updatedApp));
       }
     } catch (error) {
       console.error('Failed to approve application:', error);
@@ -262,7 +240,7 @@ const AdminJobReportApplications = () => {
       alert('Application rejected successfully.');
       
       // Refresh applications to update the list
-      await fetchApplications();
+      await fetchApplications(true);
     } catch (error) {
       console.error('Failed to reject application:', error);
       alert(error.message || 'Failed to reject application. Please try again.');
