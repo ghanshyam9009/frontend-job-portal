@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import "swiper/css";
+import { Autoplay } from "swiper/modules";
 import { useTheme } from "../Contexts/ThemeContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useMemo } from "react";
@@ -12,11 +15,10 @@ import { showError } from "../utils/errorHandler";
 import { candidateExternalService } from "../services/candidateExternalService";
 import { candidateService } from "../services/candidateService";
 import { recruiterExternalService } from "../services/recruiterExternalService";
+import { bannerService } from "../services";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import { Loader, ErrorBox, SkeletonJobCard, JobCard } from "../Components/Shared";
 import RecruiterNavbar from "../Components/Recruiter/RecruiterNavbar";
-import vacancy1 from "../assets/vacancy1.jpeg";
-
 const JobListings = () => {
   const { theme } = useTheme();
   const { user, isAuthenticated } = useAuth();
@@ -52,6 +54,35 @@ const JobListings = () => {
 
   const searchRef = useRef(null);
   const locationRef = useRef(null);
+
+  const [jobBanners, setJobBanners] = useState([]);
+  const [jobBannersLoading, setJobBannersLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchJobBanners = async () => {
+      try {
+        setJobBannersLoading(true);
+        const list = await bannerService.getBanners("job");
+        if (cancelled) return;
+        const jobOnly = list.filter(
+          (b) => (b.page || "").toLowerCase() === "job"
+        );
+        setJobBanners(jobOnly.length ? jobOnly : list);
+      } catch (err) {
+        console.error("Failed to fetch job banners:", err);
+        if (!cancelled) setJobBanners([]);
+      } finally {
+        if (!cancelled) setJobBannersLoading(false);
+      }
+    };
+
+    fetchJobBanners();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const [filters, setFilters] = useState({
     location: "",
@@ -1136,19 +1167,46 @@ const JobListings = () => {
                 Know More
               </button>
             </div>
-            {/* Axis Banner */}
-            <section className={` sticky top-80 mt-4 transition-colors duration-300`}>
-              <div className="max-w-3xl mx-auto">
-                <div className="rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-                  <img
-                    src={vacancy1}
-                    alt="Axis Bank Banner"
-                    className="w-full h-auto object-cover"
-                    loading="lazy"
-                  />
+            {/* Job page banner from API */}
+            {!jobBannersLoading && jobBanners.length > 0 && (
+              <section className="sticky top-80 mt-4 transition-colors duration-300">
+                <div className="max-w-3xl mx-auto">
+                  {jobBanners.length === 1 ? (
+                    <div className="rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
+                      <img
+                        src={bannerService.getBannerImage(jobBanners[0])}
+                        alt="Job listings banner"
+                        className="w-full h-auto object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                  ) : (
+                    <Swiper
+                      modules={[Autoplay]}
+                      autoplay={{ delay: 4000, disableOnInteraction: false }}
+                      loop={jobBanners.length > 1}
+                      spaceBetween={16}
+                      className="rounded-xl overflow-hidden shadow-md"
+                    >
+                      {jobBanners.map((banner) => {
+                        const imageUrl = bannerService.getBannerImage(banner);
+                        const id = banner.banner_id || banner.id || imageUrl;
+                        return (
+                          <SwiperSlide key={id}>
+                            <img
+                              src={imageUrl}
+                              alt="Job listings banner"
+                              className="w-full h-auto object-cover"
+                              loading="lazy"
+                            />
+                          </SwiperSlide>
+                        );
+                      })}
+                    </Swiper>
+                  )}
                 </div>
-              </div>
-            </section>
+              </section>
+            )}
           </div>
         </div>
       </div>

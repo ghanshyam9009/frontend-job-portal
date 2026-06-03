@@ -22,6 +22,7 @@ export { default as tokenService } from './tokenService';
 export { default as paymentService } from './paymentService';
 export { default as statsService } from './statsService';
 export { default as contactService } from './contactService';
+export { bannerService } from './bannerService';
 export { default as demoService } from './demoService';
 export { default as taskService } from './taskService';
 
