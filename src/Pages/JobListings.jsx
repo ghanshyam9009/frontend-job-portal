@@ -387,15 +387,16 @@ const JobListings = () => {
           return dateB - dateA;
         });
 
-        // Map jobs to include is_premium field (similar to HomePage.jsx)
+        // Map jobs — keep full API fields (e.g. posted_by) and add display aliases
         const mappedJobs = filteredJobs.map((j) => ({
+          ...j,
           id: j.job_id || j.id,
           job_id: j.job_id || j.id,
           job_title: j.job_title,
           title: j.job_title,
           company_name: j.company_name || "",
           company_logo: j.company_logo || j.logo || j.companyLogo || null,
-          job_logo_url: j.job_logo_url || null, // Include job-specific logo URL
+          job_logo_url: j.job_logo_url || null,
           company: j.company_name || "",
           salary_range: j.salary_range,
           salary: j.salary_range ?
@@ -409,8 +410,11 @@ const JobListings = () => {
           is_premium: j.premium_job || j.is_premium || false,
           created_at: j.created_at || j.posted_date,
           posted_date: j.posted_date,
+          posted_by: j.posted_by || j.postedBy,
           description: j.description || "",
-          skills_required: j.skills_required || []
+          skills_required: j.skills_required || [],
+          experience_required: j.experience_required,
+          work_mode: j.work_mode,
         }));
 
         const totalCount = mappedJobs.length;
@@ -1019,7 +1023,7 @@ const JobListings = () => {
               </div>
 
               {/* Jobs List - COMPACT */}
-              <div className="space-y-3 mb-4">
+              <div className="space-y-4 mb-4">
                 {loading && <SkeletonJobCard count={5} />}
 
                 {!loading && error && (

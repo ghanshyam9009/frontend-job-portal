@@ -3,8 +3,12 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
 import { adminRecruiterJobService } from "../../services/adminRecruiterJobService";
-import { Search, Building, MapPin, Calendar, Briefcase, RefreshCw, Trash2, Star, CheckCircle, XCircle } from "lucide-react";
+import { Search, Building, MapPin, Calendar, Briefcase, RefreshCw, Trash2, Star, CheckCircle, XCircle, FileText } from "lucide-react";
 import * as XLSX from 'xlsx';
+import {
+  buildApplicationsNavState,
+  getJobApplicationCount,
+} from "../../utils/adminJobApplications";
 
 const isRecruiterJob = (job) => {
   const pb = (job?.posted_by ?? "").toString().trim().toUpperCase();
@@ -218,6 +222,14 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
         fromAdmin: true,
         job,
       },
+    });
+  };
+
+  const handleViewApplications = (job) => {
+    const jobId = job.job_id || job.id;
+    if (!jobId) return;
+    navigate(`/admin/job-reports/applications/${jobId}`, {
+      state: buildApplicationsNavState(job),
     });
   };
 
@@ -701,10 +713,19 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
             const taskCategory = getTaskCategoryForJob(job);
             const isReopenTask = isReopenTaskCategory(taskCategory);
             const taskId = getTaskIdForJob(job);
+            const appCount = getJobApplicationCount(job);
             return (
               <div
                 key={String(job.task_id ?? job.job_id ?? job.id)}
                 onClick={() => !showTaskActions && handleViewJob(job)}
+                onKeyDown={(e) => {
+                  if (!showTaskActions && (e.key === "Enter" || e.key === " ")) {
+                    e.preventDefault();
+                    handleViewJob(job);
+                  }
+                }}
+                role={!showTaskActions ? "button" : undefined}
+                tabIndex={!showTaskActions ? 0 : undefined}
                 className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all ${!showTaskActions ? "cursor-pointer" : ""}`}
               >
                   <div className="p-3">
@@ -807,15 +828,23 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
                           <span className={`text-xs ${textSecondary}`}>
                             Recruiter: <span className={`font-semibold ${textColor}`}>{job.recruiter_name || 'N/A'}</span>
                           </span>
-                          <span className="hidden sm:block w-1 h-1 rounded-full bg-gray-400"></span>
-                          <span className={`text-xs ${textSecondary}`}>
-                            Applications: <span className={`font-semibold ${textColor}`}>{job.application_count ?? 0}</span>
-                          </span>
                         </div>
                         <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mt-3">
                           {!showTaskActions && (
                             <>
                           <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewApplications(job);
+                            }}
+                            className="col-span-2 sm:col-auto px-2 py-2 sm:py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 flex items-center justify-center gap-1.5 sm:flex-1 sm:min-w-[140px]"
+                          >
+                            <FileText size={14} />
+                            View Applications ({appCount})
+                          </button>
+                          <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate(`/admin/edit-job/${job.id}`, { state: { employer_id: job.employer_id } });
@@ -826,6 +855,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
                             Edit
                           </button>
                           <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleMarkPremium(job, !(job.premium_job || job.is_premium));
@@ -837,6 +867,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
                             {(job.premium_job || job.is_premium) ? 'Premium' : 'Feature Job'}
                           </button>
                           <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleCloseJob(job);
@@ -848,6 +879,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
                             Close Job
                           </button>
                           <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteJob(job);

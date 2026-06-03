@@ -16,9 +16,12 @@ import {
   Briefcase,
   Award,
   ArrowUpDown,
-  Users,
   FileText,
 } from "lucide-react";
+import {
+  buildApplicationsNavState,
+  getJobApplicationCount,
+} from "../../utils/adminJobApplications";
 
 /** API sends `job_logo_url`; fallbacks align with JobCard / AdminJobReports */
 const getJobLogoUrl = (job) =>
@@ -273,6 +276,14 @@ const AdminJobs = () => {
     const id = job.job_id || job.id;
     if (!id) return;
     navigate(`/job/${id}`, { state: { fromAdmin: true, job } });
+  };
+
+  const handleViewApplications = (job) => {
+    const id = job.job_id || job.id;
+    if (!id) return;
+    navigate(`/admin/job-reports/applications/${id}`, {
+      state: buildApplicationsNavState(job),
+    });
   };
 
   const { counts } = jobsMeta;
@@ -598,12 +609,15 @@ const AdminJobs = () => {
           {jobs.map((job) => {
             const logoUrl = getJobLogoUrl(job);
             const statusBadge = job.status_label || job.status || "Pending";
-            const appCount = job.applications_count ?? job.applications?.length ?? 0;
+            const appCount = getJobApplicationCount(job);
 
             return (
               <div
                 key={job.job_id || job.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => handleViewJob(job)}
+                onKeyDown={(e) => e.key === "Enter" && handleViewJob(job)}
                 className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all cursor-pointer`}
               >
                 <div className="p-3 sm:p-4">
@@ -698,20 +712,21 @@ const AdminJobs = () => {
                     </span>
                   </div>
 
-                  <div
-                    className={`flex items-center gap-4 p-2 rounded-lg mb-2.5 border ${borderColor} ${isDark ? "bg-gray-700/50" : "bg-gray-50"}`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Users size={13} className="text-blue-500" />
-                      <span className={`text-xs font-semibold ${textColor}`}>{appCount}</span>
-                      <span className={`text-xs ${textSecondary}`} style={{ fontSize: "0.65rem" }}>
-                        applications
-                      </span>
-                    </div>
-                  </div>
-
                   <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
                     <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewApplications(job);
+                      }}
+                      className="px-3 py-2.5 sm:py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5 touch-manipulation sm:flex-1 sm:min-w-[140px]"
+                      style={{ fontSize: "0.7rem" }}
+                    >
+                      <FileText size={13} />
+                      <span>View Applications ({appCount})</span>
+                    </button>
+                    <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleEdit(job);
@@ -723,6 +738,7 @@ const AdminJobs = () => {
                       <span className="hidden sm:inline">Edit</span>
                     </button>
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleToggleStatus(job);
@@ -736,6 +752,7 @@ const AdminJobs = () => {
                       </span>
                     </button>
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDelete(job.job_id || job.id);

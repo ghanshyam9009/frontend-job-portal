@@ -151,6 +151,8 @@ export const API_ENDPOINTS = {
     getByStudent: (studentId) => `/applications/student/${studentId}`,
     updateStatus: (id) => `/applications/${id}/status`,
     applyToJob: (jobId) => `/applications/jobs/${jobId}/apply`,
+    applyRecruiterJob: (jobId) => `/application/jobs/${jobId}/apply`,
+    applyAdminJob: (jobId) => `/application/Adminjobs/${jobId}/apply`,
     withdraw: (id) => `/applications/${id}/withdraw`,
     getByEmployer: (employerId) => `/applications/employer/${employerId}`
   },
