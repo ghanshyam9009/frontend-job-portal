@@ -82,6 +82,64 @@
   color: #374151;
 }
 
+.verifyEmailBtn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  background-color: #059669;
+  color: #ffffff;
+  transition: background-color 0.2s, opacity 0.2s;
+}
+
+.verifyEmailBtn:hover:not(:disabled) {
+  background-color: #047857;
+}
+
+.verifyEmailBtn:disabled {
+  cursor: not-allowed;
+}
+
+.verifyEmailBtnSent {
+  background-color: #d1fae5;
+  color: #047857;
+}
+
+.verifyEmailBtnSent:hover:not(:disabled) {
+  background-color: #d1fae5;
+}
+
+.emailVerifiedBadge {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #059669;
+  font-size: 0.8rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.inputWithVerifyBtn {
+  padding-right: 6.5rem !important;
+}
+
+.inputVerified {
+  padding-right: 5.75rem !important;
+}
+
 .input {
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 2.5rem; /* Add padding for icon */
