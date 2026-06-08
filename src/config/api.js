@@ -52,7 +52,9 @@ export const API_ENDPOINTS = {
     update: (id) => `/students/${id}`,
     delete: (id) => `/students/${id}`,
     uploadResume: (id) => `/students/${id}/resume`,
-    uploadProfileImage: (id) => `/students/${id}/profile-image`
+    uploadProfileImage: (id) => `/students/${id}/profile-image`,
+    getUsers: '/students/users',
+    manualPlan: '/students/manual-plan'
   },
 
   // Recruiters/Employers

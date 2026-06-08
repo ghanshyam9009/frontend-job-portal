@@ -46,6 +46,7 @@ const AdminManageJobs = lazy(() => import('./Pages/Admin/ManageJobs'));
 const ReportsAnalytics = lazy(() => import('./Pages/Admin/ReportsAnalytics'));
 const ManageMembershipPlans = lazy(() => import('./Pages/Admin/ManageMembershipPlans'));
 const AdminPlans = lazy(() => import('./Pages/Admin/AdminPlans'));
+const AdminFreeReferral = lazy(() => import('./Pages/Admin/AdminFreeReferral'));
 const HomepageForms = lazy(() => import('./Pages/Admin/HomepageForms'));
 const ContactForms = lazy(() => import('./Pages/Admin/ContactForms'));
 const GovernmentJobsManagement = lazy(() => import('./Pages/Admin/AdminGovernmentJobs'));
@@ -178,6 +179,7 @@ function App() {
                 <Route path="/admin/edit-job/:jobId" element={<AdminPostJob />} />
                 <Route path="/admin/reports" element={<ReportsAnalytics />} />
                 <Route path="/admin/plans" element={<AdminPlans />} />
+                <Route path="/admin/free-referral" element={<AdminFreeReferral />} />
                 <Route path="/admin/membership" element={<ManageMembershipPlans />} />
                 <Route path="/admin/homepage-forms" element={<HomepageForms />} />
                 <Route path="/admin/contact-forms" element={<ContactForms />} />

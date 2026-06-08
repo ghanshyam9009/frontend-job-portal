@@ -5,12 +5,15 @@ import { useAuth } from "../Contexts/AuthContext";
 import { applicationService } from "../services/applicationService";
 import {
   canCandidateApply,
+  getCandidatePlanLabel,
+  hasCandidateManualPlan,
   isAdminPostedJob,
 } from "../utils/jobApplicationRules";
+import { getJobPostedByDisplayLabel } from "../utils/jobDisplayUtils";
 import { candidateExternalService } from "../services/candidateExternalService";
 import { studentService } from "../services/studentService";
 import HomeNav from "../Components/HomeNav";
-import { Bookmark, Briefcase, Contact, Contact2, MapPin, Sparkles, TrendingUp, ArrowLeft, X, Crown, ArrowRight, CheckCircle } from "lucide-react";
+import { Bookmark, ArrowLeft, X, Crown, ArrowRight, CheckCircle } from "lucide-react";
 import Footer from "../Components/Footer";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import RecruiterNavbar from "../Components/Recruiter/RecruiterNavbar";
@@ -196,7 +199,11 @@ const JobDescription = () => {
     if (!eligibility.allowed) {
       setPremiumModalReason(eligibility.reason);
       setShowPremiumModal(true);
-      if (eligibility.reason === "premium_plan_required") {
+      if (eligibility.reason === "manual_plan_upgrade_required") {
+        setApplicationError(
+          `Your ${eligibility.planLabel || "current"} plan lets you apply to recruiter jobs only. Contact admin or upgrade for admin-posted jobs.`
+        );
+      } else if (eligibility.reason === "premium_plan_required") {
         setApplicationError(
           "Your Standard plan lets you apply to recruiter jobs only. Upgrade to Premium to apply for admin-posted jobs."
         );
@@ -381,6 +388,9 @@ const JobDescription = () => {
       ? canCandidateApply(user, job)
       : null;
   const jobIsAdminPosted = isAdminPostedJob(job);
+  const postedByLabel = getJobPostedByDisplayLabel(job);
+  const candidatePlanLabel = getCandidatePlanLabel(user);
+  const onManualPlan = hasCandidateManualPlan(user);
 
   return (
     <>
@@ -426,7 +436,7 @@ const JobDescription = () => {
                       <span className="font-semibold text-sm sm:text-base text-slate-800 dark:text-black">
                         {job.company_name || "Company"}
                       </span>
-                      {job.posted_by && (
+                      {postedByLabel && (
                         <span
                           className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
                             jobIsAdminPosted
@@ -434,13 +444,29 @@ const JobDescription = () => {
                               : "bg-emerald-50 text-emerald-700 border-emerald-200"
                           }`}
                         >
-                          Posted by {(job.posted_by || "").toString().replace(/_/g, " ")}
+                          Posted by {postedByLabel}
                         </span>
                       )}
                     </div>
-                    {applyEligibility?.reason === "premium_plan_required" && (
+                    {(applyEligibility?.reason === "premium_plan_required" ||
+                      applyEligibility?.reason === "manual_plan_upgrade_required") && (
                       <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2">
-                        Standard plan: apply to recruiter jobs only. Upgrade to Premium for admin-posted jobs.
+                        {onManualPlan ? (
+                          <>
+                            Your <strong>{candidatePlanLabel}</strong> referral plan applies to recruiter
+                            jobs only. Upgrade to Premium for admin-posted jobs.
+                          </>
+                        ) : (
+                          <>
+                            Standard plan: apply to recruiter jobs only. Upgrade to Premium for
+                            admin-posted jobs.
+                          </>
+                        )}
+                      </p>
+                    )}
+                    {onManualPlan && applyEligibility?.allowed && (
+                      <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 mb-2">
+                        Active referral plan: <strong>{candidatePlanLabel}</strong>
                       </p>
                     )}
                     {/* Meta info - wraps gracefully on small screens */}
@@ -557,7 +583,8 @@ const JobDescription = () => {
                           ? "⏳ Applying..."
                           : hasApplied
                             ? "✓ Applied"
-                            : applyEligibility?.reason === "premium_plan_required"
+                            : applyEligibility?.reason === "premium_plan_required" ||
+                                applyEligibility?.reason === "manual_plan_upgrade_required"
                               ? "Premium plan required"
                               : applyEligibility?.reason === "membership_required"
                                 ? "Membership required"
@@ -709,13 +736,24 @@ const JobDescription = () => {
               </div>
 
               <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
-                {premiumModalReason === "premium_plan_required"
+                {premiumModalReason === "premium_plan_required" ||
+                premiumModalReason === "manual_plan_upgrade_required"
                   ? "Premium plan required"
                   : "Membership required"}
               </h3>
               
               <p className="text-gray-600 dark:text-gray-400 text-base leading-relaxed mb-8">
-                {premiumModalReason === "premium_plan_required" ? (
+                {premiumModalReason === "manual_plan_upgrade_required" ? (
+                  <>
+                    Your referral plan{" "}
+                    <span className="font-bold text-slate-800 dark:text-white">
+                      {candidatePlanLabel || "Basic"}
+                    </span>{" "}
+                    lets you apply to recruiter-posted jobs only. This job was posted by{" "}
+                    <span className="font-bold text-indigo-600">Admin</span> — contact admin for a
+                    Premium referral plan or upgrade to apply here.
+                  </>
+                ) : premiumModalReason === "premium_plan_required" ? (
                   <>
                     Your <span className="font-bold text-slate-800 dark:text-white">Standard</span> plan
                     lets you apply to recruiter-posted jobs. This job was posted by{" "}
@@ -737,14 +775,20 @@ const JobDescription = () => {
                 <button
                   onClick={() => {
                     setShowPremiumModal(false);
-                    navigate("/membership-plans");
+                    if (premiumModalReason !== "manual_plan_upgrade_required") {
+                      navigate("/membership-plans");
+                    }
                   }}
                   className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white py-4 px-6 rounded-2xl font-bold text-lg shadow-xl shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] group"
                 >
-                  {premiumModalReason === "premium_plan_required"
-                    ? "Upgrade to Premium plan"
-                    : "View membership plans"}
-                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                  {premiumModalReason === "manual_plan_upgrade_required"
+                    ? "Understood"
+                    : premiumModalReason === "premium_plan_required"
+                      ? "Upgrade to Premium plan"
+                      : "View membership plans"}
+                  {premiumModalReason !== "manual_plan_upgrade_required" && (
+                    <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                  )}
                 </button>
                 
                 <button

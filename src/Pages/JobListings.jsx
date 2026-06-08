@@ -18,6 +18,7 @@ import { recruiterExternalService } from "../services/recruiterExternalService";
 import { bannerService } from "../services";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import { Loader, ErrorBox, SkeletonJobCard, JobCard } from "../Components/Shared";
+import { canCandidateApply } from "../utils/jobApplicationRules";
 import RecruiterNavbar from "../Components/Recruiter/RecruiterNavbar";
 const JobListings = () => {
   const { theme } = useTheme();
@@ -411,6 +412,7 @@ const JobListings = () => {
           created_at: j.created_at || j.posted_date,
           posted_date: j.posted_date,
           posted_by: j.posted_by || j.postedBy,
+          recruiter_name: j.recruiter_name || j.recruiter_full_name || j.employer_name,
           description: j.description || "",
           skills_required: j.skills_required || [],
           experience_required: j.experience_required,
@@ -1040,17 +1042,25 @@ const JobListings = () => {
                   </div>
                 )}
 
-                {!loading && !error && jobs.map(job => (
-                  <JobCard
-                    key={job.job_id}
-                    job={job}
-                    onBookmark={toggleBookmark}
-                    isBookmarked={bookmarkedJobs.has(job.job_id)}
-                    isDark={isDark}
-                    hideApplyButton={isRecruiter}
-                    applicationStatus={applicationStatusByJobId[job.job_id] || null}
-                  />
-                ))}
+                {!loading && !error && jobs.map(job => {
+                  const applyEligibility =
+                    isAuthenticated && !isRecruiter && user
+                      ? canCandidateApply(user, job)
+                      : null;
+
+                  return (
+                    <JobCard
+                      key={job.job_id}
+                      job={job}
+                      onBookmark={toggleBookmark}
+                      isBookmarked={bookmarkedJobs.has(job.job_id)}
+                      isDark={isDark}
+                      hideApplyButton={isRecruiter}
+                      applicationStatus={applicationStatusByJobId[job.job_id] || null}
+                      applyEligibility={applyEligibility}
+                    />
+                  );
+                })}
               </div>
 
 

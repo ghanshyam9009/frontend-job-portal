@@ -12,6 +12,8 @@ import {
   Crown,
   ArrowRight,
 } from 'lucide-react';
+import { getJobPostedByDisplayLabel } from '../../utils/jobDisplayUtils';
+import { isAdminPostedJob } from '../../utils/jobApplicationRules';
 
 const POSTED_BY_STYLES = {
   admin: 'bg-indigo-50 text-indigo-700 border-indigo-200',
@@ -28,6 +30,7 @@ const JobCard = ({
   isDark = false,
   hideApplyButton = false,
   applicationStatus = null,
+  applyEligibility = null,
 }) => {
   const navigate = useNavigate();
 
@@ -123,16 +126,6 @@ const JobCard = ({
       .slice(0, 2);
   };
 
-  const formatPostedBy = (value) => {
-    if (!value) return null;
-    const normalized = String(value).trim();
-    if (!normalized) return null;
-    return normalized
-      .replace(/_/g, ' ')
-      .toLowerCase()
-      .replace(/\b\w/g, (c) => c.toUpperCase());
-  };
-
   const formatExperience = (exp) => {
     if (!exp) return null;
     if (typeof exp === 'string') return exp;
@@ -142,16 +135,22 @@ const JobCard = ({
     return null;
   };
 
-  const postedByLabel = formatPostedBy(job.posted_by || job.postedBy);
-  const postedByKey = (job.posted_by || job.postedBy || '').toString().trim().toLowerCase();
-  const postedByStyle =
-    POSTED_BY_STYLES[postedByKey] || 'bg-slate-50 text-slate-600 border-slate-200';
+  const postedByLabel = getJobPostedByDisplayLabel(job);
+  const postedByStyle = isAdminPostedJob(job)
+    ? POSTED_BY_STYLES.admin
+    : POSTED_BY_STYLES.recruiter;
 
   const companyLogo = job.job_logo_url || job.job_logo || job.company_logo || job.logo;
   const isPremium = job.is_premium || job.premium_job;
   const salaryLabel = formatSalary(job.salary_range);
   const experienceLabel = formatExperience(job.experience_required);
   const postedAgo = formatDate(job.created_at || job.posted_date);
+  const applyBlocked = applyEligibility?.allowed === false;
+  const applyButtonLabel = applyBlocked
+    ? applyEligibility?.reason === "membership_required"
+      ? "Membership required"
+      : "Premium plan required"
+    : "Apply Now";
 
   const cardBg = isDark ? 'bg-gray-800/90' : 'bg-white';
   const textPrimary = isDark ? 'text-white' : 'text-gray-900';
@@ -318,10 +317,16 @@ const JobCard = ({
                   e.stopPropagation();
                   handleJobClick();
                 }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#2271B5] hover:bg-[#1a5f9a] shadow-sm hover:shadow-md transition-all"
+                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold shadow-sm transition-all ${
+                  applyBlocked
+                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                    : "text-white bg-[#2271B5] hover:bg-[#1a5f9a] hover:shadow-md"
+                }`}
               >
-                Apply Now
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                {applyButtonLabel}
+                {!applyBlocked && (
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                )}
               </button>
             )
           )}

@@ -219,7 +219,12 @@ const CandidateHome = () => {
                 : (typeof profileData.experience === 'string'
                   ? (() => { try { return JSON.parse(profileData.experience); } catch { return []; } })()
                   : (user.experience || [])),
-              resume: profileData.resume || profileData.resumeUrl || user.resume || user.resumeUrl || null
+              resume: profileData.resume || profileData.resumeUrl || user.resume || user.resumeUrl || null,
+              is_manual_plan: profileData.is_manual_plan ?? user.is_manual_plan ?? null,
+              plan_id: profileData.plan_id ?? user.plan_id,
+              plan_name: profileData.plan_name ?? user.plan_name,
+              premium_user: profileData.premium_user ?? user.premium_user,
+              membership_type: profileData.membership_type ?? user.membership_type,
             };
             
             console.log('Normalized latest profile data:', latestUserData);
