@@ -8,6 +8,7 @@ import {
   getCandidatePlanLabel,
   hasCandidateManualPlan,
   isAdminPostedJob,
+  isPremiumJob,
 } from "../utils/jobApplicationRules";
 import { getJobPostedByDisplayLabel } from "../utils/jobDisplayUtils";
 import { candidateExternalService } from "../services/candidateExternalService";
@@ -199,9 +200,9 @@ const JobDescription = () => {
     if (!eligibility.allowed) {
       setPremiumModalReason(eligibility.reason);
       setShowPremiumModal(true);
-      if (eligibility.reason === "manual_plan_upgrade_required") {
+      if (eligibility.reason === "manual_premium_job_required") {
         setApplicationError(
-          `Your ${eligibility.planLabel || "current"} plan lets you apply to recruiter jobs only. Contact admin or upgrade for admin-posted jobs.`
+          `Premium plan required. Your ${eligibility.planLabel || "Basic"} referral plan does not include premium access. Contact admin to upgrade.`
         );
       } else if (eligibility.reason === "premium_plan_required") {
         setApplicationError(
@@ -428,7 +429,7 @@ const JobDescription = () => {
                       </span>
                       {job.company_rating && <span className="text-yellow-500">⭐ {job.company_rating}</span>}
                       {job.company_reviews && <span className="text-gray-400">({job.company_reviews} Reviews)</span>}
-                      {job.is_premium && (
+                      {isPremiumJob(job) && (
                         <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded text-xs">Premium</span>
                       )}
                     </div>
@@ -448,20 +449,16 @@ const JobDescription = () => {
                         </span>
                       )}
                     </div>
-                    {(applyEligibility?.reason === "premium_plan_required" ||
-                      applyEligibility?.reason === "manual_plan_upgrade_required") && (
+                    {applyEligibility?.reason === "manual_premium_job_required" && (
                       <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2">
-                        {onManualPlan ? (
-                          <>
-                            Your <strong>{candidatePlanLabel}</strong> referral plan applies to recruiter
-                            jobs only. Upgrade to Premium for admin-posted jobs.
-                          </>
-                        ) : (
-                          <>
-                            Standard plan: apply to recruiter jobs only. Upgrade to Premium for
-                            admin-posted jobs.
-                          </>
-                        )}
+                        <strong>Premium plan required.</strong> Your <strong>{candidatePlanLabel}</strong>{" "}
+                        referral plan does not include premium access. Contact admin to upgrade.
+                      </p>
+                    )}
+                    {applyEligibility?.reason === "premium_plan_required" && !onManualPlan && (
+                      <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2">
+                        Standard plan: apply to recruiter jobs only. Upgrade to Premium for
+                        admin-posted jobs.
                       </p>
                     )}
                     {onManualPlan && applyEligibility?.allowed && (
@@ -584,7 +581,7 @@ const JobDescription = () => {
                           : hasApplied
                             ? "✓ Applied"
                             : applyEligibility?.reason === "premium_plan_required" ||
-                                applyEligibility?.reason === "manual_plan_upgrade_required"
+                                applyEligibility?.reason === "manual_premium_job_required"
                               ? "Premium plan required"
                               : applyEligibility?.reason === "membership_required"
                                 ? "Membership required"
@@ -737,21 +734,20 @@ const JobDescription = () => {
 
               <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
                 {premiumModalReason === "premium_plan_required" ||
-                premiumModalReason === "manual_plan_upgrade_required"
+                premiumModalReason === "manual_premium_job_required"
                   ? "Premium plan required"
                   : "Membership required"}
               </h3>
               
               <p className="text-gray-600 dark:text-gray-400 text-base leading-relaxed mb-8">
-                {premiumModalReason === "manual_plan_upgrade_required" ? (
+                {premiumModalReason === "manual_premium_job_required" ? (
                   <>
-                    Your referral plan{" "}
+                    <span className="text-amber-600 font-bold">Premium plan required</span> for this
+                    job. Your{" "}
                     <span className="font-bold text-slate-800 dark:text-white">
                       {candidatePlanLabel || "Basic"}
                     </span>{" "}
-                    lets you apply to recruiter-posted jobs only. This job was posted by{" "}
-                    <span className="font-bold text-indigo-600">Admin</span> — contact admin for a
-                    Premium referral plan or upgrade to apply here.
+                    referral plan does not include premium access — contact admin to upgrade.
                   </>
                 ) : premiumModalReason === "premium_plan_required" ? (
                   <>
@@ -775,18 +771,18 @@ const JobDescription = () => {
                 <button
                   onClick={() => {
                     setShowPremiumModal(false);
-                    if (premiumModalReason !== "manual_plan_upgrade_required") {
+                    if (premiumModalReason !== "manual_premium_job_required") {
                       navigate("/membership-plans");
                     }
                   }}
                   className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white py-4 px-6 rounded-2xl font-bold text-lg shadow-xl shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] group"
                 >
-                  {premiumModalReason === "manual_plan_upgrade_required"
+                  {premiumModalReason === "manual_premium_job_required"
                     ? "Understood"
                     : premiumModalReason === "premium_plan_required"
                       ? "Upgrade to Premium plan"
                       : "View membership plans"}
-                  {premiumModalReason !== "manual_plan_upgrade_required" && (
+                  {premiumModalReason !== "manual_premium_job_required" && (
                     <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                   )}
                 </button>

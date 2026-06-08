@@ -1,6 +1,6 @@
 // API Configuration - Use environment variable for flexibility
-const API_BASE_URL_ENV = "https://api.bigsources.in/api";
-// const API_BASE_URL_ENV = "http://localhost:4000/api";
+// const API_BASE_URL_ENV = "https://api.bigsources.in/api";
+const API_BASE_URL_ENV = "http://localhost:4000/api";
 
 const API_CONFIG = {
   development: {

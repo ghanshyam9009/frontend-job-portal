@@ -7,6 +7,10 @@ export const isAdminPostedJob = (job) => {
   return postedBy === "ADMIN";
 };
 
+/** Whether the job is marked as premium (premium_job / is_premium). */
+export const isPremiumJob = (job) =>
+  Boolean(job?.is_premium || job?.premium_job);
+
 /** Admin-assigned manual plan from Free Referral (e.g. "basic", "premium"). */
 export const getCandidateManualPlan = (user) => {
   const manual = user?.is_manual_plan;
@@ -71,32 +75,49 @@ export const getCandidatePlanTier = (user) => {
   );
 };
 
+const buildEligibility = (allowed, reason, user, job, extra = {}) => ({
+  allowed,
+  reason,
+  manualPlan: getCandidateManualPlan(user),
+  planLabel: getCandidatePlanLabel(user),
+  isPremiumJob: isPremiumJob(job),
+  route: isAdminPostedJob(job) ? "admin" : "recruiter",
+  ...extra,
+});
+
 /**
- * Standard plan → recruiter jobs only.
- * Premium plan → admin + recruiter jobs.
- * Manual plan (is_manual_plan) follows the same rules as the assigned plan name.
+ * Manual referral plan (is_manual_plan):
+ *   basic  → basic (non-premium) jobs only
+ *   premium → premium jobs bhi apply kar sakta hai
+ *
+ * Paid membership (no manual plan):
+ *   standard → recruiter jobs only
+ *   premium  → admin + recruiter jobs
  */
 export const canCandidateApply = (user, job) => {
-  const tier = getCandidatePlanTier(user);
   const manualPlan = getCandidateManualPlan(user);
+  const planLabel = getCandidatePlanLabel(user);
+  const jobIsPremium = isPremiumJob(job);
+
+  if (manualPlan) {
+    const tier = mapPlanNameToTier(manualPlan);
+
+    if (tier === "standard" && jobIsPremium) {
+      return buildEligibility(false, "manual_premium_job_required", user, job);
+    }
+
+    return buildEligibility(true, null, user, job);
+  }
+
+  const tier = getCandidatePlanTier(user);
 
   if (tier === "free") {
-    return { allowed: false, reason: "membership_required" };
+    return buildEligibility(false, "membership_required", user, job);
   }
 
   if (tier === "standard" && isAdminPostedJob(job)) {
-    return {
-      allowed: false,
-      reason: manualPlan ? "manual_plan_upgrade_required" : "premium_plan_required",
-      manualPlan,
-      planLabel: getCandidatePlanLabel(user),
-    };
+    return buildEligibility(false, "premium_plan_required", user, job);
   }
 
-  return {
-    allowed: true,
-    route: isAdminPostedJob(job) ? "admin" : "recruiter",
-    manualPlan,
-    planLabel: getCandidatePlanLabel(user),
-  };
+  return buildEligibility(true, null, user, job);
 };
