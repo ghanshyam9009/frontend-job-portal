@@ -712,18 +712,21 @@ const AdminJobs = () => {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+                  <div className={`pt-3 border-t ${borderColor} grid grid-cols-2 sm:grid-cols-4 gap-2`}>
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleViewApplications(job);
                       }}
-                      className="px-3 py-2.5 sm:py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5 touch-manipulation sm:flex-1 sm:min-w-[140px]"
-                      style={{ fontSize: "0.7rem" }}
+                      className="inline-flex w-full h-9 items-center justify-center gap-1 px-2 rounded-lg text-[11px] sm:text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
                     >
-                      <FileText size={13} />
-                      <span>View Applications ({appCount})</span>
+                      <FileText size={13} className="flex-shrink-0" />
+                      <span className="truncate">
+                        <span className="hidden md:inline">Applications </span>
+                        <span className="md:hidden">Apps </span>
+                        ({appCount})
+                      </span>
                     </button>
                     <button
                       type="button"
@@ -731,11 +734,10 @@ const AdminJobs = () => {
                         e.stopPropagation();
                         handleEdit(job);
                       }}
-                      className={`px-3 py-2.5 sm:py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5 touch-manipulation`}
-                      style={{ fontSize: "0.7rem" }}
+                      className={`inline-flex w-full h-9 items-center justify-center gap-1 px-2 rounded-lg text-[11px] sm:text-xs font-medium border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 dark:border-blue-500/30 dark:text-blue-300 dark:bg-blue-500/20 transition-colors`}
                     >
-                      <Edit size={13} />
-                      <span className="hidden sm:inline">Edit</span>
+                      <Edit size={13} className="flex-shrink-0" />
+                      <span className="truncate">Edit</span>
                     </button>
                     <button
                       type="button"
@@ -743,11 +745,10 @@ const AdminJobs = () => {
                         e.stopPropagation();
                         handleToggleStatus(job);
                       }}
-                      className={`px-3 py-2.5 sm:py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5 touch-manipulation`}
-                      style={{ fontSize: "0.7rem" }}
+                      className="inline-flex w-full h-9 items-center justify-center gap-1 px-2 rounded-lg text-[11px] sm:text-xs font-medium bg-amber-500 text-white hover:bg-amber-600 transition-colors"
                     >
-                      <CircleX size={13} />
-                      <span className="hidden sm:inline">
+                      <CircleX size={13} className="flex-shrink-0" />
+                      <span className="truncate">
                         {(job.status || "").toLowerCase() === "closed" ? "Reopen" : "Close"}
                       </span>
                     </button>
@@ -757,11 +758,10 @@ const AdminJobs = () => {
                         e.stopPropagation();
                         handleDelete(job.job_id || job.id);
                       }}
-                      className="px-3 py-2.5 sm:py-1.5 border border-red-200 dark:border-red-500/40 rounded-lg text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors flex items-center justify-center gap-1.5 touch-manipulation"
-                      style={{ fontSize: "0.7rem" }}
+                      className="inline-flex w-full h-9 items-center justify-center gap-1 px-2 rounded-lg text-[11px] sm:text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
                     >
-                      <Trash2 size={13} />
-                      <span className="hidden sm:inline">Delete</span>
+                      <Trash2 size={13} className="flex-shrink-0" />
+                      <span className="truncate">Delete</span>
                     </button>
                   </div>
                 </div>

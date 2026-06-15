@@ -4,20 +4,15 @@ import "swiper/css";
 import { Autoplay } from "swiper/modules";
 import { useTheme } from "../Contexts/ThemeContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useMemo } from "react";
 import { useAuth } from "../Contexts/AuthContext";
-import { Search, MapPin, Filter, ChevronDown, Briefcase, Bookmark, Clock, Building2, DollarSign, Crown } from "lucide-react";
-import styles from "./JobListings.module.css";
+import { Search, MapPin, Filter, ChevronDown, Briefcase, Bookmark, DollarSign, Crown } from "lucide-react";
 import HomeNav from "../Components/HomeNav";
 import Footer from "../Components/Footer";
-import { jobService } from "../services/jobService";
 import { showError } from "../utils/errorHandler";
 import { candidateExternalService } from "../services/candidateExternalService";
-import { candidateService } from "../services/candidateService";
-import { recruiterExternalService } from "../services/recruiterExternalService";
 import { bannerService } from "../services";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
-import { Loader, ErrorBox, SkeletonJobCard, JobCard } from "../Components/Shared";
+import { ErrorBox, SkeletonJobCard, JobCard } from "../Components/Shared";
 import { canCandidateApply } from "../utils/jobApplicationRules";
 import RecruiterNavbar from "../Components/Recruiter/RecruiterNavbar";
 const JobListings = () => {
@@ -43,7 +38,6 @@ const JobListings = () => {
   const [totalJobs, setTotalJobs] = useState(0);
   const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  const [applicationStatusByJobId, setApplicationStatusByJobId] = useState({});
 
   // Autocomplete states
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
@@ -138,41 +132,6 @@ const JobListings = () => {
   }, [isAuthenticated, user]);
 
   const isRecruiter = !!(user?.company_name || user?.role === 'Recruiter' || user?.role === 'Employer');
-
-  // Candidate: fetch shortlisted/applied status per job (getAllApplicants se)
-  useEffect(() => {
-    if (!isAuthenticated || !user || isRecruiter || jobs.length === 0) {
-      setApplicationStatusByJobId({});
-      return;
-    }
-    const userId = user.user_id || user.id;
-    if (!userId) return;
-
-    let cancelled = false;
-    const fetchStatuses = async () => {
-      const map = {};
-      await Promise.all(
-        jobs.map(async (job) => {
-          const jid = job.job_id || job.id;
-          try {
-            const res = await recruiterExternalService.getAllApplicants(jid);
-            const app = (res.applications || []).find(
-              (a) => String(a.student_id) === String(userId) || String(a.student_id) === String(user.id)
-            );
-            if (!app) return;
-            const shortlisted = app.shortlisted === true || app.is_shortlisted === true ||
-              (String(app.application_status || app.status || '').toLowerCase() === 'shortlisted');
-            map[jid] = shortlisted ? 'shortlisted' : 'applied';
-          } catch (_) {
-            /* ignore per-job errors */
-          }
-        })
-      );
-      if (!cancelled) setApplicationStatusByJobId(map);
-    };
-    fetchStatuses();
-    return () => { cancelled = true; };
-  }, [isAuthenticated, user, isRecruiter, jobs]);
 
   useEffect(() => {
     if (queryLocation.trim()) {
@@ -1056,7 +1015,6 @@ const JobListings = () => {
                       isBookmarked={bookmarkedJobs.has(job.job_id)}
                       isDark={isDark}
                       hideApplyButton={isRecruiter}
-                      applicationStatus={applicationStatusByJobId[job.job_id] || null}
                       applyEligibility={applyEligibility}
                     />
                   );

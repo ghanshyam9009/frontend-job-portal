@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
 import { adminRecruiterJobService } from "../../services/adminRecruiterJobService";
-import { Search, Building, MapPin, Calendar, Briefcase, RefreshCw, Trash2, Star, CheckCircle, XCircle, FileText, User } from "lucide-react";
+import { Search, Building, MapPin, Calendar, Briefcase, RefreshCw, Star, CheckCircle, XCircle, FileText, User } from "lucide-react";
 import * as XLSX from 'xlsx';
 import {
   buildApplicationsNavState,
@@ -499,29 +499,6 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
     }
   };
 
-  const handleDeleteJob = async (job) => {
-    if (!job || !job.id) return;
-
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete this job "${job.job_title}"? This action cannot be undone.`
-    );
-    if (!confirmDelete) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-      await adminService.deleteAdminJob(job.id);
-      alert("Job deleted successfully.");
-      await refreshList();
-    } catch (error) {
-      console.error("Failed to delete job:", error);
-      setError("Failed to delete job. Please try again.");
-      alert("Failed to delete job. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Server-side pagination (API returns 10 records/page)
   const totalPages = paginationMeta.total_pages || 1;
   const currentJobs = allJobsFromApi;
@@ -841,7 +818,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
                     </div>
 
                     {!showTaskActions && (
-                      <div className={`mt-3 pt-3 border-t ${borderColor} grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2`}>
+                      <div className={`mt-3 pt-3 border-t ${borderColor} grid grid-cols-2 sm:grid-cols-4 gap-2`}>
                         <button
                           type="button"
                           onClick={(e) => {
@@ -893,18 +870,6 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
                         >
                           <XCircle size={13} className="flex-shrink-0" />
                           <span className="truncate">Close</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteJob(job);
-                          }}
-                          className="inline-flex w-full h-9 items-center justify-center gap-1 px-2 rounded-lg text-[11px] sm:text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
-                          disabled={loading}
-                        >
-                          <Trash2 size={13} className="flex-shrink-0" />
-                          <span className="truncate">Delete</span>
                         </button>
                       </div>
                     )}
