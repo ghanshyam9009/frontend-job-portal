@@ -41,7 +41,6 @@ import ltimindtreeLogo from "../assets/lit.jfif";
 import requestDemoImage from "../assets/Request free demo.png";
 import jobImage from "../assets/job.jfif";
 import vacancy from "../assets/vacancy.jpeg";
-import axisBanner1 from "../assets/carrericici.webp";
 import bannerSmall from "../assets/banner-small.png";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import RecruiterNavbar from "../Components/Recruiter/RecruiterNavbar";
@@ -197,7 +196,8 @@ const Homepage = () => {
   const locationRef = useRef(null);
   const categoryRef = useRef(null);
 
-  const [homeBanners, setHomeBanners] = useState([]);
+  const [homeFirstBanner, setHomeFirstBanner] = useState(null);
+  const [homeSecondBanner, setHomeSecondBanner] = useState(null);
   const [homeBannersLoading, setHomeBannersLoading] = useState(true);
 
   useEffect(() => {
@@ -206,15 +206,22 @@ const Homepage = () => {
     const fetchHomeBanners = async () => {
       try {
         setHomeBannersLoading(true);
-        const list = await bannerService.getBanners("home");
+        const [firstList, secondList, legacyList] = await Promise.all([
+          bannerService.getBanners("home_first"),
+          bannerService.getBanners("home_second"),
+          bannerService.getBanners("home"),
+        ]);
         if (cancelled) return;
-        const homeOnly = list.filter(
-          (b) => (b.page || "").toLowerCase() === "home"
-        );
-        setHomeBanners(homeOnly.length ? homeOnly : list);
+
+        const pickFirst = (list) => (Array.isArray(list) && list.length ? list[0] : null);
+        setHomeFirstBanner(pickFirst(firstList));
+        setHomeSecondBanner(pickFirst(secondList) || pickFirst(legacyList));
       } catch (error) {
         console.error("Failed to fetch home banners:", error);
-        if (!cancelled) setHomeBanners([]);
+        if (!cancelled) {
+          setHomeFirstBanner(null);
+          setHomeSecondBanner(null);
+        }
       } finally {
         if (!cancelled) setHomeBannersLoading(false);
       }
@@ -1057,22 +1064,6 @@ const Homepage = () => {
           </div>
         </div>
 
-        <div className={`transition-colors duration-300 ${bgColor}`}>
-          {/* Axis Banner */}
-          {/* <section className={`${bgColor} mx-4 mt-4 transition-colors duration-300`}>
-          <div className="max-w-3xl mx-auto">
-            <div className="rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-              <img 
-                src={vacancy} 
-                alt="Axis Bank Banner" 
-                className="w-full h-auto object-cover"
-                loading="lazy"
-              />
-            </div>
-          </div>
-        </section> */}
-        </div>
-
         {/* Action Cards Section */}
         <section className={`py-2 sm:py-8 px-4 ${bgColor} transition-colors duration-300`}>
           <div className="max-w-5xl mx-auto">
@@ -1198,7 +1189,7 @@ const Homepage = () => {
         {/* Featured Jobs and Demo Form */}
         <div className={` ${bgColor} transition-colors duration-300`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:items-stretch">
 
               {/* Jobs Section - Left Side */}
               <div className="lg:col-span-8">
@@ -1251,8 +1242,8 @@ const Homepage = () => {
               </div>
 
               {/* Contact Form Section - Right Side */}
-              <div className="lg:col-span-4">
-                <div className={`${cardBg1} rounded-xl shadow-lg overflow-hidden transition-colors duration-300`}>
+              <div className="lg:col-span-4 flex flex-col gap-6 lg:h-full">
+                <div className={`${cardBg1} rounded-xl shadow-lg overflow-hidden transition-colors duration-300 flex-shrink-0`}>
                   <div className="bg-gradient-to-br from-blue-50 to-orange-50 p-4 text-center">
                     <h3 className="text-base font-bold text-black mb-2">Request Free Demo</h3>
                     <div className="w-16 h-16 mx-auto bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
@@ -1361,21 +1352,17 @@ const Homepage = () => {
                   </div>
                 </div>
 
-                {/* Axis Banner */}
-                <section className="hidden lg:block my-6 pt-6 transition-colors duration-300">
-                  <div className="max-w-4xl mx-auto">
-
-                    <div className="">
-                      <img
-                        src={axisBanner1}
-                        alt="Axis Bank Banner"
-                        className="w-full h-auto object-cover rounded-xl"
-                        loading="lazy"
-                      />
-
-                    </div>
-                  </div>
-                </section>
+                {/* Home First Banner */}
+                {!homeBannersLoading && homeFirstBanner && (
+                  <div
+                    className="hidden lg:block flex-1 min-h-0 w-full overflow-hidden rounded-xl shadow-lg bg-cover bg-center bg-no-repeat"
+                    style={{
+                      backgroundImage: `url("${bannerService.getBannerImage(homeFirstBanner)}")`,
+                    }}
+                    role="img"
+                    aria-label="Home first banner"
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -1657,44 +1644,18 @@ const Homepage = () => {
 
         {/* Axis Banner and Trusted Companies */}
         <div className={`transition-colors duration-300 ${bgColor}`}>
-          {/* Home page banner from API */}
-          {!homeBannersLoading && homeBanners.length > 0 && (
+          {/* Home Second Banner (lower) */}
+          {!homeBannersLoading && homeSecondBanner && (
             <section className={`${bgColor} mx-4 transition-colors duration-300`}>
               <div className="max-w-3xl mx-auto">
-                {homeBanners.length === 1 ? (
-                  <div className="rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-                    <img
-                      src={bannerService.getBannerImage(homeBanners[0])}
-                      alt="Home banner"
-                      className="w-full h-auto object-cover"
-                      loading="lazy"
-                    />
-                  </div>
-                ) : (
-                  <Swiper
-                    modules={[Autoplay]}
-                    autoplay={{ delay: 4000, disableOnInteraction: false }}
-                    loop={homeBanners.length > 1}
-                    spaceBetween={16}
-                    className="rounded-xl overflow-hidden shadow-md"
-                  >
-                    {homeBanners.map((banner) => {
-                      const imageUrl = bannerService.getBannerImage(banner);
-                      const id =
-                        banner.banner_id || banner.id || imageUrl;
-                      return (
-                        <SwiperSlide key={id}>
-                          <img
-                            src={imageUrl}
-                            alt="Home banner"
-                            className="w-full h-auto object-cover"
-                            loading="lazy"
-                          />
-                        </SwiperSlide>
-                      );
-                    })}
-                  </Swiper>
-                )}
+                <div className="rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
+                  <img
+                    src={bannerService.getBannerImage(homeSecondBanner)}
+                    alt="Home second banner"
+                    className="w-full h-auto object-cover"
+                    loading="lazy"
+                  />
+                </div>
               </div>
             </section>
           )}

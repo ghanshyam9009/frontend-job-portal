@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
-import { adminService } from "../../services/adminService";
 import { recruiterExternalService } from "../../services/recruiterExternalService";
 import { useLocation } from "react-router-dom";
 import {
@@ -18,16 +17,13 @@ import {
   Phone,
   Briefcase,
   GraduationCap,
-  Check,
-  Trash2,
+  CheckCircle,
+  Loader2,
   Sparkles,
   User
 } from "lucide-react";
 import * as XLSX from 'xlsx';
-import {
-  enrichApplicationsList,
-  enrichApplicationForAdminReport,
-} from '../../utils/adminJobApplications';
+import { enrichApplicationsList } from '../../utils/adminJobApplications';
 
 const AdminJobReportApplications = () => {
   const navigate = useNavigate();
@@ -43,7 +39,7 @@ const AdminJobReportApplications = () => {
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [showCandidateModal, setShowCandidateModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all"); 
-  const [loadingActions, setLoadingActions] = useState({});
+  const [statusUpdating, setStatusUpdating] = useState({});
 
   const applyJobDetailsFromState = () => {
     if (location.state?.jobTitle || location.state?.companyName) {
@@ -177,79 +173,41 @@ const AdminJobReportApplications = () => {
     }
   };
 
-  const handleApproveApplication = async (application) => {
-    const taskId = application.task_id;
-    if (!taskId) {
-      alert('Cannot approve: Task ID not found. This application may already be approved.');
-      return;
-    }
+  const handleShortlistApplication = async (application) => {
+    const appId = application.application_id || application.id;
+    if (!appId || statusUpdating[appId]) return;
 
-    const confirmApprove = window.confirm(
-      `Are you sure you want to approve this application? Once approved, it will be visible to the recruiter.`
-    );
-    if (!confirmApprove) return;
+    if ((application.status || "").toLowerCase() === "shortlisted") return;
+
+    setStatusUpdating((prev) => ({ ...prev, [appId]: true }));
 
     try {
-      setLoadingActions(prev => ({ ...prev, [application.application_id]: true }));
+      await recruiterExternalService.changeApplicationStatus(appId, true);
 
-      // Use adminService to approve the application
-      await adminService.approveJobApplicationByStudent(taskId);
-
-      alert('Application approved successfully! The application is now visible to the recruiter.');
-      
-      // Refresh applications to update status and fetch newly approved applications
-      await fetchApplications(true);
-
-      const updatedApps = await adminService.getApplicationsForJob(jobId);
-      const updatedApp = (updatedApps.applications || []).find(
-        (app) =>
-          app.application_id === application.application_id ||
-          (app.student_id &&
-            app.student_id.toString() === (application.student_id || "").toString())
+      setApplications((prev) =>
+        prev.map((app) =>
+          (app.application_id || app.id) === appId
+            ? { ...app, status: "shortlisted", needs_approval: false }
+            : app
+        )
       );
 
-      if (updatedApp) {
-        handleViewCandidateDetails(enrichApplicationForAdminReport(updatedApp));
-      }
+      setSelectedCandidate((prev) =>
+        prev && (prev.application_id || prev.id) === appId
+          ? { ...prev, status: "shortlisted", needs_approval: false }
+          : prev
+      );
     } catch (error) {
-      console.error('Failed to approve application:', error);
-      alert(error.message || 'Failed to approve application. Please try again.');
+      console.error("Failed to shortlist application:", error);
+      alert(error?.message || "Failed to shortlist application. Please try again.");
     } finally {
-      setLoadingActions(prev => ({ ...prev, [application.application_id]: false }));
+      setStatusUpdating((prev) => {
+        const next = { ...prev };
+        delete next[appId];
+        return next;
+      });
     }
   };
-
-  const handleRejectApplication = async (application) => {
-    const taskId = application.task_id;
-    if (!taskId) {
-      alert('Cannot reject: Task ID not found. This application may already be processed.');
-      return;
-    }
-
-    const confirmReject = window.confirm(
-      'Are you sure you want to reject this application? It will be removed and the candidate will not be visible to the recruiter.'
-    );
-    if (!confirmReject) return;
-
-    try {
-      setLoadingActions(prev => ({ ...prev, [application.application_id]: true }));
-
-      // Use adminService to reject the application (rejectJob uses taskId)
-      await adminService.rejectJob(taskId);
-
-      alert('Application rejected successfully.');
-      
-      // Refresh applications to update the list
-      await fetchApplications(true);
-    } catch (error) {
-      console.error('Failed to reject application:', error);
-      alert(error.message || 'Failed to reject application. Please try again.');
-    } finally {
-      setLoadingActions(prev => ({ ...prev, [application.application_id]: false }));
-    }
-  };
-
-
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -260,12 +218,14 @@ const AdminJobReportApplications = () => {
     });
   };
 
+  const getApplicationStatusKey = (app) => {
+    if (app.needs_approval) return "pending";
+    return (app.status || "pending").toLowerCase();
+  };
+
   const filteredApplications = applications.filter(app => {
-    // Determine actual status: if needs_approval is true, it's pending
-    const actualStatus = app.needs_approval ? 'pending' : (app.status || 'approved');
-    
-    // Filter by status
-    const matchesStatus = statusFilter === "all" || actualStatus.toLowerCase() === statusFilter.toLowerCase();
+    const actualStatus = getApplicationStatusKey(app);
+    const matchesStatus = statusFilter === "all" || actualStatus === statusFilter.toLowerCase();
 
     // Then filter by search query
     const matchesSearch = !searchQuery ||
@@ -297,9 +257,39 @@ const AdminJobReportApplications = () => {
 
   const getStatusLabel = (status, needsApproval) => {
     if (needsApproval) {
-      return 'Pending Admin Approval';
+      return 'Pending';
     }
-    return status || 'Approved';
+    const normalized = (status || 'pending').toLowerCase();
+    if (normalized === 'shortlisted') return 'Shortlisted';
+    return status || 'Pending';
+  };
+
+  const ShortlistButton = ({ application, className = "" }) => {
+    const appId = application.application_id || application.id;
+    const isShortlisted = getApplicationStatusKey(application) === "shortlisted";
+    const isUpdating = Boolean(statusUpdating[appId]);
+
+    return (
+      <button
+        type="button"
+        onClick={() => handleShortlistApplication(application)}
+        disabled={isUpdating || isShortlisted}
+        title={isShortlisted ? "Already shortlisted" : "Shortlist candidate"}
+        className={`px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1 transition-all border disabled:opacity-50 disabled:cursor-not-allowed ${
+          isShortlisted
+            ? "bg-green-100 text-green-700 border-green-300 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30"
+            : "bg-green-600 text-white border-green-600 hover:bg-green-700"
+        } ${className}`}
+        style={{ fontSize: "0.7rem" }}
+      >
+        {isUpdating ? (
+          <Loader2 size={12} className="animate-spin" />
+        ) : (
+          <CheckCircle size={12} />
+        )}
+        {isShortlisted ? "Shortlisted" : "Shortlist"}
+      </button>
+    );
   };
 
   const isDark = theme === 'dark';
@@ -412,17 +402,17 @@ const AdminJobReportApplications = () => {
                     : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
                 }`}
               >
-                Pending Approval ({applications.filter(app => app.needs_approval).length})
+                Pending ({applications.filter(app => getApplicationStatusKey(app) === 'pending').length})
               </button>
               <button
-                onClick={() => setStatusFilter('approved')}
+                onClick={() => setStatusFilter('shortlisted')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  statusFilter === 'approved'
+                  statusFilter === 'shortlisted'
                     ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
                     : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
                 }`}
               >
-                Approved ({applications.filter(app => !app.needs_approval).length})
+                Shortlisted ({applications.filter(app => getApplicationStatusKey(app) === 'shortlisted').length})
               </button>
             </div>
           </div>
@@ -609,37 +599,7 @@ const AdminJobReportApplications = () => {
                     </a>
                   )}
 
-                  {/* Approve/Reject buttons for pending applications that need admin approval */}
-                  {application.needs_approval && (
-                    <>
-                      <button
-                        onClick={() => handleApproveApplication(application)}
-                        disabled={loadingActions[application.application_id] || !application.task_id}
-                        className="px-2.5 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-medium flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ fontSize: '0.7rem' }}
-                      >
-                        {loadingActions[application.application_id] ? (
-                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                        ) : (
-                          <Check size={12} />
-                        )}
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => handleRejectApplication(application)}
-                        disabled={loadingActions[application.application_id] || !application.task_id}
-                        className="px-2.5 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ fontSize: '0.7rem' }}
-                      >
-                        {loadingActions[application.application_id] ? (
-                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                        ) : (
-                          <Trash2 size={12} />
-                        )}
-                        Reject
-                      </button>
-                    </>
-                  )}
+                  <ShortlistButton application={application} />
                 </div>
               </div>
             ))}
@@ -789,7 +749,7 @@ const AdminJobReportApplications = () => {
 
             {/* Modal Footer */}
             <div className={`p-6 border-t ${borderColor} bg-gray-50/50 dark:bg-gray-800/50 flex flex-col sm:flex-row gap-3 items-center justify-between`}>
-              <div>
+              <div className="flex flex-wrap items-center gap-3">
                 {selectedCandidate.student_details?.resumeUrl ? (
                   <a
                     href={selectedCandidate.student_details.resumeUrl}
@@ -803,13 +763,14 @@ const AdminJobReportApplications = () => {
                 ) : (
                   <p className={`text-xs ${textSecondary} italic`}>No resume provided</p>
                 )}
+                <ShortlistButton application={selectedCandidate} className="!px-4 !py-2.5 !text-sm" />
               </div>
-              
+
               <button
                 onClick={() => setShowCandidateModal(false)}
                 className={`w-full sm:w-auto px-8 py-2.5 rounded-xl border ${borderColor} ${textColor} font-bold text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-all active:scale-95 shadow-sm`}
               >
-               Dismiss
+                Dismiss
               </button>
             </div>
           </div>

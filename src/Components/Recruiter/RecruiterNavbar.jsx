@@ -4,7 +4,6 @@ import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { recruiterExternalService } from "../../services";
 import { recruiterService } from "../../services/recruiterService";
-import { isProfileComplete } from "../../utils/recruiterProfileUtils";
 import logo1 from "../../assets/logo.png";
 import {
   Sun,
@@ -32,27 +31,13 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
   const [showProfileSidebar, setShowProfileSidebar] = useState(false);
   const [recruiterProfile, setRecruiterProfile] = useState(null);
   const [applicationCount, setApplicationCount] = useState(0);
-  const [canAccessJobFeatures, setCanAccessJobFeatures] = useState(false);
-  const [restrictionMessage, setRestrictionMessage] = useState('Complete profile and get admin approval to use recruiting tools');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { pathname } = useLocation();
   const dropdownRef = useRef(null);
 
-  // Check profile completion and admin approval
+  // Sync recruiter profile from auth user
   useEffect(() => {
     if (user) {
-      const profileComplete = isProfileComplete(user);
-      const adminApproved = user.hasadminapproved === true;
-
-      if (!adminApproved) {
-        setRestrictionMessage('Admin approval pending. Please wait for approval before accessing hiring tools.');
-      } else if (!profileComplete) {
-        setRestrictionMessage('Complete your company profile to unlock hiring tools.');
-      } else {
-        setRestrictionMessage('');
-      }
-
-      setCanAccessJobFeatures(profileComplete && adminApproved);
       setRecruiterProfile(user);
     }
   }, [user]);
@@ -154,14 +139,6 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
 
   const isActive = (path) => pathname === path;
 
-  const handleRestrictedNavigation = (path, restricted) => {
-    if (restricted) {
-      alert(restrictionMessage);
-      return;
-    }
-    navigate(path);
-  };
-
   // Theme-based colors
   const isDark = theme === 'dark';
   const bgColor = isDark ? 'bg-gray-900' : 'bg-white';
@@ -243,14 +220,10 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
               </li>
               <li>
                 <button
-                  onClick={() => handleRestrictedNavigation('/post-job', !canAccessJobFeatures)}
-                  disabled={!canAccessJobFeatures}
-                  title={!canAccessJobFeatures ? restrictionMessage : ''}
-                  className={`nav-link-btn px-3 py-2 text-sm font-semibold transition-colors rounded-md ${!canAccessJobFeatures
-                    ? 'opacity-50 cursor-not-allowed'
-                    : isActive("/post-job")
-                      ? "active text-[#2271B5]"
-                      : `${textSecondary} hover:text-[#2271B5]`
+                  onClick={() => navigate('/post-job')}
+                  className={`nav-link-btn px-3 py-2 text-sm font-semibold transition-colors rounded-md ${isActive("/post-job")
+                    ? "active text-[#2271B5]"
+                    : `${textSecondary} hover:text-[#2271B5]`
                     }`}
                 >
                   <span>Post Job</span>
@@ -258,14 +231,10 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
               </li>
               <li>
                 <button
-                  onClick={() => handleRestrictedNavigation('/manage-jobs', !canAccessJobFeatures)}
-                  disabled={!canAccessJobFeatures}
-                  title={!canAccessJobFeatures ? restrictionMessage : ''}
-                  className={`nav-link-btn px-3 py-2 text-sm font-semibold transition-colors rounded-md ${!canAccessJobFeatures
-                    ? 'opacity-50 cursor-not-allowed'
-                    : isActive("/manage-jobs")
-                      ? "active text-[#2271B5]"
-                      : `${textSecondary} hover:text-[#2271B5]`
+                  onClick={() => navigate('/manage-jobs')}
+                  className={`nav-link-btn px-3 py-2 text-sm font-semibold transition-colors rounded-md ${isActive("/manage-jobs")
+                    ? "active text-[#2271B5]"
+                    : `${textSecondary} hover:text-[#2271B5]`
                     }`}
                 >
                   <span>Manage Jobs</span>
@@ -273,14 +242,10 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
               </li>
               <li>
                 <button
-                  onClick={() => handleRestrictedNavigation('/jobs', !canAccessJobFeatures)}
-                  disabled={!canAccessJobFeatures}
-                  title={!canAccessJobFeatures ? restrictionMessage : ''}
-                  className={`nav-link-btn px-3 py-2 text-sm font-semibold transition-colors rounded-md ${!canAccessJobFeatures
-                    ? 'opacity-50 cursor-not-allowed'
-                    : isActive("/jobs")
-                      ? "active text-[#2271B5]"
-                      : `${textSecondary} hover:text-[#2271B5]`
+                  onClick={() => navigate('/jobs')}
+                  className={`nav-link-btn px-3 py-2 text-sm font-semibold transition-colors rounded-md ${isActive("/jobs")
+                    ? "active text-[#2271B5]"
+                    : `${textSecondary} hover:text-[#2271B5]`
                     }`}
                 >
                   <span>Jobs</span>
@@ -408,21 +373,12 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                     </div>
                   </div>
 
-                  {/* Access Status */}
-                  {!canAccessJobFeatures && (
-                    <div className="mt-2 p-2.5 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-900/40">
-                      <p className="text-[11px] text-yellow-800 dark:text-yellow-200 leading-relaxed font-medium">
-                        {restrictionMessage}
-                      </p>
-                    </div>
-                  )}
-
                   {/* Quick Action */}
                   <button
                     onMouseDown={() => { navigate('/company-profile'); setShowProfileSidebar(false); }}
                     className="block w-full mt-3 py-2 text-center text-sm font-bold text-white bg-[#2271B5] hover:bg-[#1a5a8f] shadow-md hover:shadow-lg rounded-lg transition-all"
                   >
-                    {canAccessJobFeatures ? 'Edit Company Profile' : 'Complete Profile'}
+                    Edit Company Profile
                   </button>
                 </div>
 
@@ -438,19 +394,8 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                     <span className={`font-semibold ${textSecondary} group-hover:text-[#2271B5] transition-colors`}>Dashboard</span>
                   </button>
                   <button
-                    onMouseDown={() => {
-                      if (!canAccessJobFeatures) {
-                        alert(restrictionMessage);
-                      } else {
-                        navigate('/post-job');
-                        setShowProfileSidebar(false);
-                      }
-                    }}
-                    disabled={!canAccessJobFeatures}
-                    className={`w-full flex items-center gap-1.5 px-4 py-1.5 rounded-xl border transition-all group ${!canAccessJobFeatures
-                      ? `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} opacity-50 cursor-not-allowed ${textSecondary}`
-                      : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
-                      }`}
+                    onMouseDown={() => { navigate('/post-job'); setShowProfileSidebar(false); }}
+                    className={`w-full flex items-center gap-1.5 px-4 py-1.5 rounded-xl border transition-all group ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`}
                   >
                     <div className="p-2 rounded-lg bg-blue-50 dark:bg-[#2271B5]/15 group-hover:bg-blue-100 dark:group-hover:bg-[#2271B5]/25 transition-colors">
                       <Plus size={18} className="text-[#2271B5] dark:text-blue-200" />
@@ -458,19 +403,8 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                     <span className={`font-semibold ${textSecondary} group-hover:text-[#2271B5] transition-colors`}>Post Job</span>
                   </button>
                   <button
-                    onMouseDown={() => {
-                      if (!canAccessJobFeatures) {
-                        alert(restrictionMessage);
-                      } else {
-                        navigate('/manage-jobs');
-                        setShowProfileSidebar(false);
-                      }
-                    }}
-                    disabled={!canAccessJobFeatures}
-                    className={`w-full flex items-center gap-1.5 px-4 py-1.5 rounded-xl border transition-all group ${!canAccessJobFeatures
-                      ? `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} opacity-50 cursor-not-allowed ${textSecondary}`
-                      : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
-                      }`}
+                    onMouseDown={() => { navigate('/manage-jobs'); setShowProfileSidebar(false); }}
+                    className={`w-full flex items-center gap-1.5 px-4 py-1.5 rounded-xl border transition-all group ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`}
                   >
                     <div className="p-2 rounded-lg bg-blue-50 dark:bg-[#2271B5]/15 group-hover:bg-blue-100 dark:group-hover:bg-[#2271B5]/25 transition-colors">
                       <FileText size={18} className="text-[#2271B5] dark:text-blue-200" />
@@ -478,19 +412,8 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                     <span className={`font-semibold ${textSecondary} group-hover:text-[#2271B5] transition-colors`}>Manage Jobs</span>
                   </button>
                   <button
-                    onMouseDown={() => {
-                      if (!canAccessJobFeatures) {
-                        alert(restrictionMessage);
-                      } else {
-                        navigate('/jobs');
-                        setShowProfileSidebar(false);
-                      }
-                    }}
-                    disabled={!canAccessJobFeatures}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${!canAccessJobFeatures
-                      ? `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} opacity-50 cursor-not-allowed ${textSecondary}`
-                      : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
-                      }`}
+                    onMouseDown={() => { navigate('/jobs'); setShowProfileSidebar(false); }}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`}
                   >
                     <div className="p-2 rounded-lg bg-blue-50 dark:bg-[#2271B5]/15 group-hover:bg-blue-100 dark:group-hover:bg-[#2271B5]/25 transition-colors">
                       <Users size={18} className="text-[#2271B5] dark:text-blue-200" />
@@ -500,19 +423,8 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
 
                   </button>
                   <button
-                    onMouseDown={() => {
-                      if (!canAccessJobFeatures) {
-                        alert(restrictionMessage);
-                      } else {
-                        navigate('/shortlist-candidates');
-                        setShowProfileSidebar(false);
-                      }
-                    }}
-                    disabled={!canAccessJobFeatures}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${!canAccessJobFeatures
-                      ? `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} opacity-50 cursor-not-allowed ${textSecondary}`
-                      : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
-                      }`}
+                    onMouseDown={() => { navigate('/shortlist-candidates'); setShowProfileSidebar(false); }}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`}
                   >
                     <div className="p-2 rounded-lg bg-blue-50 dark:bg-[#2271B5]/15 group-hover:bg-blue-100 dark:group-hover:bg-[#2271B5]/25 transition-colors">
                       <Star size={18} className="text-[#2271B5] dark:text-blue-200" />
@@ -605,19 +517,11 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                     </div>
                   </div>
 
-                  {!canAccessJobFeatures && (
-                    <div className="mt-3 p-3 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-900/40">
-                      <p className="text-xs text-yellow-800 dark:text-yellow-200 leading-relaxed">
-                        {restrictionMessage}
-                      </p>
-                    </div>
-                  )}
-
                   <button
                     onClick={() => { navigate('/company-profile'); closeMobileMenu(); }}
                     className="block w-full mt-4 py-2.5 text-center text-sm font-bold text-white bg-[#2271B5] hover:bg-[#1a5a8f] shadow-md hover:shadow-lg rounded-lg transition-all"
                   >
-                    {canAccessJobFeatures ? 'Edit Company Profile' : 'Complete Profile'}
+                    Edit Company Profile
                   </button>
                 </div>
 
@@ -666,20 +570,10 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                   </li>
                   <li>
                     <button
-                      onClick={() => {
-                        if (!canAccessJobFeatures) {
-                          alert(restrictionMessage);
-                        } else {
-                          navigate('/post-job');
-                          closeMobileMenu();
-                        }
-                      }}
-                      disabled={!canAccessJobFeatures}
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${!canAccessJobFeatures
-                        ? `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} opacity-50 cursor-not-allowed ${textSecondary}`
-                        : isActive("/post-job")
-                          ? `border-[#2271B5] ${isDark ? 'bg-[#2271B5]/15' : 'bg-blue-50'} text-[#2271B5]`
-                          : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white shadow-sm'} ${textSecondary} hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
+                      onClick={() => { navigate('/post-job'); closeMobileMenu(); }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${isActive("/post-job")
+                        ? `border-[#2271B5] ${isDark ? 'bg-[#2271B5]/15' : 'bg-blue-50'} text-[#2271B5]`
+                        : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white shadow-sm'} ${textSecondary} hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
                         }`}
                     >
                       <div className={`p-2 rounded-lg transition-colors ${isActive("/post-job")
@@ -696,20 +590,10 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                   </li>
                   <li>
                     <button
-                      onClick={() => {
-                        if (!canAccessJobFeatures) {
-                          alert(restrictionMessage);
-                        } else {
-                          navigate('/manage-jobs');
-                          closeMobileMenu();
-                        }
-                      }}
-                      disabled={!canAccessJobFeatures}
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${!canAccessJobFeatures
-                        ? `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} opacity-50 cursor-not-allowed ${textSecondary}`
-                        : isActive("/manage-jobs")
-                          ? `border-[#2271B5] ${isDark ? 'bg-[#2271B5]/15' : 'bg-blue-50'} text-[#2271B5]`
-                          : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white shadow-sm'} ${textSecondary} hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
+                      onClick={() => { navigate('/manage-jobs'); closeMobileMenu(); }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${isActive("/manage-jobs")
+                        ? `border-[#2271B5] ${isDark ? 'bg-[#2271B5]/15' : 'bg-blue-50'} text-[#2271B5]`
+                        : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white shadow-sm'} ${textSecondary} hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
                         }`}
                     >
                       <div className={`p-2 rounded-lg transition-colors ${isActive("/manage-jobs")
@@ -726,20 +610,10 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                   </li>
                   <li>
                     <button
-                      onClick={() => {
-                        if (!canAccessJobFeatures) {
-                          alert(restrictionMessage);
-                        } else {
-                          navigate('/jobs');
-                          closeMobileMenu();
-                        }
-                      }}
-                      disabled={!canAccessJobFeatures}
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${!canAccessJobFeatures
-                        ? `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} opacity-50 cursor-not-allowed ${textSecondary}`
-                        : isActive("/jobs")
-                          ? `border-[#2271B5] ${isDark ? 'bg-[#2271B5]/15' : 'bg-blue-50'} text-[#2271B5]`
-                          : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white shadow-sm'} ${textSecondary} hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
+                      onClick={() => { navigate('/jobs'); closeMobileMenu(); }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${isActive("/jobs")
+                        ? `border-[#2271B5] ${isDark ? 'bg-[#2271B5]/15' : 'bg-blue-50'} text-[#2271B5]`
+                        : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white shadow-sm'} ${textSecondary} hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
                         }`}
                     >
                       <div className={`p-2 rounded-lg transition-colors ${isActive("/jobs")
@@ -757,20 +631,10 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                   </li>
                   <li>
                     <button
-                      onClick={() => {
-                        if (!canAccessJobFeatures) {
-                          alert(restrictionMessage);
-                        } else {
-                          navigate('/shortlist-candidates');
-                          closeMobileMenu();
-                        }
-                      }}
-                      disabled={!canAccessJobFeatures}
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${!canAccessJobFeatures
-                        ? `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} opacity-50 cursor-not-allowed ${textSecondary}`
-                        : isActive("/shortlist-candidates")
-                          ? `border-[#2271B5] ${isDark ? 'bg-[#2271B5]/15' : 'bg-blue-50'} text-[#2271B5]`
-                          : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white shadow-sm'} ${textSecondary} hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
+                      onClick={() => { navigate('/shortlist-candidates'); closeMobileMenu(); }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${isActive("/shortlist-candidates")
+                        ? `border-[#2271B5] ${isDark ? 'bg-[#2271B5]/15' : 'bg-blue-50'} text-[#2271B5]`
+                        : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white shadow-sm'} ${textSecondary} hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
                         }`}
                     >
                       <div className={`p-2 rounded-lg transition-colors ${isActive("/shortlist-candidates")

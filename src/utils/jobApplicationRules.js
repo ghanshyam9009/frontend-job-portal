@@ -7,9 +7,60 @@ export const isAdminPostedJob = (job) => {
   return postedBy === "ADMIN";
 };
 
+/** Whether the job is marked as premium (premium_job / is_premium). */
+export const isPremiumJob = (job) =>
+  Boolean(job?.is_premium || job?.premium_job);
+
+/** Admin-assigned manual plan from Free Referral (e.g. "basic", "premium"). */
+export const getCandidateManualPlan = (user) => {
+  const manual = user?.is_manual_plan;
+  if (manual == null || manual === "") return null;
+  return String(manual).trim().toLowerCase();
+};
+
+export const hasCandidateManualPlan = (user) => Boolean(getCandidateManualPlan(user));
+
+/** Display label for the candidate's active plan name. */
+export const getCandidatePlanLabel = (user) => {
+  const manual = getCandidateManualPlan(user);
+  if (manual) {
+    return manual.charAt(0).toUpperCase() + manual.slice(1);
+  }
+
+  const raw = String(
+    user?.plan_name || user?.plan_id || user?.plan || user?.membership_type || ""
+  ).trim();
+  if (raw) return raw.charAt(0).toUpperCase() + raw.slice(1);
+  return null;
+};
+
+const mapPlanNameToTier = (raw) => {
+  const plan = String(raw || "").trim().toLowerCase();
+  if (!plan) return "free";
+
+  if (
+    plan === "premium" ||
+    plan.includes("premium") ||
+    ["gold", "platinum"].includes(plan)
+  ) {
+    return "premium";
+  }
+
+  if (plan === "standard" || plan === "basic" || plan === "silver") {
+    return "standard";
+  }
+
+  return "standard";
+};
+
 /** Candidate membership tier from auth user / profile fields. */
 export const getCandidatePlanTier = (user) => {
   if (!user) return "free";
+
+  const manualPlan = getCandidateManualPlan(user);
+  if (manualPlan) {
+    return mapPlanNameToTier(manualPlan);
+  }
 
   const isPaid =
     user.premium_user === true ||
@@ -19,46 +70,50 @@ export const getCandidatePlanTier = (user) => {
 
   if (!isPaid) return "free";
 
-  const raw = String(
+  return mapPlanNameToTier(
     user.plan_id || user.plan || user.membership_type || ""
-  )
-    .trim()
-    .toLowerCase();
-
-  if (!raw) return "premium";
-
-  if (
-    raw === "premium" ||
-    raw.includes("premium") ||
-    ["gold", "platinum"].includes(raw)
-  ) {
-    return "premium";
-  }
-
-  if (raw === "standard" || raw === "basic" || raw === "silver") {
-    return "standard";
-  }
-
-  return "standard";
+  );
 };
 
+const buildEligibility = (allowed, reason, user, job, extra = {}) => ({
+  allowed,
+  reason,
+  manualPlan: getCandidateManualPlan(user),
+  planLabel: getCandidatePlanLabel(user),
+  isPremiumJob: isPremiumJob(job),
+  route: isAdminPostedJob(job) ? "admin" : "recruiter",
+  ...extra,
+});
+
 /**
- * Standard plan → recruiter jobs only.
- * Premium plan → admin + recruiter jobs.
+ * Plan rules (admin vs recruiter does NOT matter):
+ *   basic/standard → non-premium jobs only
+ *   premium        → all jobs including premium
+ *   free           → membership required
  */
 export const canCandidateApply = (user, job) => {
+  const manualPlan = getCandidateManualPlan(user);
+  const jobIsPremium = isPremiumJob(job);
+
+  if (manualPlan) {
+    const tier = mapPlanNameToTier(manualPlan);
+
+    if (tier === "standard" && jobIsPremium) {
+      return buildEligibility(false, "manual_premium_job_required", user, job);
+    }
+
+    return buildEligibility(true, null, user, job);
+  }
+
   const tier = getCandidatePlanTier(user);
 
   if (tier === "free") {
-    return { allowed: false, reason: "membership_required" };
+    return buildEligibility(false, "membership_required", user, job);
   }
 
-  if (tier === "standard" && isAdminPostedJob(job)) {
-    return { allowed: false, reason: "premium_plan_required" };
+  if (tier === "standard" && jobIsPremium) {
+    return buildEligibility(false, "premium_plan_required", user, job);
   }
 
-  return {
-    allowed: true,
-    route: isAdminPostedJob(job) ? "admin" : "recruiter",
-  };
+  return buildEligibility(true, null, user, job);
 };

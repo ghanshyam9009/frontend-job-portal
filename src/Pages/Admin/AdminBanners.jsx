@@ -22,7 +22,8 @@ import {
 } from "lucide-react";
 
 const PAGE_OPTIONS = [
-  { value: "home", label: "Home", icon: Home },
+  { value: "home_first", label: "Home First Banner", icon: Home, hint: "Upper section on home page" },
+  { value: "home_second", label: "Home Second Banner", icon: Home, hint: "Lower section on home page" },
   { value: "job", label: "Job Listings", icon: Briefcase },
 ];
 
@@ -60,7 +61,14 @@ const shortId = (id) => (id ? `${String(id).slice(0, 8)}…` : "—");
 
 const pageLabel = (page) => {
   const p = (page || "").toLowerCase();
+  if (p === "home") return "Home (legacy)";
   return PAGE_OPTIONS.find((o) => o.value === p)?.label || page || "Unknown";
+};
+
+const normalizeBannerPage = (page) => {
+  const p = (page || "home_first").toLowerCase();
+  if (p === "home") return "home_second";
+  return PAGE_OPTIONS.some((o) => o.value === p) ? p : "home_first";
 };
 
 const AdminBanners = () => {
@@ -82,7 +90,7 @@ const AdminBanners = () => {
   const [message, setMessage] = useState("");
   const [copiedId, setCopiedId] = useState(null);
 
-  const [createPage, setCreatePage] = useState("home");
+  const [createPage, setCreatePage] = useState("home_first");
   const [createImageFile, setCreateImageFile] = useState(null);
   const [createDragOver, setCreateDragOver] = useState(false);
 
@@ -120,16 +128,17 @@ const AdminBanners = () => {
   }, [message]);
 
   const pageStats = useMemo(() => {
-    const stats = { home: 0, job: 0 };
+    const stats = { home_first: 0, home_second: 0, job: 0 };
     banners.forEach((b) => {
       const p = (b.page || "").toLowerCase();
-      if (stats[p] !== undefined) stats[p] += 1;
+      if (p === "home") stats.home_second += 1;
+      else if (stats[p] !== undefined) stats[p] += 1;
     });
     return stats;
   }, [banners]);
 
   const clearCreateForm = () => {
-    setCreatePage("home");
+    setCreatePage("home_first");
     setCreateImageFile(null);
   };
 
@@ -159,7 +168,7 @@ const AdminBanners = () => {
 
   const openEdit = (banner) => {
     setEditingBanner(banner);
-    setEditPage((banner?.page || "home").toLowerCase());
+    setEditPage(normalizeBannerPage(banner?.page));
     setEditImageFile(null);
   };
 
@@ -249,20 +258,22 @@ const AdminBanners = () => {
 
   const PageBadge = ({ page }) => {
     const p = (page || "").toLowerCase();
-    const isHome = p === "home";
+    const isJob = p === "job";
+    const isFirst = p === "home_first" || p === "home";
+    const badgeClass = isJob
+      ? isDark
+        ? "bg-blue-900/40 text-blue-300"
+        : "bg-blue-100 text-blue-800"
+      : isFirst
+        ? isDark
+          ? "bg-emerald-900/40 text-emerald-300"
+          : "bg-emerald-100 text-emerald-800"
+        : isDark
+          ? "bg-teal-900/40 text-teal-300"
+          : "bg-teal-100 text-teal-800";
     return (
-      <span
-        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-          isHome
-            ? isDark
-              ? "bg-emerald-900/40 text-emerald-300"
-              : "bg-emerald-100 text-emerald-800"
-            : isDark
-              ? "bg-blue-900/40 text-blue-300"
-              : "bg-blue-100 text-blue-800"
-        }`}
-      >
-        {isHome ? <Home size={12} /> : <Briefcase size={12} />}
+      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeClass}`}>
+        {isJob ? <Briefcase size={12} /> : <Home size={12} />}
         {pageLabel(page)}
       </span>
     );
@@ -309,7 +320,7 @@ const AdminBanners = () => {
               </h1>
             </div>
             <p className={`text-sm max-w-xl ${textSecondary}`}>
-              Manage hero banners for Home and Job pages. Images are stored on S3.
+              Manage Home First (upper) and Home Second (lower) banners, plus Job page banners. Images are stored on S3.
             </p>
           </div>
           <button
@@ -352,8 +363,8 @@ const AdminBanners = () => {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
             { label: "Total banners", value: totalCount, icon: Image, color: "indigo" },
-            { label: "Showing", value: banners.length, icon: LayoutGrid, color: "violet" },
-            { label: "Home page", value: pageStats.home, icon: Home, color: "emerald" },
+            { label: "Home first", value: pageStats.home_first, icon: Home, color: "emerald" },
+            { label: "Home second", value: pageStats.home_second, icon: Home, color: "teal" },
             { label: "Job page", value: pageStats.job, icon: Briefcase, color: "blue" },
           ].map(({ label, value, icon: Icon, color }) => (
             <div
@@ -368,9 +379,11 @@ const AdminBanners = () => {
                       ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300"
                       : color === "emerald"
                         ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-300"
-                        : color === "blue"
-                          ? "bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-300"
-                          : "bg-violet-100 text-violet-600 dark:bg-violet-900/50 dark:text-violet-300"
+                        : color === "teal"
+                          ? "bg-teal-100 text-teal-600 dark:bg-teal-900/50 dark:text-teal-300"
+                          : color === "blue"
+                            ? "bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-300"
+                            : "bg-violet-100 text-violet-600 dark:bg-violet-900/50 dark:text-violet-300"
                   }`}
                 >
                   <Icon size={18} />
@@ -393,21 +406,24 @@ const AdminBanners = () => {
 
               <form onSubmit={handleCreateBanner} className="space-y-5">
                 <div>
-                  <label className={`block text-sm font-medium ${textColor} mb-2`}>Target page</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {PAGE_OPTIONS.map(({ value, label, icon: Icon }) => (
+                  <label className={`block text-sm font-medium ${textColor} mb-2`}>Banner placement</label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {PAGE_OPTIONS.map(({ value, label, icon: Icon, hint }) => (
                       <button
                         key={value}
                         type="button"
                         onClick={() => setCreatePage(value)}
-                        className={`flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-medium transition-all ${
+                        className={`flex flex-col items-start gap-0.5 py-3 px-4 rounded-xl border text-left transition-all ${
                           createPage === value
                             ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
                             : `${borderColor} ${textSecondary} ${isDark ? "hover:bg-gray-700/50" : "hover:bg-gray-50"}`
                         }`}
                       >
-                        <Icon size={16} />
-                        {label}
+                        <span className="flex items-center gap-2 text-sm font-medium">
+                          <Icon size={16} />
+                          {label}
+                        </span>
+                        {hint && <span className="text-xs opacity-80 pl-6">{hint}</span>}
                       </button>
                     ))}
                   </div>
@@ -495,7 +511,8 @@ const AdminBanners = () => {
                 </h2>
                 <div className="flex flex-wrap gap-2">
                   <FilterTab value="all" label="All" count={totalCount} />
-                  <FilterTab value="home" label="Home" count={pageStats.home} />
+                  <FilterTab value="home_first" label="Home First" count={pageStats.home_first} />
+                  <FilterTab value="home_second" label="Home Second" count={pageStats.home_second} />
                   <FilterTab value="job" label="Job" count={pageStats.job} />
                 </div>
               </div>
@@ -632,21 +649,24 @@ const AdminBanners = () => {
             </div>
             <form onSubmit={handleUpdateBanner} className="p-6 space-y-5">
               <div>
-                <label className={`block text-sm font-medium ${textColor} mb-2`}>Page</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {PAGE_OPTIONS.map(({ value, label, icon: Icon }) => (
+                <label className={`block text-sm font-medium ${textColor} mb-2`}>Banner placement</label>
+                <div className="grid grid-cols-1 gap-2">
+                  {PAGE_OPTIONS.map(({ value, label, icon: Icon, hint }) => (
                     <button
                       key={value}
                       type="button"
                       onClick={() => setEditPage(value)}
-                      className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                      className={`flex flex-col items-start gap-0.5 py-2.5 px-4 rounded-xl border text-left transition-all ${
                         editPage === value
                           ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
                           : `${borderColor} ${textSecondary}`
                       }`}
                     >
-                      <Icon size={16} />
-                      {label}
+                      <span className="flex items-center gap-2 text-sm font-medium">
+                        <Icon size={16} />
+                        {label}
+                      </span>
+                      {hint && <span className="text-xs opacity-80 pl-6">{hint}</span>}
                     </button>
                   ))}
                 </div>

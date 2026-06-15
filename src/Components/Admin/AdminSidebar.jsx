@@ -16,7 +16,8 @@ import {
   LogOut,
   Briefcase,
   X,
-  Image
+  Image,
+  Gift
 } from "lucide-react";
 import { adminService } from "../../services/adminService";
 import { contactService } from "../../services/contactService";
@@ -173,6 +174,12 @@ const AdminSidebar = ({ isOpen, onClose }) => {
           label: 'Plans',
           icon: CreditCard,
           path: '/admin/plans'
+        },
+        {
+          id: 'free-referral',
+          label: 'Free Referral',
+          icon: Gift,
+          path: '/admin/free-referral'
         },
         {
           id: 'membership',
