@@ -222,7 +222,7 @@ const JobDescription = () => {
         );
       } else if (eligibility.reason === "premium_plan_required") {
         setApplicationError(
-          "Your Standard plan lets you apply to recruiter jobs only. Upgrade to Premium to apply for admin-posted jobs."
+          "Your Basic/Standard plan does not include premium jobs. Upgrade to Premium to apply for premium jobs."
         );
       } else {
         setApplicationError("");
@@ -497,8 +497,8 @@ const JobDescription = () => {
                     )}
                     {applyEligibility?.reason === "premium_plan_required" && !onManualPlan && (
                       <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2">
-                        Standard plan: apply to recruiter jobs only. Upgrade to Premium for
-                        admin-posted jobs.
+                        Basic/Standard plan: apply to regular jobs only. Upgrade to Premium to apply
+                        for premium jobs.
                       </p>
                     )}
                     {onManualPlan && applyEligibility?.allowed && (
@@ -912,18 +912,17 @@ const JobDescription = () => {
                   </>
                 ) : premiumModalReason === "premium_plan_required" ? (
                   <>
-                    Your <span className="font-bold text-slate-800 dark:text-white">Standard</span> plan
-                    lets you apply to recruiter-posted jobs. This job was posted by{" "}
-                    <span className="font-bold text-indigo-600">Admin</span> — upgrade to a{" "}
-                    <span className="text-amber-600 font-bold">Premium</span> plan to apply here
-                    and unlock all job types.
+                    This is a <span className="text-amber-600 font-bold">premium job</span>. Your{" "}
+                    <span className="font-bold text-slate-800 dark:text-white">Basic/Standard</span>{" "}
+                    plan lets you apply to regular jobs only — upgrade to a{" "}
+                    <span className="text-amber-600 font-bold">Premium</span> plan to apply here.
                   </>
                 ) : (
                   <>
                     You need an active membership to apply. Choose a{" "}
-                    <span className="font-bold text-slate-800 dark:text-white">Standard</span> plan
-                    for recruiter jobs, or <span className="text-amber-600 font-bold">Premium</span>{" "}
-                    to apply on both recruiter and admin jobs.
+                    <span className="font-bold text-slate-800 dark:text-white">Basic/Standard</span> plan
+                    for regular jobs, or <span className="text-amber-600 font-bold">Premium</span>{" "}
+                    to apply on premium jobs as well.
                   </>
                 )}
               </p>

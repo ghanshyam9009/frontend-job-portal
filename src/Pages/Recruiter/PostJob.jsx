@@ -1,14 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { jobService } from "../../services/jobService";
 import { recruiterService } from "../../services/recruiterService";
-import { calculateRecruiterProfileCompletion, isProfileComplete } from "../../utils/recruiterProfileUtils";
 import {
   Check,
-  AlertTriangle,
-  Building,
   Briefcase,
   MapPin,
   DollarSign,
@@ -23,7 +19,6 @@ import {
 } from "lucide-react";
 
 const PostJob = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
@@ -60,31 +55,6 @@ const PostJob = () => {
   const [logoFile, setLogoFile] = useState(null);
 
   const [newSkill, setNewSkill] = useState("");
-  const [canPostJob, setCanPostJob] = useState(false);
-  const [restrictionReason, setRestrictionReason] = useState("");
-
-  // Check profile completion and KYC status
-  useEffect(() => {
-    if (user) {
-      const profileComplete = isProfileComplete(user);
-      const adminApproved = user.hasadminapproved === true;
-
-      if (!profileComplete) {
-        const completionPercentage = calculateRecruiterProfileCompletion(user);
-        setCanPostJob(false);
-        setRestrictionReason(`Complete your company profile (${completionPercentage}% / 100%) before posting jobs. Please complete all required fields.`);
-      } else if (!adminApproved) {
-        setCanPostJob(false);
-        setRestrictionReason("Admin approval is required before you can access hiring features. Please wait for approval.");
-      } else {
-        setCanPostJob(true);
-        setRestrictionReason("");
-      }
-    } else {
-      setCanPostJob(false);
-      setRestrictionReason("Unable to verify account status. Please refresh and try again.");
-    }
-  }, [user]);
 
   // Fetch recruiter profile data including company logo
   useEffect(() => {
@@ -287,30 +257,10 @@ const PostJob = () => {
           <p className={`${textSecondary} text-sm`}>Fill in the details below to create a new job posting</p>
         </div>
 
-        {/* Restriction Notice */}
-        {!canPostJob && restrictionReason && (
-          <div className={`${cardBg} border-2 border-yellow-500 rounded-lg p-4 sm:p-5 mb-6`}>
-            <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
-              <AlertTriangle className="text-yellow-500 flex-shrink-0 sm:mt-0.5" size={24} />
-              <div className="flex-1 min-w-0">
-                <h3 className={`font-bold ${textColor} mb-2`}>Job Posting Restricted</h3>
-                <p className={`${textSecondary} text-sm mb-3`}>{restrictionReason}</p>
-                <button
-                  onClick={() => navigate('/company-profile')}
-                  className="inline-flex w-full sm:w-auto justify-center items-center gap-2 px-4 py-2 bg-[#2271B5] text-white rounded-md hover:bg-[#1a5a8f] transition-colors text-sm font-medium"
-                >
-                  <Building size={16} />
-                  Complete Profile & KYC
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Form */}
         <form
           onSubmit={handleSubmit}
-          className={`space-y-6 ${!canPostJob ? 'opacity-50 pointer-events-none' : ''}`}
+          className="space-y-6"
         >
           {/* Basic Information */}
           <div className={`${cardBg} rounded-lg shadow-sm border ${borderColor} p-4 sm:p-5`}>

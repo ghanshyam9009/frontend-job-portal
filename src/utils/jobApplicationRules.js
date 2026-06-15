@@ -86,17 +86,13 @@ const buildEligibility = (allowed, reason, user, job, extra = {}) => ({
 });
 
 /**
- * Manual referral plan (is_manual_plan):
- *   basic  → basic (non-premium) jobs only
- *   premium → premium jobs bhi apply kar sakta hai
- *
- * Paid membership (no manual plan):
- *   standard → recruiter jobs only
- *   premium  → admin + recruiter jobs
+ * Plan rules (admin vs recruiter does NOT matter):
+ *   basic/standard → non-premium jobs only
+ *   premium        → all jobs including premium
+ *   free           → membership required
  */
 export const canCandidateApply = (user, job) => {
   const manualPlan = getCandidateManualPlan(user);
-  const planLabel = getCandidatePlanLabel(user);
   const jobIsPremium = isPremiumJob(job);
 
   if (manualPlan) {
@@ -115,7 +111,7 @@ export const canCandidateApply = (user, job) => {
     return buildEligibility(false, "membership_required", user, job);
   }
 
-  if (tier === "standard" && isAdminPostedJob(job)) {
+  if (tier === "standard" && jobIsPremium) {
     return buildEligibility(false, "premium_plan_required", user, job);
   }
 
