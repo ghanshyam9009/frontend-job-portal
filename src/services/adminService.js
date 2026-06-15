@@ -298,7 +298,7 @@ export const adminService = {
       return response.data;
     } catch (error) {
       try {
-        const fallbackResponse = await adminApiClient.post(`/job/Updatejobs/${jobId}`, payload);
+        const fallbackResponse = await adminApiClient.post(`/job/updaterecruiterjobs/${jobId}`, payload);
         return fallbackResponse.data;
       } catch (fallbackErr) {
         console.error('Error updating admin job (primary and fallback):', error, fallbackErr);

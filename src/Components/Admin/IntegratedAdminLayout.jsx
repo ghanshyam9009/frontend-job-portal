@@ -20,7 +20,8 @@ import {
   Sun,
   Moon,
   ChevronDown,
-  Image
+  Image,
+  Gift
 } from "lucide-react";
 import { adminService } from "../../services/adminService";
 import { contactService } from "../../services/contactService";
@@ -213,6 +214,12 @@ const IntegratedAdminLayout = () => {
           label: 'Plans',
           icon: CreditCard,
           path: '/admin/plans'
+        },
+        {
+          id: 'free-referral',
+          label: 'Free Referral',
+          icon: Gift,
+          path: '/admin/free-referral'
         },
         {
           id: 'membership',

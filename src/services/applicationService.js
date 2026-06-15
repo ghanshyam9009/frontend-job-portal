@@ -1,28 +1,31 @@
 import apiClient from './apiClient';
 import { API_ENDPOINTS } from '../config/api';
 import { withErrorHandling } from '../utils/errorHandler';
+import { isAdminPostedJob } from '../utils/jobApplicationRules';
 
 export const applicationService = {
-  // Apply for a job
-  async applyForJob(jobId, applicationData) {
+  /**
+   * Apply for a job. Route depends on who posted the job:
+   * - ADMIN → POST /application/Adminjobs/:job_id/apply
+   * - RECRUITER (etc.) → POST /application/jobs/:job_id/apply
+   */
+  async applyForJob(jobId, applicationData, options = {}) {
     return withErrorHandling(async () => {
-      // jobId is in URL path, don't include it in body
-      const response = await fetch(`https://api.bigsources.in/api/application/jobs/${jobId}/apply`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(applicationData),
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
+      const postedBy = options.postedBy ?? options.posted_by;
+      const useAdminRoute =
+        options.useAdminRoute !== undefined
+          ? options.useAdminRoute
+          : isAdminPostedJob({ posted_by: postedBy });
+
+      const endpoint = useAdminRoute
+        ? API_ENDPOINTS.applications.applyAdminJob(jobId)
+        : API_ENDPOINTS.applications.applyRecruiterJob(jobId);
+
+      const response = await apiClient.post(endpoint, applicationData);
+      return response;
     }, 'Failed to submit application');
   },
 
-  // Get user's applications
   async getUserApplications(userId) {
     return withErrorHandling(async () => {
       const response = await apiClient.get(API_ENDPOINTS.applications.getByStudent(userId));
@@ -30,7 +33,6 @@ export const applicationService = {
     }, 'Failed to fetch applications');
   },
 
-  // Get application by ID
   async getApplicationById(applicationId) {
     return withErrorHandling(async () => {
       const response = await apiClient.get(API_ENDPOINTS.applications.getById(applicationId));
@@ -38,27 +40,27 @@ export const applicationService = {
     }, 'Failed to fetch application');
   },
 
-  // Update application
   async updateApplication(applicationId, applicationData) {
     return withErrorHandling(async () => {
-      const response = await apiClient.put(API_ENDPOINTS.applications.update(applicationId), applicationData);
+      const response = await apiClient.put(
+        API_ENDPOINTS.applications.update(applicationId),
+        applicationData
+      );
       return response;
     }, 'Failed to update application');
   },
 
-  // Get application status
   async getApplicationStatus(applicationId) {
     return withErrorHandling(async () => {
       const response = await apiClient.get(API_ENDPOINTS.applications.getById(applicationId));
       return {
         status: response.status,
         message: response.status_message || 'Your application is under review',
-        updated_at: response.updated_at
+        updated_at: response.updated_at,
       };
     }, 'Failed to fetch application status');
   },
 
-  // Withdraw application
   async withdrawApplication(applicationId) {
     return withErrorHandling(async () => {
       const response = await apiClient.delete(API_ENDPOINTS.applications.withdraw(applicationId));
@@ -66,7 +68,6 @@ export const applicationService = {
     }, 'Failed to withdraw application');
   },
 
-  // Get applications by job
   async getApplicationsByJob(jobId, params = {}) {
     return withErrorHandling(async () => {
       const response = await apiClient.get(API_ENDPOINTS.applications.getByJob(jobId), { params });
@@ -74,30 +75,30 @@ export const applicationService = {
     }, 'Failed to fetch job applications');
   },
 
-  // Get applications by employer
   async getApplicationsByEmployer(employerId, params = {}) {
     return withErrorHandling(async () => {
-      const response = await apiClient.get(API_ENDPOINTS.applications.getByEmployer(employerId), { params });
+      const response = await apiClient.get(
+        API_ENDPOINTS.applications.getByEmployer(employerId),
+        { params }
+      );
       return response;
     }, 'Failed to fetch employer applications');
   },
 
-  // Update application status (for employers)
   async updateApplicationStatus(applicationId, status, notes = '') {
     return withErrorHandling(async () => {
       const response = await apiClient.put(API_ENDPOINTS.applications.updateStatus(applicationId), {
         status,
-        notes
+        notes,
       });
       return response;
     }, 'Failed to update application status');
   },
 
-  // Get all applications (admin)
   async getAllApplications(params = {}) {
     return withErrorHandling(async () => {
       const response = await apiClient.get(API_ENDPOINTS.applications.getAll, { params });
       return response;
     }, 'Failed to fetch applications');
-  }
+  },
 };

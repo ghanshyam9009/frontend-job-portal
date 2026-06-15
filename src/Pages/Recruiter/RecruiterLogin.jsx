@@ -6,7 +6,7 @@ import { useTheme } from "../../Contexts/ThemeContext"; // Import useTheme
 import { validateForm } from "../../utils/errorHandler";
 import apiClient from "../../services/apiClient";
 import { API_ENDPOINTS } from "../../config/api";
-import { Clock, XCircle, Mail, Lock, Eye, EyeOff, RefreshCcw } from "lucide-react";
+import { Clock, XCircle, Mail, Lock, Eye, EyeOff, BadgeCheck, Loader2 } from "lucide-react";
 import styles from "../../Styles/Auth.module.css";
 import HomeNav from "../../Components/HomeNav";
 import logo from "../../assets/logo.png";
@@ -381,40 +381,49 @@ const RecruiterLogin = () => {
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="you@company.com"
-                    className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
+                    className={`${styles.input} ${errors.email ? styles.inputError : ''} ${
+                      !isLogin && otpVerified
+                        ? styles.inputVerified
+                        : !isLogin && !otpVerified
+                          ? styles.inputWithVerifyBtn
+                          : ''
+                    }`}
                     required
                     disabled={!isLogin && otpVerified}
-                    style={(!isLogin && !otpVerified) ? { paddingRight: '90px' } : undefined}
                   />
                   {!isLogin && !otpVerified && (
                     <button
                       type="button"
                       onClick={handleSendOtp}
                       disabled={isVerifyingEmail || !formData.email || otpSent}
+                      className={`${styles.verifyEmailBtn} ${otpSent ? styles.verifyEmailBtnSent : ''}`}
                       style={{
-                        position: 'absolute',
-                        right: '6px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'transparent',
-                        color: '#3b82f6',
-                        border: 'none',
-                        padding: '6px',
-                        cursor: (isVerifyingEmail || !formData.email || otpSent) ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        opacity: (isVerifyingEmail || !formData.email) ? 0.7 : (otpSent ? 0.5 : 1)
+                        opacity: (isVerifyingEmail || !formData.email) ? 0.7 : 1,
                       }}
-                      title={isVerifyingEmail ? 'Sending...' : otpSent ? 'OTP Sent' : 'Verify Email'}
+                      title={isVerifyingEmail ? 'Sending OTP...' : otpSent ? 'OTP sent to your email' : 'Send verification OTP to email'}
                     >
-                      <RefreshCcw 
-                        size={22} 
-                        style={isVerifyingEmail ? { animation: 'spin 1s linear infinite' } : {}} 
-                      />
+                      {isVerifyingEmail ? (
+                        <>
+                          <Loader2
+                            size={14}
+                            style={{ animation: 'recruiterVerifySpin 1s linear infinite' }}
+                          />
+                          <span>Sending</span>
+                        </>
+                      ) : otpSent ? (
+                        <>
+                          <BadgeCheck size={14} />
+                          <span>OTP Sent</span>
+                        </>
+                      ) : (
+                        <>
+                          <BadgeCheck size={14} />
+                          <span>Verify</span>
+                        </>
+                      )}
                       <style>
                         {`
-                          @keyframes spin {
+                          @keyframes recruiterVerifySpin {
                             100% { transform: rotate(360deg); }
                           }
                         `}
@@ -422,15 +431,10 @@ const RecruiterLogin = () => {
                     </button>
                   )}
                   {!isLogin && otpVerified && (
-                     <span style={{
-                        position: 'absolute',
-                        right: '12px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        color: '#10b981',
-                        fontWeight: 'bold',
-                        fontSize: '0.875rem'
-                     }}>Verified ✓</span>
+                    <span className={styles.emailVerifiedBadge} aria-label="Email verified">
+                      <BadgeCheck size={16} fill="#059669" stroke="#fff" strokeWidth={2} />
+                      <span>Verified</span>
+                    </span>
                   )}
                 </div>
                 {errors.email && <span className={styles.errorText}>{errors.email}</span>}

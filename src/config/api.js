@@ -1,4 +1,5 @@
 // API Configuration - Use environment variable for flexibility
+// const API_BASE_URL_ENV = "https://api.bigsources.in/api";
 const API_BASE_URL_ENV = "http://localhost:4000/api";
 
 const API_CONFIG = {
@@ -51,7 +52,9 @@ export const API_ENDPOINTS = {
     update: (id) => `/students/${id}`,
     delete: (id) => `/students/${id}`,
     uploadResume: (id) => `/students/${id}/resume`,
-    uploadProfileImage: (id) => `/students/${id}/profile-image`
+    uploadProfileImage: (id) => `/students/${id}/profile-image`,
+    getUsers: '/students/users',
+    manualPlan: '/students/manual-plan'
   },
 
   // Recruiters/Employers
@@ -150,6 +153,8 @@ export const API_ENDPOINTS = {
     getByStudent: (studentId) => `/applications/student/${studentId}`,
     updateStatus: (id) => `/applications/${id}/status`,
     applyToJob: (jobId) => `/applications/jobs/${jobId}/apply`,
+    applyRecruiterJob: (jobId) => `/application/jobs/${jobId}/apply`,
+    applyAdminJob: (jobId) => `/application/Adminjobs/${jobId}/apply`,
     withdraw: (id) => `/applications/${id}/withdraw`,
     getByEmployer: (employerId) => `/applications/employer/${employerId}`
   },

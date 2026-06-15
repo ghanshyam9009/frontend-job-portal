@@ -3,11 +3,18 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../Contexts/AuthContext";
 import { applicationService } from "../services/applicationService";
+import {
+  canCandidateApply,
+  getCandidatePlanLabel,
+  hasCandidateManualPlan,
+  isAdminPostedJob,
+  isPremiumJob,
+} from "../utils/jobApplicationRules";
+import { getJobPostedByDisplayLabel } from "../utils/jobDisplayUtils";
 import { candidateExternalService } from "../services/candidateExternalService";
-import { recruiterExternalService } from "../services/recruiterExternalService";
 import { studentService } from "../services/studentService";
 import HomeNav from "../Components/HomeNav";
-import { Bookmark, Briefcase, Contact, Contact2, MapPin, Sparkles, TrendingUp, ArrowLeft, X, Crown, ArrowRight, CheckCircle } from "lucide-react";
+import { Bookmark, ArrowLeft, X, Crown, ArrowRight, CheckCircle, Briefcase, MapPin, Sparkles, TrendingUp } from "lucide-react";
 import Footer from "../Components/Footer";
 import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import RecruiterNavbar from "../Components/Recruiter/RecruiterNavbar";
@@ -22,114 +29,20 @@ const JobDescription = () => {
   const [applicationError, setApplicationError] = useState("");
   const [applicationSuccess, setApplicationSuccess] = useState("");
   const [job, setJob] = useState(null);
+  const [relatedJobs, setRelatedJobs] = useState([]);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [premiumModalReason, setPremiumModalReason] = useState("membership_required");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hasApplied, setHasApplied] = useState(false);
-  const [adminApplicationCount, setAdminApplicationCount] = useState(null);
-
   const textSecondary = isDarkMode ? 'text-gray-300' : 'text-gray-600';
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const location = useLocation();
 
-  // Calculate profile completion percentage
-  const calculateProfileCompletion = (userData) => {
-    const steps = [
-      {
-        title: 'Personal Info',
-        fields: [
-          { name: 'full_name', required: true, weight: 10 },
-          { name: 'phone_number', required: true, weight: 5 },
-          { name: 'username', required: true, weight: 3 },
-          { name: 'gender', required: true, weight: 2 }
-        ],
-        totalWeight: 20
-      },
-      {
-        title: 'Address',
-        fields: [
-          { name: 'address.city', required: true, weight: 8 },
-          { name: 'address.state', required: true, weight: 6 },
-          { name: 'address.country', required: true, weight: 6 }
-        ],
-        totalWeight: 20
-      },
-      {
-        title: 'Professional',
-        fields: [
-          { name: 'bio', required: true, weight: 15 },
-          { name: 'skills', required: true, weight: 5 }
-        ],
-        totalWeight: 20
-      },
-      {
-        title: 'Education',
-        fields: [],
-        totalWeight: 20,
-        isArray: true,
-        arrayField: 'education'
-      },
-      {
-        title: 'Experience',
-        fields: [],
-        totalWeight: 20,
-        isArray: true,
-        arrayField: 'experience'
-      }
-    ];
-
-    let totalCompleted = 0;
-
-    steps.forEach(step => {
-      let stepCompleted = 0;
-
-      if (step.isArray) {
-        const arrayData = userData[step.arrayField] || [];
-        if (Array.isArray(arrayData) && arrayData.length > 0) {
-          const hasValidEntry = arrayData.some(item => {
-            return Object.values(item).some(value =>
-              value && typeof value === 'string' && value.trim() !== ''
-            );
-          });
-          if (hasValidEntry) {
-            stepCompleted = step.totalWeight;
-          }
-        }
-      } else {
-        const totalFieldWeight = step.fields.reduce((sum, field) => sum + field.weight, 0);
-        let completedFieldWeight = 0;
-
-        step.fields.forEach(field => {
-          const keys = field.name.split('.');
-          let value = userData;
-          let hasValue = false;
-
-          for (const key of keys) {
-            value = value && value[key];
-          }
-
-          if (value && value.toString().trim() !== '') {
-            hasValue = true;
-          }
-
-          if (hasValue) {
-            completedFieldWeight += field.weight;
-          }
-        });
-
-        if (totalFieldWeight > 0) {
-          stepCompleted = Math.round((completedFieldWeight / totalFieldWeight) * step.totalWeight);
-        }
-      }
-
-      totalCompleted += stepCompleted;
-    });
-
-    return Math.min(100, Math.round(totalCompleted));
-  };
+  // Calculate profile completion percentag
 
   const toggleBookmark = async (jobId) => {
     if (!isAuthenticated || !user) {
@@ -199,29 +112,6 @@ const JobDescription = () => {
     if (job && !loading) checkAppliedStatus();
   }, [isAuthenticated, user, job, loading]);
 
-  useEffect(() => {
-    if (!isAdminView || !resolvedJobId) {
-      setAdminApplicationCount(null);
-      return;
-    }
-
-    let cancelled = false;
-    recruiterExternalService
-      .getApplicationCount(resolvedJobId)
-      .then((res) => {
-        if (cancelled) return;
-        setAdminApplicationCount(Number(res?.application_count ?? 0));
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setAdminApplicationCount(Number(job?.application_count ?? 0));
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isAdminView, resolvedJobId, job?.application_count]);
-
   const fetchJobDetails = async () => {
     setLoading(true);
     setError(null);
@@ -267,11 +157,34 @@ const JobDescription = () => {
         throw new Error("Job not found");
       }
 
-      setJob(foundJob);
+      // Keep applications from route state / list API when getalljobs omits them
+      const mergedJob = {
+        ...foundJob,
+        ...(baseJob?.applications != null && { applications: baseJob.applications }),
+        ...(baseJob?.applications_count != null && {
+          applications_count: baseJob.applications_count,
+        }),
+      };
+      setJob(mergedJob);
 
+      const currentJobId = mergedJob.job_id || mergedJob.id;
+      const related = jobsArray
+        .filter((j) => (j.job_id || j.id) !== currentJobId)
+        .sort((a, b) => {
+          const score = (item) => {
+            let points = 0;
+            if (item.company_name && item.company_name === mergedJob.company_name) points += 2;
+            if (item.location && item.location === mergedJob.location) points += 1;
+            return points;
+          };
+          return score(b) - score(a);
+        })
+        .slice(0, 6);
+      setRelatedJobs(related);
     } catch (err) {
       console.error("Error fetching job details:", err);
       setError("Failed to load job details. Please try again.");
+      setRelatedJobs([]);
     } finally {
       setLoading(false);
     }
@@ -299,8 +212,21 @@ const JobDescription = () => {
       return;
     }
 
-    if (!user.premium_user) {
+    const eligibility = canCandidateApply(user, job);
+    if (!eligibility.allowed) {
+      setPremiumModalReason(eligibility.reason);
       setShowPremiumModal(true);
+      if (eligibility.reason === "manual_premium_job_required") {
+        setApplicationError(
+          `Premium plan required. Your ${eligibility.planLabel || "Basic"} referral plan does not include premium access. Contact admin to upgrade.`
+        );
+      } else if (eligibility.reason === "premium_plan_required") {
+        setApplicationError(
+          "Your Standard plan lets you apply to recruiter jobs only. Upgrade to Premium to apply for admin-posted jobs."
+        );
+      } else {
+        setApplicationError("");
+      }
       return;
     }
 
@@ -340,7 +266,8 @@ const JobDescription = () => {
 
       const response = await applicationService.applyForJob(
         job.job_id || job.id,
-        applicationData
+        applicationData,
+        { postedBy: job.posted_by || job.postedBy }
       );
 
       if (response?.success) {
@@ -351,7 +278,9 @@ const JobDescription = () => {
       }
     } catch (err) {
       console.error("Application error:", err);
-      setApplicationError("An error occurred while submitting the application");
+      setApplicationError(
+        err?.message || err?.error || "An error occurred while submitting the application"
+      );
     } finally {
       setIsApplying(false);
     }
@@ -404,6 +333,30 @@ const JobDescription = () => {
     if (min && max) return `${min} - ${max}`;
     if (min) return `${min}+`;
     return `Up to ${max}`;
+  };
+
+  const formatExperience = (exp) => {
+    if (!exp) return "Not specified";
+    if (typeof exp === "object" && exp !== null) {
+      const min = exp.min_years || exp.min_experience;
+      const max = exp.max_years || exp.max_experience;
+      if (min && max) return `${min}-${max} Yrs`;
+      if (min) return `${min}+ Yrs`;
+      if (max) return `Up to ${max} Yrs`;
+      return "Not specified";
+    }
+    return exp;
+  };
+
+  const getCompanyColor = (index) => {
+    const colors = [
+      "bg-gradient-to-br from-blue-500 to-blue-600",
+      "bg-gradient-to-br from-purple-500 to-purple-600",
+      "bg-gradient-to-br from-emerald-500 to-emerald-600",
+      "bg-gradient-to-br from-orange-500 to-orange-600",
+      "bg-gradient-to-br from-pink-500 to-pink-600",
+    ];
+    return colors[index % colors.length];
   };
 
   const parseJobDescription = (description) => {
@@ -471,6 +424,15 @@ const JobDescription = () => {
     return null;
   }
 
+  const applyEligibility =
+    isAuthenticated && !isRecruiter && !isAdminView
+      ? canCandidateApply(user, job)
+      : null;
+  const jobIsAdminPosted = isAdminPostedJob(job);
+  const postedByLabel = getJobPostedByDisplayLabel(job);
+  const candidatePlanLabel = getCandidatePlanLabel(user);
+  const onManualPlan = hasCandidateManualPlan(user);
+
   return (
     <>
       {!isAdminView && (user ? (user.company_name ? <RecruiterNavbar /> : <CandidateNavbar />) : <HomeNav />)}
@@ -478,7 +440,7 @@ const JobDescription = () => {
       <div className={`${isDarkMode ? "bg-slate-900 text-slate-100" : "bg-gray-100 text-slate-900"} min-h-screen font-sans ${isAdminView ? "pt-4" : "pt-20 lg:pt-24"}`}>
 
         {/* Back button – navbar ke niche, fixed spacing */}
-        <div className="max-w-5xl mx-auto px-3 sm:px-4 pt-4 pb-2">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 pt-4 pb-2">
           <button
             type="button"
             onClick={() => navigate(-1)}
@@ -489,11 +451,11 @@ const JobDescription = () => {
           </button>
         </div>
 
-        <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
           <div className="grid lg:grid-cols-12 gap-4 sm:gap-6">
 
             {/* LEFT / MAIN */}
-            <main className="space-y-4 sm:space-y-6 lg:col-span-12">
+            <main className="space-y-4 sm:space-y-6 lg:col-span-8">
 
               {/* Job header card */}
               <div className={`bg-white ${isDarkMode ? "dark:bg-slate-800" : ""} rounded-xl p-4 sm:p-6 shadow`}>
@@ -507,15 +469,43 @@ const JobDescription = () => {
                       </span>
                       {job.company_rating && <span className="text-yellow-500">⭐ {job.company_rating}</span>}
                       {job.company_reviews && <span className="text-gray-400">({job.company_reviews} Reviews)</span>}
-                      {job.is_premium && (
+                      {isPremiumJob(job) && (
                         <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded text-xs">Premium</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 mb-3">
                       <span className="font-semibold text-sm sm:text-base text-slate-800 dark:text-black">
                         {job.company_name || "Company"}
                       </span>
+                      {postedByLabel && (
+                        <span
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                            jobIsAdminPosted
+                              ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                              : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          }`}
+                        >
+                          Posted by {postedByLabel}
+                        </span>
+                      )}
                     </div>
+                    {applyEligibility?.reason === "manual_premium_job_required" && (
+                      <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2">
+                        <strong>Premium plan required.</strong> Your <strong>{candidatePlanLabel}</strong>{" "}
+                        referral plan does not include premium access. Contact admin to upgrade.
+                      </p>
+                    )}
+                    {applyEligibility?.reason === "premium_plan_required" && !onManualPlan && (
+                      <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2">
+                        Standard plan: apply to recruiter jobs only. Upgrade to Premium for
+                        admin-posted jobs.
+                      </p>
+                    )}
+                    {onManualPlan && applyEligibility?.allowed && (
+                      <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 mb-2">
+                        Active referral plan: <strong>{candidatePlanLabel}</strong>
+                      </p>
+                    )}
                     {/* Meta info - wraps gracefully on small screens */}
                     <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
                       <div className="flex items-center gap-1">💰 {getSalaryDisplay(job)}</div>
@@ -584,31 +574,16 @@ const JobDescription = () => {
                 {/* Action buttons – Recruiter/Admin par Apply nahi */}
                 <div className="mt-4 flex gap-2 sm:gap-3">
                   {isAdminView ? (
-                    <>
-                      <button
-                        onClick={() =>
-                          navigate(`/admin/job-reports/applications/${job?.job_id || job?.id || jobId}`, {
-                            state: {
-                              jobTitle: job?.job_title,
-                              companyName: job?.company_name,
-                            },
-                          })
-                        }
-                        className="flex-1 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-full hover:bg-blue-700 text-sm"
-                      >
-                        View Applications ({adminApplicationCount ?? Number(job?.application_count ?? 0)})
-                      </button>
-                      <button
-                        onClick={() =>
-                          navigate(`/admin/edit-job/${job?.job_id || job?.id || jobId}`, {
-                            state: { employer_id: job?.employer_id || job?.recruiter_id },
-                          })
-                        }
-                        className="flex-1 border border-blue-500 text-blue-600 px-3 sm:px-4 py-2 rounded-full hover:bg-blue-50 text-sm"
-                      >
-                        Edit Job
-                      </button>
-                    </>
+                    <button
+                      onClick={() =>
+                        navigate(`/admin/edit-job/${job?.job_id || job?.id || jobId}`, {
+                          state: { employer_id: job?.employer_id || job?.recruiter_id },
+                        })
+                      }
+                      className="flex-1 border border-blue-500 text-blue-600 px-3 sm:px-4 py-2 rounded-full hover:bg-blue-50 text-sm"
+                    >
+                      Edit Job
+                    </button>
                   ) : isRecruiter ? (
                     <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">View only</span>
                   ) : !isAuthenticated ? (
@@ -630,10 +605,27 @@ const JobDescription = () => {
                     <>
                       <button
                         onClick={handleApplyClick}
-                        disabled={hasApplied || isApplying}
-                        className={`flex-1 px-3 sm:px-4 py-2 rounded-full text-white text-sm sm:text-base ${hasApplied ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
+                        disabled={
+                          hasApplied ||
+                          isApplying ||
+                          applyEligibility?.allowed === false
+                        }
+                        className={`flex-1 px-3 sm:px-4 py-2 rounded-full text-white text-sm sm:text-base ${
+                          hasApplied || applyEligibility?.allowed === false
+                            ? "bg-gray-400 cursor-not-allowed"
+                            : "bg-blue-600 hover:bg-blue-700"
+                        }`}
                       >
-                        {isApplying ? "⏳ Applying..." : hasApplied ? "✓ Applied" : "Apply Now"}
+                        {isApplying
+                          ? "⏳ Applying..."
+                          : hasApplied
+                            ? "✓ Applied"
+                            : applyEligibility?.reason === "premium_plan_required" ||
+                                applyEligibility?.reason === "manual_premium_job_required"
+                              ? "Premium plan required"
+                              : applyEligibility?.reason === "membership_required"
+                                ? "Membership required"
+                                : "Apply Now"}
                       </button>
                       <button
                         onClick={(e) => {
@@ -749,6 +741,127 @@ const JobDescription = () => {
               </section>
             </main>
 
+            {/* RIGHT / RELATED JOBS */}
+            <aside className="lg:col-span-4">
+              <div className={`${isDarkMode ? "bg-slate-800" : "bg-white"} rounded-2xl shadow-lg border ${isDarkMode ? "border-slate-700" : "border-gray-100"} overflow-hidden lg:sticky lg:top-24`}>
+                <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-5 sm:p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white/20 backdrop-blur-sm p-2 rounded-xl">
+                      <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-bold text-lg sm:text-xl">Related Jobs</h3>
+                      <p className="text-white/80 text-xs sm:text-sm">Similar opportunities for you</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 sm:p-4 space-y-3 max-h-[70vh] overflow-y-auto">
+                  {relatedJobs.length > 0 ? (
+                    relatedJobs.map((relJob, idx) => {
+                      const relJobId = relJob.job_id || relJob.id;
+                      const companyLogo =
+                        relJob.job_logo_url || relJob.job_logo || relJob.company_logo || relJob.logo;
+
+                      return (
+                        <div
+                          key={relJobId || idx}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => navigate(`/job/${relJobId}`, { state: { job: relJob } })}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              navigate(`/job/${relJobId}`, { state: { job: relJob } });
+                            }
+                          }}
+                          className={`group cursor-pointer p-3 sm:p-4 rounded-xl transition-all duration-300 border ${
+                            isDarkMode
+                              ? "bg-slate-700/50 border-slate-600 hover:bg-slate-700 hover:border-indigo-500"
+                              : "bg-gray-50 border-gray-200 hover:bg-white hover:border-indigo-300 hover:shadow-md"
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div
+                              className={`flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden ${
+                                companyLogo ? "bg-white" : getCompanyColor(idx)
+                              }`}
+                            >
+                              {companyLogo ? (
+                                <img
+                                  src={companyLogo}
+                                  alt={`${relJob.company_name} logo`}
+                                  className="w-full h-full object-contain"
+                                  onError={(e) => {
+                                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(relJob.company_name || "Co")}&background=2563eb&color=fff&size=80`;
+                                  }}
+                                />
+                              ) : (
+                                <img
+                                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(relJob.company_name || "Co")}&background=2563eb&color=fff&size=80`}
+                                  alt={`${relJob.company_name} logo`}
+                                  className="w-full h-full object-contain rounded"
+                                />
+                              )}
+                            </div>
+
+                            <div className="flex-grow min-w-0">
+                              <h4 className={`font-semibold text-sm mb-1 truncate ${isDarkMode ? "text-white" : "text-gray-900"} group-hover:text-indigo-600 transition-colors`}>
+                                {relJob.job_title || relJob.title || "Job Title"}
+                              </h4>
+                              <p className={`text-xs mb-2 truncate ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
+                                {relJob.company_name || "Company"}
+                              </p>
+                              <div className="flex flex-wrap gap-1.5 mb-2">
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-medium ${
+                                  isDarkMode ? "bg-slate-600 text-slate-200" : "bg-indigo-50 text-indigo-700"
+                                }`}>
+                                  <Briefcase className="w-3 h-3" />
+                                  {formatExperience(relJob.experience_required || relJob.experience)}
+                                </span>
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-medium ${
+                                  isDarkMode ? "bg-slate-600 text-slate-200" : "bg-emerald-50 text-emerald-700"
+                                }`}>
+                                  <MapPin className="w-3 h-3" />
+                                  {relJob.location || "Remote"}
+                                </span>
+                              </div>
+                              <p className={`text-xs ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}>
+                                {formatPostedDate(relJob.created_at)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className={`text-center py-10 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                      <Sparkles className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm">No similar jobs found</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-3 sm:p-4 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        navigate("/candidate/register");
+                      } else if (user?.role === "admin") {
+                        navigate("/admin/job-posting");
+                      } else {
+                        navigate("/jobs");
+                      }
+                    }}
+                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl py-2.5 sm:py-3 text-sm transition-all shadow-lg hover:shadow-xl"
+                  >
+                    {isAuthenticated ? "View all jobs" : "Register to unlock all opportunities"}
+                  </button>
+                </div>
+              </div>
+            </aside>
+
           </div>
         </div>
       </div>
@@ -781,24 +894,58 @@ const JobDescription = () => {
               </div>
 
               <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
-                Premium Feature Only
+                {premiumModalReason === "premium_plan_required" ||
+                premiumModalReason === "manual_premium_job_required"
+                  ? "Premium plan required"
+                  : "Membership required"}
               </h3>
               
               <p className="text-gray-600 dark:text-gray-400 text-base leading-relaxed mb-8">
-                To apply for this job and unlock higher priority, please upgrade to a <span className="text-amber-600 font-bold">Premium Plan</span>. 
-                Get direct HR access and much more!
+                {premiumModalReason === "manual_premium_job_required" ? (
+                  <>
+                    <span className="text-amber-600 font-bold">Premium plan required</span> for this
+                    job. Your{" "}
+                    <span className="font-bold text-slate-800 dark:text-white">
+                      {candidatePlanLabel || "Basic"}
+                    </span>{" "}
+                    referral plan does not include premium access — contact admin to upgrade.
+                  </>
+                ) : premiumModalReason === "premium_plan_required" ? (
+                  <>
+                    Your <span className="font-bold text-slate-800 dark:text-white">Standard</span> plan
+                    lets you apply to recruiter-posted jobs. This job was posted by{" "}
+                    <span className="font-bold text-indigo-600">Admin</span> — upgrade to a{" "}
+                    <span className="text-amber-600 font-bold">Premium</span> plan to apply here
+                    and unlock all job types.
+                  </>
+                ) : (
+                  <>
+                    You need an active membership to apply. Choose a{" "}
+                    <span className="font-bold text-slate-800 dark:text-white">Standard</span> plan
+                    for recruiter jobs, or <span className="text-amber-600 font-bold">Premium</span>{" "}
+                    to apply on both recruiter and admin jobs.
+                  </>
+                )}
               </p>
 
               <div className="space-y-4">
                 <button
                   onClick={() => {
                     setShowPremiumModal(false);
-                    navigate("/membership-plans");
+                    if (premiumModalReason !== "manual_premium_job_required") {
+                      navigate("/membership-plans");
+                    }
                   }}
                   className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white py-4 px-6 rounded-2xl font-bold text-lg shadow-xl shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] group"
                 >
-                  Upgrade to Premium
-                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                  {premiumModalReason === "manual_premium_job_required"
+                    ? "Understood"
+                    : premiumModalReason === "premium_plan_required"
+                      ? "Upgrade to Premium plan"
+                      : "View membership plans"}
+                  {premiumModalReason !== "manual_premium_job_required" && (
+                    <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                  )}
                 </button>
                 
                 <button

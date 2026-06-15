@@ -551,7 +551,7 @@ const AdminPostJob = () => {
       setError("");
       await performSaveJob();
       // If coming from approve flow, go back to reports
-      navigate(fromApproveFlow ? "/admin/job-application-reports" : "/admin/job-posting");
+      navigate("/admin/employers");
     } catch (error) {
       console.error("Failed to save job:", error);
       setError("Failed to save job. Please try again.");

@@ -4,13 +4,22 @@ import {
   Building2,
   MapPin,
   Clock,
-  DollarSign,
   Briefcase,
   Bookmark,
   IndianRupee,
   Share2,
-  Link2
+  Link2,
+  Crown,
+  ArrowRight,
 } from 'lucide-react';
+import { getJobPostedByDisplayLabel } from '../../utils/jobDisplayUtils';
+import { isAdminPostedJob } from '../../utils/jobApplicationRules';
+
+const POSTED_BY_STYLES = {
+  admin: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  recruiter: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  employer: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+};
 
 const JobCard = ({
   job,
@@ -19,26 +28,20 @@ const JobCard = ({
   showBookmark = true,
   className = '',
   isDark = false,
-  /** Recruiter ke liye Apply button hide */
   hideApplyButton = false,
-  /** Candidate: 'shortlisted' | 'applied' | null – shortlisted ho toh "Shortlisted" dikhe */
   applicationStatus = null,
+  applyEligibility = null,
 }) => {
   const navigate = useNavigate();
 
   const handleJobClick = () => {
-    // Use job ID for consistent URLs
     const jobId = job.job_id || job.id;
-    navigate(`/job/${jobId}`, {
-      state: { job }
-    });
+    navigate(`/job/${jobId}`, { state: { job } });
   };
 
   const handleBookmarkClick = (e) => {
     e.stopPropagation();
-    if (onBookmark) {
-      onBookmark(job.job_id || job.id);
-    }
+    if (onBookmark) onBookmark(job.job_id || job.id);
   };
 
   const getJobUrl = () => {
@@ -49,20 +52,20 @@ const JobCard = ({
   const showCopiedFeedback = () => {
     const msg = document.createElement('span');
     msg.textContent = 'Link copied!';
-    msg.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2271B5;color:white;padding:8px 16px;border-radius:8px;font-size:14px;z-index:9999;box-shadow:0 2px 8px rgba(0,0,0,0.2);';
+    msg.style.cssText =
+      'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2271B5;color:white;padding:8px 16px;border-radius:8px;font-size:14px;z-index:9999;box-shadow:0 2px 8px rgba(0,0,0,0.2);';
     document.body.appendChild(msg);
     setTimeout(() => msg.remove(), 2000);
   };
 
   const handleCopyLink = async (e) => {
     e.stopPropagation();
-    const jobUrl = getJobUrl();
     try {
-      await navigator.clipboard.writeText(jobUrl);
-      showCopiedFeedback();
+      await navigator.clipboard.writeText(getJobUrl());
     } catch (_) {
-      showCopiedFeedback();
+      /* fallback */
     }
+    showCopiedFeedback();
   };
 
   const handleShareClick = async (e) => {
@@ -72,11 +75,7 @@ const JobCard = ({
     const text = `${title} at ${job.company_name || 'Company'}`;
     try {
       if (navigator.share) {
-        await navigator.share({
-          title,
-          text,
-          url: jobUrl
-        });
+        await navigator.share({ title, text, url: jobUrl });
       } else {
         await navigator.clipboard.writeText(jobUrl);
         showCopiedFeedback();
@@ -92,183 +91,248 @@ const JobCard = ({
   };
 
   const formatSalary = (salaryRange) => {
-    if (!salaryRange) return "Salary not specified";
+    if (!salaryRange) return null;
     if (typeof salaryRange === 'string') return salaryRange;
     if (salaryRange.min && salaryRange.max) {
-      return `₹${salaryRange.min} - ₹${salaryRange.max}`;
+      const fmt = (n) => {
+        const num = Number(String(n).replace(/,/g, ''));
+        if (Number.isNaN(num)) return n;
+        if (num >= 100000) return `${(num / 100000).toFixed(num % 100000 === 0 ? 0 : 1)}L`;
+        return Number(num).toLocaleString('en-IN');
+      };
+      return `₹${fmt(salaryRange.min)} – ₹${fmt(salaryRange.max)}`;
     }
-    return "Salary not specified";
+    return null;
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return "";
+    if (!dateString) return '';
     const date = new Date(dateString);
     const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 1) return "1 day ago";
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
-    return date.toLocaleDateString();
+    const diffDays = Math.ceil(Math.abs(now - date) / (1000 * 60 * 60 * 24));
+    if (diffDays <= 1) return 'Today';
+    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffDays < 30) return `${Math.ceil(diffDays / 7)}w ago`;
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
   };
 
   const getInitials = (name) => {
-    if (!name) return "?";
+    if (!name) return '?';
     return name
       .split(' ')
-      .map(word => word[0])
+      .map((w) => w[0])
       .join('')
       .toUpperCase()
-      .substring(0, 2);
+      .slice(0, 2);
   };
 
-  const companyLogo = job.job_logo_url || job.job_logo || job.company_logo || job.logo;
+  const formatExperience = (exp) => {
+    if (!exp) return null;
+    if (typeof exp === 'string') return exp;
+    if (exp.min_years != null && exp.max_years != null) {
+      return `${exp.min_years}–${exp.max_years} yrs exp`;
+    }
+    return null;
+  };
 
-  const bgSecondary = isDark ? 'bg-gray-800' : 'bg-white';
+  const postedByLabel = getJobPostedByDisplayLabel(job);
+  const postedByStyle = isAdminPostedJob(job)
+    ? POSTED_BY_STYLES.admin
+    : POSTED_BY_STYLES.recruiter;
+
+  const companyLogo = job.job_logo_url || job.job_logo || job.company_logo || job.logo;
+  const isPremium = job.is_premium || job.premium_job;
+  const salaryLabel = formatSalary(job.salary_range);
+  const experienceLabel = formatExperience(job.experience_required);
+  const postedAgo = formatDate(job.created_at || job.posted_date);
+  const applyBlocked = applyEligibility?.allowed === false;
+  const applyButtonLabel = applyBlocked
+    ? applyEligibility?.reason === "membership_required"
+      ? "Membership required"
+      : "Premium plan required"
+    : "Apply Now";
+
+  const cardBg = isDark ? 'bg-gray-800/90' : 'bg-white';
   const textPrimary = isDark ? 'text-white' : 'text-gray-900';
-  const textSecondary = isDark ? 'text-gray-300' : 'text-gray-600';
-  const borderColor = isDark ? 'border-gray-700' : 'border-gray-200';
-  const hoverBorder = isDark ? 'hover:border-blue-500' : 'hover:border-blue-400';
+  const textSecondary = isDark ? 'text-gray-400' : 'text-gray-500';
+  const borderBase = isDark ? 'border-gray-700' : 'border-gray-200/80';
+  const chipBg = isDark ? 'bg-gray-700/80 text-gray-300' : 'bg-slate-50 text-slate-600 border border-slate-100';
+
+  const iconBtn =
+    'p-2 rounded-lg border border-transparent hover:border-slate-200 hover:bg-slate-50 text-slate-400 hover:text-[#2271B5] transition-all';
 
   return (
-    <div
-      className={`${bgSecondary} rounded-lg shadow-sm border ${borderColor} ${hoverBorder} p-4 hover:shadow-md transition-all duration-300 relative overflow-hidden cursor-pointer ${className}`}
+    <article
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && handleJobClick()}
+      className={[
+        'group relative rounded-2xl border shadow-sm cursor-pointer overflow-hidden',
+        'transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5',
+        isDark ? 'hover:border-blue-500/50' : 'hover:border-[#2271B5]/30',
+        borderBase,
+        cardBg,
+        isPremium ? 'ring-1 ring-amber-200/60' : '',
+        className,
+      ].join(' ')}
       onClick={handleJobClick}
     >
-      {/* Header with time and apply / shortlisted */}
-      <div className="flex items-center justify-between mb-2">
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-          isDark ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-700'
-        }`}>
-          {formatDate(job.created_at || job.posted_date)}
-        </span>
-        {!hideApplyButton && (
-          applicationStatus === 'shortlisted' ? (
-            <span className="bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-400 font-semibold px-4 py-1.5 rounded-md text-xs">
-              Shortlisted
-            </span>
-          ) : (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleJobClick();
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-1.5 rounded-md transition-all duration-300 hover:shadow-md text-xs"
-            >
-              Apply Now
-            </button>
-          )
-        )}
-      </div>
+      {/* Left accent on hover */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#2271B5] to-blue-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        aria-hidden
+      />
 
-      {/* Company Logo and Title */}
-      <div className="flex items-start gap-2 mb-3">
-        <div className="w-10 h-10 rounded-md bg-white flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden">
-          {companyLogo ? (
-            <img
-              src={companyLogo}
-              alt={job.company_name || 'Company logo'}
-              className="w-full h-full object-cover"
-              loading="lazy"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = `https://ui-avatars.com/api/?name=${job.company_name || 'Company'}&background=2563eb&color=fff&size=64`;
-              }}
-            />
-          ) : (
-            <span className="text-black text-sm font-bold">
-              {getInitials(job.company_name)}
+      <div className="p-4 sm:p-5 pl-5">
+        {/* Top meta row */}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          {isPremium && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-gradient-to-r from-amber-400 to-amber-500 text-white shadow-sm">
+              <Crown className="w-3 h-3" />
+              Premium
+            </span>
+          )}
+          {postedByLabel && (
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${postedByStyle}`}
+            >
+              Posted by {postedByLabel}
+            </span>
+          )}
+          {job.work_mode && (
+            <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-medium ${chipBg}`}>
+              {job.work_mode}
+            </span>
+          )}
+          {postedAgo && (
+            <span className={`ml-auto text-[11px] font-medium ${textSecondary}`}>{postedAgo}</span>
+          )}
+        </div>
+
+        {/* Main content */}
+        <div className="flex gap-3 sm:gap-4">
+          <div
+            className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden ring-2 ${
+              isDark ? 'ring-gray-600 bg-gray-700' : 'ring-slate-100 bg-white shadow-sm'
+            }`}
+          >
+            {companyLogo ? (
+              <img
+                src={companyLogo}
+                alt=""
+                className="w-full h-full object-cover"
+                loading="lazy"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company_name || 'Co')}&background=2271B5&color=fff&size=80`;
+                }}
+              />
+            ) : (
+              <span className="text-sm font-bold text-[#2271B5]">{getInitials(job.company_name)}</span>
+            )}
+          </div>
+
+          <div className="flex-1 min-w-0 pr-2">
+            <h3
+              className={`text-base sm:text-[15px] font-bold leading-snug line-clamp-2 ${textPrimary} group-hover:text-[#2271B5] transition-colors`}
+            >
+              {job.job_title || job.title}
+            </h3>
+            <p className={`mt-1 text-sm font-medium flex items-center gap-1.5 truncate ${textSecondary}`}>
+              <Building2 className="w-3.5 h-3.5 flex-shrink-0 text-[#2271B5]/70" />
+              <span className="truncate">{job.company_name}</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Detail chips */}
+        <div className="flex flex-wrap gap-2 mt-3.5">
+          {job.location && (
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${chipBg}`}>
+              <MapPin className="w-3.5 h-3.5 text-[#2271B5] flex-shrink-0" />
+              <span className="line-clamp-1 max-w-[200px] sm:max-w-none">{job.location}</span>
+            </span>
+          )}
+          {job.employment_type && (
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${chipBg}`}>
+              <Clock className="w-3.5 h-3.5 text-[#2271B5] flex-shrink-0" />
+              {job.employment_type}
+            </span>
+          )}
+          {salaryLabel && (
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${chipBg}`}>
+              <IndianRupee className="w-3.5 h-3.5 text-[#2271B5] flex-shrink-0" />
+              {salaryLabel}
+            </span>
+          )}
+          {experienceLabel && (
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${chipBg}`}>
+              <Briefcase className="w-3.5 h-3.5 text-[#2271B5] flex-shrink-0" />
+              {experienceLabel}
             </span>
           )}
         </div>
-        <div className="flex-1">
-          <h3 className={`text-sm font-bold ${textPrimary} mb-1 hover:text-blue-600 transition-colors`}>
-            {job.job_title || job.title}
-          </h3>
-          <p className={`text-xs ${textSecondary} font-semibold flex items-center gap-1`}>
-            <Building2 className="w-3 h-3" />
-            {job.company_name}
+
+        {job.description && (
+          <p className={`mt-3 text-xs sm:text-[13px] leading-relaxed line-clamp-2 ${textSecondary}`}>
+            {job.description.replace(/\s+/g, ' ').trim()}
           </p>
+        )}
+
+        {/* Footer */}
+        <div
+          className={`mt-4 pt-3 flex items-center justify-between gap-3 border-t ${
+            isDark ? 'border-gray-700' : 'border-slate-100'
+          }`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center gap-0.5">
+            <button type="button" onClick={handleCopyLink} className={iconBtn} title="Copy link">
+              <Link2 className="w-4 h-4" />
+            </button>
+            <button type="button" onClick={handleShareClick} className={iconBtn} title="Share job">
+              <Share2 className="w-4 h-4" />
+            </button>
+            {showBookmark && (
+              <button
+                type="button"
+                onClick={handleBookmarkClick}
+                className={`${iconBtn} ${isBookmarked ? 'text-amber-500 hover:text-amber-600' : ''}`}
+                title={isBookmarked ? 'Remove bookmark' : 'Bookmark job'}
+              >
+                <Bookmark className="w-4 h-4" fill={isBookmarked ? 'currentColor' : 'none'} />
+              </button>
+            )}
+          </div>
+
+          {!hideApplyButton && (
+            applicationStatus === 'shortlisted' ? (
+              <span className="inline-flex items-center px-4 py-2 rounded-xl text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                Shortlisted
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleJobClick();
+                }}
+                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold shadow-sm transition-all ${
+                  applyBlocked
+                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                    : "text-white bg-[#2271B5] hover:bg-[#1a5f9a] hover:shadow-md"
+                }`}
+              >
+                {applyButtonLabel}
+                {!applyBlocked && (
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                )}
+              </button>
+            )
+          )}
         </div>
       </div>
-
-      {/* Job Details */}
-      <div className="flex flex-wrap items-center gap-1.5 text-xs mb-3">
-        {job.employment_type && (
-          <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2 py-1 rounded`}>
-            <Clock className="w-3 h-3 text-blue-600 flex-shrink-0" />
-            <span className={`${textSecondary} font-medium`}>{job.employment_type}</span>
-          </div>
-        )}
-        {job.location && (
-          <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2 py-1 rounded`}>
-            <MapPin className="w-3 h-3 text-blue-600 flex-shrink-0" />
-            <span className={`${textSecondary} font-medium`}>{job.location}</span>
-          </div>
-        )}
-        {job.salary_range && (
-          <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2 py-1 rounded`}>
-            <IndianRupee className="w-3 h-3 text-blue-600 flex-shrink-0" />
-            <span className={`${textSecondary} font-medium`}>{formatSalary(job.salary_range)}</span>
-          </div>
-        )}
-        {job.experience_required && (
-          <div className={`flex items-center gap-1 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} px-2 py-1 rounded`}>
-            <Briefcase className="w-3 h-3 text-blue-600 flex-shrink-0" />
-            <span className={`${textSecondary} font-medium`}>
-              {job.experience_required.min_years}-{job.experience_required.max_years} yrs
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Job Description */}
-      {job.description && (
-        <p className={`${textSecondary} text-xs mb-3 leading-relaxed`}>
-          {job.description.length > 120
-            ? `${job.description.substring(0, 120)}...`
-            : job.description}
-        </p>
-      )}
-
-      {/* Copy link, Share & Bookmark Buttons */}
-      <div className="absolute bottom-2 right-3 flex items-center gap-0.5">
-        <button
-          onClick={handleCopyLink}
-          className={`${textSecondary} hover:text-blue-500 transition-colors p-1 rounded-md`}
-          title="Copy link"
-        >
-          <Link2 className="w-4 h-4" />
-        </button>
-        <button
-          onClick={handleShareClick}
-          className={`${textSecondary} hover:text-blue-500 transition-colors p-1 rounded-md`}
-          title="Share job"
-        >
-          <Share2 className="w-4 h-4" />
-        </button>
-        {showBookmark && (
-          <button
-            onClick={handleBookmarkClick}
-            className={`${textSecondary} hover:text-yellow-500 transition-colors p-1 rounded-md`}
-            title={isBookmarked ? 'Remove bookmark' : 'Bookmark job'}
-          >
-            <Bookmark
-              className="w-4 h-4"
-              fill={isBookmarked ? "currentColor" : "none"}
-            />
-          </button>
-        )}
-      </div>
-
-      {/* Premium Badge */}
-      {job.is_premium && (
-        <div className="absolute top-0 left-0 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-[8px] font-bold px-2 py-0.5 rounded-br-md shadow-sm">
-          PREMIUM
-        </div>
-      )}
-    </div>
+    </article>
   );
 };
 

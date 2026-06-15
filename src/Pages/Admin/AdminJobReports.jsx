@@ -3,8 +3,12 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
 import { adminRecruiterJobService } from "../../services/adminRecruiterJobService";
-import { Search, Building, MapPin, Calendar, Briefcase, RefreshCw, Trash2, Star, CheckCircle, XCircle } from "lucide-react";
+import { Search, Building, MapPin, Calendar, Briefcase, RefreshCw, Trash2, Star, CheckCircle, XCircle, FileText, User } from "lucide-react";
 import * as XLSX from 'xlsx';
+import {
+  buildApplicationsNavState,
+  getJobApplicationCount,
+} from "../../utils/adminJobApplications";
 
 const isRecruiterJob = (job) => {
   const pb = (job?.posted_by ?? "").toString().trim().toUpperCase();
@@ -218,6 +222,14 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
         fromAdmin: true,
         job,
       },
+    });
+  };
+
+  const handleViewApplications = (job) => {
+    const jobId = job.job_id || job.id;
+    if (!jobId) return;
+    navigate(`/admin/job-reports/applications/${jobId}`, {
+      state: buildApplicationsNavState(job),
     });
   };
 
@@ -701,166 +713,201 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
             const taskCategory = getTaskCategoryForJob(job);
             const isReopenTask = isReopenTaskCategory(taskCategory);
             const taskId = getTaskIdForJob(job);
+            const appCount = getJobApplicationCount(job);
             return (
               <div
                 key={String(job.task_id ?? job.job_id ?? job.id)}
                 onClick={() => !showTaskActions && handleViewJob(job)}
+                onKeyDown={(e) => {
+                  if (!showTaskActions && (e.key === "Enter" || e.key === " ")) {
+                    e.preventDefault();
+                    handleViewJob(job);
+                  }
+                }}
+                role={!showTaskActions ? "button" : undefined}
+                tabIndex={!showTaskActions ? 0 : undefined}
                 className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all ${!showTaskActions ? "cursor-pointer" : ""}`}
               >
-                  <div className="p-3">
-                    {/* Job Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
-                      <div className="flex gap-3 flex-1 w-full min-w-0">
-                        <JobReportLogoBadge
-                          job={job}
-                          borderColor={borderColor}
-                          isDark={isDark}
-                          textSecondary={textSecondary}
-                        />
-                        <div className="flex-1 min-w-0">
-                        {showTaskActions ? (
-                          <h3
-                            className={`text-base font-bold ${textColor} leading-tight mb-2 break-words`}
-                          >
-                            {job.job_title || 'N/A'}
-                          </h3>
-                        ) : (
-                          <h3
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => handleViewJob(job)}
-                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleViewJob(job); } }}
-                            className={`text-base font-bold ${textColor} hover:text-blue-600 cursor-pointer leading-tight mb-2 break-words`}
-                          >
-                            {job.job_title || 'N/A'}
-                          </h3>
-                        )}
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 text-xs text-gray-600 dark:text-gray-400">
-                          <span className="flex items-center gap-1.5">
-                            <Building size={14} className="flex-shrink-0" />
-                            <span className="truncate max-w-[200px]">{job.company_name || 'Unknown Company'}</span>
-                          </span>
-                          <span className="hidden sm:block w-1 h-1 rounded-full bg-gray-400"></span>
-                          <span className="flex items-center gap-1.5">
-                            <MapPin size={14} className="flex-shrink-0" />
-                            <span className="truncate max-w-[200px]">{job.location || 'Not specified'}</span>
-                          </span>
-                        </div>
-                        </div>
-                      </div>
-                      <div className="flex flex-row flex-wrap items-center justify-end gap-2 w-full sm:w-auto sm:min-w-[200px] mt-1 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-0 border-gray-100 dark:border-gray-700">
-                        {showTaskActions ? (
-                          <>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenApproveModal(job);
-                              }}
-                              disabled={
-                                actionLoading === `approve-${taskId}` ||
-                                actionLoading === `reject-${taskId}`
-                              }
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
-                            >
-                              <CheckCircle size={14} />
-                              Approve
-                            </button>
-                            {!isReopenTask && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openRejectModal(job);
-                                }}
-                                disabled={
-                                  actionLoading === `approve-${taskId}` ||
-                                  actionLoading === `reject-${taskId}`
+                  <div className="p-3 sm:p-4">
+                    <div className="flex gap-3">
+                      <JobReportLogoBadge
+                        job={job}
+                        borderColor={borderColor}
+                        isDark={isDark}
+                        textSecondary={textSecondary}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          {showTaskActions ? (
+                            <h3 className={`text-sm sm:text-base font-bold ${textColor} leading-snug break-words flex-1 min-w-0`}>
+                              {job.job_title || "N/A"}
+                            </h3>
+                          ) : (
+                            <h3
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => handleViewJob(job)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  handleViewJob(job);
                                 }
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-300 text-red-700 bg-red-50 hover:bg-red-100 dark:border-red-800 dark:text-red-300 dark:bg-red-950/40 dark:hover:bg-red-950/60 disabled:opacity-50"
+                              }}
+                              className={`text-sm sm:text-base font-bold ${textColor} hover:text-blue-600 cursor-pointer leading-snug break-words flex-1 min-w-0`}
+                            >
+                              {job.job_title || "N/A"}
+                            </h3>
+                          )}
+                          <div className="flex flex-shrink-0 items-center gap-1.5">
+                            {showTaskActions ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenApproveModal(job);
+                                  }}
+                                  disabled={
+                                    actionLoading === `approve-${taskId}` ||
+                                    actionLoading === `reject-${taskId}`
+                                  }
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+                                >
+                                  <CheckCircle size={13} />
+                                  Approve
+                                </button>
+                                {!isReopenTask && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openRejectModal(job);
+                                    }}
+                                    disabled={
+                                      actionLoading === `approve-${taskId}` ||
+                                      actionLoading === `reject-${taskId}`
+                                    }
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold border border-red-300 text-red-700 bg-red-50 hover:bg-red-100 dark:border-red-800 dark:text-red-300 dark:bg-red-950/40 disabled:opacity-50"
+                                  >
+                                    <XCircle size={13} />
+                                    Reject
+                                  </button>
+                                )}
+                              </>
+                            ) : (
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border whitespace-nowrap ${
+                                  job.status === "open"
+                                    ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800"
+                                    : job.status === "closed"
+                                      ? "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800"
+                                      : "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700"
+                                }`}
                               >
-                                <XCircle size={14} />
-                                Reject
-                              </button>
+                                {job.status === "open" ? "Active" : job.status === "closed" ? "Closed" : job.status || "Active"}
+                              </span>
                             )}
-                          </>
-                        ) : (
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex-shrink-0 ${job.status === 'open' ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' :
-                            job.status === 'closed' ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800' :
-                              'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700'
-                          }`} style={{ fontSize: '0.7rem' }}>
-                          {job.status === 'open' ? 'Active' : job.status === 'closed' ? 'Closed' : job.status || 'Active'}
-                        </span>
-                        )}
+                          </div>
+                        </div>
+
+                        <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] sm:text-xs ${textSecondary}`}>
+                          <span className="inline-flex items-center gap-1 min-w-0">
+                            <Building size={12} className="flex-shrink-0" />
+                            <span className="truncate max-w-[140px] sm:max-w-none">{job.company_name || "Unknown"}</span>
+                          </span>
+                          <span className="text-gray-300 dark:text-gray-600 hidden sm:inline">·</span>
+                          <span className="inline-flex items-center gap-1 min-w-0">
+                            <MapPin size={12} className="flex-shrink-0" />
+                            <span className="truncate max-w-[120px] sm:max-w-none">{job.location || "N/A"}</span>
+                          </span>
+                          <span className="text-gray-300 dark:text-gray-600">·</span>
+                          <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                            <Calendar size={12} className="flex-shrink-0" />
+                            {formatDate(job.created_at)}
+                          </span>
+                          <span className="text-gray-300 dark:text-gray-600">·</span>
+                          <span className="inline-flex items-center gap-1 min-w-0">
+                            <User size={12} className="flex-shrink-0" />
+                            <span className="truncate max-w-[120px] sm:max-w-[180px]">
+                              {job.recruiter_name || "N/A"}
+                            </span>
+                          </span>
+                          <span className="text-gray-300 dark:text-gray-600">·</span>
+                          <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                            💰 {formatSalary(job.salary_range)}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-1.5 mb-2.5">
-                      <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`} style={{ fontSize: '0.7rem' }}>
-                        💰 {formatSalary(job.salary_range)}
-                      </span>
-                      <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${isDark ? 'bg-gray-700 text-gray-300 border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-200'} flex items-center gap-1`} style={{ fontSize: '0.7rem' }}>
-                        <Calendar size={12} />
-                        {formatDate(job.created_at)}
-                      </span>
-                    </div>
-                        <div className={`flex flex-wrap items-center gap-2 p-2 rounded-lg mb-2.5 border ${borderColor} ${isDark ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                          <span className={`text-xs ${textSecondary}`}>
-                            Recruiter: <span className={`font-semibold ${textColor}`}>{job.recruiter_name || 'N/A'}</span>
+
+                    {!showTaskActions && (
+                      <div className={`mt-3 pt-3 border-t ${borderColor} grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2`}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewApplications(job);
+                          }}
+                          className="inline-flex w-full h-9 items-center justify-center gap-1 px-2 rounded-lg text-[11px] sm:text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                        >
+                          <FileText size={13} className="flex-shrink-0" />
+                          <span className="truncate">
+                            <span className="hidden md:inline">Applications </span>
+                            <span className="md:hidden">Apps </span>
+                            ({appCount})
                           </span>
-                          <span className="hidden sm:block w-1 h-1 rounded-full bg-gray-400"></span>
-                          <span className={`text-xs ${textSecondary}`}>
-                            Applications: <span className={`font-semibold ${textColor}`}>{job.application_count ?? 0}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/admin/edit-job/${job.id}`, { state: { employer_id: job.employer_id } });
+                          }}
+                          className={`inline-flex w-full h-9 items-center justify-center gap-1 px-2 rounded-lg text-[11px] sm:text-xs font-medium border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 dark:border-blue-500/30 dark:text-blue-300 dark:bg-blue-500/20 transition-colors`}
+                        >
+                          <Briefcase size={13} className="flex-shrink-0" />
+                          <span className="truncate">Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMarkPremium(job, !(job.premium_job || job.is_premium));
+                          }}
+                          disabled={actionLoading === `premium-${job.job_id || job.id}`}
+                          className={`inline-flex w-full h-9 items-center justify-center gap-1 px-2 rounded-lg text-[11px] sm:text-xs font-medium border ${borderColor} ${textColor} hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors disabled:opacity-50`}
+                        >
+                          <Star size={13} className="flex-shrink-0" />
+                          <span className="truncate">
+                            {(job.premium_job || job.is_premium) ? "Premium" : "Feature"}
                           </span>
-                        </div>
-                        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mt-3">
-                          {!showTaskActions && (
-                            <>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/admin/edit-job/${job.id}`, { state: { employer_id: job.employer_id } });
-                            }}
-                            className="col-span-1 sm:col-auto px-2 py-2 sm:py-1.5 border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 dark:border-blue-500/30 dark:text-blue-300 dark:bg-blue-500/20 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5"
-                          >
-                            <Briefcase size={14} />
-                            Edit
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMarkPremium(job, !(job.premium_job || job.is_premium));
-                            }}
-                            disabled={actionLoading === `premium-${job.job_id || job.id}`}
-                            className={`col-span-1 sm:col-auto px-2 py-2 sm:py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-yellow-50 dark:hover:bg-yellow-900/20 flex items-center justify-center gap-1.5 disabled:opacity-50`}
-                          >
-                            <Star size={14} />
-                            {(job.premium_job || job.is_premium) ? 'Premium' : 'Feature Job'}
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCloseJob(job);
-                            }}
-                            className="col-span-1 sm:col-auto px-4 py-2 sm:py-1.5 bg-amber-500 text-white rounded-lg text-sm sm:text-xs font-medium hover:bg-amber-600 flex items-center justify-center gap-1.5"
-                            disabled={loading}
-                          >
-                            <XCircle size={14} />
-                            Close Job
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteJob(job);
-                            }}
-                            className="col-span-2 sm:col-auto px-4 py-2 sm:py-1.5 bg-red-600 text-white rounded-lg text-sm sm:text-xs font-medium hover:bg-red-700 flex items-center justify-center gap-1.5"
-                            disabled={loading}
-                          >
-                            <Trash2 size={14} />
-                            Delete Job
-                          </button>
-                            </>
-                          )}
-                        </div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCloseJob(job);
+                          }}
+                          className="inline-flex w-full h-9 items-center justify-center gap-1 px-2 rounded-lg text-[11px] sm:text-xs font-medium bg-amber-500 text-white hover:bg-amber-600 transition-colors disabled:opacity-50"
+                          disabled={loading}
+                        >
+                          <XCircle size={13} className="flex-shrink-0" />
+                          <span className="truncate">Close</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteJob(job);
+                          }}
+                          className="inline-flex w-full h-9 items-center justify-center gap-1 px-2 rounded-lg text-[11px] sm:text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+                          disabled={loading}
+                        >
+                          <Trash2 size={13} className="flex-shrink-0" />
+                          <span className="truncate">Delete</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
               </div>
             );

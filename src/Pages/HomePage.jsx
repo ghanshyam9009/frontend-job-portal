@@ -11,7 +11,7 @@ import styles from "./HomePage.module.css";
 import Footer from "../Components/Footer";
 import topHiringStyles from "../Styles/TopHiringCompanies.module.css";
 import HomeNav from "../Components/HomeNav";
-import { candidateExternalService } from "../services";
+import { candidateExternalService, bannerService } from "../services";
 import { demoService } from "../services/demoService";
 import { Loader, ErrorBox, SkeletonJobCard, JobCard } from "../Components/Shared";
 import { toast } from "react-toastify";
@@ -40,7 +40,6 @@ import sbilifeLogo from "../assets/sbilife.jfif";
 import ltimindtreeLogo from "../assets/lit.jfif";
 import requestDemoImage from "../assets/Request free demo.png";
 import jobImage from "../assets/job.jfif";
-import axisBanner from "../assets/axis-banner.jpg";
 import vacancy from "../assets/vacancy.jpeg";
 import axisBanner1 from "../assets/carrericici.webp";
 import bannerSmall from "../assets/banner-small.png";
@@ -197,6 +196,35 @@ const Homepage = () => {
   const jobTitleRef = useRef(null);
   const locationRef = useRef(null);
   const categoryRef = useRef(null);
+
+  const [homeBanners, setHomeBanners] = useState([]);
+  const [homeBannersLoading, setHomeBannersLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchHomeBanners = async () => {
+      try {
+        setHomeBannersLoading(true);
+        const list = await bannerService.getBanners("home");
+        if (cancelled) return;
+        const homeOnly = list.filter(
+          (b) => (b.page || "").toLowerCase() === "home"
+        );
+        setHomeBanners(homeOnly.length ? homeOnly : list);
+      } catch (error) {
+        console.error("Failed to fetch home banners:", error);
+        if (!cancelled) setHomeBanners([]);
+      } finally {
+        if (!cancelled) setHomeBannersLoading(false);
+      }
+    };
+
+    fetchHomeBanners();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Fetch jobs data on mount
   useEffect(() => {
@@ -1629,19 +1657,47 @@ const Homepage = () => {
 
         {/* Axis Banner and Trusted Companies */}
         <div className={`transition-colors duration-300 ${bgColor}`}>
-          {/* Axis Banner */}
-          <section className={`${bgColor} mx-4 transition-colors duration-300`}>
-            <div className="max-w-3xl mx-auto">
-              <div className="rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-                <img
-                  src={axisBanner}
-                  alt="Axis Bank Banner"
-                  className="w-full h-auto object-cover"
-                  loading="lazy"
-                />
+          {/* Home page banner from API */}
+          {!homeBannersLoading && homeBanners.length > 0 && (
+            <section className={`${bgColor} mx-4 transition-colors duration-300`}>
+              <div className="max-w-3xl mx-auto">
+                {homeBanners.length === 1 ? (
+                  <div className="rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
+                    <img
+                      src={bannerService.getBannerImage(homeBanners[0])}
+                      alt="Home banner"
+                      className="w-full h-auto object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                ) : (
+                  <Swiper
+                    modules={[Autoplay]}
+                    autoplay={{ delay: 4000, disableOnInteraction: false }}
+                    loop={homeBanners.length > 1}
+                    spaceBetween={16}
+                    className="rounded-xl overflow-hidden shadow-md"
+                  >
+                    {homeBanners.map((banner) => {
+                      const imageUrl = bannerService.getBannerImage(banner);
+                      const id =
+                        banner.banner_id || banner.id || imageUrl;
+                      return (
+                        <SwiperSlide key={id}>
+                          <img
+                            src={imageUrl}
+                            alt="Home banner"
+                            className="w-full h-auto object-cover"
+                            loading="lazy"
+                          />
+                        </SwiperSlide>
+                      );
+                    })}
+                  </Swiper>
+                )}
               </div>
-            </div>
-          </section>
+            </section>
+          )}
 
           {/* Trusted Companies - mobile: 1 full-width slide, desktop: multi-slide */}
           <section className={`py-10 sm:py-12 px-3 sm:px-4 transition-colors ${bgColor}`}>
