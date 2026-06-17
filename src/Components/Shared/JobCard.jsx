@@ -97,18 +97,6 @@ const JobCard = ({
     return 'Salary not specified';
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffDays = Math.ceil(Math.abs(now - date) / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 1) return '1 day ago';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
-    return date.toLocaleDateString();
-  };
-
   const getInitials = (name) => {
     if (!name) return '?';
     return name
@@ -147,13 +135,6 @@ const JobCard = ({
       {/* Header: date, posted by, bookmark + apply */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-          <span
-            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-              isDark ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-700'
-            }`}
-          >
-            {formatDate(job.created_at || job.posted_date)}
-          </span>
           {postedByLabel && (
             <span
               className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${postedByStyle}`}
@@ -164,16 +145,6 @@ const JobCard = ({
         </div>
 
         <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-          {showBookmark && (
-            <button
-              type="button"
-              onClick={handleBookmarkClick}
-              className={`${textSecondary} hover:text-yellow-500 transition-colors p-1.5 rounded-md`}
-              title={isBookmarked ? 'Remove bookmark' : 'Bookmark job'}
-            >
-              <Bookmark className="w-4 h-4" fill={isBookmarked ? 'currentColor' : 'none'} />
-            </button>
-          )}
           {!hideApplyButton &&
             (applicationStatus === 'shortlisted' ? (
               <span className="bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-400 font-semibold px-4 py-1.5 rounded-md text-xs">
@@ -266,8 +237,18 @@ const JobCard = ({
         </p>
       )}
 
-      {/* Copy link & Share */}
+      {/* Bookmark, copy link & share */}
       <div className="absolute bottom-2 right-3 flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+        {showBookmark && (
+          <button
+            type="button"
+            onClick={handleBookmarkClick}
+            className={`${textSecondary} hover:text-yellow-500 transition-colors p-1 rounded-md`}
+            title={isBookmarked ? 'Remove bookmark' : 'Bookmark job'}
+          >
+            <Bookmark className="w-4 h-4" fill={isBookmarked ? 'currentColor' : 'none'} />
+          </button>
+        )}
         <button
           type="button"
           onClick={handleCopyLink}

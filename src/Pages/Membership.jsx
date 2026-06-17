@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Check, Crown, Briefcase, User, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import HomeNav from '../Components/HomeNav';
+import Footer from '../Components/Footer';
 import { planService } from '../services/planService';
 
 export default function Membership() {
@@ -92,6 +93,13 @@ export default function Membership() {
     loadPlans();
   }, []);
 
+  useEffect(() => {
+    document.body.style.overflow = '';
+    document.body.style.overflowY = 'auto';
+    document.documentElement.style.overflow = '';
+    document.documentElement.style.overflowY = 'auto';
+  }, []);
+
   const getPlanIcon = (plan) => {
     const type = String(plan?.type || '').toLowerCase();
     if (type === 'candidate') {
@@ -164,15 +172,18 @@ export default function Membership() {
   };
 
   return (
-    <><HomeNav/>
-    <div className={`min-h-screen transition-colors duration-300 ${
-      darkMode 
-        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
-        : 'bg-gradient-to-br from-blue-50 via-white to-purple-50'
-    }`}>
+    <div
+      className={`min-h-screen overflow-x-hidden transition-colors duration-300 ${
+        darkMode
+          ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900'
+          : 'bg-gradient-to-br from-blue-50 via-white to-purple-50'
+      }`}
+    >
+      <HomeNav />
 
+      <main className="pt-16 lg:pt-20 pb-12">
       {/* Hero Section */}
-      <div className="max-w-7xl mx-auto px-4 mt-10 lg:mt-20 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-10">
           <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold px-5 py-2 rounded-full shadow-lg">
             MEMBERSHIP PLANS
@@ -418,7 +429,8 @@ export default function Membership() {
           </p>
         </div>
       </div>
+      </main>
+      <Footer />
     </div>
-    </>
   );
 }

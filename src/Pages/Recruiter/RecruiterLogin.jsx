@@ -327,7 +327,7 @@ const RecruiterLogin = () => {
                       placeholder="Enter your company name"
                       className={`${styles.input} ${errors.companyName ? styles.inputError : ''}`}
                       required={!isLogin}
-                      disabled={otpSent || otpVerified}
+                      disabled={otpSent && !otpVerified}
                     />
                     {errors.companyName && <span className={styles.errorText}>{errors.companyName}</span>}
                   </label>
@@ -344,7 +344,7 @@ const RecruiterLogin = () => {
                       placeholder="Your full name"
                       className={`${styles.input} ${errors.contactPerson ? styles.inputError : ''}`}
                       required={!isLogin}
-                      disabled={otpSent || otpVerified}
+                      disabled={otpSent && !otpVerified}
                     />
                     {errors.contactPerson && <span className={styles.errorText}>{errors.contactPerson}</span>}
                   </label>
@@ -361,7 +361,7 @@ const RecruiterLogin = () => {
                       placeholder="Enter your phone number"
                       className={`${styles.input} ${errors.phone ? styles.inputError : ''}`}
                       required={!isLogin}
-                      disabled={otpSent || otpVerified}
+                      disabled={otpSent && !otpVerified}
                     />
                     {errors.phone && <span className={styles.errorText}>{errors.phone}</span>}
                   </label>

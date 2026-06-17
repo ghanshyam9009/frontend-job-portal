@@ -221,12 +221,12 @@ const IntegratedAdminLayout = () => {
           icon: Gift,
           path: '/admin/free-referral'
         },
-        {
-          id: 'membership',
-          label: 'Membership Plans',
-          icon: CreditCard,
-          path: '/admin/membership'
-        },
+        // {
+        //   id: 'membership',
+        //   label: 'Membership Plans',
+        //   icon: CreditCard,
+        //   path: '/admin/membership'
+        // },
       ]
     }
   ];
