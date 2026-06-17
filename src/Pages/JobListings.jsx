@@ -15,6 +15,7 @@ import CandidateNavbar from "../Components/Candidate/CandidateNavbar";
 import { ErrorBox, SkeletonJobCard, JobCard } from "../Components/Shared";
 import { canCandidateApply } from "../utils/jobApplicationRules";
 import RecruiterNavbar from "../Components/Recruiter/RecruiterNavbar";
+
 const JobListings = () => {
   const { theme } = useTheme();
   const { user, isAuthenticated } = useAuth();
@@ -234,7 +235,7 @@ const JobListings = () => {
         setAvailableJobTypes(jobTypes);
         setAllJobs(allJobsData);
 
-        let filteredJobs = allJobsData;
+        let filteredJobs = [...allJobsData];
 
         if (querySearch) {
           const searchLower = querySearch.toLowerCase();
@@ -339,13 +340,7 @@ const JobListings = () => {
           });
         }
 
-        filteredJobs.sort((a, b) => {
-          if ((a.is_premium || false) && !(b.is_premium || false)) return -1;
-          if (!(a.is_premium || false) && (b.is_premium || false)) return 1;
-          const dateA = new Date(a.created_at || a.posted_date || 0);
-          const dateB = new Date(b.created_at || b.posted_date || 0);
-          return dateB - dateA;
-        });
+        // Keep backend API order — no client-side re-sorting
 
         // Map jobs — keep full API fields (e.g. posted_by) and add display aliases
         const mappedJobs = filteredJobs.map((j) => ({
@@ -369,6 +364,7 @@ const JobListings = () => {
           type: j.employment_type || "Full-time",
           is_premium: j.premium_job || j.is_premium || false,
           created_at: j.created_at || j.posted_date,
+          updated_at: j.updated_at || j.updatedAt || j.created_at || j.posted_date,
           posted_date: j.posted_date,
           posted_by: j.posted_by || j.postedBy,
           recruiter_name: j.recruiter_name || j.recruiter_full_name || j.employer_name,

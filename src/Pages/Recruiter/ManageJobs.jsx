@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useSidebar } from "../../Contexts/SidebarContext";
 import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
-import RecruiterSidebar from "../../Components/Recruiter/RecruiterSidebar";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { Edit, Users, CircleX, MapPin, Plus, Eye, Filter, Search, Sliders, Calendar, Building, X, Briefcase, Trash2 } from "lucide-react";
 import { recruiterExternalService } from "../../services";
@@ -18,7 +17,6 @@ const ManageJobs = () => {
   const [error, setError] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState("newest");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
@@ -59,7 +57,16 @@ const ManageJobs = () => {
 
         const approvedJobs = allJobs.filter(job => job && job.job_id && job.job_title);
 
-        const jobsData = approvedJobs.map(job => ({
+        const jobsData = approvedJobs.map(job => {
+          const rawStatus = (job.status || job.job_status || "Open").toLowerCase();
+          let status = job.status || job.job_status || "Open";
+          if (rawStatus === "deleted") {
+            status = "Deleted";
+          } else if (rawStatus === "open") {
+            status = "Active";
+          }
+
+          return {
           id: job.job_id,
           title: job.job_title,
           company: job.company_name || "",
@@ -67,14 +74,15 @@ const ManageJobs = () => {
           type: job.employment_type || "",
           workMode: job.work_mode || "",
           salary: formatSalary(job.salary_range),
-          status: (job.status || "Open").toLowerCase() === "open" ? "Active" : job.status,
+          status,
           postedDate: (job.created_at || "").split("T")[0] || "",
           createdAt: job.created_at || "",
           description: job.job_description || job.description || "",
           rawJob: job,
           applications: job.application_count || 0,
           views: 0
-        }));
+        };
+        });
         
         setJobs(jobsData);
       } catch (e) {
@@ -131,8 +139,8 @@ const ManageJobs = () => {
     if (!window.confirm("Are you sure you want to delete this job? This action cannot be undone.")) return;
     try {
       setLoading(true);
-      await recruiterExternalService.closeJobOpening(jobId); // Using same API as close per request
-      setJobs(prev => prev.filter(j => j.id !== jobId));
+      await recruiterExternalService.deleteRecruiterJob(jobId);
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: "Deleted" } : j));
       alert("Job deleted successfully");
     } catch (e) {
       console.error(e);
@@ -150,13 +158,6 @@ const ManageJobs = () => {
     return matchesStatus && matchesSearch;
   });
 
-  const sortedFilteredJobs = [...filteredJobs].sort((a, b) => {
-    if (sortBy === "oldest") return new Date(a.createdAt || a.postedDate) - new Date(b.createdAt || b.postedDate);
-    if (sortBy === "title-az") return a.title.localeCompare(b.title);
-    if (sortBy === "applications") return b.applications - a.applications;
-    return new Date(b.createdAt || b.postedDate) - new Date(a.createdAt || a.postedDate);
-  });
-
   const getStatusColor = (status) => {
     const statusLower = status?.toLowerCase() || '';
     switch (statusLower) {
@@ -168,10 +169,14 @@ const ManageJobs = () => {
         return 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30';
       case 'closed':
         return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30';
+      case 'deleted':
+        return 'bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-600/30 dark:text-gray-400 dark:border-gray-500/30';
       default:
         return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30';
     }
   };
+
+  const isJobDeleted = (job) => (job?.status || "").toLowerCase() === "deleted";
 
   const isDark = theme === 'dark';
   const bgColor = isDark ? 'bg-gray-900' : 'bg-gray-50';
@@ -342,20 +347,6 @@ const ManageJobs = () => {
                     ))}
                   </div>
                 </div>
-
-                <div className="mb-6">
-                  <label className={`block text-sm font-semibold ${textColor} mb-2`}>Sort By</label>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
-                  >
-                    <option value="newest">Newest first</option>
-                    <option value="oldest">Oldest first</option>
-                    <option value="applications">Most applications</option>
-                    <option value="title-az">Title A-Z</option>
-                  </select>
-                </div>
               </div>
             </div>
           )}
@@ -364,24 +355,9 @@ const ManageJobs = () => {
           <div className="flex-1 min-w-0">
             {/* Results Header - mobile compact */}
             <div className="mb-3 sm:mb-4 py-2 sm:py-0">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <p className={`text-sm ${textSecondary}`}>
-                  Showing <span className={`font-semibold ${textColor}`}>{sortedFilteredJobs.length}</span> {sortedFilteredJobs.length === 1 ? 'job' : 'jobs'}
-                </p>
-                <div className="flex items-center gap-2">
-                  <label className={`text-xs sm:text-sm font-medium ${textSecondary}`}>Sort by</label>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className={`px-3 py-2 border ${borderColor} rounded-lg text-sm ${cardBg} ${textColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                  >
-                    <option value="newest">Newest first</option>
-                    <option value="oldest">Oldest first</option>
-                    <option value="applications">Most applications</option>
-                    <option value="title-az">Title A-Z</option>
-                  </select>
-                </div>
-              </div>
+              <p className={`text-sm ${textSecondary}`}>
+                Showing <span className={`font-semibold ${textColor}`}>{filteredJobs.length}</span> {filteredJobs.length === 1 ? 'job' : 'jobs'}
+              </p>
             </div>
 
             {/* Loading State */}
@@ -410,7 +386,7 @@ const ManageJobs = () => {
             )}
 
             {/* Empty State */}
-            {!loading && !error && sortedFilteredJobs.length === 0 && (
+            {!loading && !error && filteredJobs.length === 0 && (
               <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center`}>
                 <div className={`w-16 h-16 ${isDark ? 'bg-blue-500/20' : 'bg-blue-100'} rounded-full flex items-center justify-center mx-auto mb-4`}>
                   <Briefcase size={32} className="text-blue-500" />
@@ -439,7 +415,7 @@ const ManageJobs = () => {
             
             {/* Job Listings - Mobile-first cards */}
             <div className="space-y-4 sm:space-y-3">
-              {sortedFilteredJobs.map(job => (
+              {filteredJobs.map(job => (
                 <div
                   key={job.id}
                   onClick={() => handleViewJobDetails(job)}
@@ -485,65 +461,58 @@ const ManageJobs = () => {
                       </span>
                     </div>
 
-                    {/* Stats Bar - compact on mobile */}
-                    <div className={`flex items-center gap-4 py-2.5 px-3 rounded-xl mb-3 ${isDark ? 'bg-gray-700/40' : 'bg-gray-50'} border ${borderColor}`}>
-                      <div className="flex items-center gap-1.5">
-                        <Users size={14} className="text-gray-500 flex-shrink-0" />
-                        <span className={`text-xs font-semibold ${textColor}`}>{job.applications}</span>
-                        <span className={`text-xs ${textSecondary}`}>applications</span>
-                      </div>
-                      <div className={`h-4 w-px ${isDark ? 'bg-gray-600' : 'bg-gray-200'}`} />
-                      <div className="flex items-center gap-1.5">
-                        <Eye size={14} className="text-gray-500 flex-shrink-0" />
-                        <span className={`text-xs font-semibold ${textColor}`}>{job.views}</span>
-                        <span className={`text-xs ${textSecondary}`}>views</span>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons - mobile: primary full-width, then Edit + Close row */}
-                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-1.5">
+                    {/* Action Buttons - equal width grid */}
+                    <div
+                      className={`grid gap-2 ${
+                        isJobDeleted(job) ? "grid-cols-1" : "grid-cols-2 lg:grid-cols-4"
+                      }`}
+                    >
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleViewApplications(job.id);
                         }}
-                        className="w-full min-h-[44px] sm:min-h-0 sm:flex-1 px-4 py-3 sm:py-1.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 touch-manipulation order-first sm:order-none"
+                        className="w-full min-h-[44px] px-2 py-2.5 bg-blue-600 text-white rounded-xl text-xs sm:text-sm font-medium hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-1.5 touch-manipulation"
                       >
-                        <Eye size={18} className="sm:w-[14px] sm:h-[14px]" />
-                        View Applications ({job.applications})
+                        <Eye size={16} className="flex-shrink-0" />
+                        <span className="text-center leading-tight">
+                          Applications ({job.applications})
+                        </span>
                       </button>
-                      <div className="flex gap-2 sm:gap-1.5">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditJob(job.id);
-                          }}
-                          className={`flex-1 min-h-[44px] sm:min-h-0 px-2 py-3 sm:py-1.5 border ${borderColor} rounded-xl text-sm font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.99] transition-all flex items-center justify-center gap-1.5 touch-manipulation`}
-                        >
-                          <Edit size={16} className="sm:w-[14px] sm:h-[14px]" />
-                          <span>Edit</span>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleStatus(job.id);
-                          }}
-                          className={`flex-1 min-h-[44px] sm:min-h-0 px-2 py-3 sm:py-1.5 border ${borderColor} rounded-xl text-sm font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.99] transition-all flex items-center justify-center gap-1.5 touch-manipulation`}
-                        >
-                          <CircleX size={16} className="sm:w-[14px] sm:h-[14px]" />
-                          <span>{job.status === 'Active' ? 'Close' : 'Reopen'}</span>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteJob(job.id);
-                          }}
-                          className={`flex-1 min-h-[44px] sm:min-h-0 px-2 py-3 sm:py-1.5 border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-500/10 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 active:scale-[0.99] transition-all flex items-center justify-center gap-1.5 touch-manipulation`}
-                        >
-                          <Trash2 size={16} className="sm:w-[14px] sm:h-[14px]" />
-                          <span>Delete</span>
-                        </button>
-                      </div>
+                      {!isJobDeleted(job) && (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditJob(job.id);
+                            }}
+                            className={`w-full min-h-[44px] px-2 py-2.5 border ${borderColor} rounded-xl text-xs sm:text-sm font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.99] transition-all flex items-center justify-center gap-1.5 touch-manipulation`}
+                          >
+                            <Edit size={16} className="flex-shrink-0" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleStatus(job.id);
+                            }}
+                            className={`w-full min-h-[44px] px-2 py-2.5 border ${borderColor} rounded-xl text-xs sm:text-sm font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.99] transition-all flex items-center justify-center gap-1.5 touch-manipulation`}
+                          >
+                            <CircleX size={16} className="flex-shrink-0" />
+                            <span>{job.status === "Active" ? "Close" : "Reopen"}</span>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteJob(job.id);
+                            }}
+                            className="w-full min-h-[44px] px-2 py-2.5 border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-500/10 rounded-xl text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 active:scale-[0.99] transition-all flex items-center justify-center gap-1.5 touch-manipulation"
+                          >
+                            <Trash2 size={16} className="flex-shrink-0" />
+                            <span>Delete</span>
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -1,5 +1,7 @@
 // Recruiter External Service - AWS API Gateway endpoints provided
 import axios from 'axios';
+import apiClient from './apiClient';
+import { API_ENDPOINTS } from '../config/api';
 
 // Use environment variables for API URLs, with fallbacks for local development
 const JOBS_URL = import.meta.env.VITE_RECRUITER_JOBS_URL || 'https://3lfruhyo2j.execute-api.ap-southeast-1.amazonaws.com/default/getallpostjobs';
@@ -81,6 +83,10 @@ export const recruiterExternalService = {
       }
     );
     return response.data;
+  },
+
+  async deleteRecruiterJob(jobId) {
+    return apiClient.post(API_ENDPOINTS.jobs.deleteRecruiterJob(jobId));
   },
 
   async getJobById(jobId, employerId) {

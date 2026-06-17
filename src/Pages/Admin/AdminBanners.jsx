@@ -19,12 +19,29 @@ import {
   X,
   Loader2,
   ImageOff,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 
 const PAGE_OPTIONS = [
-  { value: "home_first", label: "Home First Banner", icon: Home, hint: "Upper section on home page" },
-  { value: "home_second", label: "Home Second Banner", icon: Home, hint: "Lower section on home page" },
-  { value: "job", label: "Job Listings", icon: Briefcase },
+  {
+    value: "home_first",
+    label: "Home First Banner",
+    icon: ChevronUp,
+    hint: "Upper section on home page",
+  },
+  {
+    value: "home_second",
+    label: "Home Second Banner",
+    icon: ChevronDown,
+    hint: "Lower section on home page",
+  },
+  {
+    value: "job",
+    label: "Job Listings",
+    icon: Briefcase,
+    hint: "Job listings page banners",
+  },
 ];
 
 const resolveBannerList = (payload) => {
@@ -256,10 +273,74 @@ const AdminBanners = () => {
     if (file?.type?.startsWith("image/")) setCreateImageFile(file);
   };
 
+  const PlacementSelector = ({ value, onChange }) => (
+    <div className="space-y-2.5" role="radiogroup" aria-label="Banner placement">
+      {PAGE_OPTIONS.map(({ value: optionValue, label, icon: Icon, hint }) => {
+        const selected = value === optionValue;
+        return (
+          <button
+            key={optionValue}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => onChange(optionValue)}
+            className={`w-full flex items-start gap-3 p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all ${
+              selected
+                ? "border-indigo-500 bg-indigo-50 shadow-sm dark:bg-indigo-950/50 dark:border-indigo-400"
+                : `${borderColor} ${isDark ? "bg-gray-900/40 hover:bg-gray-700/40" : "bg-white hover:bg-gray-50"}`
+            }`}
+          >
+            <span
+              className={`flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg ${
+                selected
+                  ? "bg-indigo-600 text-white"
+                  : isDark
+                    ? "bg-gray-700 text-gray-300"
+                    : "bg-gray-100 text-gray-600"
+              }`}
+            >
+              <Icon size={20} strokeWidth={2} />
+            </span>
+            <span className="min-w-0 flex-1 pt-0.5">
+              <span
+                className={`block text-sm font-semibold leading-snug break-words ${
+                  selected
+                    ? "text-indigo-800 dark:text-indigo-200"
+                    : textColor
+                }`}
+              >
+                {label}
+              </span>
+              {hint && (
+                <span className={`block text-xs mt-1 leading-relaxed break-words ${textSecondary}`}>
+                  {hint}
+                </span>
+              )}
+            </span>
+            <span
+              className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center mt-1 ${
+                selected
+                  ? "border-indigo-600 bg-indigo-600 dark:border-indigo-400 dark:bg-indigo-500"
+                  : isDark
+                    ? "border-gray-500"
+                    : "border-gray-300"
+              }`}
+              aria-hidden
+            >
+              {selected && <span className="w-2 h-2 rounded-full bg-white" />}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
   const PageBadge = ({ page }) => {
     const p = (page || "").toLowerCase();
     const isJob = p === "job";
     const isFirst = p === "home_first" || p === "home";
+    const isSecond = p === "home_second";
+    const BadgeIcon = isJob ? Briefcase : isFirst ? ChevronUp : isSecond ? ChevronDown : Home;
     const badgeClass = isJob
       ? isDark
         ? "bg-blue-900/40 text-blue-300"
@@ -273,7 +354,7 @@ const AdminBanners = () => {
           : "bg-teal-100 text-teal-800";
     return (
       <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeClass}`}>
-        {isJob ? <Briefcase size={12} /> : <Home size={12} />}
+        <BadgeIcon size={12} />
         {pageLabel(page)}
       </span>
     );
@@ -285,17 +366,23 @@ const AdminBanners = () => {
       <button
         type="button"
         onClick={() => setPageFilter(value)}
-        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+        className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all border shrink-0 ${
           active
-            ? "bg-indigo-600 text-white shadow-md"
-            : `${textSecondary} ${isDark ? "hover:bg-gray-700" : "hover:bg-gray-100"}`
+            ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+            : `${borderColor} ${textColor} ${
+                isDark ? "bg-gray-800/80 hover:bg-gray-700" : "bg-white hover:bg-gray-50"
+              }`
         }`}
       >
-        {label}
+        <span>{label}</span>
         {count !== undefined && (
           <span
-            className={`ml-1.5 px-1.5 py-0.5 rounded text-xs ${
-              active ? "bg-white/20" : isDark ? "bg-gray-700" : "bg-gray-200"
+            className={`min-w-[1.25rem] px-1.5 py-0.5 rounded-md text-xs font-semibold text-center ${
+              active
+                ? "bg-white/25 text-white"
+                : isDark
+                  ? "bg-gray-700 text-gray-200"
+                  : "bg-gray-100 text-gray-700"
             }`}
           >
             {count}
@@ -407,26 +494,7 @@ const AdminBanners = () => {
               <form onSubmit={handleCreateBanner} className="space-y-5">
                 <div>
                   <label className={`block text-sm font-medium ${textColor} mb-2`}>Banner placement</label>
-                  <div className="grid grid-cols-1 gap-2">
-                    {PAGE_OPTIONS.map(({ value, label, icon: Icon, hint }) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => setCreatePage(value)}
-                        className={`flex flex-col items-start gap-0.5 py-3 px-4 rounded-xl border text-left transition-all ${
-                          createPage === value
-                            ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
-                            : `${borderColor} ${textSecondary} ${isDark ? "hover:bg-gray-700/50" : "hover:bg-gray-50"}`
-                        }`}
-                      >
-                        <span className="flex items-center gap-2 text-sm font-medium">
-                          <Icon size={16} />
-                          {label}
-                        </span>
-                        {hint && <span className="text-xs opacity-80 pl-6">{hint}</span>}
-                      </button>
-                    ))}
-                  </div>
+                  <PlacementSelector value={createPage} onChange={setCreatePage} />
                 </div>
 
                 <div>
@@ -504,16 +572,18 @@ const AdminBanners = () => {
           {/* Banner grid */}
           <div className="xl:col-span-8">
             <div className={`${cardBg} rounded-2xl border ${borderColor} p-6 shadow-sm`}>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div className="flex flex-col gap-4 mb-6">
                 <h2 className={`text-lg font-semibold ${textColor} flex items-center gap-2`}>
                   <Image size={20} className="text-indigo-500" />
                   All banners
                 </h2>
-                <div className="flex flex-wrap gap-2">
-                  <FilterTab value="all" label="All" count={totalCount} />
-                  <FilterTab value="home_first" label="Home First" count={pageStats.home_first} />
-                  <FilterTab value="home_second" label="Home Second" count={pageStats.home_second} />
-                  <FilterTab value="job" label="Job" count={pageStats.job} />
+                <div className="w-full overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin">
+                  <div className="flex flex-nowrap sm:flex-wrap gap-2 min-w-max sm:min-w-0">
+                    <FilterTab value="all" label="All" count={totalCount} />
+                    <FilterTab value="home_first" label="Home First" count={pageStats.home_first} />
+                    <FilterTab value="home_second" label="Home Second" count={pageStats.home_second} />
+                    <FilterTab value="job" label="Job Listings" count={pageStats.job} />
+                  </div>
                 </div>
               </div>
 
@@ -650,26 +720,7 @@ const AdminBanners = () => {
             <form onSubmit={handleUpdateBanner} className="p-6 space-y-5">
               <div>
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>Banner placement</label>
-                <div className="grid grid-cols-1 gap-2">
-                  {PAGE_OPTIONS.map(({ value, label, icon: Icon, hint }) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setEditPage(value)}
-                      className={`flex flex-col items-start gap-0.5 py-2.5 px-4 rounded-xl border text-left transition-all ${
-                        editPage === value
-                          ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
-                          : `${borderColor} ${textSecondary}`
-                      }`}
-                    >
-                      <span className="flex items-center gap-2 text-sm font-medium">
-                        <Icon size={16} />
-                        {label}
-                      </span>
-                      {hint && <span className="text-xs opacity-80 pl-6">{hint}</span>}
-                    </button>
-                  ))}
-                </div>
+                <PlacementSelector value={editPage} onChange={setEditPage} />
               </div>
               <div>
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
