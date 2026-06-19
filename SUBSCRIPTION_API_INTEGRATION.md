@@ -142,7 +142,7 @@ frontend-job-portal/
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                     BACKEND API SERVER                           │
-│              https://api.bigsources.in/api                      │
+│              http://localhost:4000/api                      │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -355,7 +355,7 @@ User Request → ProtectedRoute → Check Auth → Check Role → Render Page
 ```javascript
 // Creates axios instance with base configuration
 const apiClient = axios.create({
-  baseURL: 'https://api.bigsources.in/api',
+  baseURL: 'http://localhost:4000/api',
   timeout: 10000  // 10 seconds
 });
 
@@ -691,7 +691,7 @@ Application-wide constants:
 
 ### Base URL
 ```
-https://api.bigsources.in/api
+http://localhost:4000/api
 ```
 
 ### Authentication Endpoints

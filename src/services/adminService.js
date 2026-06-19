@@ -451,7 +451,7 @@ export const adminService = {
   async blockStudent(email) {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`https://api.bigsources.in/api/admin/block-student`, {
+      const response = await fetch(`http://localhost:4000/api/admin/block-student`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -483,7 +483,7 @@ export const adminService = {
   async blockRecruiter(email) {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`https://api.bigsources.in/api/admin/block-recruiter`, {
+      const response = await fetch(`http://localhost:4000/api/admin/block-recruiter`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -707,7 +707,7 @@ export const adminService = {
   async markJobPremium(jobId, isPremium = true, category = 'job') {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('https://api.bigsources.in/api/premium/mark-job-premium', {
+      const response = await fetch('http://localhost:4000/api/premium/mark-job-premium', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

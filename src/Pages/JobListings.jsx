@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import { Autoplay } from "swiper/modules";
@@ -79,6 +79,53 @@ const JobListings = () => {
       cancelled = true;
     };
   }, []);
+
+  const rightSidebarAnchorRef = useRef(null);
+  const rightSidebarContentRef = useRef(null);
+  const [rightSidebarFixed, setRightSidebarFixed] = useState({
+    active: false,
+    left: 0,
+    width: 256,
+    height: 0,
+  });
+
+  const updateRightSidebarPosition = useCallback(() => {
+    const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
+    const anchor = rightSidebarAnchorRef.current;
+    const content = rightSidebarContentRef.current;
+
+    if (!isDesktop || !anchor || !content) {
+      setRightSidebarFixed((prev) => ({ ...prev, active: false }));
+      return;
+    }
+
+    const anchorRect = anchor.getBoundingClientRect();
+    setRightSidebarFixed({
+      active: true,
+      left: anchorRect.left,
+      width: anchorRect.width,
+      height: content.offsetHeight,
+    });
+  }, []);
+
+  useEffect(() => {
+    updateRightSidebarPosition();
+
+    window.addEventListener("resize", updateRightSidebarPosition);
+    window.addEventListener("scroll", updateRightSidebarPosition, { passive: true });
+
+    const resizeObserver = new ResizeObserver(updateRightSidebarPosition);
+    const contentEl = rightSidebarContentRef.current;
+    const anchorEl = rightSidebarAnchorRef.current;
+    if (contentEl) resizeObserver.observe(contentEl);
+    if (anchorEl) resizeObserver.observe(anchorEl);
+
+    return () => {
+      window.removeEventListener("resize", updateRightSidebarPosition);
+      window.removeEventListener("scroll", updateRightSidebarPosition);
+      resizeObserver.disconnect();
+    };
+  }, [jobBannersLoading, jobBanners.length, loading, jobs.length, updateRightSidebarPosition]);
 
   const [filters, setFilters] = useState({
     location: "",
@@ -709,7 +756,7 @@ const JobListings = () => {
   );
 
   return (
-    <div className={`min-h-screen ${bgPrimary} transition-colors duration-300 mt-18 `}>
+    <div className={`min-h-screen ${bgPrimary} transition-colors duration-300`}>
       {/* {console.log(user.company_name)} */}
       {user ? (user.company_name ? <RecruiterNavbar /> : <CandidateNavbar />) : <HomeNav />}
 
@@ -957,19 +1004,19 @@ const JobListings = () => {
       )}
 
       <div className="max-w-6xl mx-auto px-4 py-4">
-        <div className="flex gap-4">
+        <div className="grid gap-4 md:grid-cols-[16rem_1fr] lg:grid-cols-[16rem_1fr_16rem]">
           {/* Sidebar Filters - Desktop - COMPACT */}
-          <div className="hidden md:block w-64 flex-shrink-0">
-            <div className={`${bgSecondary} rounded-lg shadow-sm p-4 sticky top-20 border ${borderColor}`}>
+          <aside className="hidden md:block">
+            <div className={`${bgSecondary} rounded-lg shadow-sm p-4 sticky top-20 h-fit border ${borderColor}`}>
               <div className="flex justify-between items-center mb-4">
                 <h2 className={`text-base font-semibold ${textPrimary}`}>All Filters</h2>
               </div>
               <FilterContent />
             </div>
-          </div>
+          </aside>
 
           {/* Main Content - COMPACT */}
-          <div className="flex-1">
+          <div className="min-w-0">
             <div className="max-w-5xl mx-auto">
               {/* Header - COMPACT */}
               <div className="mb-4">
@@ -1110,10 +1157,27 @@ const JobListings = () => {
             </div>
           </div>
 
-          {/* Right Sidebar - Desktop - COMPACT */}
-          <div className="hidden lg:block w-64 flex-shrink-0">
+          {/* Right Sidebar - Desktop: grid anchor + fixed panel */}
+          <aside
+            ref={rightSidebarAnchorRef}
+            className="hidden lg:block"
+            aria-hidden="true"
+          >
+            <div style={{ height: rightSidebarFixed.height || undefined }} />
+          </aside>
+        </div>
+
+        <div
+          ref={rightSidebarContentRef}
+          className="hidden lg:block fixed top-20 z-20 space-y-4"
+          style={{
+            left: rightSidebarFixed.left,
+            width: rightSidebarFixed.width,
+            visibility: rightSidebarFixed.active ? "visible" : "hidden",
+          }}
+        >
             <div
-              className={`sticky top-20 ${isDark
+              className={`${isDark
                   ? 'bg-gradient-to-br from-gray-800 to-gray-700 border border-gray-600'
                   : 'bg-gradient-to-br from-blue-50 to-orange-50'
                 } rounded-lg shadow-sm p-4 transition-colors duration-300`}
@@ -1135,10 +1199,9 @@ const JobListings = () => {
                 Know More
               </button>
             </div>
-            {/* Job page banner from API */}
             {!jobBannersLoading && jobBanners.length > 0 && (
-              <section className="sticky top-80 mt-4 transition-colors duration-300">
-                <div className="max-w-3xl mx-auto">
+              <section className="transition-colors duration-300">
+                <div>
                   {jobBanners.length === 1 ? (
                     <div className="rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
                       <img
@@ -1146,6 +1209,7 @@ const JobListings = () => {
                         alt="Job listings banner"
                         className="w-full h-auto object-cover"
                         loading="lazy"
+                        onLoad={updateRightSidebarPosition}
                       />
                     </div>
                   ) : (
@@ -1155,6 +1219,7 @@ const JobListings = () => {
                       loop={jobBanners.length > 1}
                       spaceBetween={16}
                       className="rounded-xl overflow-hidden shadow-md"
+                      onInit={updateRightSidebarPosition}
                     >
                       {jobBanners.map((banner) => {
                         const imageUrl = bannerService.getBannerImage(banner);
@@ -1166,6 +1231,7 @@ const JobListings = () => {
                               alt="Job listings banner"
                               className="w-full h-auto object-cover"
                               loading="lazy"
+                              onLoad={updateRightSidebarPosition}
                             />
                           </SwiperSlide>
                         );
@@ -1175,7 +1241,6 @@ const JobListings = () => {
                 </div>
               </section>
             )}
-          </div>
         </div>
       </div>
       <Footer />

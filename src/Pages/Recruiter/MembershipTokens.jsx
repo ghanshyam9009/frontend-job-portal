@@ -155,7 +155,7 @@ const RecruiterMembership = () => {
         handler: async function (response) {
           try {
             // Record the payment success
-            const paymentResponse = await fetch('https://api.bigsources.in/api/payments/record-job-post-payment', {
+            const paymentResponse = await fetch('http://localhost:4000/api/payments/record-job-post-payment', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

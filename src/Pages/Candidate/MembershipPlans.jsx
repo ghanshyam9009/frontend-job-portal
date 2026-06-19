@@ -160,7 +160,7 @@ const MembershipPlans = () => {
         },
         handler: async (response) => {
           try {
-            const membershipResponse = await fetch('https://api.bigsources.in/api/premium/mark-student-premium', {
+            const membershipResponse = await fetch('http://localhost:4000/api/premium/mark-student-premium', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

@@ -69,7 +69,7 @@ export const studentService = {
 
   async updateProfileDetails(email, profileData) {
     return withErrorHandling(async () => {
-      const response = await apiClient.put(`https://api.bigsources.in/api/students/profile/${email}`, profileData);
+      const response = await apiClient.put(`http://localhost:4000/api/students/profile/${email}`, profileData);
       return response;
     }, 'Failed to update profile details');
   },
