@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
+import adminApiClient from "../../services/adminApiClient";
 import PendingJobApplications from "./PendingJobApplications";
 import {
   Search,
@@ -23,6 +24,113 @@ import {
   CreditCard
 } from "lucide-react";
 
+const getInitials = (name) => {
+  if (!name) return "U";
+  return name.split(" ").map((n) => n[0]).join("").toUpperCase();
+};
+
+const getCandidateAvatarUrl = (sources = {}) => {
+  const {
+    candidate = {},
+    userDetails = {},
+    studentProfile = {},
+    registeredCandidate = null,
+  } = sources;
+
+  const url =
+    candidate.profile_picture_url ||
+    userDetails.logo ||
+    userDetails.profile_picture_url ||
+    userDetails.profile_image ||
+    studentProfile.logo ||
+    studentProfile.profile_picture_url ||
+    registeredCandidate?.logo ||
+    registeredCandidate?.profile_picture_url ||
+    registeredCandidate?.profile_image ||
+    null;
+
+  return typeof url === "string" && url.trim() ? url.trim() : null;
+};
+
+const CandidateAvatar = ({
+  name,
+  imageUrl,
+  variant = "blue",
+  className = "w-9 h-9",
+  hoverScale = false,
+}) => {
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [imageUrl]);
+
+  const showImage = Boolean(imageUrl) && !imageFailed;
+  const palette =
+    variant === "amber"
+      ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300"
+      : "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300";
+
+  return (
+    <div
+      className={`${className} rounded-full overflow-hidden ${palette} flex items-center justify-center text-xs font-bold flex-shrink-0 ${hoverScale ? "group-hover:scale-105 transition-transform" : ""}`}
+    >
+      {showImage ? (
+        <img
+          src={imageUrl}
+          alt={name || "Candidate"}
+          className="w-full h-full object-cover"
+          onError={() => setImageFailed(true)}
+        />
+      ) : (
+        getInitials(name)
+      )}
+    </div>
+  );
+};
+
+const getDateRangeFromFilter = (filter) => {
+  if (filter === "all") return {};
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const toISO = (d) => d.toISOString().split("T")[0];
+
+  switch (filter) {
+    case "today":
+      return { date_from: toISO(today), date_to: toISO(today) };
+    case "yesterday": {
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      return { date_from: toISO(yesterday), date_to: toISO(yesterday) };
+    }
+    case "last7days": {
+      const from = new Date(today);
+      from.setDate(from.getDate() - 7);
+      return { date_from: toISO(from), date_to: toISO(today) };
+    }
+    case "last30days": {
+      const from = new Date(today);
+      from.setDate(from.getDate() - 30);
+      return { date_from: toISO(from), date_to: toISO(today) };
+    }
+    case "thisMonth": {
+      const from = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { date_from: toISO(from), date_to: toISO(today) };
+    }
+    case "lastMonth": {
+      const from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const to = new Date(now.getFullYear(), now.getMonth(), 0);
+      return { date_from: toISO(from), date_to: toISO(to) };
+    }
+    case "thisYear": {
+      const from = new Date(now.getFullYear(), 0, 1);
+      return { date_from: toISO(from), date_to: toISO(today) };
+    }
+    default:
+      return {};
+  }
+};
+
 const ManageCandidates = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -30,6 +138,8 @@ const ManageCandidates = () => {
   const [pendingAppsCount, setPendingAppsCount] = useState(0);
   const [recentPendingApplicationTasks, setRecentPendingApplicationTasks] = useState([]);
   const [candidates, setCandidates] = useState([]);
+  const [overviewTotal, setOverviewTotal] = useState(0);
+  const [recentCandidates, setRecentCandidates] = useState([]);
   const [candidateMeta, setCandidateMeta] = useState({
     page: 1,
     limit: 25,
@@ -39,12 +149,13 @@ const ManageCandidates = () => {
     filters: { plans: [] },
   });
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [planFilter, setPlanFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [listLoading, setListLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [actionLoading, setActionLoading] = useState(null);
   const candidatesPerPage = 25;
@@ -90,19 +201,13 @@ const ManageCandidates = () => {
 
   const fetchApplicationSummary = async () => {
     try {
-      const tasks = await adminService.getPendingJobs();
-      const list = Array.isArray(tasks) ? tasks : [];
-      const newApps = list.filter((t) => t.category === "newapplication");
-      const pendingOnly = newApps.filter((t) => t.status === "pending");
-      setPendingAppsCount(pendingOnly.length);
-      const recent = [...pendingOnly]
-        .sort(
-          (a, b) =>
-            new Date(b.created_at || b.posted_date || 0) -
-            new Date(a.created_at || a.posted_date || 0)
-        )
-        .slice(0, 5);
-      setRecentPendingApplicationTasks(recent);
+      const response = await adminApiClient.get("/admin/applied-candidates", {
+        params: { page: 1, role: "RECRUITER", sort: "newest" },
+      });
+      const payload = response.data ?? {};
+      const recent = Array.isArray(payload.recent_candidates) ? payload.recent_candidates : [];
+      setRecentPendingApplicationTasks(recent.slice(0, 5));
+      setPendingAppsCount(Number(payload.total) || 0);
     } catch (error) {
       console.warn("Failed to fetch application tasks:", error);
       setPendingAppsCount(0);
@@ -110,18 +215,37 @@ const ManageCandidates = () => {
     }
   };
 
+  const fetchOverviewCandidates = async () => {
+    try {
+      const response = await adminService.getCandidates({
+        page: 1,
+        limit: 5,
+        sort: "newest",
+      });
+      setOverviewTotal(response.total ?? 0);
+      setRecentCandidates((response.candidates || []).slice(0, 5));
+    } catch (error) {
+      console.error("Failed to fetch overview candidates:", error);
+      setOverviewTotal(0);
+      setRecentCandidates([]);
+    }
+  };
+
   const fetchCandidates = useCallback(async (page = currentPage) => {
     try {
-      setLoading(true);
-      const status =
-        statusFilter === "active" ? "Active" : undefined;
+      setListLoading(true);
 
-      const response = await adminService.getCandidates({
+      const params = {
         page,
         limit: candidatesPerPage,
-        ...(status && { status }),
-        ...(planFilter !== "all" && { plan_id: planFilter }),
-      });
+        sort: sortBy,
+        ...getDateRangeFromFilter(dateFilter),
+      };
+
+      if (debouncedSearch) params.search = debouncedSearch;
+      if (planFilter !== "all") params.plan_id = planFilter;
+
+      const response = await adminService.getCandidates(params);
       applyCandidatesResponse(response);
     } catch (error) {
       console.error("Failed to fetch candidates:", error);
@@ -135,107 +259,47 @@ const ManageCandidates = () => {
         filters: { plans: [] },
       });
     } finally {
+      setListLoading(false);
       setLoading(false);
     }
-  }, [statusFilter, planFilter, currentPage, candidatesPerPage]);
+  }, [debouncedSearch, planFilter, dateFilter, sortBy, currentPage, candidatesPerPage]);
 
   const refreshDashboard = async () => {
-    await Promise.all([fetchCandidates(currentPage), fetchApplicationSummary()]);
+    setLoading(true);
+    await Promise.all([fetchOverviewCandidates(), fetchCandidates(currentPage), fetchApplicationSummary()]);
+    setLoading(false);
   };
 
   useEffect(() => {
     fetchApplicationSummary();
+    fetchOverviewCandidates().finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch]);
 
   useEffect(() => {
     fetchCandidates(currentPage);
   }, [fetchCandidates, currentPage]);
 
-  // Helper function to filter by date
-  const filterByDate = (candidate) => {
-    if (!candidate.created_at) return false;
-
-    const candidateDate = new Date(candidate.created_at);
-    const now = new Date();
-
-    switch (dateFilter) {
-      case "today":
-        return candidateDate.toDateString() === now.toDateString();
-
-      case "yesterday":
-        const yesterday = new Date(now);
-        yesterday.setDate(yesterday.getDate() - 1);
-        return candidateDate.toDateString() === yesterday.toDateString();
-
-      case "last7days":
-        const last7Days = new Date(now);
-        last7Days.setDate(last7Days.getDate() - 7);
-        return candidateDate >= last7Days;
-
-      case "last30days":
-        const last30Days = new Date(now);
-        last30Days.setDate(last30Days.getDate() - 30);
-        return candidateDate >= last30Days;
-
-      case "thisMonth":
-        return candidateDate.getMonth() === now.getMonth() &&
-          candidateDate.getFullYear() === now.getFullYear();
-
-      case "lastMonth":
-        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-        return candidateDate >= lastMonth && candidateDate <= lastMonthEnd;
-
-      case "thisYear":
-        return candidateDate.getFullYear() === now.getFullYear();
-
-      default:
-        return true;
-    }
-  };
-
-  const displayCandidates = useMemo(() => {
-    let list = candidates;
-
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase();
-      list = list.filter(
-        (c) =>
-          (c.full_name?.toLowerCase() || "").includes(q) ||
-          (c.email?.toLowerCase() || "").includes(q)
-      );
-    }
-
-    if (dateFilter !== "all") {
-      list = list.filter(filterByDate);
-    }
-
-    return [...list].sort((a, b) => {
-      switch (sortBy) {
-        case "oldest":
-          return new Date(a.created_at || 0) - new Date(b.created_at || 0);
-        case "nameAZ":
-          return (a.full_name || "").localeCompare(b.full_name || "");
-        case "nameZA":
-          return (b.full_name || "").localeCompare(a.full_name || "");
-        case "emailAZ":
-          return (a.email || "").localeCompare(b.email || "");
-        case "emailZA":
-          return (b.email || "").localeCompare(a.email || "");
-        case "newest":
-        default:
-          return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-      }
-    });
-  }, [candidates, searchTerm, dateFilter, sortBy]);
-
-  const handleStatusFilterChange = (filter) => {
-    setStatusFilter(filter);
+  const handlePlanFilterChange = (value) => {
+    setPlanFilter(value);
     setCurrentPage(1);
   };
 
-  const handlePlanFilterChange = (value) => {
-    setPlanFilter(value);
+  const handleDateFilterChange = (value) => {
+    setDateFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handleSortChange = (value) => {
+    setSortBy(value);
     setCurrentPage(1);
   };
 
@@ -243,11 +307,6 @@ const ManageCandidates = () => {
     if (planFilter === "all") return null;
     const plan = availablePlans.find((p) => p.plan_id === planFilter);
     return plan?.name || planFilter;
-  };
-
-  const getInitials = (name) => {
-    if (!name) return 'U';
-    return name.split(" ").map((n) => n[0]).join("").toUpperCase();
   };
 
   const formatDate = (dateString) => {
@@ -297,7 +356,7 @@ const ManageCandidates = () => {
       await adminService.blockStudent(candidate.email);
 
       if (currentPage === 1) {
-        await fetchCandidates(1);
+        await Promise.all([fetchCandidates(1), fetchOverviewCandidates()]);
       } else {
         setCurrentPage(1);
       }
@@ -314,20 +373,13 @@ const ManageCandidates = () => {
   };
 
   const totalPages = candidateMeta.total_pages;
-  const currentCandidates = displayCandidates;
-  const totalCandidates = candidateMeta.total;
+  const currentCandidates = candidates;
+  const totalCandidates = overviewTotal;
+  const listTotal = candidateMeta.total;
+  const listShowing = candidateMeta.showing ?? candidates.length;
 
-  const recentCandidates = useMemo(() => candidates.slice(0, 5), [candidates]);
-
-  const formatTaskDate = (task) => {
-    const d = task?.created_at || task?.posted_date;
-    if (!d) return "N/A";
-    return new Date(d).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
+  const getAppliedItemDate = (item) =>
+    item?.applied_date || item?.task?.created_at || item?.task_details?.created_at;
 
   const isDark = theme === 'dark';
   const bgColor = isDark ? 'bg-gray-900' : 'bg-gray-50';
@@ -495,13 +547,10 @@ const ManageCandidates = () => {
                     className="w-full flex items-center justify-between px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors text-left"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-full overflow-hidden bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-xs font-bold text-blue-700 dark:text-blue-300 flex-shrink-0">
-                        {c.logo ? (
-                          <img src={c.logo} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          getInitials(c.full_name)
-                        )}
-                      </div>
+                      <CandidateAvatar
+                        name={c.full_name}
+                        imageUrl={getCandidateAvatarUrl({ registeredCandidate: c, userDetails: c })}
+                      />
                       <div className="min-w-0">
                         <p className={`text-sm font-semibold ${textColor} truncate`}>{c.full_name || "Candidate"}</p>
                         <p className={`text-xs ${textSecondary} truncate`}>{c.email || "N/A"}</p>
@@ -531,53 +580,57 @@ const ManageCandidates = () => {
                 </button>
               </div>
               <div className="space-y-3 text-sm">
-                {recentPendingApplicationTasks.map((task) => {
-                  const matchedCandidate = task.student_id != null
-                    ? candidates.find((c) => String(c.user_id) === String(task.student_id))
+                {recentPendingApplicationTasks.map((item) => {
+                  const candidate = item.candidate || {};
+                  const job = item.job || {};
+                  const userDetails = item.user_details || {};
+                  const userId = item.user_id || candidate.student_id || userDetails.user_id;
+                  const candidateName = candidate.name || userDetails.full_name || "Candidate";
+                  const candidateEmail = candidate.email || userDetails.email || "";
+                  const jobTitle = job.job_title || item.job_details?.job_title || "Job application";
+                  const companyName = job.company_name || item.job_details?.company_name;
+                  const matchedCandidate = userId
+                    ? candidates.find((c) => String(c.user_id) === String(userId))
                     : null;
-
-                  const candidateName = matchedCandidate?.full_name || `Student ID: ${task.student_id}`;
-
-                  let displayTitle = task.title || `Job application${task.job_id ? ` · #${task.job_id}` : ""}`;
-                  if (task.student_id != null && task.title) {
-                    displayTitle = task.title
-                      .replace(`Student ID: ${task.student_id}`, candidateName)
-                      .replace(`Candidate id ${task.student_id}`, candidateName);
-                  }
+                  const avatarUrl = getCandidateAvatarUrl({
+                    candidate,
+                    userDetails,
+                    studentProfile: item.application_details?.student_profile,
+                    registeredCandidate: matchedCandidate,
+                  });
+                  const subtitle = companyName ? `${jobTitle} · ${companyName}` : jobTitle;
 
                   return (
-                    <div
-                      key={task.task_id || `${task.job_id}-${task.student_id}`}
-                      onClick={() => matchedCandidate && handleViewApplications(matchedCandidate)}
-                      className={`flex items-center justify-between px-2 py-2 rounded-lg transition-colors ${matchedCandidate ? "hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer group" : ""}`}
-                      title={matchedCandidate ? "View Candidate Applications" : ""}
+                    <button
+                      type="button"
+                      key={item.applied_id || item.application_id || item.task?.task_id}
+                      onClick={() => userId && handleViewApplications({ user_id: userId, email: candidateEmail, full_name: candidateName })}
+                      className="w-full flex items-center justify-between px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors text-left group"
+                      title="View candidate applications"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="w-9 h-9 rounded-full overflow-hidden bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center text-xs font-bold text-amber-700 dark:text-amber-300 flex-shrink-0 group-hover:scale-105 transition-transform">
-                          {matchedCandidate?.logo ? (
-                            <img src={matchedCandidate.logo} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            getInitials(matchedCandidate?.full_name || "Candidate")
-                          )}
-                        </div>
+                        <CandidateAvatar
+                          name={candidateName}
+                          imageUrl={avatarUrl}
+                          variant="amber"
+                          hoverScale
+                        />
                         <div className="min-w-0 flex-1">
-                          <p className={`text-sm font-semibold ${textColor} truncate ${matchedCandidate ? "group-hover:text-indigo-600 dark:group-hover:text-indigo-400" : ""}`}>
-                            {task.student_id != null ? (matchedCandidate?.full_name || `Candidate id ${task.student_id}`) : "New application"}
+                          <p className={`text-sm font-semibold ${textColor} truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400`}>
+                            {candidateName}
                           </p>
                           <p className={`text-xs ${textSecondary} truncate`}>
-                            {task.student_id != null ? (matchedCandidate?.email || `Candidate id ${task.student_id}`) : "New application"}
+                            {subtitle}
                           </p>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className={`text-xs ${textSecondary} flex-shrink-0 ml-2`}>{formatTaskDate(task)}</span>
-                        {matchedCandidate && (
-                          <div className="flex items-center gap-1 text-[10px] text-indigo-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                            View Applications <ArrowRight size={10} />
-                          </div>
-                        )}
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
+                        <span className={`text-xs ${textSecondary}`}>{formatDate(getAppliedItemDate(item))}</span>
+                        <div className="flex items-center gap-1 text-[10px] text-indigo-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                          View Applications <ArrowRight size={10} />
+                        </div>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
                 {recentPendingApplicationTasks.length === 0 && (
@@ -636,97 +689,66 @@ const ManageCandidates = () => {
 
           {/* Filters on Top */}
           <div className={`${cardBg} rounded-lg border ${borderColor} p-4 mb-6`}>
-            <div className="flex flex-col gap-4">
-              {/* Search */}
-              <div className="flex-1">
-                <div className="relative">
-                  <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`} />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search by name or email..."
-                    className={`w-full pl-10 pr-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
-                  />
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-[1.6fr_1fr_1fr_1fr] gap-3">
+              <div className="relative min-w-0">
+                <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary} pointer-events-none`} />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by name or email..."
+                  className={`w-full pl-10 pr-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+                />
               </div>
 
-              {/* Status and Date Filters Row */}
-              <div className="flex flex-col lg:flex-row gap-4">
-                {/* Status Filters */}
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => handleStatusFilterChange("all")}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${statusFilter === 'all'
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
-                      : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-                      }`}
-                  >
-                    All ({totalCandidates})
-                  </button>
-                  <button
-                    onClick={() => handleStatusFilterChange("active")}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${statusFilter === 'active'
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'
-                      : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
-                      }`}
-                  >
-                    Active
-                  </button>
-                </div>
+              <div className="relative min-w-0">
+                <CreditCard size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary} pointer-events-none`} />
+                <select
+                  value={planFilter}
+                  onChange={(e) => handlePlanFilterChange(e.target.value)}
+                  className={`w-full pl-10 pr-8 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer appearance-none`}
+                >
+                  <option value="all">All Plans</option>
+                  {availablePlans.map((plan) => (
+                    <option key={plan.plan_id} value={plan.plan_id}>
+                      {plan.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                {/* Plan Filter Dropdown */}
-                <div className="flex items-center gap-2">
-                  <CreditCard size={18} className={textSecondary} />
-                  <select
-                    value={planFilter}
-                    onChange={(e) => handlePlanFilterChange(e.target.value)}
-                    className={`px-4 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer min-w-[10rem]`}
-                  >
-                    <option value="all">All Plans</option>
-                    {availablePlans.map((plan) => (
-                      <option key={plan.plan_id} value={plan.plan_id}>
-                        {plan.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="relative min-w-0">
+                <Calendar size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary} pointer-events-none`} />
+                <select
+                  value={dateFilter}
+                  onChange={(e) => handleDateFilterChange(e.target.value)}
+                  className={`w-full pl-10 pr-8 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer appearance-none`}
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="last7days">Last 7 Days</option>
+                  <option value="last30days">Last 30 Days</option>
+                  <option value="thisMonth">This Month</option>
+                  <option value="lastMonth">Last Month</option>
+                  <option value="thisYear">This Year</option>
+                </select>
+              </div>
 
-                {/* Date Filter Dropdown */}
-                <div className="flex items-center gap-2">
-                  <Calendar size={18} className={textSecondary} />
-                  <select
-                    value={dateFilter}
-                    onChange={(e) => setDateFilter(e.target.value)}
-                    className={`px-4 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
-                  >
-                    <option value="all">All Time</option>
-                    <option value="today">Today</option>
-                    <option value="yesterday">Yesterday</option>
-                    <option value="last7days">Last 7 Days</option>
-                    <option value="last30days">Last 30 Days</option>
-                    <option value="thisMonth">This Month</option>
-                    <option value="lastMonth">Last Month</option>
-                    <option value="thisYear">This Year</option>
-                  </select>
-                </div>
-
-                {/* Sort By Dropdown */}
-                <div className="flex items-center gap-2">
-                  <ArrowUpDown size={18} className={textSecondary} />
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className={`px-4 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
-                  >
-                    <option value="newest">Newest First</option>
-                    <option value="oldest">Oldest First</option>
-                    <option value="nameAZ">Name (A-Z)</option>
-                    <option value="nameZA">Name (Z-A)</option>
-                    <option value="emailAZ">Email (A-Z)</option>
-                    <option value="emailZA">Email (Z-A)</option>
-                  </select>
-                </div>
+              <div className="relative min-w-0">
+                <ArrowUpDown size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary} pointer-events-none`} />
+                <select
+                  value={sortBy}
+                  onChange={(e) => handleSortChange(e.target.value)}
+                  className={`w-full pl-10 pr-8 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer appearance-none`}
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="nameAZ">Name (A-Z)</option>
+                  <option value="nameZA">Name (Z-A)</option>
+                  <option value="emailAZ">Email (A-Z)</option>
+                  <option value="emailZA">Email (Z-A)</option>
+                </select>
               </div>
             </div>
           </div>
@@ -734,9 +756,9 @@ const ManageCandidates = () => {
           {/* Results Header */}
           <div className="mb-4">
             <p className={`text-sm ${textSecondary}`}>
-              Showing <span className={`font-semibold ${textColor}`}>{displayCandidates.length}</span> of{" "}
-              <span className={`font-semibold ${textColor}`}>{candidateMeta.total}</span>{" "}
-              {candidateMeta.total === 1 ? "candidate" : "candidates"}
+              Showing <span className={`font-semibold ${textColor}`}>{listShowing}</span> of{" "}
+              <span className={`font-semibold ${textColor}`}>{listTotal}</span>{" "}
+              {listTotal === 1 ? "candidate" : "candidates"}
               {getPlanFilterLabel() && (
                 <span className="ml-2">· Plan: {getPlanFilterLabel()}</span>
               )}
@@ -745,18 +767,24 @@ const ManageCandidates = () => {
                   · {dateFilter.replace(/([A-Z])/g, ' $1').trim()}
                 </span>
               )}
+              {listLoading && (
+                <span className="ml-2 inline-flex items-center gap-1">
+                  <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-600 inline-block" />
+                  Updating...
+                </span>
+              )}
             </p>
           </div>
 
           {/* Empty State */}
-          {displayCandidates.length === 0 && !loading && (
+          {candidates.length === 0 && !listLoading && (
             <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center`}>
               <div className={`w-16 h-16 ${isDark ? 'bg-blue-500/20' : 'bg-blue-100'} rounded-full flex items-center justify-center mx-auto mb-4`}>
                 <Users size={32} className="text-blue-500" />
               </div>
               <h3 className={`text-lg font-semibold ${textColor} mb-2`}>No candidates found</h3>
               <p className={`${textSecondary} mb-6`}>
-                {searchTerm || statusFilter !== 'all' || planFilter !== 'all' || dateFilter !== 'all' ? "Try adjusting your filters" : "No candidates registered yet"}
+                {searchTerm || planFilter !== 'all' || dateFilter !== 'all' ? "Try adjusting your filters" : "No candidates registered yet"}
               </p>
             </div>
           )}
@@ -777,19 +805,11 @@ const ManageCandidates = () => {
                   {/* Candidate Header */}
                   <div className="flex items-start justify-between gap-3 mb-2.5">
                     <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                      <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-blue-100 dark:bg-blue-900/30">
-                        {candidate.logo ? (
-                          <img
-                            src={candidate.logo}
-                            alt={candidate.full_name || 'Candidate'}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm">
-                            {getInitials(candidate.full_name)}
-                          </div>
-                        )}
-                      </div>
+                      <CandidateAvatar
+                        name={candidate.full_name}
+                        imageUrl={getCandidateAvatarUrl({ registeredCandidate: candidate, userDetails: candidate })}
+                        className="w-10 h-10"
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className={`text-sm font-bold ${textColor} truncate leading-tight`}>

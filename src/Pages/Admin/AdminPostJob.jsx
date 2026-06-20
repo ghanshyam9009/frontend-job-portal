@@ -35,6 +35,21 @@ const AdminPostJob = () => {
   const [error, setError] = useState("");
   const [skillInput, setSkillInput] = useState("");
   const [logoFile, setLogoFile] = useState(null);
+  const [jobPostedBy, setJobPostedBy] = useState(null);
+
+  const getPostSaveNavigatePath = () => {
+    if (fromApproveFlow) return "/admin/job-application-reports";
+    if (!jobId) return "/admin/job-posting";
+
+    const postedBy = (jobPostedBy ?? "").toString().trim().toUpperCase();
+    const isAdminJob = postedBy === "ADMIN" || Boolean(location.state?.admin_id);
+    const isRecruiterJob =
+      postedBy === "RECRUITER" ||
+      postedBy === "EMPLOYER" ||
+      (Boolean(employerIdFromState) && !isAdminJob);
+
+    return isRecruiterJob ? "/admin/employers" : "/admin/job-posting";
+  };
 
   // Check if we should bypass permission checks (for debugging)
   const searchParams = new URLSearchParams(window.location.search);
@@ -199,7 +214,6 @@ const AdminPostJob = () => {
         return;
       }
 
-      console.log('=== JOB FOUND ===');
       console.log('Found job:', {
         job_id: job.job_id,
         id: job.id,
@@ -207,6 +221,8 @@ const AdminPostJob = () => {
         company: job.company_name,
         posted_by: job.posted_by
       });
+
+      setJobPostedBy(job.posted_by ?? null);
 
       // Normalize task/job payload fields (backend me naming variations ho sakti hain)
       job = {
@@ -550,8 +566,7 @@ const AdminPostJob = () => {
       setLoading(true);
       setError("");
       await performSaveJob();
-      // If coming from approve flow, go back to reports
-      navigate("/admin/job-posting");
+      navigate(getPostSaveNavigatePath());
     } catch (error) {
       console.error("Failed to save job:", error);
       setError("Failed to save job. Please try again.");
@@ -633,7 +648,7 @@ const AdminPostJob = () => {
           <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => navigate('/admin/job-posting')}
+                onClick={() => navigate(getPostSaveNavigatePath())}
                 className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors`}
               >
                 <ArrowLeft size={20} className={textColor} />
@@ -1170,7 +1185,7 @@ const AdminPostJob = () => {
           <div className="flex gap-3 justify-end">
             <button
               type="button"
-              onClick={() => navigate(fromApproveFlow ? "/admin/job-application-reports" : "/admin/job-posting")}
+              onClick={() => navigate(getPostSaveNavigatePath())}
               className={`px-6 py-2.5 ${isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'} border rounded-md transition-colors font-medium text-sm`}
             >
               Cancel
