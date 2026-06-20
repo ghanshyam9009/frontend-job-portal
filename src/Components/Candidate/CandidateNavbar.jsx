@@ -25,6 +25,25 @@ import {
   Sparkles
 } from "lucide-react";
 import logo from "../../assets/favicon-icon.png";
+import {
+  getCandidatePlanLabel,
+  hasCandidateManualPlan,
+} from "../../utils/jobApplicationRules";
+
+const getMembershipBadgeLabel = (profileUser) => {
+  if (hasCandidateManualPlan(profileUser)) {
+    return getCandidatePlanLabel(profileUser);
+  }
+  if (profileUser?.premium_user === true || profileUser?.premium_user === "true") {
+    return profileUser?.plan === "premium" ? "Premium" : "Basic";
+  }
+  return "Free";
+};
+
+const hasPaidMembership = (profileUser) => {
+  if (hasCandidateManualPlan(profileUser)) return true;
+  return profileUser?.premium_user === true || profileUser?.premium_user === "true";
+};
 
 const CandidateNavbar = ({ toggleSidebar }) => {
   const navigate = useNavigate();
@@ -429,12 +448,12 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                     {/* Floating Membership Badge */}
                     <div className="absolute -top-1 -right-0 z-20">
                       <div className={`px-2 py-0.5 rounded-full text-[9px] font-black tracking-wider uppercase border shadow-sm flex items-center gap-1 backdrop-blur-md ${
-                        (user?.premium_user === true || user?.premium_user === 'true') 
-                          ? 'bg-amber-100/90 text-amber-700 border-amber-200' 
+                        hasPaidMembership(effectiveUser)
+                          ? 'bg-amber-100/90 text-amber-700 border-amber-200'
                           : 'bg-gray-100/90 text-gray-500 border-gray-200'
                       }`}>
-                        {(user?.premium_user === true || user?.premium_user === 'true') ? <Sparkles size={10} /> : <User size={10} />}
-                        {(user?.premium_user === true || user?.premium_user === 'true') ? (user?.plan === 'premium' ? 'Premium' : 'Basic') : 'Free'}
+                        {hasPaidMembership(effectiveUser) ? <Sparkles size={10} /> : <User size={10} />}
+                        {getMembershipBadgeLabel(effectiveUser)}
                       </div>
                     </div>
 
@@ -594,12 +613,12 @@ const CandidateNavbar = ({ toggleSidebar }) => {
                   {/* Membership Badge - Mobile (centered above avatar) */}
                   <div className="flex flex-col items-center w-full">
                     <div className={`mx-auto mb-1 -mt-2 px-2 py-0.5 rounded-full text-[9px] font-black tracking-wider uppercase border shadow-sm flex items-center gap-1 backdrop-blur-md ${
-                      (user?.premium_user === true || user?.premium_user === 'true') 
-                        ? 'bg-amber-100/90 text-amber-700 border-amber-200' 
+                      hasPaidMembership(effectiveUser)
+                        ? 'bg-amber-100/90 text-amber-700 border-amber-200'
                         : 'bg-gray-100/90 text-gray-500 border-gray-200'
                     }`}>
-                      {(user?.premium_user === true || user?.premium_user === 'true') ? <Sparkles size={10} /> : <User size={10} />}
-                      {(user?.premium_user === true || user?.premium_user === 'true') ? (user?.plan === 'premium' ? 'Premium' : 'Basic') : 'Free'}
+                      {hasPaidMembership(effectiveUser) ? <Sparkles size={10} /> : <User size={10} />}
+                      {getMembershipBadgeLabel(effectiveUser)}
                     </div>
                     <div className="w-16 h-16 rounded-xl bg-blue-50 text-[#2271B5] shadow-inner border border-blue-100 flex items-center justify-center text-2xl font-bold overflow-hidden mb-1.5">
                       {user?.logo ? (
