@@ -151,7 +151,7 @@ const EditJob = () => {
         qualifications: jobData.qualifications.split("\n"),
       };
 
-      const response = await fetch(`http://localhost:4000/api/job/Updatejobs/${jobId}`, {
+      const response = await fetch(`https://api.bigsources.in/api/job/Updatejobs/${jobId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

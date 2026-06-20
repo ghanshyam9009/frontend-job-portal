@@ -45,7 +45,7 @@ var vite_config_default = defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "http://localhost:4000/api",
+        target: "https://api.bigsources.in/api",
         // target:'http://18.141.113.253:/api',
         changeOrigin: true,
         secure: false

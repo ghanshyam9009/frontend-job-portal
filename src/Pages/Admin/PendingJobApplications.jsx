@@ -107,13 +107,79 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
     return 'pending';
   };
 
-  const getStatusLabel = (statusKey) => {
-    if (statusKey === 'approved') return 'Approved';
-    if (statusKey === 'rejected') return 'Rejected';
-    return 'Pending';
+  const normalizeApplicationStatus = (status) => String(status || '').trim().toLowerCase();
+
+  const getBaseApplicationStatus = (application) =>
+    application?.application?.status ??
+    application?.baseApplicationStatus ??
+    '';
+
+  const getApplicationDetailsStatus = (application) =>
+    application?.application_details?.status ??
+    application?.applicationDetailsStatus ??
+    '';
+
+  const isApplicationApproved = (application) =>
+    normalizeApplicationStatus(getBaseApplicationStatus(application)) === 'approved';
+
+  const isApplicationRejected = (application) =>
+    normalizeApplicationStatus(getBaseApplicationStatus(application)) === 'rejected';
+
+  const getDisplayApplicationStatus = (application) => {
+    const baseStatus = normalizeApplicationStatus(getBaseApplicationStatus(application));
+    const detailsStatus = normalizeApplicationStatus(getApplicationDetailsStatus(application));
+
+    if (baseStatus === 'approved') return 'approved';
+    if (baseStatus === 'rejected') return 'rejected';
+
+    if (baseStatus === 'pending' || !baseStatus) {
+      if (detailsStatus) return detailsStatus;
+    }
+
+    return baseStatus || detailsStatus || 'pending';
   };
 
-  const canManageTask = (application) => application?.taskStatus === 'pending';
+  const getApplicationStatusLabel = (status) => {
+    const normalized = normalizeApplicationStatus(status);
+    if (normalized === 'approved') return 'Approved';
+    if (normalized === 'rejected') return 'Rejected';
+    if (normalized === 'shortlisted') return 'Shortlisted';
+    if (normalized === 'pending') return 'Pending';
+    return status ? String(status).trim() : 'Pending';
+  };
+
+  const getApplicationStatusBadgeClass = (status) => {
+    const normalized = normalizeApplicationStatus(status);
+    if (normalized === 'approved') {
+      return 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30';
+    }
+    if (normalized === 'rejected') {
+      return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30';
+    }
+    if (normalized === 'shortlisted') {
+      return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30';
+    }
+    return 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30';
+  };
+
+  const isAdminRole = () => String(role || '').toLowerCase() === 'admin';
+
+  const canManageApplication = (application) => {
+    if (isApplicationApproved(application) || isApplicationRejected(application)) return false;
+
+    const displayStatus = normalizeApplicationStatus(getDisplayApplicationStatus(application));
+    if (displayStatus === 'shortlisted') return false;
+
+    // Admin-posted jobs don't create tasks — use application status directly
+    if (isAdminRole()) {
+      return displayStatus === 'pending';
+    }
+
+    if (!application?.task_id) return false;
+    return application?.taskStatus === 'pending';
+  };
+
+  const getStatusLabel = (statusKey) => getApplicationStatusLabel(statusKey);
 
   const mapStatusToApi = (filter) => {
     const map = { pending: 'Pending', approved: 'Approved', rejected: 'Rejected' };
@@ -208,9 +274,11 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
     const taskId = taskDetails.task_id || task.task_id;
     const rawTaskStatus = taskDetails.status || task.status || 'pending';
     const taskStatus = mapTaskStatusFromApi(rawTaskStatus);
+    const baseApplicationStatus = application.status ?? '';
+    const applicationDetailsStatus = appDetails.status ?? '';
 
     const studentSkills = parseSkills(
-      application.skills_tags || appDetails.skills_tags || appDetails.student_skills || userDetails.skills
+      appDetails.skills_tags || appDetails.student_skills || application.skills_tags || userDetails.skills
     );
 
     const locations = job.locations || (jobDetails.location ? [jobDetails.location] : []);
@@ -235,7 +303,7 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
       jobTitle: job.job_title || jobDetails.job_title || 'Not specified',
       jobLocation,
       companyName: job.company_name || jobDetails.company_name || 'Unknown Company',
-      applicationDate: item.applied_date || application.applied_at || taskDetails.created_at || task.created_at || '',
+      applicationDate: appDetails.applied_at || appDetails.created_at || item.applied_date || application.applied_at || taskDetails.created_at || task.created_at || '',
       studentDetails,
     };
 
@@ -245,7 +313,10 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
       applied_id: item.applied_id,
       student_id: candidate.student_id || userDetails.user_id || item.user_id,
       job_id: job.job_id || jobDetails.job_id || item.job_id,
-      applicationStatus: taskStatus,
+      application,
+      baseApplicationStatus: String(baseApplicationStatus).trim(),
+      applicationDetailsStatus: String(applicationDetailsStatus).trim(),
+      applicationStatus: String(applicationDetailsStatus).trim(),
       taskStatus,
       rawTaskStatus,
       status: rawTaskStatus,
@@ -370,33 +441,43 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
     return sorted;
   };
 
-  const handleApproveApplication = async (taskId) => {
+  const handleApproveApplication = async (application) => {
+    const actionKey = getRowKey(application);
     try {
-      setLoadingApplications(prev => ({ ...prev, [taskId]: true }));
-      await adminService.approveJobApplicationByStudent(taskId);
+      setLoadingApplications(prev => ({ ...prev, [actionKey]: true }));
+      if (isAdminRole() && !application.task_id) {
+        await adminService.approveApplication(application.application_id);
+      } else {
+        await adminService.approveJobApplicationByStudent(application.task_id);
+      }
       alert('Application approved successfully! The recruiter can now review this application.');
       await fetchData();
     } catch (error) {
       console.error('Failed to approve application:', error);
       alert('Failed to approve application. Please try again.');
     } finally {
-      setLoadingApplications(prev => ({ ...prev, [taskId]: false }));
+      setLoadingApplications(prev => ({ ...prev, [actionKey]: false }));
     }
   };
 
-  const handleRejectApplication = async (taskId) => {
+  const handleRejectApplication = async (application) => {
     const confirmReject = window.confirm('Are you sure you want to reject this application?');
     if (!confirmReject) return;
+    const actionKey = getRowKey(application);
     try {
-      setLoadingApplications(prev => ({ ...prev, [taskId]: true }));
-      await adminService.rejectJob(taskId);
+      setLoadingApplications(prev => ({ ...prev, [actionKey]: true }));
+      if (isAdminRole() && !application.task_id) {
+        await adminService.rejectApplication(application.application_id);
+      } else {
+        await adminService.rejectJob(application.task_id);
+      }
       alert('Application rejected successfully.');
       await fetchData();
     } catch (error) {
       console.error('Failed to reject application:', error);
       alert('Failed to reject application. Please try again.');
     } finally {
-      setLoadingApplications(prev => ({ ...prev, [taskId]: false }));
+      setLoadingApplications(prev => ({ ...prev, [actionKey]: false }));
     }
   };
 
@@ -697,7 +778,9 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
                 const rowKey = getRowKey(application);
                 const details = getDetailsForApp(application);
                 const isLoadingAction = loadingApplications[rowKey];
-                const showTaskActions = application.task_id && canManageTask(application);
+                const displayStatus = getDisplayApplicationStatus(application);
+                const normalizedDisplayStatus = normalizeApplicationStatus(displayStatus);
+                const showTaskActions = canManageApplication(application);
 
                 return (
                   <div
@@ -754,13 +837,8 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-1.5">
-                          <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${application.taskStatus === 'approved'
-                            ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30'
-                            : application.taskStatus === 'rejected'
-                              ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30'
-                              : 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30'
-                            }`} style={{ fontSize: '0.7rem' }}>
-                            {getStatusLabel(application.taskStatus)}
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${getApplicationStatusBadgeClass(displayStatus)}`} style={{ fontSize: '0.7rem' }}>
+                            {getApplicationStatusLabel(displayStatus)}
                           </span>
                           {jobTypes[application.job_id] && (
                             <span className={`px-2 py-0.5 rounded text-xs font-medium ${jobTypes[application.job_id] === 'Admin Private Job'
@@ -858,7 +936,7 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
                         {showTaskActions && (
                           <>
                             <button
-                              onClick={() => handleRejectApplication(application.task_id)}
+                              onClick={() => handleRejectApplication(application)}
                               disabled={isLoadingAction}
                               className={`flex-1 sm:flex-initial px-3 py-1.5 border border-red-300 text-red-700 bg-red-50 hover:bg-red-100 dark:border-red-500/30 dark:text-red-400 dark:bg-red-500/20 dark:hover:bg-red-500/30 rounded-lg transition-colors text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed`}
                               style={{ fontSize: '0.7rem' }}
@@ -871,7 +949,7 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
                               Reject
                             </button>
                             <button
-                              onClick={() => handleApproveApplication(application.task_id)}
+                              onClick={() => handleApproveApplication(application)}
                               disabled={isLoadingAction}
                               className={`flex-1 sm:flex-initial px-3 py-1.5 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed`}
                               style={{ fontSize: '0.7rem' }}
@@ -885,13 +963,19 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
                             </button>
                           </>
                         )}
-                        {!showTaskActions && application.taskStatus === 'approved' && (
+                        {!showTaskActions && normalizedDisplayStatus === 'approved' && (
                           <span className="flex-1 sm:flex-initial px-3 py-1.5 text-green-700 dark:text-green-400 text-xs font-medium flex items-center justify-center gap-1.5" style={{ fontSize: '0.7rem' }}>
                             <Check size={13} />
                             Approved
                           </span>
                         )}
-                        {!showTaskActions && application.taskStatus === 'rejected' && (
+                        {!showTaskActions && normalizedDisplayStatus === 'shortlisted' && (
+                          <span className="flex-1 sm:flex-initial px-3 py-1.5 text-blue-700 dark:text-blue-400 text-xs font-medium flex items-center justify-center gap-1.5" style={{ fontSize: '0.7rem' }}>
+                            <Check size={13} />
+                            Shortlisted
+                          </span>
+                        )}
+                        {!showTaskActions && normalizedDisplayStatus === 'rejected' && (
                           <span className="flex-1 sm:flex-initial px-3 py-1.5 text-red-700 dark:text-red-400 text-xs font-medium flex items-center justify-center gap-1.5" style={{ fontSize: '0.7rem' }}>
                             <X size={13} />
                             Rejected
@@ -1191,14 +1275,8 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
               <div>
                 <h4 className={`text-lg font-bold ${textColor} mb-3`}>Application Status</h4>
                 <div className="flex items-center gap-3">
-                  <span className={`px-4 py-2 rounded-lg text-sm font-semibold border ${selectedCandidate.taskStatus === 'approved'
-                    ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30'
-                    : selectedCandidate.taskStatus === 'rejected'
-                      ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30'
-                      : 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30'
-                    }`}>
-                    {selectedCandidate.taskStatus === 'approved' ? '✓ Approved' :
-                      selectedCandidate.taskStatus === 'rejected' ? '✗ Rejected' : '⏳ Pending Review'}
+                  <span className={`px-4 py-2 rounded-lg text-sm font-semibold border ${getApplicationStatusBadgeClass(getDisplayApplicationStatus(selectedCandidate))}`}>
+                    {getApplicationStatusLabel(getDisplayApplicationStatus(selectedCandidate))}
                   </span>
                   {jobTypes[selectedCandidate.job_id] && (
                     <span className={`px-3 py-2 rounded-lg text-sm font-medium border ${jobTypes[selectedCandidate.job_id] === 'Admin Private Job'

@@ -20,7 +20,7 @@ const ADMIN_GET_ALL_JOB_ADMIN_URL =
 
 const ADMIN_REOPEN_APPROVE_URL =
   import.meta.env.VITE_ADMIN_REOPEN_APPROVE_URL ||
-  'http://localhost:4000/api/job/admin/approve-reopen-job';
+  'https://api.bigsources.in/api/job/admin/approve-reopen-job';
 
 export const adminExternalService = {
   // Get admin jobs from cursor-based paginated endpoint

@@ -74,11 +74,11 @@ Centralized API endpoint management with environment-specific configurations.
 ```javascript
 const API_CONFIG = {
   development: {
-    baseURL: 'http://localhost:4000/api',
+    baseURL: 'https://api.bigsources.in/api',
     timeout: 10000
   },
   production: {
-    baseURL: 'http://localhost:4000/api',
+    baseURL: 'https://api.bigsources.in/api',
     timeout: 15000
   }
 };

@@ -50,7 +50,7 @@ cp .env.example .env
 Edit the `.env` file with your actual values:
 ```env
 # API Configuration
-VITE_API_BASE_URL=http://localhost:4000/api
+VITE_API_BASE_URL=https://api.bigsources.in/api
 
 # Razorpay Payment Gateway Configuration
 VITE_RAZORPAY_KEY_ID=your_production_razorpay_key_id
@@ -87,7 +87,7 @@ The application uses the following environment variables:
 
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
-| `VITE_API_BASE_URL` | Backend API base URL | No | `http://localhost:4000/api` |
+| `VITE_API_BASE_URL` | Backend API base URL | No | `https://api.bigsources.in/api` |
 | `VITE_RAZORPAY_KEY_ID` | Razorpay Key ID for payments | No | Test key |
 | `VITE_RAZORPAY_KEY_SECRET` | Razorpay Key Secret | No | Test secret |
 | `VITE_GOOGLE_CLIENT_ID` | Google OAuth Client ID | No | - |

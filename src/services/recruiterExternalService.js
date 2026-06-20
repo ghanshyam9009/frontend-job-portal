@@ -8,9 +8,9 @@ const JOBS_URL = import.meta.env.VITE_RECRUITER_JOBS_URL || 'https://3lfruhyo2j.
 const APPLICANTS_URL = import.meta.env.VITE_RECRUITER_APPLICANTS_URL || 'https://fab65y8p6d.execute-api.ap-southeast-1.amazonaws.com/default/getallappplicants';
 const ACTIONS_URL = import.meta.env.VITE_RECRUITER_ACTIONS_URL || 'https://qghn0cpfqj.execute-api.ap-southeast-1.amazonaws.com/default/changeapplicationstatus';
 const JOB_CLOSE_URL = import.meta.env.VITE_RECRUITER_JOB_CLOSE_URL || 'https://wxxi8h89m5.execute-api.ap-southeast-1.amazonaws.com/default/closedjobopening';
-const UPDATE_JOB_URL = 'http://localhost:4000/api/job/Updatejobs';
-// const JOB_REOPEN_URL = import.meta.env.VITE_RECRUITER_JOB_REOPEN_URL || 'http://localhost:4000/api/job/recruiter/reopen-job';
-const JOB_REOPEN_URL = import.meta.env.VITE_RECRUITER_JOB_REOPEN_URL || 'http://localhost:4000/api/job/recruiter/reopen-job';
+const UPDATE_JOB_URL = 'https://api.bigsources.in/api/job/Updatejobs';
+// const JOB_REOPEN_URL = import.meta.env.VITE_RECRUITER_JOB_REOPEN_URL || 'https://api.bigsources.in/api/job/recruiter/reopen-job';
+const JOB_REOPEN_URL = import.meta.env.VITE_RECRUITER_JOB_REOPEN_URL || 'https://api.bigsources.in/api/job/recruiter/reopen-job';
 
 export const recruiterExternalService = {
   async getAllPostedJobs(employerId) {

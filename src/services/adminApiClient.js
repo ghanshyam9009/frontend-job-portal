@@ -2,8 +2,8 @@ import axios from 'axios';
 
 // Create axios instance for admin API
 const adminApiClient = axios.create({
-  baseURL: 'http://localhost:4000/api',
-  // baseURL: 'http://localhost:4000/api',
+  baseURL: 'https://api.bigsources.in/api',
+  // baseURL: 'https://api.bigsources.in/api',
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',

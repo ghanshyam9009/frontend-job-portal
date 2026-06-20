@@ -1,6 +1,6 @@
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
-  // import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+  import.meta.env.VITE_API_BASE_URL || "https://api.bigsources.in/api";
+  // import.meta.env.VITE_API_BASE_URL || "https://api.bigsources.in/api";
 
 const BASE_PATH = "/admin/banner";
 

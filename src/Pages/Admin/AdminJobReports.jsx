@@ -691,6 +691,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
             const isReopenTask = isReopenTaskCategory(taskCategory);
             const taskId = getTaskIdForJob(job);
             const appCount = getJobApplicationCount(job);
+            const isPremium = Boolean(job.premium_job || job.is_premium);
             return (
               <div
                 key={String(job.task_id ?? job.job_id ?? job.id)}
@@ -849,14 +850,18 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleMarkPremium(job, !(job.premium_job || job.is_premium));
+                            handleMarkPremium(job, !isPremium);
                           }}
                           disabled={actionLoading === `premium-${job.job_id || job.id}`}
-                          className={`inline-flex w-full h-9 items-center justify-center gap-1 px-2 rounded-lg text-[11px] sm:text-xs font-medium border ${borderColor} ${textColor} hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors disabled:opacity-50`}
+                          className={`inline-flex w-full h-9 items-center justify-center gap-1 px-2 rounded-lg text-[11px] sm:text-xs font-medium border transition-colors disabled:opacity-50 ${
+                            isPremium
+                              ? "border-amber-400 bg-amber-100 text-amber-800 hover:bg-amber-200 dark:border-amber-500/50 dark:bg-amber-500/25 dark:text-amber-300 dark:hover:bg-amber-500/35"
+                              : `${borderColor} ${textColor} hover:bg-yellow-50 dark:hover:bg-yellow-900/20`
+                          }`}
                         >
-                          <Star size={13} className="flex-shrink-0" />
+                          <Star size={13} className="flex-shrink-0" fill={isPremium ? "currentColor" : "none"} />
                           <span className="truncate">
-                            {(job.premium_job || job.is_premium) ? "Premium" : "Feature"}
+                            {isPremium ? "Premium" : "Feature"}
                           </span>
                         </button>
                         <button
