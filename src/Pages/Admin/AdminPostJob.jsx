@@ -21,6 +21,12 @@ import {
   Users
 } from "lucide-react";
 
+/** Prefer `premium_job`; fall back to `is_premium` when loading edit form */
+const resolveJobPremium = (job) => {
+  if (job?.premium_job === true || job?.premium_job === "true") return true;
+  return job?.is_premium === true || job?.is_premium === "true";
+};
+
 const AdminPostJob = () => {
   const navigate = useNavigate();
   const { jobId } = useParams(); // For edit mode
@@ -84,6 +90,7 @@ const AdminPostJob = () => {
     contact_email: "",
     contact_number: "",
     is_premium: false,
+    premium_job: false,
     additional_benefits: []
   });
 
@@ -292,7 +299,8 @@ const AdminPostJob = () => {
         work_mode: job.work_mode ?? job.workMode ?? job.work_mode_type ?? "On-site",
 
         // Premium/benefits
-        is_premium: job.is_premium ?? job.premium_job ?? job.premium ?? false,
+        is_premium: resolveJobPremium(job),
+        premium_job: resolveJobPremium(job),
         additional_benefits: job.additional_benefits ?? job.benefits ?? job.new_benefits ?? [],
 
         // Salary/experience (only best-effort; formatter further handles shapes)
@@ -419,7 +427,8 @@ const AdminPostJob = () => {
         application_deadline: deadlineDate,
         contact_email: job.contact_email || "",
         contact_number: job.contact_number || "",
-        is_premium: job.is_premium || false,
+        is_premium: resolveJobPremium(job),
+        premium_job: resolveJobPremium(job),
         additional_benefits: Array.isArray(job.additional_benefits) ? job.additional_benefits : []
       };
 
@@ -431,7 +440,7 @@ const AdminPostJob = () => {
       console.log('Skills count:', skillsArray.length);
       console.log('Responsibilities lines:', responsibilitiesText ? responsibilitiesText.split('\n').length : 0);
       console.log('Qualifications lines:', qualificationsText ? qualificationsText.split('\n').length : 0);
-      console.log('Is Premium:', formDataToSet.is_premium);
+      console.log('Is Premium:', formDataToSet.is_premium, '| premium_job:', formDataToSet.premium_job);
       console.log('Additional Benefits:', formDataToSet.additional_benefits);
       console.log('=========================');
     } catch (error) {
@@ -489,6 +498,14 @@ const AdminPostJob = () => {
     }));
   };
 
+  const handlePremiumChange = (checked) => {
+    setFormData((prev) => ({
+      ...prev,
+      is_premium: checked,
+      premium_job: checked,
+    }));
+  };
+
 
 
   const performSaveJob = async ({ silent = false } = {}) => {
@@ -510,7 +527,8 @@ const AdminPostJob = () => {
       contact_number: formData.contact_number || null,
       additional_benefits: formData.additional_benefits || [],
       status: "Open",
-      is_premium: formData.is_premium,
+      is_premium: Boolean(formData.is_premium),
+      premium_job: Boolean(formData.premium_job),
       posted_by: "admin",
       to_show_user: true,
       admin_id: user?.admin_id || user?.id || user?.user_id,
@@ -542,16 +560,18 @@ const AdminPostJob = () => {
       }
     }
 
-    // Mark job as premium if checkbox was checked
-    if (formData.is_premium) {
-      try {
-        const targetJobId = jobId || jobResult.job_id;
-        await adminService.markJobPremium(targetJobId, true, "job");
-        console.log("Job marked as premium successfully");
-      } catch (premiumError) {
-        console.error("Failed to mark job as premium:", premiumError);
-        alert("Job saved successfully, but failed to mark as premium. You can try again later.");
+    // Sync premium status via dedicated endpoint (true or false)
+    try {
+      const targetJobId = jobId || jobResult.job_id;
+      if (targetJobId) {
+        await adminService.markJobPremium(targetJobId, Boolean(formData.is_premium), "job");
+        console.log(
+          `Job premium status set to ${formData.is_premium ? "premium" : "non-premium"} successfully`
+        );
       }
+    } catch (premiumError) {
+      console.error("Failed to update premium status:", premiumError);
+      alert("Job saved successfully, but failed to update premium status. You can try again later.");
     }
 
     // Clear logo file after successful submission
@@ -979,7 +999,7 @@ const AdminPostJob = () => {
                   <input
                     type="checkbox"
                     checked={formData.is_premium}
-                    onChange={(e) => handleInputChange('is_premium', e.target.checked)}
+                    onChange={(e) => handlePremiumChange(e.target.checked)}
                     className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
                   />
                   Mark as Premium Job (will appear first in search results)

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from 'react-toastify';
 import { useAuth } from "../../Contexts/AuthContext";
@@ -30,6 +30,7 @@ const RecruiterLogin = () => {
   const [otpVerified, setOtpVerified] = useState(false);
   const [otp, setOtp] = useState("");
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -39,6 +40,16 @@ const RecruiterLogin = () => {
     contactPerson: "",
     phone: ""
   });
+
+  useEffect(() => {
+    let interval;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -112,10 +123,44 @@ const RecruiterLogin = () => {
         role: "recruiter" 
       });
       setOtpSent(true);
+      setResendTimer(60);
       toast.success("OTP sent successfully to your email!");
     } catch (err) {
       console.error("Send OTP failed:", err);
       const errorMessage = err.error || err.message || "Failed to send OTP. Please try again.";
+      toast.error(errorMessage);
+    } finally {
+      setIsVerifyingEmail(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (isVerifyingEmail || resendTimer > 0) return;
+
+    const rules = {
+      email: { required: true, type: 'email', label: 'Email' }
+    };
+    const validationErrors = validateForm(formData, rules);
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors((prev) => ({ ...prev, ...validationErrors }));
+      return;
+    }
+
+    setIsVerifyingEmail(true);
+    setError("");
+
+    try {
+      await apiClient.post(API_ENDPOINTS.password.resendOtpRegistration, {
+        email: formData.email,
+        role: "recruiter",
+      });
+      setOtp("");
+      setResendTimer(60);
+      toast.success("OTP resent successfully to your email!");
+    } catch (err) {
+      console.error("Resend OTP failed:", err);
+      const errorMessage = err.error || err.message || "Failed to resend OTP. Please try again.";
       toast.error(errorMessage);
     } finally {
       setIsVerifyingEmail(false);
@@ -290,6 +335,7 @@ const RecruiterLogin = () => {
                 setOtpSent(false);
                 setOtpVerified(false);
                 setOtp("");
+                setResendTimer(0);
                 setError("");
                 setSuccess("");
                 setErrors({});
@@ -304,6 +350,7 @@ const RecruiterLogin = () => {
                 setOtpSent(false);
                 setOtpVerified(false);
                 setOtp("");
+                setResendTimer(0);
                 setError("");
                 setSuccess("");
                 setErrors({});
@@ -485,6 +532,27 @@ const RecruiterLogin = () => {
                     </button>
                   </div>
                   {errors.otp && <span className={styles.errorText}>{errors.otp}</span>}
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={isVerifyingEmail || resendTimer > 0}
+                    className={styles.forgotPassword}
+                    style={{
+                      marginTop: '0.5rem',
+                      display: 'inline-block',
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      cursor: isVerifyingEmail || resendTimer > 0 ? 'not-allowed' : 'pointer',
+                      opacity: isVerifyingEmail || resendTimer > 0 ? 0.6 : 1,
+                    }}
+                  >
+                    {isVerifyingEmail
+                      ? 'Resending OTP...'
+                      : resendTimer > 0
+                        ? `Resend OTP in ${resendTimer}s`
+                        : 'Resend OTP'}
+                  </button>
                 </label>
               </div>
             )}

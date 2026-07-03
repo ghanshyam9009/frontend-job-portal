@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from 'react-toastify';
 import { useAuth } from "../../Contexts/AuthContext";
@@ -29,6 +29,7 @@ const CandidateLogin = () => {
   const [otpVerified, setOtpVerified] = useState(false);
   const [otp, setOtp] = useState("");
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
   
   // Get the return URL from navigation state (default: My Applications)
   const from = location.state?.from?.pathname || '/my-applications';
@@ -39,6 +40,16 @@ const CandidateLogin = () => {
     fullName: "",
     phone: ""
   });
+
+  useEffect(() => {
+    let interval;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
   const extractErrorMessage = (errorObj) => {
     const normalize = (value) => {
@@ -144,11 +155,52 @@ const CandidateLogin = () => {
         role: "candidate" 
       });
       setOtpSent(true);
+      setResendTimer(60);
       toast.success("OTP sent successfully to your email!");
     } catch (err) {
       console.error("Send OTP failed:", err);
       const errorMessage = err.error || err.message || "Failed to send OTP. Please try again.";
       toast.error(errorMessage);
+    } finally {
+      setIsVerifyingEmail(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (isVerifyingEmail || resendTimer > 0) return;
+
+    const rules = {
+      email: { required: true, type: 'email', label: 'Email' }
+    };
+    const validationErrors = validateForm(formData, rules);
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors((prev) => ({ ...prev, ...validationErrors }));
+      return;
+    }
+
+    setIsVerifyingEmail(true);
+    setError("");
+
+    try {
+      const result = await studentService.resendOtp({
+        email: formData.email,
+        role: "student",
+      });
+
+      if (result.success) {
+        setOtp("");
+        setResendTimer(60);
+        toast.success("OTP resent successfully to your email!");
+      } else {
+        const rawError = result.error?.raw || result.error;
+        const errorMessage =
+          extractErrorMessage(rawError) || result.error?.message || "Failed to resend OTP. Please try again.";
+        toast.error(errorMessage);
+      }
+    } catch (err) {
+      console.error("Resend OTP failed:", err);
+      toast.error(extractErrorMessage(err) || "Failed to resend OTP. Please try again.");
     } finally {
       setIsVerifyingEmail(false);
     }
@@ -290,6 +342,7 @@ const CandidateLogin = () => {
                 setOtpSent(false);
                 setOtpVerified(false);
                 setOtp("");
+                setResendTimer(0);
                 setError("");
                 setErrors({});
               }}
@@ -303,6 +356,7 @@ const CandidateLogin = () => {
                 setOtpSent(false);
                 setOtpVerified(false);
                 setOtp("");
+                setResendTimer(0);
                 setError("");
                 setErrors({});
               }}
@@ -467,6 +521,27 @@ const CandidateLogin = () => {
                     </button>
                   </div>
                   {errors.otp && <span className={styles.errorText}>{errors.otp}</span>}
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={isVerifyingEmail || resendTimer > 0}
+                    className={styles.forgotPassword}
+                    style={{
+                      marginTop: '0.5rem',
+                      display: 'inline-block',
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      cursor: isVerifyingEmail || resendTimer > 0 ? 'not-allowed' : 'pointer',
+                      opacity: isVerifyingEmail || resendTimer > 0 ? 0.6 : 1,
+                    }}
+                  >
+                    {isVerifyingEmail
+                      ? 'Resending OTP...'
+                      : resendTimer > 0
+                        ? `Resend OTP in ${resendTimer}s`
+                        : 'Resend OTP'}
+                  </button>
                 </label>
               </div>
             )}

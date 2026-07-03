@@ -14,7 +14,7 @@ import {
   MapPin,
   Calendar,
   Briefcase,
-  Award,
+  Star,
   ArrowUpDown,
   FileText,
 } from "lucide-react";
@@ -41,6 +41,12 @@ const getCompanyInitials = (name) => {
     .join("")
     .toUpperCase()
     .slice(0, 2);
+};
+
+/** Prefer `premium_job`; fall back to `is_premium` when `premium_job` is not true */
+const isJobPremium = (job) => {
+  if (job?.premium_job === true || job?.premium_job === "true") return true;
+  return job?.is_premium === true || job?.is_premium === "true";
 };
 
 const toDateParam = (date) => date.toISOString().split("T")[0];
@@ -610,6 +616,7 @@ const AdminJobs = () => {
             const logoUrl = getJobLogoUrl(job);
             const statusBadge = job.status_label || job.status || "Pending";
             const appCount = getJobApplicationCount(job);
+            const isPremium = isJobPremium(job);
 
             return (
               <div
@@ -618,10 +625,18 @@ const AdminJobs = () => {
                 tabIndex={0}
                 onClick={() => handleViewJob(job)}
                 onKeyDown={(e) => e.key === "Enter" && handleViewJob(job)}
-                className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all cursor-pointer`}
+                className={`${cardBg} rounded-lg border ${borderColor} hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all cursor-pointer relative`}
               >
+                {isPremium && (
+                  <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-yellow-400 to-orange-400 text-black px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm">
+                    <Star size={12} fill="currentColor" />
+                    Premium
+                  </div>
+                )}
                 <div className="p-3 sm:p-4">
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-2.5">
+                  <div
+                    className={`flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-2.5 ${isPremium ? "pr-24" : ""}`}
+                  >
                     <div className="flex gap-3 flex-1 min-w-0">
                       <div
                         className={`w-12 h-12 rounded-lg flex-shrink-0 overflow-hidden border ${borderColor} flex items-center justify-center shadow-sm ${isDark ? "bg-gray-700/80" : "bg-white"}`}
@@ -650,12 +665,6 @@ const AdminJobs = () => {
                           <h3 className={`text-sm sm:text-base font-bold ${textColor} leading-tight break-words`}>
                             {job.job_title || "N/A"}
                           </h3>
-                          {job.is_premium && (
-                            <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 rounded-full text-xs font-semibold flex items-center gap-1">
-                              <Award size={12} />
-                              Premium
-                            </span>
-                          )}
                         </div>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600 dark:text-gray-400 mb-2">
                           <span className="flex items-center gap-1 truncate max-w-full">

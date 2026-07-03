@@ -82,29 +82,81 @@ const JobListings = () => {
 
   const rightSidebarAnchorRef = useRef(null);
   const rightSidebarContentRef = useRef(null);
-  const [rightSidebarFixed, setRightSidebarFixed] = useState({
-    active: false,
+  const footerRef = useRef(null);
+  const sidebarRafRef = useRef(null);
+  const [rightSidebarStyle, setRightSidebarStyle] = useState({
+    ready: false,
+    visible: false,
+    top: 80,
     left: 0,
     width: 256,
     height: 0,
   });
 
   const updateRightSidebarPosition = useCallback(() => {
-    const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
-    const anchor = rightSidebarAnchorRef.current;
-    const content = rightSidebarContentRef.current;
+    if (sidebarRafRef.current != null) return;
 
-    if (!isDesktop || !anchor || !content) {
-      setRightSidebarFixed((prev) => ({ ...prev, active: false }));
-      return;
-    }
+    sidebarRafRef.current = requestAnimationFrame(() => {
+      sidebarRafRef.current = null;
 
-    const anchorRect = anchor.getBoundingClientRect();
-    setRightSidebarFixed({
-      active: true,
-      left: anchorRect.left,
-      width: anchorRect.width,
-      height: content.offsetHeight,
+      const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
+      const anchor = rightSidebarAnchorRef.current;
+      const content = rightSidebarContentRef.current;
+      const footer = footerRef.current;
+
+      if (!isDesktop || !anchor || !content) {
+        setRightSidebarStyle((prev) =>
+          prev.ready === false && !prev.visible ? prev : { ...prev, ready: false, visible: false }
+        );
+        return;
+      }
+
+      const anchorRect = anchor.getBoundingClientRect();
+      const contentHeight = content.offsetHeight;
+      if (contentHeight <= 0) return;
+
+      const stickyTop = 80;
+      const gap = 16;
+      let top = stickyTop;
+
+      if (anchorRect.bottom - contentHeight < top) {
+        top = anchorRect.bottom - contentHeight;
+      }
+
+      if (footer) {
+        const footerTop = footer.getBoundingClientRect().top;
+        if (top + contentHeight + gap > footerTop) {
+          top = footerTop - contentHeight - gap;
+        }
+      }
+
+      const visible =
+        anchorRect.bottom > stickyTop &&
+        anchorRect.top < window.innerHeight &&
+        top + contentHeight > stickyTop;
+
+      const next = {
+        ready: true,
+        visible,
+        top,
+        left: anchorRect.left,
+        width: anchorRect.width,
+        height: contentHeight,
+      };
+
+      setRightSidebarStyle((prev) => {
+        if (
+          prev.ready === next.ready &&
+          prev.visible === next.visible &&
+          prev.top === next.top &&
+          prev.left === next.left &&
+          prev.width === next.width &&
+          prev.height === next.height
+        ) {
+          return prev;
+        }
+        return next;
+      });
     });
   }, []);
 
@@ -117,10 +169,16 @@ const JobListings = () => {
     const resizeObserver = new ResizeObserver(updateRightSidebarPosition);
     const contentEl = rightSidebarContentRef.current;
     const anchorEl = rightSidebarAnchorRef.current;
+    const footerEl = footerRef.current;
     if (contentEl) resizeObserver.observe(contentEl);
     if (anchorEl) resizeObserver.observe(anchorEl);
+    if (footerEl) resizeObserver.observe(footerEl);
 
     return () => {
+      if (sidebarRafRef.current != null) {
+        cancelAnimationFrame(sidebarRafRef.current);
+        sidebarRafRef.current = null;
+      }
       window.removeEventListener("resize", updateRightSidebarPosition);
       window.removeEventListener("scroll", updateRightSidebarPosition);
       resizeObserver.disconnect();
@@ -1157,93 +1215,96 @@ const JobListings = () => {
             </div>
           </div>
 
-          {/* Right Sidebar - Desktop: grid anchor + fixed panel */}
-          <aside
-            ref={rightSidebarAnchorRef}
-            className="hidden lg:block"
-            aria-hidden="true"
-          >
-            <div style={{ height: rightSidebarFixed.height || undefined }} />
+          {/* Right Sidebar - Desktop: fixed while scrolling, stops before footer */}
+          <aside ref={rightSidebarAnchorRef} className="hidden lg:block" aria-hidden="true">
+            <div style={{ height: rightSidebarStyle.height || undefined }} />
           </aside>
         </div>
-
-        <div
-          ref={rightSidebarContentRef}
-          className="hidden lg:block fixed top-20 z-20 space-y-4"
-          style={{
-            left: rightSidebarFixed.left,
-            width: rightSidebarFixed.width,
-            visibility: rightSidebarFixed.active ? "visible" : "hidden",
-          }}
-        >
-            <div
-              className={`${isDark
-                  ? 'bg-gradient-to-br from-gray-800 to-gray-700 border border-gray-600'
-                  : 'bg-gradient-to-br from-blue-50 to-orange-50'
-                } rounded-lg shadow-sm p-4 transition-colors duration-300`}
-            >
-              <div className={`${textPrimary} text-xl mb-2`}>⚡ BigSources FASTFORWARD</div>
-
-              <h3 className={`font-semibold mb-1.5 text-sm ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
-                Get 3X more profile views from recruiters
-              </h3>
-
-              <p className={`text-xs mb-3 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                Increase your chances of callback with BigSources FastForward
-              </p>
-
-              <button
-                className={`text-xs font-semibold transition-colors duration-200 ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
-                  }`}
-              >
-                Know More
-              </button>
-            </div>
-            {!jobBannersLoading && jobBanners.length > 0 && (
-              <section className="transition-colors duration-300">
-                <div>
-                  {jobBanners.length === 1 ? (
-                    <div className="rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-                      <img
-                        src={bannerService.getBannerImage(jobBanners[0])}
-                        alt="Job listings banner"
-                        className="w-full h-auto object-cover"
-                        loading="lazy"
-                        onLoad={updateRightSidebarPosition}
-                      />
-                    </div>
-                  ) : (
-                    <Swiper
-                      modules={[Autoplay]}
-                      autoplay={{ delay: 4000, disableOnInteraction: false }}
-                      loop={jobBanners.length > 1}
-                      spaceBetween={16}
-                      className="rounded-xl overflow-hidden shadow-md"
-                      onInit={updateRightSidebarPosition}
-                    >
-                      {jobBanners.map((banner) => {
-                        const imageUrl = bannerService.getBannerImage(banner);
-                        const id = banner.banner_id || banner.id || imageUrl;
-                        return (
-                          <SwiperSlide key={id}>
-                            <img
-                              src={imageUrl}
-                              alt="Job listings banner"
-                              className="w-full h-auto object-cover"
-                              loading="lazy"
-                              onLoad={updateRightSidebarPosition}
-                            />
-                          </SwiperSlide>
-                        );
-                      })}
-                    </Swiper>
-                  )}
-                </div>
-              </section>
-            )}
-        </div>
       </div>
-      <Footer />
+
+      <div
+        ref={rightSidebarContentRef}
+        className="hidden lg:block fixed z-20 space-y-4"
+        style={{
+          top: rightSidebarStyle.top,
+          left: rightSidebarStyle.left,
+          width: rightSidebarStyle.width,
+          opacity: rightSidebarStyle.ready && rightSidebarStyle.visible ? 1 : 0,
+          pointerEvents: rightSidebarStyle.ready && rightSidebarStyle.visible ? "auto" : "none",
+        }}
+      >
+        <div
+          className={`${isDark
+              ? 'bg-gradient-to-br from-gray-800 to-gray-700 border border-gray-600'
+              : 'bg-gradient-to-br from-blue-50 to-orange-50'
+            } rounded-lg shadow-sm p-4 transition-colors duration-300`}
+        >
+          <div className={`${textPrimary} text-xl mb-2`}>⚡ BigSources FASTFORWARD</div>
+
+          <h3 className={`font-semibold mb-1.5 text-sm ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+            Get 3X more profile views from recruiters
+          </h3>
+
+          <p className={`text-xs mb-3 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            Increase your chances of callback with BigSources FastForward
+          </p>
+
+          <button
+            className={`text-xs font-semibold transition-colors duration-200 ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
+              }`}
+          >
+            Know More
+          </button>
+        </div>
+        {!jobBannersLoading && jobBanners.length > 0 ? (
+          <section className="transition-colors duration-300">
+            <div className="min-h-[280px]">
+              {jobBanners.length === 1 ? (
+                <div className="rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
+                  <img
+                    src={bannerService.getBannerImage(jobBanners[0])}
+                    alt="Job listings banner"
+                    className="w-full h-auto object-cover"
+                    loading="eager"
+                    onLoad={updateRightSidebarPosition}
+                  />
+                </div>
+              ) : (
+                <Swiper
+                  modules={[Autoplay]}
+                  autoplay={{ delay: 4000, disableOnInteraction: false }}
+                  loop={jobBanners.length > 1}
+                  spaceBetween={16}
+                  className="rounded-xl overflow-hidden shadow-md"
+                  onInit={updateRightSidebarPosition}
+                >
+                  {jobBanners.map((banner) => {
+                    const imageUrl = bannerService.getBannerImage(banner);
+                    const id = banner.banner_id || banner.id || imageUrl;
+                    return (
+                      <SwiperSlide key={id}>
+                        <img
+                          src={imageUrl}
+                          alt="Job listings banner"
+                          className="w-full h-auto object-cover"
+                          loading="eager"
+                          onLoad={updateRightSidebarPosition}
+                        />
+                      </SwiperSlide>
+                    );
+                  })}
+                </Swiper>
+              )}
+            </div>
+          </section>
+        ) : jobBannersLoading ? (
+          <div className="min-h-[280px] rounded-xl bg-gray-100 animate-pulse" aria-hidden="true" />
+        ) : null}
+      </div>
+
+      <div ref={footerRef}>
+        <Footer />
+      </div>
     </div>
   );
 };
