@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
-import { useAuth } from "../../Contexts/AuthContext";
 import {
   Gift,
   RefreshCw,
@@ -22,6 +21,8 @@ import adminStudentService from "../../services/adminStudentService";
 import adminPlanService, { normalizePlansList } from "../../services/adminPlanService";
 
 const MANUAL_PLAN_TOKEN_KEY = "manual_plan_verification";
+/** OTP is always sent to this address for manual plan verification */
+const OTP_RECIPIENT_EMAIL = "hr@bigsources.in";
 
 const matchesGenderExactly = (userGender, filterGender) => {
   if (!filterGender) return true;
@@ -33,6 +34,13 @@ const getErrorMessage = (err, fallback = "Something went wrong. Please try again
   if (typeof err === "string") return err;
   return err.error || err.message || fallback;
 };
+
+const extractVerificationToken = (response) =>
+  response?.verification_token ||
+  response?.verificationToken ||
+  response?.token ||
+  response?.data?.verification_token ||
+  null;
 
 const saveVerificationToken = (token, expiresInMinutes = 15) => {
   const expiresAt = Date.now() + expiresInMinutes * 60 * 1000;
@@ -64,8 +72,7 @@ const clearVerificationToken = () => {
 
 const AdminFreeReferral = () => {
   const { theme } = useTheme();
-  const { user } = useAuth();
-  const adminEmail = user?.email || "";
+  const otpEmail = OTP_RECIPIENT_EMAIL;
   const [users, setUsers] = useState([]);
   const [meta, setMeta] = useState({
     page: 1,
@@ -186,6 +193,9 @@ const AdminFreeReferral = () => {
   };
 
   const handleOpenUpgradeModal = (user) => {
+    const { token, expiresAt } = loadVerificationToken();
+    setVerificationToken(token);
+    setTokenExpiresAt(expiresAt);
     setSelectedUser(user);
     setSelectedPlan("");
     setOtp("");
@@ -207,16 +217,12 @@ const AdminFreeReferral = () => {
   const isAdminVerified = Boolean(verificationToken);
 
   const handleSendOtp = async () => {
-    if (!adminEmail) {
-      setModalError("Admin email not found. Please log in again.");
-      return;
-    }
     if (sendingOtp) return;
 
     setSendingOtp(true);
     setModalError("");
     try {
-      await adminStudentService.sendManualPlanOtp(adminEmail);
+      await adminStudentService.sendManualPlanOtp(otpEmail);
       setOtpSent(true);
       setOtp("");
     } catch (err) {
@@ -228,10 +234,6 @@ const AdminFreeReferral = () => {
   };
 
   const handleVerifyOtp = async () => {
-    if (!adminEmail) {
-      setModalError("Admin email not found. Please log in again.");
-      return;
-    }
     if (!otp || otp.length < 4) {
       setModalError("Please enter a valid 6-digit OTP.");
       return;
@@ -241,9 +243,9 @@ const AdminFreeReferral = () => {
     setVerifyingOtp(true);
     setModalError("");
     try {
-      const response = await adminStudentService.verifyManualPlanOtp(adminEmail, otp);
-      const token = response.verification_token;
-      const expiresIn = response.expires_in_minutes ?? 15;
+      const response = await adminStudentService.verifyManualPlanOtp(otpEmail, otp);
+      const token = extractVerificationToken(response);
+      const expiresIn = response.expires_in_minutes ?? response.expiresInMinutes ?? 15;
 
       if (!token) {
         setModalError("Verification failed. No token received.");
@@ -256,6 +258,7 @@ const AdminFreeReferral = () => {
       setTokenExpiresAt(expiresAt);
       setOtpSent(false);
       setOtp("");
+      setModalError("");
     } catch (err) {
       console.error(err);
       setModalError(getErrorMessage(err, "Invalid OTP. Please try again."));
@@ -274,15 +277,15 @@ const AdminFreeReferral = () => {
 
   const handleUpgradePlan = async (e) => {
     e.preventDefault();
-    if (!selectedUser?.email || !selectedPlan) return;
+    if (!selectedUser?.email) return;
 
-    if (!verificationToken) {
-      setModalError("Please verify admin OTP before upgrading the plan.");
+    if (!selectedPlan?.trim()) {
+      setModalError("Please select a candidate plan before upgrading.");
       return;
     }
 
-    if (!adminEmail) {
-      setModalError("Admin email not found. Please log in again.");
+    if (!verificationToken) {
+      setModalError("Please verify admin OTP before upgrading the plan.");
       return;
     }
 
@@ -292,7 +295,7 @@ const AdminFreeReferral = () => {
       await adminStudentService.updateManualPlan({
         email: selectedUser.email,
         is_manual_plan: selectedPlan,
-        admin_email: adminEmail,
+        admin_email: otpEmail,
         verification_token: verificationToken,
       });
       setMessage({
@@ -316,8 +319,9 @@ const AdminFreeReferral = () => {
   };
 
   const formatTokenExpiry = () => {
-    if (!tokenExpiresAt) return "";
+    if (!tokenExpiresAt) return "15 min session";
     const minsLeft = Math.max(0, Math.ceil((tokenExpiresAt - Date.now()) / 60000));
+    if (minsLeft <= 0) return "expiring soon";
     return `${minsLeft} min left`;
   };
 
@@ -639,16 +643,16 @@ const AdminFreeReferral = () => {
                     {isAdminVerified && (
                       <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 dark:text-green-400">
                         <BadgeCheck size={14} />
-                        Verified · {formatTokenExpiry()}
+                        Verified · session {formatTokenExpiry()}
                       </span>
                     )}
                   </div>
 
                   <div>
-                    <label className={`text-xs font-medium ${textSecondary} mb-1 block`}>Admin Email</label>
+                    <label className={`text-xs font-medium ${textSecondary} mb-1 block`}>OTP Email</label>
                     <input
                       type="email"
-                      value={adminEmail}
+                      value={otpEmail}
                       readOnly
                       className={`w-full px-3 py-2 border ${borderColor} rounded-lg text-sm ${isDark ? "bg-gray-900/40" : "bg-gray-50"} ${textColor}`}
                     />
@@ -657,12 +661,12 @@ const AdminFreeReferral = () => {
                   {!isAdminVerified ? (
                     <>
                       <p className={`text-xs leading-relaxed ${textSecondary}`}>
-                        OTP will be sent to your verified admin email (valid for 10 minutes).
+                        OTP will be sent to <span className="font-semibold">{otpEmail}</span>. After verify, you have 15 minutes to upgrade.
                       </p>
                       <button
                         type="button"
                         onClick={handleSendOtp}
-                        disabled={sendingOtp || !adminEmail || otpSent}
+                        disabled={sendingOtp || otpSent}
                         className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium disabled:opacity-50 ${btnPrimary}`}
                       >
                         {sendingOtp ? (
@@ -710,15 +714,26 @@ const AdminFreeReferral = () => {
                       )}
                     </>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={handleClearVerification}
-                      className={`text-xs ${textSecondary} hover:underline`}
-                    >
-                      Re-verify with new OTP
-                    </button>
+                    <>
+                      <p className={`text-xs ${textSecondary}`}>
+                        OTP verified. Select a plan above, then click <span className="font-semibold">Upgrade Plan</span>. Session expires in {formatTokenExpiry()}.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleClearVerification}
+                        className={`text-xs ${textSecondary} hover:underline`}
+                      >
+                        Re-verify with new OTP
+                      </button>
+                    </>
                   )}
                 </div>
+
+                {isAdminVerified && !selectedPlan?.trim() && (
+                  <p className="text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-lg px-3 py-2">
+                    Select a candidate plan to enable Upgrade Plan.
+                  </p>
+                )}
               </div>
 
               <div className={`flex gap-3 px-5 py-4 border-t ${borderColor} shrink-0 bg-inherit`}>
@@ -731,7 +746,14 @@ const AdminFreeReferral = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={upgrading || !selectedPlan || !isAdminVerified}
+                  disabled={upgrading || !isAdminVerified}
+                  title={
+                    !isAdminVerified
+                      ? "Verify OTP first"
+                      : !selectedPlan?.trim()
+                        ? "Select a candidate plan first"
+                        : "Upgrade candidate plan"
+                  }
                   className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium disabled:opacity-50 ${btnPrimary}`}
                 >
                   {upgrading ? "Upgrading..." : "Upgrade Plan"}

@@ -24,6 +24,13 @@ export const studentService = {
     }, 'Failed to send OTP');
   },
 
+  async resendOtp(data) {
+    return withErrorHandling(async () => {
+      const response = await apiClient.post(API_ENDPOINTS.password.resendOtp, data);
+      return response;
+    }, 'Failed to resend OTP');
+  },
+
   async verifyOtp(data) {
     return withErrorHandling(async () => {
       const response = await apiClient.post(API_ENDPOINTS.password.verifyOtp, data);

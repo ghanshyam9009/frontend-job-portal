@@ -33,9 +33,11 @@ export const API_ENDPOINTS = {
   // Password
   password: {
     sendOtp: '/password/send-otp',
+    resendOtp: '/password/resend-otp',
     verifyOtp: '/password/verify-otp',
     resetPassword: '/password/reset-password',
     sendOtpRegistration: '/password/send-otp-registration',
+    resendOtpRegistration: '/password/resend-otp-registration',
     verifyOtpRegistration: '/password/verify-otp-registration'
   },
   
