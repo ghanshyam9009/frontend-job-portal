@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
 import PendingJobApplications from "./PendingJobApplications";
@@ -94,8 +94,9 @@ const getDateRangeParams = (dateFilter) => {
 
 const AdminJobs = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme } = useTheme();
-  const [viewMode, setViewMode] = useState("overview"); // overview | jobs | applications
+  const [viewMode, setViewMode] = useState(() => location.state?.returnViewMode || "overview"); // overview | jobs | applications
   const [jobs, setJobs] = useState([]);
   const [jobsMeta, setJobsMeta] = useState({
     page: 1,
@@ -292,7 +293,10 @@ const AdminJobs = () => {
     const id = job.job_id || job.id;
     if (!id) return;
     navigate(`/admin/job-reports/applications/${id}`, {
-      state: buildApplicationsNavState(job),
+      state: {
+        ...buildApplicationsNavState(job),
+        returnViewMode: "jobs",
+      },
     });
   };
 

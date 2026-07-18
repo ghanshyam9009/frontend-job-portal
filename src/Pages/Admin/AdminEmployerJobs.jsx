@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { recruiterExternalService } from "../../services/recruiterExternalService";
 import { adminService } from "../../services/adminService";
@@ -23,7 +23,9 @@ import {
 const AdminEmployerJobs = () => {
   const { employerId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme } = useTheme();
+  const returnViewMode = location.state?.returnViewMode || 'overview';
   const [jobs, setJobs] = useState([]);
   const [filteredJobs, setFilteredJobs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -401,7 +403,7 @@ const AdminEmployerJobs = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center gap-4 mb-4">
             <button
-              onClick={() => navigate('/admin/employers')}
+              onClick={() => navigate('/admin/employers', { state: { returnViewMode } })}
               className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors`}
             >
               <ArrowLeft size={20} className={textColor} />

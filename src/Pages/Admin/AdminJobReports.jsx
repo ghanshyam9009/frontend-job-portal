@@ -233,7 +233,10 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
     const jobId = job.job_id || job.id;
     if (!jobId) return;
     navigate(`/admin/job-reports/applications/${jobId}`, {
-      state: buildApplicationsNavState(job),
+      state: {
+        ...buildApplicationsNavState(job),
+        returnViewMode: "reports",
+      },
     });
   };
 

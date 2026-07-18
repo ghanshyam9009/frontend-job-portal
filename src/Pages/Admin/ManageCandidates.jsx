@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
 import adminApiClient from "../../services/adminApiClient";
@@ -135,8 +135,9 @@ const getDateRangeFromFilter = (filter) => {
 
 const ManageCandidates = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme } = useTheme();
-  const [viewMode, setViewMode] = useState("overview"); // overview | candidates | applications
+  const [viewMode, setViewMode] = useState(() => location.state?.returnViewMode || "overview"); // overview | candidates | applications
   const [pendingAppsCount, setPendingAppsCount] = useState(0);
   const [recentPendingApplicationTasks, setRecentPendingApplicationTasks] = useState([]);
   const [candidates, setCandidates] = useState([]);
@@ -338,11 +339,15 @@ const ManageCandidates = () => {
   };
 
   const handleViewDetails = (candidate) => {
-    navigate(`/admin/candidates/profile/${candidate.email}`);
+    navigate(`/admin/candidates/profile/${candidate.email}`, {
+      state: { returnViewMode: "candidates" },
+    });
   };
 
   const handleViewApplications = (candidate) => {
-    navigate(`/admin/candidates/applications/${candidate.user_id}`);
+    navigate(`/admin/candidates/applications/${candidate.user_id}`, {
+      state: { returnViewMode: "candidates" },
+    });
   };
 
   const handleBlockStudent = async (candidate) => {

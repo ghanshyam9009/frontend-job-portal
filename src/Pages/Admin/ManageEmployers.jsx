@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
 import { recruiterService } from "../../services/recruiterService";
@@ -36,8 +36,9 @@ const getJobLogoUrl = (job) =>
 
 const ManageEmployers = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme } = useTheme();
-  const [viewMode, setViewMode] = useState("overview"); // overview | employers | reports
+  const [viewMode, setViewMode] = useState(() => location.state?.returnViewMode || "overview"); // overview | employers | reports
   const [recruiters, setRecruiters] = useState([]);
   const [recruiterMeta, setRecruiterMeta] = useState({
     page: 1,
@@ -333,12 +334,16 @@ const ManageEmployers = () => {
   };
 
   const handleViewProfile = (recruiter) => {
-    navigate(`/admin/employers/profile/${recruiter.email}`);
+    navigate(`/admin/employers/profile/${recruiter.email}`, {
+      state: { returnViewMode: "employers" },
+    });
   };
 
   const handleViewJobs = (recruiter) => {
     const employerId = recruiter.employer_id || recruiter.id;
-    navigate(`/admin/employers/jobs/${employerId}`);
+    navigate(`/admin/employers/jobs/${employerId}`, {
+      state: { returnViewMode: "employers" },
+    });
   };
 
   const handleViewJobDetail = (job) => {
