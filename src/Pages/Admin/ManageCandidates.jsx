@@ -24,6 +24,8 @@ import {
   CreditCard
 } from "lucide-react";
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
 const getInitials = (name) => {
   if (!name) return "U";
   return name.split(" ").map((n) => n[0]).join("").toUpperCase();
@@ -158,7 +160,7 @@ const ManageCandidates = () => {
   const [listLoading, setListLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [actionLoading, setActionLoading] = useState(null);
-  const candidatesPerPage = 25;
+  const [candidatesPerPage, setCandidatesPerPage] = useState(25);
 
   const applyCandidatesResponse = (response) => {
     setCandidates(response.candidates || []);
@@ -300,6 +302,11 @@ const ManageCandidates = () => {
 
   const handleSortChange = (value) => {
     setSortBy(value);
+    setCurrentPage(1);
+  };
+
+  const handleLimitChange = (value) => {
+    setCandidatesPerPage(Number(value));
     setCurrentPage(1);
   };
 
@@ -689,8 +696,8 @@ const ManageCandidates = () => {
 
           {/* Filters on Top */}
           <div className={`${cardBg} rounded-lg border ${borderColor} p-4 mb-6`}>
-            <div className="grid grid-cols-1 md:grid-cols-[1.6fr_1fr_1fr_1fr] gap-3">
-              <div className="relative min-w-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              <div className="relative min-w-0 sm:col-span-2 lg:col-span-1">
                 <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary} pointer-events-none`} />
                 <input
                   type="text"
@@ -750,15 +757,32 @@ const ManageCandidates = () => {
                   <option value="emailZA">Email (Z-A)</option>
                 </select>
               </div>
+
+              <div className="relative min-w-0">
+                <Users size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary} pointer-events-none`} />
+                <select
+                  value={candidatesPerPage}
+                  onChange={(e) => handleLimitChange(e.target.value)}
+                  aria-label="Records per page"
+                  className={`w-full pl-10 pr-8 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer appearance-none`}
+                >
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size}>
+                      {size} per page
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
           {/* Results Header */}
-          <div className="mb-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <p className={`text-sm ${textSecondary}`}>
               Showing <span className={`font-semibold ${textColor}`}>{listShowing}</span> of{" "}
               <span className={`font-semibold ${textColor}`}>{listTotal}</span>{" "}
               {listTotal === 1 ? "candidate" : "candidates"}
+              <span className="ml-2">· {candidatesPerPage} / page</span>
               {getPlanFilterLabel() && (
                 <span className="ml-2">· Plan: {getPlanFilterLabel()}</span>
               )}

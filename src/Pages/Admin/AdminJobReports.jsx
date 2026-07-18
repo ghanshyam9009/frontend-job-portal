@@ -10,6 +10,8 @@ import {
   getJobApplicationCount,
 } from "../../utils/adminJobApplications";
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
 const isRecruiterJob = (job) => {
   const pb = (job?.posted_by ?? "").toString().trim().toUpperCase();
   if (pb === "ADMIN") return false;
@@ -159,6 +161,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
     showing: 0,
     limit: 10,
   });
+  const [jobsPerPage, setJobsPerPage] = useState(10);
 
   const fetchJobReports = useCallback(async () => {
     try {
@@ -167,6 +170,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
       const response = await adminRecruiterJobService.getRecruiterJobs({
         tab: reportTab,
         page: currentPage,
+        limit: jobsPerPage,
         company_name: companyFilter || undefined,
         recruiter_name: recruiterFilter || undefined,
         job_title: jobTitleFilter || undefined,
@@ -180,7 +184,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
         total_pages: Number(response?.total_pages || 1),
         total: Number(response?.total || jobs.length),
         showing: Number(response?.showing || jobs.length),
-        limit: Number(response?.limit || 10),
+        limit: Number(response?.limit || jobsPerPage),
       });
     } catch (err) {
       console.error("Failed to fetch recruiter jobs:", err);
@@ -190,7 +194,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [reportTab, currentPage, companyFilter, recruiterFilter, jobTitleFilter, searchTerm]);
+  }, [reportTab, currentPage, jobsPerPage, companyFilter, recruiterFilter, jobTitleFilter, searchTerm]);
 
   const refreshList = useCallback(() => fetchJobReports(), [fetchJobReports]);
 
@@ -578,7 +582,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
     </div>
 
     {/* Filters */}
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full lg:w-auto">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full lg:w-auto">
       <input
         type="text"
         value={companyFilter}
@@ -609,6 +613,21 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
         placeholder="Job title filter"
         className={`px-3 py-2.5 border ${borderColor} rounded-xl text-sm ${cardBg} ${textColor}`}
       />
+      <select
+        value={jobsPerPage}
+        onChange={(e) => {
+          setJobsPerPage(Number(e.target.value));
+          setCurrentPage(1);
+        }}
+        aria-label="Records per page"
+        className={`px-3 py-2.5 border ${borderColor} rounded-xl text-sm ${cardBg} ${textColor} cursor-pointer`}
+      >
+        {PAGE_SIZE_OPTIONS.map((size) => (
+          <option key={size} value={size}>
+            {size} per page
+          </option>
+        ))}
+      </select>
     </div>
   </div>
 </div>
@@ -662,6 +681,7 @@ const AdminJobReports = ({ initialReportTab: initialReportTabProp } = {}) => {
           <p className={`text-sm ${textSecondary}`}>
             Showing <span className={`font-semibold ${textColor}`}>{paginationMeta.showing}</span> of{" "}
             <span className={`font-semibold ${textColor}`}>{paginationMeta.total}</span> jobs
+            <span className="ml-2">· {jobsPerPage} / page</span>
           </p>
         </div>
 

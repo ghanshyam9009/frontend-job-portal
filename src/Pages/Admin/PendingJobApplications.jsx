@@ -5,6 +5,8 @@ import adminApiClient from "../../services/adminApiClient";
 import { Check, X, FileText, Download, ExternalLink, Search, Briefcase, Building, Clock, Mail, Phone, Calendar, Eye, MapPin, ArrowUpDown, Sparkles, User, ChevronLeft, ChevronRight } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
 const isRecruiterJob = (app) => {
   const pb = (app?.posted_by ?? "").toString().trim().toUpperCase();
   if (pb === "ADMIN") return false;
@@ -35,7 +37,7 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
   const [filterCompanies, setFilterCompanies] = useState([]);
   const [filterJobs, setFilterJobs] = useState([]);
   const [filterStatuses, setFilterStatuses] = useState([]);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 400);
@@ -44,11 +46,11 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, companyFilter, jobFilter, statusFilter, dateFilter, sortBy]);
+  }, [debouncedSearch, companyFilter, jobFilter, statusFilter, dateFilter, sortBy, itemsPerPage]);
 
   useEffect(() => {
     fetchData();
-  }, [currentPage, debouncedSearch, companyFilter, jobFilter, statusFilter, dateFilter, sortBy, role]);
+  }, [currentPage, debouncedSearch, companyFilter, jobFilter, statusFilter, dateFilter, sortBy, role, itemsPerPage]);
 
   useEffect(() => {
     if (!embedded) {
@@ -341,7 +343,7 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
       setLoading(true);
 
       const normalizedRole = String(role || "recruiter").toLowerCase() === "admin" ? "admin" : "RECRUITER";
-      const params = { page: currentPage, role: normalizedRole };
+      const params = { page: currentPage, limit: itemsPerPage, role: normalizedRole };
 
       if (debouncedSearch) params.search = debouncedSearch;
       if (statusFilter !== 'all') params.status = mapStatusToApi(statusFilter);
@@ -703,6 +705,22 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
                   <option value="companyZA">Company (Z-A)</option>
                 </select>
               </div>
+
+              {/* Records per page */}
+              <div className="w-full lg:w-40">
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                  aria-label="Records per page"
+                  className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
+                >
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size}>
+                      {size} per page
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -755,6 +773,7 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
           <div className="mb-4">
             <p className={`text-sm ${textSecondary}`}>
               Showing <span className={`font-semibold ${textColor}`}>{totalCount}</span> {totalCount === 1 ? 'application' : 'applications'}
+              <span className="ml-2">· {itemsPerPage} / page</span>
               {showPaginationBar && (
                 <span className="ml-1">
                   · Page <span className={`font-semibold ${textColor}`}>{currentPage}</span> of <span className={`font-semibold ${textColor}`}>{displayTotalPages}</span>

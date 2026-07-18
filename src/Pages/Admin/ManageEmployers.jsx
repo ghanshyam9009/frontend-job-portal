@@ -23,6 +23,8 @@ import {
   ArrowRight
 } from "lucide-react";
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
 /** Job card logo: API returns `job_logo_url`; fallbacks match JobCard / job detail. */
 const getJobLogoUrl = (job) =>
   job?.job_logo_url ||
@@ -53,7 +55,7 @@ const ManageEmployers = () => {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [actionLoading, setActionLoading] = useState(null);
-  const recruitersPerPage = 25;
+  const [recruitersPerPage, setRecruitersPerPage] = useState(25);
 
   const applyRecruitersResponse = (response) => {
     setRecruiters(response.recruiters || []);
@@ -217,6 +219,11 @@ const ManageEmployers = () => {
 
   const handleApprovalFilterChange = (filter) => {
     setApprovalFilter(filter);
+    setCurrentPage(1);
+  };
+
+  const handleLimitChange = (value) => {
+    setRecruitersPerPage(Number(value));
     setCurrentPage(1);
   };
 
@@ -889,6 +896,22 @@ const ManageEmployers = () => {
                       <option value="emailZA">Email (Z-A)</option>
                     </select>
                   </div>
+
+                  {/* Records per page */}
+                  <div className="w-full lg:w-40">
+                    <select
+                      value={recruitersPerPage}
+                      onChange={(e) => handleLimitChange(e.target.value)}
+                      aria-label="Records per page"
+                      className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
+                    >
+                      {PAGE_SIZE_OPTIONS.map((size) => (
+                        <option key={size} value={size}>
+                          {size} per page
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -899,6 +922,7 @@ const ManageEmployers = () => {
                 Showing <span className={`font-semibold ${textColor}`}>{displayRecruiters.length}</span> of{" "}
                 <span className={`font-semibold ${textColor}`}>{recruiterMeta.total}</span>{" "}
                 {recruiterMeta.total === 1 ? "employer" : "employers"}
+                <span className="ml-2">· {recruitersPerPage} / page</span>
                 {dateFilter !== 'all' && (
                   <span className="ml-2">
                     ({dateFilter.replace(/([A-Z])/g, ' $1').trim()})

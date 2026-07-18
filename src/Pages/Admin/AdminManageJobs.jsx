@@ -23,6 +23,8 @@ import {
   getJobApplicationCount,
 } from "../../utils/adminJobApplications";
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
 /** API sends `job_logo_url`; fallbacks align with JobCard / AdminJobReports */
 const getJobLogoUrl = (job) =>
   job?.job_logo_url ||
@@ -108,6 +110,7 @@ const AdminJobs = () => {
   const [dateFilter, setDateFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
+  const [jobsPerPage, setJobsPerPage] = useState(10);
   const [loading, setLoading] = useState(true);
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState("");
@@ -142,6 +145,7 @@ const AdminJobs = () => {
 
         const response = await adminService.getAdminJobs({
           page,
+          limit: jobsPerPage,
           sort: sortBy === "oldest" ? "oldest" : "newest",
           ...(status && { status }),
           ...(debouncedSearch && { search: debouncedSearch }),
@@ -165,7 +169,7 @@ const AdminJobs = () => {
         setFetching(false);
       }
     },
-    [currentPage, statusFilter, debouncedSearch, dateFilter, sortBy]
+    [currentPage, statusFilter, debouncedSearch, dateFilter, sortBy, jobsPerPage]
   );
 
   useEffect(() => {
@@ -175,7 +179,7 @@ const AdminJobs = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, statusFilter, dateFilter, sortBy]);
+  }, [debouncedSearch, statusFilter, dateFilter, sortBy, jobsPerPage]);
 
   useEffect(() => {
     fetchJobs(currentPage);
@@ -560,6 +564,24 @@ const AdminJobs = () => {
                   <option value="oldest">Oldest first</option>
                 </select>
               </div>
+
+              <div className="flex items-center gap-2 flex-1 sm:flex-initial min-w-[8.5rem]">
+                <select
+                  value={jobsPerPage}
+                  onChange={(e) => {
+                    setJobsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  aria-label="Records per page"
+                  className={`w-full min-w-0 px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor} cursor-pointer`}
+                >
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size}>
+                      {size} per page
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -575,6 +597,7 @@ const AdminJobs = () => {
             Showing <span className={`font-semibold ${textColor}`}>{jobsMeta.showing}</span> of{" "}
             <span className={`font-semibold ${textColor}`}>{jobsMeta.total}</span>{" "}
             {jobsMeta.total === 1 ? "job" : "jobs"}
+            <span className="ml-2">· {jobsPerPage} / page</span>
           </p>
           {fetching && (
             <RefreshCw size={14} className={`animate-spin ${textSecondary}`} aria-hidden />

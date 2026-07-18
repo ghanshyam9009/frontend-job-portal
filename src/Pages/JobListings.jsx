@@ -115,12 +115,16 @@ const JobListings = () => {
       const contentHeight = content.offsetHeight;
       if (contentHeight <= 0) return;
 
+      // Match left filters: sticky top-20 (80px). Stay in column flow until scroll
+      // catches up — otherwise fixed top:80 overlaps the search section.
       const stickyTop = 80;
       const gap = 16;
-      let top = stickyTop;
+      let top = Math.max(stickyTop, anchorRect.top);
 
-      if (anchorRect.bottom - contentHeight < top) {
-        top = anchorRect.bottom - contentHeight;
+      // Stop with the grid column (don't float past jobs/filters area)
+      const maxTopInColumn = anchorRect.bottom - contentHeight;
+      if (top > maxTopInColumn) {
+        top = maxTopInColumn;
       }
 
       if (footer) {
@@ -131,9 +135,9 @@ const JobListings = () => {
       }
 
       const visible =
-        anchorRect.bottom > stickyTop &&
+        anchorRect.bottom > 0 &&
         anchorRect.top < window.innerHeight &&
-        top + contentHeight > stickyTop;
+        top + contentHeight > 0;
 
       const next = {
         ready: true,
