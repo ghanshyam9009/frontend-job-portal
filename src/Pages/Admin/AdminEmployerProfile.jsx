@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../Contexts/ThemeContext';
 import { recruiterService } from '../../services/recruiterService';
 import { adminService } from '../../services/adminService';
@@ -12,7 +12,9 @@ import {
 const AdminEmployerProfile = () => {
   const { email } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme } = useTheme();
+  const returnViewMode = location.state?.returnViewMode || 'overview';
   const [isEditMode, setIsEditMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -294,7 +296,7 @@ const AdminEmployerProfile = () => {
         <div className="mb-8 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/admin/employers')}
+              onClick={() => navigate('/admin/employers', { state: { returnViewMode } })}
               className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors`}
             >
               <ArrowLeft size={20} className={textColor} />

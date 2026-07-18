@@ -30,6 +30,8 @@ const AdminJobReportApplications = () => {
   const { jobId } = useParams();
   const { theme } = useTheme();
   const location = useLocation();
+  const returnViewMode = location.state?.returnViewMode || "jobs";
+  const backTargetPath = returnViewMode === "reports" ? "/admin/job-application-reports" : "/admin/job-posting";
 
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -309,7 +311,10 @@ const AdminJobReportApplications = () => {
             <div className="flex items-center gap-4">
               <button
                 type="button"
-                onClick={() => navigate(-1)}
+                onClick={() => {
+                  const targetState = returnViewMode === "reports" ? { returnViewMode: "reports" } : { returnViewMode: "jobs" };
+                  navigate(backTargetPath, { state: targetState, replace: true });
+                }}
                 className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors`}
               >
                 <ArrowLeft size={20} className={textColor} />

@@ -61,15 +61,12 @@ const BANNER_DISPLAY_SPECS = {
     where: "Home · right column (desktop)",
   },
   home_second: {
-    width: 1200,
-    height: 600,
-    // Home lower banner — 2:1 landscape; scales down on smaller screens
-    aspectClass: "aspect-[2/1]",
-    previewMaxWidth: "max-w-full",
+    width: 768,
+    height: 380,
+    // Home lower banner — max-w-3xl / 768×380 box
+    aspectClass: "aspect-[768/380]",
+    previewMaxWidth: "max-w-md",
     where: "Home · lower banner slider",
-    sizeHints: [
-      { label: "Desktop (recommended)", size: "1200 × 600 px" },
-    ],
   },
   job: {
     width: 256,
@@ -120,8 +117,13 @@ const pageLabel = (page) => {
 };
 
 const normalizeBannerPage = (page) => {
-  const p = (page || "home_first").toLowerCase();
-  if (p === "home") return "home_second";
+  const p = (page || "home_first").toString().trim().toLowerCase();
+  if (["home", "home_page", "homepage", "home-first", "homefirst"].includes(p)) {
+    return "home_first";
+  }
+  if (["home_second", "home-second", "home second", "home2"].includes(p)) {
+    return "home_second";
+  }
   return PAGE_OPTIONS.some((o) => o.value === p) ? p : "home_first";
 };
 
@@ -158,7 +160,7 @@ const AdminBanners = () => {
   const [createDragOver, setCreateDragOver] = useState(false);
 
   const [editingBanner, setEditingBanner] = useState(null);
-  const [editPage, setEditPage] = useState("home");
+  const [editPage, setEditPage] = useState("home_first");
   const [editImageFile, setEditImageFile] = useState(null);
 
   const [viewBanner, setViewBanner] = useState(null);
@@ -190,12 +192,27 @@ const AdminBanners = () => {
     return () => clearTimeout(t);
   }, [message]);
 
+  useEffect(() => {
+    if (!editingBanner) return;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setEditingBanner(null);
+        setEditImageFile(null);
+        setEditPage("home_first");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [editingBanner]);
+
   const pageStats = useMemo(() => {
     const stats = { home_first: 0, home_second: 0, job: 0 };
     banners.forEach((b) => {
-      const p = (b.page || "").toLowerCase();
-      if (p === "home") stats.home_second += 1;
-      else if (stats[p] !== undefined) stats[p] += 1;
+      const p = (b.page || "").toString().trim().toLowerCase();
+      const normalizedPage = normalizeBannerPage(p);
+      if (stats[normalizedPage] !== undefined) {
+        stats[normalizedPage] += 1;
+      }
     });
     return stats;
   }, [banners]);
@@ -249,9 +266,18 @@ const AdminBanners = () => {
   };
 
   const openEdit = (banner) => {
+    if (!banner) return;
     setEditingBanner(banner);
-    setEditPage(normalizeBannerPage(banner?.page));
+    setEditPage(normalizeBannerPage(banner?.page || "home_first"));
     setEditImageFile(null);
+    setError("");
+    setMessage("");
+  };
+
+  const closeEditModal = () => {
+    setEditingBanner(null);
+    setEditImageFile(null);
+    setEditPage("home_first");
   };
 
   const handleUpdateBanner = async (e) => {
@@ -376,87 +402,117 @@ const AdminBanners = () => {
   const createDisplaySpec = getBannerDisplaySpec(createPage);
   const editDisplaySpec = getBannerDisplaySpec(editPage);
 
-  const PlacementSelector = ({ value, onChange }) => (
-    <div className="space-y-2.5" role="radiogroup" aria-label="Banner placement">
-      {PAGE_OPTIONS.map(({ value: optionValue, label, icon: Icon, hint }) => {
-        const selected = value === optionValue;
-        const spec = BANNER_DISPLAY_SPECS[optionValue];
-        return (
-          <button
-            key={optionValue}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            onClick={() => onChange(optionValue)}
-            className={`w-full flex items-start gap-3 p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all ${
-              selected
-                ? "border-indigo-500 bg-indigo-50 shadow-sm dark:bg-indigo-950/50 dark:border-indigo-400"
-                : `${borderColor} ${isDark ? "bg-gray-900/40 hover:bg-gray-700/40" : "bg-white hover:bg-gray-50"}`
-            }`}
-          >
-            <span
-              className={`flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg ${
-                selected
-                  ? "bg-indigo-600 text-white"
-                  : isDark
-                    ? "bg-gray-700 text-gray-300"
-                    : "bg-gray-100 text-gray-600"
-              }`}
-            >
-              <Icon size={20} strokeWidth={2} />
-            </span>
-            <span className="min-w-0 flex-1 pt-0.5">
+  const PlacementSelector = ({ value, onChange, compact = false }) => {
+    const options = compact
+      ? PAGE_OPTIONS.filter(({ value: optionValue }) => optionValue === value)
+      : PAGE_OPTIONS;
+
+    return (
+      <div className="space-y-2.5" role="radiogroup" aria-label="Banner placement">
+        {options.map(({ value: optionValue, label, icon: Icon, hint }) => {
+          const selected = value === optionValue;
+          const spec = BANNER_DISPLAY_SPECS[optionValue];
+          const content = (
+            <>
               <span
-                className={`block text-sm font-semibold leading-snug break-words ${
+                className={`flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg ${
                   selected
-                    ? "text-indigo-800 dark:text-indigo-200"
-                    : textColor
+                    ? "bg-indigo-600 text-white"
+                    : isDark
+                      ? "bg-gray-700 text-gray-300"
+                      : "bg-gray-100 text-gray-600"
                 }`}
               >
-                {label}
+                <Icon size={20} strokeWidth={2} />
               </span>
-              {hint && (
-                <span className={`block text-xs mt-1 leading-relaxed break-words ${textSecondary}`}>
-                  {hint}
-                </span>
-              )}
-              {spec && (
+              <span className="min-w-0 flex-1 pt-0.5">
                 <span
-                  className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold tabular-nums ${
+                  className={`block text-sm font-semibold leading-snug break-words ${
                     selected
-                      ? "bg-indigo-600/15 text-indigo-700 dark:bg-indigo-400/20 dark:text-indigo-200"
-                      : isDark
-                        ? "bg-gray-700 text-gray-300"
-                        : "bg-gray-100 text-gray-700"
+                      ? "text-indigo-800 dark:text-indigo-200"
+                      : textColor
                   }`}
                 >
-                  {spec.width} × {spec.height} px
+                  {label}
                 </span>
-              )}
-            </span>
-            <span
-              className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center mt-1 ${
+                {hint && (
+                  <span className={`block text-xs mt-1 leading-relaxed break-words ${textSecondary}`}>
+                    {hint}
+                  </span>
+                )}
+                {spec && (
+                  <span
+                    className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold tabular-nums ${
+                      selected
+                        ? "bg-indigo-600/15 text-indigo-700 dark:bg-indigo-400/20 dark:text-indigo-200"
+                        : isDark
+                          ? "bg-gray-700 text-gray-300"
+                          : "bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    {spec.width} × {spec.height} px
+                  </span>
+                )}
+              </span>
+              <span
+                className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center mt-1 ${
+                  selected
+                    ? "border-indigo-600 bg-indigo-600 dark:border-indigo-400 dark:bg-indigo-500"
+                    : isDark
+                      ? "border-gray-500"
+                      : "border-gray-300"
+                }`}
+                aria-hidden
+              >
+                {selected && <span className="w-2 h-2 rounded-full bg-white" />}
+              </span>
+            </>
+          );
+
+          if (compact) {
+            return (
+              <div
+                key={optionValue}
+                className={`w-full flex items-start gap-3 p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all ${
+                  selected
+                    ? "border-indigo-500 bg-indigo-50 shadow-sm dark:bg-indigo-950/50 dark:border-indigo-400"
+                    : `${borderColor} ${isDark ? "bg-gray-900/40" : "bg-white"}`
+                }`}
+                role="radio"
+                aria-checked={selected}
+              >
+                {content}
+              </div>
+            );
+          }
+
+          return (
+            <button
+              key={optionValue}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onClick={() => onChange?.(optionValue)}
+              className={`w-full flex items-start gap-3 p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all ${
                 selected
-                  ? "border-indigo-600 bg-indigo-600 dark:border-indigo-400 dark:bg-indigo-500"
-                  : isDark
-                    ? "border-gray-500"
-                    : "border-gray-300"
+                  ? "border-indigo-500 bg-indigo-50 shadow-sm dark:bg-indigo-950/50 dark:border-indigo-400"
+                  : `${borderColor} ${isDark ? "bg-gray-900/40 hover:bg-gray-700/40" : "bg-white hover:bg-gray-50"}`
               }`}
-              aria-hidden
             >
-              {selected && <span className="w-2 h-2 rounded-full bg-white" />}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
+              {content}
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
 
   const PageBadge = ({ page }) => {
-    const p = (page || "").toLowerCase();
-    const isJob = p === "job";
-    const isFirst = p === "home_first" || p === "home";
-    const isSecond = p === "home_second";
+    const p = (page || "").toString().trim().toLowerCase();
+    const normalizedPage = normalizeBannerPage(p);
+    const isJob = normalizedPage === "job";
+    const isFirst = normalizedPage === "home_first";
+    const isSecond = normalizedPage === "home_second";
     const BadgeIcon = isJob ? Briefcase : isFirst ? ChevronUp : isSecond ? ChevronDown : Home;
     const badgeClass = isJob
       ? isDark
@@ -625,26 +681,9 @@ const AdminBanners = () => {
                   <p className={`text-[11px] font-semibold uppercase tracking-wide ${textSecondary} mb-1`}>
                     On-site display size
                   </p>
-                  {createDisplaySpec.sizeHints?.length ? (
-                    <>
-                      <p className={`text-sm font-bold tabular-nums ${textColor}`}>
-                        Upload once: 1200 × 600 px
-                      </p>
-              
-                      <ul className="space-y-1 mt-2">
-                        {createDisplaySpec.sizeHints.map(({ label, size }) => (
-                          <li key={label} className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
-                            <span className={`text-xs ${textSecondary}`}>{label}</span>
-                            <span className={`text-xs font-semibold tabular-nums ${textColor}`}>{size}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  ) : (
-                    <p className={`text-sm font-bold tabular-nums ${textColor}`}>
-                      Width {createDisplaySpec.width}px · Height {createDisplaySpec.height}px
-                    </p>
-                  )}
+                  <p className={`text-sm font-bold tabular-nums ${textColor}`}>
+                    Width {createDisplaySpec.width}px · Height {createDisplaySpec.height}px
+                  </p>
                   <p className={`text-xs mt-1.5 ${textSecondary}`}>{createDisplaySpec.where}</p>
                   <div className="mt-3 flex items-end gap-3">
                     <div
@@ -749,9 +788,7 @@ const AdminBanners = () => {
                             : "Drop image or click to browse"}
                         </span>
                         <span className={`text-xs mt-1 ${textSecondary}`}>
-                          {createDisplaySpec.sizeHints?.length
-                            ? `Recommended: ${createDisplaySpec.sizeHints[0].size}`
-                            : `Best size: ${createDisplaySpec.width} × ${createDisplaySpec.height} px`}
+                          {`Best size: ${createDisplaySpec.width} × ${createDisplaySpec.height} px`}
                           {isMultiUpload ? ` · max ${MAX_BANNER_IMAGES} images` : ""}
                         </span>
                         <input
@@ -923,27 +960,30 @@ const AdminBanners = () => {
       {/* Edit modal */}
       {editingBanner && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={() => !saving && setEditingBanner(null)}
+          className="fixed inset-0 z-[100] overflow-y-auto bg-black/60 backdrop-blur-sm px-4 py-6 sm:py-8"
+          onClick={() => !saving && closeEditModal()}
         >
-          <div
-            className={`${cardBg} w-full max-w-lg rounded-2xl border ${borderColor} shadow-2xl overflow-hidden`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h3 className={`text-lg font-semibold ${textColor}`}>Edit banner</h3>
-              <button
-                type="button"
-                onClick={() => setEditingBanner(null)}
-                className={`p-1 rounded-lg ${isDark ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
-              >
-                <X size={20} className={textSecondary} />
-              </button>
-            </div>
-            <form onSubmit={handleUpdateBanner} className="p-6 space-y-5">
+          <div className="min-h-full flex items-start sm:items-center justify-center">
+            <div
+              className={`${cardBg} w-full max-w-lg rounded-2xl border ${borderColor} shadow-2xl overflow-hidden max-h-[calc(100vh-3rem)] overflow-y-auto`}
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+            >
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h3 className={`text-lg font-semibold ${textColor}`}>Edit banner</h3>
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  className={`p-1 rounded-lg ${isDark ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
+                >
+                  <X size={20} className={textSecondary} />
+                </button>
+              </div>
+              <form onSubmit={handleUpdateBanner} className="p-6 space-y-5">
               <div>
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>Banner placement</label>
-                <PlacementSelector value={editPage} onChange={setEditPage} />
+                <PlacementSelector value={editPage} onChange={setEditPage} compact />
               </div>
               <div
                 className={`rounded-xl border ${borderColor} px-3.5 py-3 ${
@@ -953,28 +993,9 @@ const AdminBanners = () => {
                 <p className={`text-[11px] font-semibold uppercase tracking-wide ${textSecondary}`}>
                   On-site display size
                 </p>
-                {editDisplaySpec.sizeHints?.length ? (
-                  <>
-                    <p className={`text-sm font-bold tabular-nums mt-0.5 ${textColor}`}>
-                      Upload once: 1200 × 600 px
-                    </p>
-                    <p className={`text-xs mt-1 ${textSecondary}`}>
-                      Ek image sab screens pe fit ho jayegi. Alag sizes upload mat karo.
-                    </p>
-                    <ul className="space-y-1 mt-2">
-                      {editDisplaySpec.sizeHints.map(({ label, size }) => (
-                        <li key={label} className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
-                          <span className={`text-xs ${textSecondary}`}>{label}</span>
-                          <span className={`text-xs font-semibold tabular-nums ${textColor}`}>{size}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                ) : (
-                  <p className={`text-sm font-bold tabular-nums mt-0.5 ${textColor}`}>
-                    Width {editDisplaySpec.width}px · Height {editDisplaySpec.height}px
-                  </p>
-                )}
+                <p className={`text-sm font-bold tabular-nums mt-0.5 ${textColor}`}>
+                  Width {editDisplaySpec.width}px · Height {editDisplaySpec.height}px
+                </p>
                 <p className={`text-xs mt-0.5 ${textSecondary}`}>{editDisplaySpec.where}</p>
               </div>
               <div>
@@ -988,9 +1009,7 @@ const AdminBanners = () => {
                   className={`w-full text-sm file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-600 file:text-white file:cursor-pointer ${textColor}`}
                 />
                 <p className={`text-xs mt-1.5 ${textSecondary}`}>
-                  {editDisplaySpec.sizeHints?.length
-                    ? `Recommended: ${editDisplaySpec.sizeHints[0].size}`
-                    : `Best size: ${editDisplaySpec.width} × ${editDisplaySpec.height} px`}
+                  {`Best size: ${editDisplaySpec.width} × ${editDisplaySpec.height} px`}
                 </p>
               </div>
               <div className="flex justify-center">
@@ -1003,7 +1022,7 @@ const AdminBanners = () => {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setEditingBanner(null)}
+                  onClick={closeEditModal}
                   className={`px-4 py-2.5 border ${borderColor} rounded-xl ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700`}
                 >
                   Cancel
@@ -1018,6 +1037,7 @@ const AdminBanners = () => {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}
@@ -1025,28 +1045,31 @@ const AdminBanners = () => {
       {/* View modal */}
       {viewBanner && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[100] overflow-y-auto bg-black/60 backdrop-blur-sm px-4 py-6 sm:py-8"
           onClick={() => setViewBanner(null)}
         >
-          <div
-            className={`${cardBg} w-full max-w-2xl rounded-2xl border ${borderColor} shadow-2xl max-h-[90vh] overflow-y-auto`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-inherit z-10">
-              <div>
-                <h3 className={`text-lg font-semibold ${textColor}`}>Banner details</h3>
-                <PageBadge page={viewBanner.page} />
+          <div className="min-h-full flex items-start sm:items-center justify-center">
+            <div
+              className={`${cardBg} w-full max-w-2xl rounded-2xl border ${borderColor} shadow-2xl max-h-[calc(100vh-3rem)] overflow-y-auto`}
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+            >
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-inherit z-10">
+                <div>
+                  <h3 className={`text-lg font-semibold ${textColor}`}>Banner details</h3>
+                  <PageBadge page={viewBanner.page} />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setViewBanner(null)}
+                  className={`p-1 rounded-lg ${isDark ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
+                >
+                  <X size={20} className={textSecondary} />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setViewBanner(null)}
-                className={`p-1 rounded-lg ${isDark ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
-              >
-                <X size={20} className={textSecondary} />
-              </button>
-            </div>
 
-            <div className="p-6">
+              <div className="p-6">
               <img
                 src={getBannerImage(viewBanner)}
                 alt=""
@@ -1124,6 +1147,7 @@ const AdminBanners = () => {
                   Close
                 </button>
               </div>
+            </div>
             </div>
           </div>
         </div>

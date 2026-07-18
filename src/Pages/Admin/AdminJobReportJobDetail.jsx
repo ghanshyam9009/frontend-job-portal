@@ -125,6 +125,8 @@ const AdminJobReportJobDetail = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme } = useTheme();
+  const returnViewMode = location.state?.returnViewMode || "jobs";
+  const backTargetPath = returnViewMode === "reports" ? "/admin/job-application-reports" : "/admin/job-posting";
   const [job, setJob] = useState(() => {
     const j = location.state?.job;
     if (!j) return null;
@@ -241,7 +243,7 @@ const AdminJobReportJobDetail = () => {
         <div className="max-w-xl mx-auto">
           <button
             type="button"
-            onClick={() => navigate("/admin/job-application-reports")}
+            onClick={() => navigate(backTargetPath, { state: { returnViewMode } })}
             className={`flex items-center gap-2 mb-8 ${textSecondary} hover:${textColor} transition-colors font-medium`}
           >
             <ArrowLeft size={20} />
@@ -273,7 +275,10 @@ const AdminJobReportJobDetail = () => {
             <div className="flex items-center gap-4 min-w-0">
               <button
                 type="button"
-                onClick={() => navigate("/admin/job-application-reports")}
+                onClick={() => {
+                  const targetState = returnViewMode === "reports" ? { returnViewMode: "reports" } : { returnViewMode: "jobs" };
+                  navigate(backTargetPath, { state: targetState, replace: true });
+                }}
                 className={`flex items-center justify-center p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-all ${textColor} group`}
               >
                 <ArrowLeft size={22} className="group-hover:-translate-x-1 transition-transform" />
@@ -480,7 +485,11 @@ const AdminJobReportJobDetail = () => {
               <div className="pt-4 space-y-3">
                 <button
                   onClick={() => navigate(`/admin/job-reports/applications/${jobId}`, {
-                    state: { jobTitle: job?.job_title, companyName: job?.company_name },
+                    state: {
+                      jobTitle: job?.job_title,
+                      companyName: job?.company_name,
+                      returnViewMode,
+                    },
                   })}
                   className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
                 >
@@ -490,7 +499,10 @@ const AdminJobReportJobDetail = () => {
                 
                 <button
                   onClick={() => navigate(`/admin/edit-job/${job?.job_id || job?.id || jobId}`, {
-                    state: { employer_id: job?.employer_id },
+                    state: {
+                      employer_id: job?.employer_id,
+                      returnViewMode,
+                    },
                   })}
                   className={`w-full py-4 border-2 border-slate-200 dark:border-slate-700 ${textColor} hover:border-indigo-400 dark:hover:border-indigo-600 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95`}
                 >

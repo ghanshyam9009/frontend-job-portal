@@ -80,114 +80,157 @@ const JobListings = () => {
     };
   }, []);
 
+  const leftSidebarAnchorRef = useRef(null);
+  const leftSidebarContentRef = useRef(null);
   const rightSidebarAnchorRef = useRef(null);
   const rightSidebarContentRef = useRef(null);
   const footerRef = useRef(null);
   const sidebarRafRef = useRef(null);
-  const [rightSidebarStyle, setRightSidebarStyle] = useState({
+
+  const initialSidebarStyle = {
     ready: false,
     visible: false,
     top: 80,
     left: 0,
     width: 256,
     height: 0,
-  });
+    maxHeight: 0,
+  };
 
-  const updateRightSidebarPosition = useCallback(() => {
+  const [leftSidebarStyle, setLeftSidebarStyle] = useState(initialSidebarStyle);
+  const [rightSidebarStyle, setRightSidebarStyle] = useState(initialSidebarStyle);
+
+  const computeSidebarStyle = useCallback((anchor, content, footer, minWidth) => {
+    const isActive = window.matchMedia(minWidth).matches;
+
+    if (!isActive || !anchor || !content) {
+      return { ...initialSidebarStyle };
+    }
+
+    const anchorRect = anchor.getBoundingClientRect();
+    const contentHeight = content.offsetHeight;
+    if (contentHeight <= 0) return null;
+
+    // Same offset for guest (HomeNav) and logged-in (Candidate/Recruiter nav): top-20 = 80px
+    const stickyTop = 80;
+    const gap = 16;
+    let top = Math.max(stickyTop, anchorRect.top);
+
+    const maxTopInColumn = anchorRect.bottom - contentHeight;
+    if (top > maxTopInColumn) {
+      top = maxTopInColumn;
+    }
+
+    if (footer) {
+      const footerTop = footer.getBoundingClientRect().top;
+      if (top + contentHeight + gap > footerTop) {
+        top = footerTop - contentHeight - gap;
+      }
+    }
+
+    const visible =
+      anchorRect.bottom > 0 &&
+      anchorRect.top < window.innerHeight &&
+      top + contentHeight > 0;
+
+    return {
+      ready: true,
+      visible,
+      top,
+      left: anchorRect.left,
+      width: anchorRect.width,
+      height: contentHeight,
+      maxHeight: 0,
+    };
+  }, []);
+
+  const applySidebarStyle = (prev, next) => {
+    if (
+      prev.ready === next.ready &&
+      prev.visible === next.visible &&
+      prev.top === next.top &&
+      prev.left === next.left &&
+      prev.width === next.width &&
+      prev.height === next.height &&
+      prev.maxHeight === next.maxHeight
+    ) {
+      return prev;
+    }
+    return next;
+  };
+
+  const updateSidebarPositions = useCallback(() => {
     if (sidebarRafRef.current != null) return;
 
     sidebarRafRef.current = requestAnimationFrame(() => {
       sidebarRafRef.current = null;
 
-      const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
-      const anchor = rightSidebarAnchorRef.current;
-      const content = rightSidebarContentRef.current;
       const footer = footerRef.current;
 
-      if (!isDesktop || !anchor || !content) {
-        setRightSidebarStyle((prev) =>
-          prev.ready === false && !prev.visible ? prev : { ...prev, ready: false, visible: false }
-        );
-        return;
+      const leftNext = computeSidebarStyle(
+        leftSidebarAnchorRef.current,
+        leftSidebarContentRef.current,
+        footer,
+        "(min-width: 768px)"
+      );
+      if (leftNext) {
+        setLeftSidebarStyle((prev) => applySidebarStyle(prev, leftNext));
       }
 
-      const anchorRect = anchor.getBoundingClientRect();
-      const contentHeight = content.offsetHeight;
-      if (contentHeight <= 0) return;
-
-      // Match left filters: sticky top-20 (80px). Stay in column flow until scroll
-      // catches up — otherwise fixed top:80 overlaps the search section.
-      const stickyTop = 80;
-      const gap = 16;
-      let top = Math.max(stickyTop, anchorRect.top);
-
-      // Stop with the grid column (don't float past jobs/filters area)
-      const maxTopInColumn = anchorRect.bottom - contentHeight;
-      if (top > maxTopInColumn) {
-        top = maxTopInColumn;
+      const rightNext = computeSidebarStyle(
+        rightSidebarAnchorRef.current,
+        rightSidebarContentRef.current,
+        footer,
+        "(min-width: 1024px)"
+      );
+      if (rightNext) {
+        setRightSidebarStyle((prev) => applySidebarStyle(prev, rightNext));
       }
-
-      if (footer) {
-        const footerTop = footer.getBoundingClientRect().top;
-        if (top + contentHeight + gap > footerTop) {
-          top = footerTop - contentHeight - gap;
-        }
-      }
-
-      const visible =
-        anchorRect.bottom > 0 &&
-        anchorRect.top < window.innerHeight &&
-        top + contentHeight > 0;
-
-      const next = {
-        ready: true,
-        visible,
-        top,
-        left: anchorRect.left,
-        width: anchorRect.width,
-        height: contentHeight,
-      };
-
-      setRightSidebarStyle((prev) => {
-        if (
-          prev.ready === next.ready &&
-          prev.visible === next.visible &&
-          prev.top === next.top &&
-          prev.left === next.left &&
-          prev.width === next.width &&
-          prev.height === next.height
-        ) {
-          return prev;
-        }
-        return next;
-      });
     });
-  }, []);
+  }, [computeSidebarStyle]);
 
   useEffect(() => {
-    updateRightSidebarPosition();
+    updateSidebarPositions();
 
-    window.addEventListener("resize", updateRightSidebarPosition);
-    window.addEventListener("scroll", updateRightSidebarPosition, { passive: true });
+    const rafId = requestAnimationFrame(updateSidebarPositions);
+    const retryId = window.setTimeout(updateSidebarPositions, 100);
 
-    const resizeObserver = new ResizeObserver(updateRightSidebarPosition);
-    const contentEl = rightSidebarContentRef.current;
-    const anchorEl = rightSidebarAnchorRef.current;
-    const footerEl = footerRef.current;
-    if (contentEl) resizeObserver.observe(contentEl);
-    if (anchorEl) resizeObserver.observe(anchorEl);
-    if (footerEl) resizeObserver.observe(footerEl);
+    window.addEventListener("resize", updateSidebarPositions);
+    window.addEventListener("scroll", updateSidebarPositions, { passive: true });
+
+    const resizeObserver = new ResizeObserver(updateSidebarPositions);
+    const observed = new Set();
+    const observeSidebarElements = () => {
+      [
+        leftSidebarContentRef.current,
+        leftSidebarAnchorRef.current,
+        rightSidebarContentRef.current,
+        rightSidebarAnchorRef.current,
+        footerRef.current,
+      ].forEach((el) => {
+        if (el && !observed.has(el)) {
+          resizeObserver.observe(el);
+          observed.add(el);
+        }
+      });
+    };
+
+    observeSidebarElements();
+    const observeRetryId = window.setTimeout(observeSidebarElements, 0);
 
     return () => {
+      cancelAnimationFrame(rafId);
+      window.clearTimeout(retryId);
+      window.clearTimeout(observeRetryId);
       if (sidebarRafRef.current != null) {
         cancelAnimationFrame(sidebarRafRef.current);
         sidebarRafRef.current = null;
       }
-      window.removeEventListener("resize", updateRightSidebarPosition);
-      window.removeEventListener("scroll", updateRightSidebarPosition);
+      window.removeEventListener("resize", updateSidebarPositions);
+      window.removeEventListener("scroll", updateSidebarPositions);
       resizeObserver.disconnect();
     };
-  }, [jobBannersLoading, jobBanners.length, loading, jobs.length, updateRightSidebarPosition]);
+  }, [jobBannersLoading, jobBanners.length, loading, jobs.length, updateSidebarPositions]);
 
   const [filters, setFilters] = useState({
     location: "",
@@ -1067,14 +1110,9 @@ const JobListings = () => {
 
       <div className="max-w-6xl mx-auto px-4 py-4">
         <div className="grid gap-4 md:grid-cols-[16rem_1fr] lg:grid-cols-[16rem_1fr_16rem]">
-          {/* Sidebar Filters - Desktop - COMPACT */}
-          <aside className="hidden md:block">
-            <div className={`${bgSecondary} rounded-lg shadow-sm p-4 sticky top-20 h-fit border ${borderColor}`}>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className={`text-base font-semibold ${textPrimary}`}>All Filters</h2>
-              </div>
-              <FilterContent />
-            </div>
+          {/* Sidebar Filters - Desktop: anchor column for fixed filter panel */}
+          <aside ref={leftSidebarAnchorRef} className="hidden md:block" aria-hidden="true">
+            <div style={{ height: leftSidebarStyle.height || undefined }} />
           </aside>
 
           {/* Main Content - COMPACT */}
@@ -1227,6 +1265,27 @@ const JobListings = () => {
       </div>
 
       <div
+        className="hidden md:block fixed z-20"
+        style={{
+          top: leftSidebarStyle.top,
+          left: leftSidebarStyle.left,
+          width: leftSidebarStyle.width,
+          opacity: leftSidebarStyle.ready && leftSidebarStyle.visible ? 1 : 0,
+          pointerEvents: leftSidebarStyle.ready && leftSidebarStyle.visible ? "auto" : "none",
+        }}
+      >
+        <div
+          ref={leftSidebarContentRef}
+          className={`${bgSecondary} rounded-lg shadow-sm p-4 border ${borderColor}`}
+        >
+          <div className="flex justify-between items-center mb-4">
+            <h2 className={`text-base font-semibold ${textPrimary}`}>All Filters</h2>
+          </div>
+          <FilterContent />
+        </div>
+      </div>
+
+      <div
         ref={rightSidebarContentRef}
         className="hidden lg:block fixed z-20 space-y-4"
         style={{
@@ -1270,7 +1329,7 @@ const JobListings = () => {
                     alt="Job listings banner"
                     className="w-full h-auto object-cover"
                     loading="eager"
-                    onLoad={updateRightSidebarPosition}
+                    onLoad={updateSidebarPositions}
                   />
                 </div>
               ) : (
@@ -1280,7 +1339,7 @@ const JobListings = () => {
                   loop={jobBanners.length > 1}
                   spaceBetween={16}
                   className="rounded-xl overflow-hidden shadow-md"
-                  onInit={updateRightSidebarPosition}
+                  onInit={updateSidebarPositions}
                 >
                   {jobBanners.map((banner) => {
                     const imageUrl = bannerService.getBannerImage(banner);
@@ -1292,7 +1351,7 @@ const JobListings = () => {
                           alt="Job listings banner"
                           className="w-full h-auto object-cover"
                           loading="eager"
-                          onLoad={updateRightSidebarPosition}
+                          onLoad={updateSidebarPositions}
                         />
                       </SwiperSlide>
                     );
