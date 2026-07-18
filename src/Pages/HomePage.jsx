@@ -197,7 +197,7 @@ const Homepage = () => {
   const categoryRef = useRef(null);
 
   const [homeFirstBanner, setHomeFirstBanner] = useState(null);
-  const [homeSecondBanner, setHomeSecondBanner] = useState(null);
+  const [homeSecondBanners, setHomeSecondBanners] = useState([]);
   const [homeBannersLoading, setHomeBannersLoading] = useState(true);
 
   useEffect(() => {
@@ -214,13 +214,17 @@ const Homepage = () => {
         if (cancelled) return;
 
         const pickFirst = (list) => (Array.isArray(list) && list.length ? list[0] : null);
+        const asList = (list) => (Array.isArray(list) ? list.filter(Boolean) : []);
+
         setHomeFirstBanner(pickFirst(firstList));
-        setHomeSecondBanner(pickFirst(secondList) || pickFirst(legacyList));
+        const second = asList(secondList);
+        const legacy = asList(legacyList);
+        setHomeSecondBanners(second.length ? second : legacy);
       } catch (error) {
         console.error("Failed to fetch home banners:", error);
         if (!cancelled) {
           setHomeFirstBanner(null);
-          setHomeSecondBanner(null);
+          setHomeSecondBanners([]);
         }
       } finally {
         if (!cancelled) setHomeBannersLoading(false);
@@ -1644,17 +1648,44 @@ const Homepage = () => {
 
         {/* Axis Banner and Trusted Companies */}
         <div className={`transition-colors duration-300 ${bgColor}`}>
-          {/* Home Second Banner (lower) */}
-          {!homeBannersLoading && homeSecondBanner && (
+          {/* Home Second Banner (lower) — slider, 1200×600 (2:1) box */}
+          {!homeBannersLoading && homeSecondBanners.length > 0 && (
             <section className={`${bgColor} mx-4 transition-colors duration-300`}>
-              <div className="max-w-3xl mx-auto">
-                <div className="rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-                  <img
-                    src={bannerService.getBannerImage(homeSecondBanner)}
-                    alt="Home second banner"
-                    className="w-full h-auto object-cover"
-                    loading="lazy"
-                  />
+              <div className="w-full max-w-[1200px] mx-auto">
+                <div className="relative w-full aspect-[2/1] rounded-xl overflow-hidden shadow-md bg-gray-100 dark:bg-gray-800">
+                  {homeSecondBanners.length === 1 ? (
+                    <img
+                      src={bannerService.getBannerImage(homeSecondBanners[0])}
+                      alt="Home second banner"
+                      className="absolute inset-0 w-full h-full object-cover object-center"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <Swiper
+                      modules={[Autoplay, Navigation]}
+                      autoplay={{ delay: 4000, disableOnInteraction: false }}
+                      navigation
+                      loop={homeSecondBanners.length > 1}
+                      slidesPerView={1}
+                      spaceBetween={0}
+                      className="absolute inset-0 w-full h-full [&_.swiper-button-next]:text-white [&_.swiper-button-prev]:text-white [&_.swiper-button-next]:scale-75 [&_.swiper-button-prev]:scale-75"
+                    >
+                      {homeSecondBanners.map((banner) => {
+                        const imageUrl = bannerService.getBannerImage(banner);
+                        const id = banner.banner_id || banner.id || imageUrl;
+                        return (
+                          <SwiperSlide key={id}>
+                            <img
+                              src={imageUrl}
+                              alt="Home second banner"
+                              className="w-full h-full object-cover object-center"
+                              loading="lazy"
+                            />
+                          </SwiperSlide>
+                        );
+                      })}
+                    </Swiper>
+                  )}
                 </div>
               </div>
             </section>

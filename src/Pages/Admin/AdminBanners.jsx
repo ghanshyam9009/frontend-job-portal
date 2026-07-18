@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useTheme } from "../../Contexts/ThemeContext";
-import { adminBannerService } from "../../services/adminBannerService";
+import {
+  adminBannerService,
+  MAX_BANNER_IMAGES,
+} from "../../services/adminBannerService";
 import {
   Image,
   Plus,
@@ -28,21 +31,55 @@ const PAGE_OPTIONS = [
     value: "home_first",
     label: "Home First Banner",
     icon: ChevronUp,
-    hint: "Upper section on home page",
+    hint: "Home page — right column (beside jobs)",
   },
   {
     value: "home_second",
     label: "Home Second Banner",
     icon: ChevronDown,
-    hint: "Lower section on home page",
+    hint: `Home page — lower section (up to ${MAX_BANNER_IMAGES} images)`,
   },
   {
     value: "job",
     label: "Job Listings",
     icon: Briefcase,
-    hint: "Job listings page banners",
+    hint: "Job page — right sidebar",
   },
 ];
+
+/**
+ * Display sizes matching live layout on Home / Job pages.
+ * Used in admin so uploads match on-site width × height.
+ */
+const BANNER_DISPLAY_SPECS = {
+  home_first: {
+    width: 360,
+    height: 480,
+    // Home right column (~lg:col-span-4), portrait beside jobs list
+    aspectClass: "aspect-[360/480]",
+    previewMaxWidth: "max-w-[180px]",
+    where: "Home · right column (desktop)",
+  },
+  home_second: {
+    width: 1200,
+    height: 600,
+    // Home lower banner — 2:1 landscape; scales down on smaller screens
+    aspectClass: "aspect-[2/1]",
+    previewMaxWidth: "max-w-full",
+    where: "Home · lower banner slider",
+    sizeHints: [
+      { label: "Desktop (recommended)", size: "1200 × 600 px" },
+    ],
+  },
+  job: {
+    width: 256,
+    height: 400,
+    // JobListings right grid col: 16rem (256px), min-h ~280px
+    aspectClass: "aspect-[256/400]",
+    previewMaxWidth: "max-w-[128px]",
+    where: "Jobs · right sidebar (16rem)",
+  },
+};
 
 const resolveBannerList = (payload) => {
   if (Array.isArray(payload)) return { banners: payload, count: payload.length };
@@ -88,6 +125,15 @@ const normalizeBannerPage = (page) => {
   return PAGE_OPTIONS.some((o) => o.value === p) ? p : "home_first";
 };
 
+const getBannerDisplaySpec = (page) =>
+  BANNER_DISPLAY_SPECS[normalizeBannerPage(page)] || BANNER_DISPLAY_SPECS.home_first;
+
+const allowsMultipleImages = (page) =>
+  (page || "").toLowerCase() === "home_second";
+
+const filterImageFiles = (fileList) =>
+  Array.from(fileList || []).filter((f) => f?.type?.startsWith("image/"));
+
 const AdminBanners = () => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -108,7 +154,7 @@ const AdminBanners = () => {
   const [copiedId, setCopiedId] = useState(null);
 
   const [createPage, setCreatePage] = useState("home_first");
-  const [createImageFile, setCreateImageFile] = useState(null);
+  const [createImageFiles, setCreateImageFiles] = useState([]);
   const [createDragOver, setCreateDragOver] = useState(false);
 
   const [editingBanner, setEditingBanner] = useState(null);
@@ -156,24 +202,43 @@ const AdminBanners = () => {
 
   const clearCreateForm = () => {
     setCreatePage("home_first");
-    setCreateImageFile(null);
+    setCreateImageFiles([]);
+  };
+
+  const isMultiUpload = allowsMultipleImages(createPage);
+
+  const handleCreatePageChange = (page) => {
+    setCreatePage(page);
+    // Switching away from multi-upload keeps only the first selected file
+    if (!allowsMultipleImages(page) && createImageFiles.length > 1) {
+      setCreateImageFiles((prev) => prev.slice(0, 1));
+    }
   };
 
   const handleCreateBanner = async (e) => {
     e.preventDefault();
-    if (!createImageFile) {
-      setError("Please choose an image to upload.");
+    if (!createImageFiles.length) {
+      setError("Please choose at least one image to upload.");
+      return;
+    }
+    if (isMultiUpload && createImageFiles.length > MAX_BANNER_IMAGES) {
+      setError(`Maximum ${MAX_BANNER_IMAGES} images allowed.`);
       return;
     }
     try {
       setSaving(true);
       setError("");
       setMessage("");
-      await adminBannerService.uploadBanner({
+      const result = await adminBannerService.uploadBanner({
         page: createPage,
-        imageFile: createImageFile,
+        imageFiles: createImageFiles,
       });
-      setMessage("Banner uploaded successfully.");
+      const count = result?.count ?? createImageFiles.length;
+      setMessage(
+        isMultiUpload
+          ? `${count} banner${count === 1 ? "" : "s"} uploaded for Home Second (previous banners replaced).`
+          : "Banner uploaded successfully."
+      );
       clearCreateForm();
       await fetchBanners();
     } catch (err) {
@@ -260,23 +325,62 @@ const AdminBanners = () => {
     }
   };
 
-  const previewCreateImage = useMemo(
-    () => (createImageFile ? URL.createObjectURL(createImageFile) : ""),
-    [createImageFile]
+  const previewCreateImages = useMemo(
+    () => createImageFiles.map((file) => ({ file, url: URL.createObjectURL(file) })),
+    [createImageFiles]
   );
+
+  useEffect(() => {
+    return () => {
+      previewCreateImages.forEach(({ url }) => URL.revokeObjectURL(url));
+    };
+  }, [previewCreateImages]);
+
   const previewEditImage = useMemo(
     () => (editImageFile ? URL.createObjectURL(editImageFile) : ""),
     [editImageFile]
   );
 
-  const onCreateFile = (file) => {
-    if (file?.type?.startsWith("image/")) setCreateImageFile(file);
+  const onCreateFiles = (fileList, { append = false } = {}) => {
+    const images = filterImageFiles(fileList);
+    if (!images.length) return;
+
+    setCreateImageFiles((prev) => {
+      if (!allowsMultipleImages(createPage)) {
+        return images.slice(0, 1);
+      }
+      const merged = append ? [...prev, ...images] : images;
+      const unique = [];
+      const seen = new Set();
+      for (const f of merged) {
+        const key = `${f.name}-${f.size}-${f.lastModified}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        unique.push(f);
+      }
+      return unique.slice(0, MAX_BANNER_IMAGES);
+    });
+
+    if (allowsMultipleImages(createPage)) {
+      const currentCount = append ? createImageFiles.length : 0;
+      if (currentCount + images.length > MAX_BANNER_IMAGES) {
+        setError(`Maximum ${MAX_BANNER_IMAGES} images allowed. Extra files were ignored.`);
+      }
+    }
   };
+
+  const removeCreateImageAt = (index) => {
+    setCreateImageFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const createDisplaySpec = getBannerDisplaySpec(createPage);
+  const editDisplaySpec = getBannerDisplaySpec(editPage);
 
   const PlacementSelector = ({ value, onChange }) => (
     <div className="space-y-2.5" role="radiogroup" aria-label="Banner placement">
       {PAGE_OPTIONS.map(({ value: optionValue, label, icon: Icon, hint }) => {
         const selected = value === optionValue;
+        const spec = BANNER_DISPLAY_SPECS[optionValue];
         return (
           <button
             key={optionValue}
@@ -314,6 +418,19 @@ const AdminBanners = () => {
               {hint && (
                 <span className={`block text-xs mt-1 leading-relaxed break-words ${textSecondary}`}>
                   {hint}
+                </span>
+              )}
+              {spec && (
+                <span
+                  className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold tabular-nums ${
+                    selected
+                      ? "bg-indigo-600/15 text-indigo-700 dark:bg-indigo-400/20 dark:text-indigo-200"
+                      : isDark
+                        ? "bg-gray-700 text-gray-300"
+                        : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  {spec.width} × {spec.height} px
                 </span>
               )}
             </span>
@@ -407,7 +524,7 @@ const AdminBanners = () => {
               </h1>
             </div>
             <p className={`text-sm max-w-xl ${textSecondary}`}>
-              Manage Home First (upper) and Home Second (lower) banners, plus Job page banners. Images are stored on S3.
+              Manage Home First (upper) and Home Second (lower, multi-image) banners, plus Job page banners. New Home Second uploads replace old ones.
             </p>
           </div>
           <button
@@ -489,16 +606,65 @@ const AdminBanners = () => {
                 <Plus size={20} className="text-indigo-500" />
                 Upload new banner
               </h2>
-              <p className={`text-xs ${textSecondary} mb-5`}>JPG, PNG or WebP recommended</p>
+              <p className={`text-xs ${textSecondary} mb-5`}>
+                JPG, PNG or WebP · upload at the size shown for each placement
+              </p>
 
               <form onSubmit={handleCreateBanner} className="space-y-5">
                 <div>
                   <label className={`block text-sm font-medium ${textColor} mb-2`}>Banner placement</label>
-                  <PlacementSelector value={createPage} onChange={setCreatePage} />
+                  <PlacementSelector value={createPage} onChange={handleCreatePageChange} />
+                </div>
+
+                {/* Live display size guide */}
+                <div
+                  className={`rounded-xl border ${borderColor} px-3.5 py-3 ${
+                    isDark ? "bg-indigo-950/30" : "bg-indigo-50/80"
+                  }`}
+                >
+                  <p className={`text-[11px] font-semibold uppercase tracking-wide ${textSecondary} mb-1`}>
+                    On-site display size
+                  </p>
+                  {createDisplaySpec.sizeHints?.length ? (
+                    <>
+                      <p className={`text-sm font-bold tabular-nums ${textColor}`}>
+                        Upload once: 1200 × 600 px
+                      </p>
+              
+                      <ul className="space-y-1 mt-2">
+                        {createDisplaySpec.sizeHints.map(({ label, size }) => (
+                          <li key={label} className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+                            <span className={`text-xs ${textSecondary}`}>{label}</span>
+                            <span className={`text-xs font-semibold tabular-nums ${textColor}`}>{size}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : (
+                    <p className={`text-sm font-bold tabular-nums ${textColor}`}>
+                      Width {createDisplaySpec.width}px · Height {createDisplaySpec.height}px
+                    </p>
+                  )}
+                  <p className={`text-xs mt-1.5 ${textSecondary}`}>{createDisplaySpec.where}</p>
+                  <div className="mt-3 flex items-end gap-3">
+                    <div
+                      className={`rounded-md border-2 border-dashed border-indigo-400/60 bg-indigo-500/10 ${createDisplaySpec.previewMaxWidth} w-full ${createDisplaySpec.aspectClass}`}
+                      title={`${createDisplaySpec.width}×${createDisplaySpec.height}`}
+                      aria-hidden
+                    />
+            
+                  </div>
                 </div>
 
                 <div>
-                  <label className={`block text-sm font-medium ${textColor} mb-2`}>Banner image</label>
+                  <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                    {isMultiUpload ? "Banner images" : "Banner image"}
+                    {isMultiUpload && (
+                      <span className={`ml-1 font-normal ${textSecondary}`}>
+                        (up to {MAX_BANNER_IMAGES}, replaces existing)
+                      </span>
+                    )}
+                  </label>
                   <div
                     onDragOver={(e) => {
                       e.preventDefault();
@@ -508,62 +674,115 @@ const AdminBanners = () => {
                     onDrop={(e) => {
                       e.preventDefault();
                       setCreateDragOver(false);
-                      onCreateFile(e.dataTransfer.files?.[0]);
+                      onCreateFiles(e.dataTransfer.files, {
+                        append: isMultiUpload && createImageFiles.length > 0,
+                      });
                     }}
                     className={`relative rounded-xl border-2 border-dashed transition-colors ${
                       createDragOver
                         ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20"
                         : borderColor
-                    } ${previewCreateImage ? "p-0 overflow-hidden" : "p-8"}`}
+                    } ${previewCreateImages.length ? "p-3" : "p-8"}`}
                   >
-                    {previewCreateImage ? (
-                      <div className="relative group">
-                        <img
-                          src={previewCreateImage}
-                          alt="Preview"
-                          className="w-full aspect-[21/9] object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setCreateImageFile(null)}
-                          className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                    {previewCreateImages.length > 0 ? (
+                      <div className="space-y-3">
+                        <div
+                          className={
+                            isMultiUpload && previewCreateImages.length > 1
+                              ? "grid grid-cols-2 gap-2"
+                              : "flex justify-center"
+                          }
                         >
-                          <X size={14} />
-                        </button>
+                          {previewCreateImages.map(({ file, url }, index) => (
+                            <div
+                              key={`${file.name}-${index}`}
+                              className={`relative group rounded-lg overflow-hidden ${
+                                isMultiUpload && previewCreateImages.length > 1
+                                  ? ""
+                                  : `${createDisplaySpec.previewMaxWidth} w-full`
+                              }`}
+                            >
+                              <img
+                                src={url}
+                                alt={file.name}
+                                className={`w-full object-cover ${createDisplaySpec.aspectClass}`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeCreateImageAt(index)}
+                                className="absolute top-1.5 right-1.5 p-1.5 rounded-lg bg-black/60 text-white opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                                title="Remove"
+                              >
+                                <X size={14} />
+                              </button>
+                              {isMultiUpload && (
+                                <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-black/55 text-white text-[10px] font-medium">
+                                  {index + 1}/{previewCreateImages.length}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        {isMultiUpload && createImageFiles.length < MAX_BANNER_IMAGES && (
+                          <label className={`flex items-center justify-center gap-2 py-2.5 rounded-lg border border-dashed ${borderColor} cursor-pointer text-sm ${textSecondary} hover:border-indigo-400 hover:text-indigo-600`}>
+                            <Plus size={16} />
+                            Add more images
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="sr-only"
+                              onChange={(e) => {
+                                onCreateFiles(e.target.files, { append: true });
+                                e.target.value = "";
+                              }}
+                            />
+                          </label>
+                        )}
                       </div>
                     ) : (
                       <label className="flex flex-col items-center cursor-pointer text-center">
                         <Upload size={32} className={`mb-2 ${textSecondary}`} />
-                        <span className={`text-sm font-medium ${textColor}`}>Drop image or click to browse</span>
-                        <span className={`text-xs mt-1 ${textSecondary}`}>Max recommended width 1920px</span>
+                        <span className={`text-sm font-medium ${textColor}`}>
+                          {isMultiUpload
+                            ? "Drop images or click to browse"
+                            : "Drop image or click to browse"}
+                        </span>
+                        <span className={`text-xs mt-1 ${textSecondary}`}>
+                          {createDisplaySpec.sizeHints?.length
+                            ? `Recommended: ${createDisplaySpec.sizeHints[0].size}`
+                            : `Best size: ${createDisplaySpec.width} × ${createDisplaySpec.height} px`}
+                          {isMultiUpload ? ` · max ${MAX_BANNER_IMAGES} images` : ""}
+                        </span>
                         <input
                           type="file"
                           accept="image/*"
+                          multiple={isMultiUpload}
                           className="sr-only"
-                          onChange={(e) => onCreateFile(e.target.files?.[0])}
-                        />
-                      </label>
-                    )}
-                    {previewCreateImage && (
-                      <label className="absolute inset-0 cursor-pointer opacity-0">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="sr-only"
-                          onChange={(e) => onCreateFile(e.target.files?.[0])}
+                          onChange={(e) => {
+                            onCreateFiles(e.target.files);
+                            e.target.value = "";
+                          }}
                         />
                       </label>
                     )}
                   </div>
+                  {isMultiUpload && createImageFiles.length > 0 && (
+                    <p className={`text-xs mt-2 ${textSecondary}`}>
+                      {createImageFiles.length} of {MAX_BANNER_IMAGES} selected · {createDisplaySpec.width}×{createDisplaySpec.height}px · uploading replaces current Home Second banners
+                    </p>
+                  )}
                 </div>
 
                 <button
                   type="submit"
-                  disabled={saving || !createImageFile}
+                  disabled={saving || !createImageFiles.length}
                   className="w-full py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 font-medium flex items-center justify-center gap-2 shadow-md"
                 >
                   {saving ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
-                  Upload banner
+                  {isMultiUpload && createImageFiles.length > 1
+                    ? `Upload ${createImageFiles.length} banners`
+                    : "Upload banner"}
                 </button>
               </form>
             </div>
@@ -617,6 +836,7 @@ const AdminBanners = () => {
                   {banners.map((banner) => {
                     const bannerId = getBannerId(banner);
                     const imageUrl = getBannerImage(banner);
+                    const displaySpec = getBannerDisplaySpec(banner.page);
                     return (
                       <article
                         key={bannerId}
@@ -635,8 +855,11 @@ const AdminBanners = () => {
                               <ImageOff className={textSecondary} size={32} />
                             </div>
                           )}
-                          <div className="absolute top-3 left-3">
+                          <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
                             <PageBadge page={banner.page} />
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/55 text-white tabular-nums">
+                              {displaySpec.width}×{displaySpec.height}
+                            </span>
                           </div>
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                           <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -722,6 +945,38 @@ const AdminBanners = () => {
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>Banner placement</label>
                 <PlacementSelector value={editPage} onChange={setEditPage} />
               </div>
+              <div
+                className={`rounded-xl border ${borderColor} px-3.5 py-3 ${
+                  isDark ? "bg-indigo-950/30" : "bg-indigo-50/80"
+                }`}
+              >
+                <p className={`text-[11px] font-semibold uppercase tracking-wide ${textSecondary}`}>
+                  On-site display size
+                </p>
+                {editDisplaySpec.sizeHints?.length ? (
+                  <>
+                    <p className={`text-sm font-bold tabular-nums mt-0.5 ${textColor}`}>
+                      Upload once: 1200 × 600 px
+                    </p>
+                    <p className={`text-xs mt-1 ${textSecondary}`}>
+                      Ek image sab screens pe fit ho jayegi. Alag sizes upload mat karo.
+                    </p>
+                    <ul className="space-y-1 mt-2">
+                      {editDisplaySpec.sizeHints.map(({ label, size }) => (
+                        <li key={label} className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+                          <span className={`text-xs ${textSecondary}`}>{label}</span>
+                          <span className={`text-xs font-semibold tabular-nums ${textColor}`}>{size}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  <p className={`text-sm font-bold tabular-nums mt-0.5 ${textColor}`}>
+                    Width {editDisplaySpec.width}px · Height {editDisplaySpec.height}px
+                  </p>
+                )}
+                <p className={`text-xs mt-0.5 ${textSecondary}`}>{editDisplaySpec.where}</p>
+              </div>
               <div>
                 <label className={`block text-sm font-medium ${textColor} mb-2`}>
                   Replace image <span className={textSecondary}>(optional)</span>
@@ -732,12 +987,19 @@ const AdminBanners = () => {
                   onChange={(e) => setEditImageFile(e.target.files?.[0] || null)}
                   className={`w-full text-sm file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-600 file:text-white file:cursor-pointer ${textColor}`}
                 />
+                <p className={`text-xs mt-1.5 ${textSecondary}`}>
+                  {editDisplaySpec.sizeHints?.length
+                    ? `Recommended: ${editDisplaySpec.sizeHints[0].size}`
+                    : `Best size: ${editDisplaySpec.width} × ${editDisplaySpec.height} px`}
+                </p>
               </div>
-              <img
-                src={previewEditImage || getBannerImage(editingBanner)}
-                alt="Banner preview"
-                className={`w-full aspect-[21/9] object-cover rounded-xl border ${borderColor}`}
-              />
+              <div className="flex justify-center">
+                <img
+                  src={previewEditImage || getBannerImage(editingBanner)}
+                  alt="Banner preview"
+                  className={`w-full ${editDisplaySpec.previewMaxWidth} ${editDisplaySpec.aspectClass} object-cover rounded-xl border ${borderColor}`}
+                />
+              </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
@@ -795,6 +1057,10 @@ const AdminBanners = () => {
                 {[
                   { label: "Banner ID", value: getBannerId(viewBanner), mono: true },
                   { label: "Page", value: pageLabel(viewBanner.page) },
+                  {
+                    label: "Recommended size",
+                    value: `${getBannerDisplaySpec(viewBanner.page).width} × ${getBannerDisplaySpec(viewBanner.page).height} px`,
+                  },
                   { label: "S3 Bucket", value: viewBanner.bucket },
                   { label: "Object key", value: viewBanner.key, mono: true, breakAll: true },
                   { label: "Created", value: formatDate(viewBanner.created_at) },
