@@ -61,15 +61,12 @@ const BANNER_DISPLAY_SPECS = {
     where: "Home · right column (desktop)",
   },
   home_second: {
-    width: 1200,
-    height: 600,
-    // Home lower banner — 2:1 landscape; scales down on smaller screens
-    aspectClass: "aspect-[2/1]",
-    previewMaxWidth: "max-w-full",
+    width: 768,
+    height: 380,
+    // Home lower banner — max-w-3xl / 768×380 box
+    aspectClass: "aspect-[768/380]",
+    previewMaxWidth: "max-w-md",
     where: "Home · lower banner slider",
-    sizeHints: [
-      { label: "Desktop (recommended)", size: "1200 × 600 px" },
-    ],
   },
   job: {
     width: 256,
@@ -625,26 +622,9 @@ const AdminBanners = () => {
                   <p className={`text-[11px] font-semibold uppercase tracking-wide ${textSecondary} mb-1`}>
                     On-site display size
                   </p>
-                  {createDisplaySpec.sizeHints?.length ? (
-                    <>
-                      <p className={`text-sm font-bold tabular-nums ${textColor}`}>
-                        Upload once: 1200 × 600 px
-                      </p>
-              
-                      <ul className="space-y-1 mt-2">
-                        {createDisplaySpec.sizeHints.map(({ label, size }) => (
-                          <li key={label} className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
-                            <span className={`text-xs ${textSecondary}`}>{label}</span>
-                            <span className={`text-xs font-semibold tabular-nums ${textColor}`}>{size}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  ) : (
-                    <p className={`text-sm font-bold tabular-nums ${textColor}`}>
-                      Width {createDisplaySpec.width}px · Height {createDisplaySpec.height}px
-                    </p>
-                  )}
+                  <p className={`text-sm font-bold tabular-nums ${textColor}`}>
+                    Width {createDisplaySpec.width}px · Height {createDisplaySpec.height}px
+                  </p>
                   <p className={`text-xs mt-1.5 ${textSecondary}`}>{createDisplaySpec.where}</p>
                   <div className="mt-3 flex items-end gap-3">
                     <div
@@ -749,9 +729,7 @@ const AdminBanners = () => {
                             : "Drop image or click to browse"}
                         </span>
                         <span className={`text-xs mt-1 ${textSecondary}`}>
-                          {createDisplaySpec.sizeHints?.length
-                            ? `Recommended: ${createDisplaySpec.sizeHints[0].size}`
-                            : `Best size: ${createDisplaySpec.width} × ${createDisplaySpec.height} px`}
+                          {`Best size: ${createDisplaySpec.width} × ${createDisplaySpec.height} px`}
                           {isMultiUpload ? ` · max ${MAX_BANNER_IMAGES} images` : ""}
                         </span>
                         <input
@@ -953,28 +931,9 @@ const AdminBanners = () => {
                 <p className={`text-[11px] font-semibold uppercase tracking-wide ${textSecondary}`}>
                   On-site display size
                 </p>
-                {editDisplaySpec.sizeHints?.length ? (
-                  <>
-                    <p className={`text-sm font-bold tabular-nums mt-0.5 ${textColor}`}>
-                      Upload once: 1200 × 600 px
-                    </p>
-                    <p className={`text-xs mt-1 ${textSecondary}`}>
-                      Ek image sab screens pe fit ho jayegi. Alag sizes upload mat karo.
-                    </p>
-                    <ul className="space-y-1 mt-2">
-                      {editDisplaySpec.sizeHints.map(({ label, size }) => (
-                        <li key={label} className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
-                          <span className={`text-xs ${textSecondary}`}>{label}</span>
-                          <span className={`text-xs font-semibold tabular-nums ${textColor}`}>{size}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                ) : (
-                  <p className={`text-sm font-bold tabular-nums mt-0.5 ${textColor}`}>
-                    Width {editDisplaySpec.width}px · Height {editDisplaySpec.height}px
-                  </p>
-                )}
+                <p className={`text-sm font-bold tabular-nums mt-0.5 ${textColor}`}>
+                  Width {editDisplaySpec.width}px · Height {editDisplaySpec.height}px
+                </p>
                 <p className={`text-xs mt-0.5 ${textSecondary}`}>{editDisplaySpec.where}</p>
               </div>
               <div>
@@ -988,9 +947,7 @@ const AdminBanners = () => {
                   className={`w-full text-sm file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-600 file:text-white file:cursor-pointer ${textColor}`}
                 />
                 <p className={`text-xs mt-1.5 ${textSecondary}`}>
-                  {editDisplaySpec.sizeHints?.length
-                    ? `Recommended: ${editDisplaySpec.sizeHints[0].size}`
-                    : `Best size: ${editDisplaySpec.width} × ${editDisplaySpec.height} px`}
+                  {`Best size: ${editDisplaySpec.width} × ${editDisplaySpec.height} px`}
                 </p>
               </div>
               <div className="flex justify-center">

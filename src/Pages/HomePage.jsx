@@ -1648,11 +1648,11 @@ const Homepage = () => {
 
         {/* Axis Banner and Trusted Companies */}
         <div className={`transition-colors duration-300 ${bgColor}`}>
-          {/* Home Second Banner (lower) — slider, 1200×600 (2:1) box */}
+          {/* Home Second Banner (lower) — slider, 768×380 box, image fills */}
           {!homeBannersLoading && homeSecondBanners.length > 0 && (
             <section className={`${bgColor} mx-4 transition-colors duration-300`}>
-              <div className="w-full max-w-[1200px] mx-auto">
-                <div className="relative w-full aspect-[2/1] rounded-xl overflow-hidden shadow-md bg-gray-100 dark:bg-gray-800">
+              <div className="w-full max-w-3xl mx-auto">
+                <div className="relative w-full max-w-[768px] mx-auto h-[240px] sm:h-[300px] md:h-[380px] rounded-xl overflow-hidden shadow-md bg-gray-100 dark:bg-gray-800">
                   {homeSecondBanners.length === 1 ? (
                     <img
                       src={bannerService.getBannerImage(homeSecondBanners[0])}
