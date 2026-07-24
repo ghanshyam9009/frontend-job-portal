@@ -12,7 +12,6 @@ import {
   Edit,
   Eye,
   Upload,
-  LayoutGrid,
   Home,
   Briefcase,
   Calendar,
@@ -37,7 +36,7 @@ const PAGE_OPTIONS = [
     value: "home_second",
     label: "Home Second Banner",
     icon: ChevronDown,
-    hint: `Home page — lower section (up to ${MAX_BANNER_IMAGES} images)`,
+    hint: `Home page — lower section (adds images, up to ${MAX_BANNER_IMAGES})`,
   },
   {
     value: "job",
@@ -144,7 +143,6 @@ const AdminBanners = () => {
   const textSecondary = isDark ? "text-gray-400" : "text-gray-600";
   const borderColor = isDark ? "border-gray-700" : "border-gray-200";
   const inputBg = isDark ? "bg-gray-900/50" : "bg-gray-50";
-  const hoverCard = isDark ? "hover:border-indigo-500/40 hover:shadow-indigo-500/10" : "hover:border-indigo-300 hover:shadow-lg";
 
   const [pageFilter, setPageFilter] = useState("all");
   const [banners, setBanners] = useState([]);
@@ -217,8 +215,8 @@ const AdminBanners = () => {
     return stats;
   }, [banners]);
 
-  const clearCreateForm = () => {
-    setCreatePage("home_first");
+  const clearCreateForm = ({ keepPage = false } = {}) => {
+    if (!keepPage) setCreatePage("home_first");
     setCreateImageFiles([]);
   };
 
@@ -232,34 +230,83 @@ const AdminBanners = () => {
     }
   };
 
+  // Live banners for the selected placement (so left panel can show/remove them)
+  const [placementBanners, setPlacementBanners] = useState([]);
+  const [placementLoading, setPlacementLoading] = useState(false);
+
+  const fetchPlacementBanners = async (page) => {
+    try {
+      setPlacementLoading(true);
+      const response = await adminBannerService.getAllBanners(page);
+      setPlacementBanners(resolveBannerList(response).banners);
+    } catch {
+      setPlacementBanners([]);
+    } finally {
+      setPlacementLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlacementBanners(createPage);
+  }, [createPage]);
+
+  const existingHomeSecondCount = isMultiUpload
+    ? placementBanners.length
+    : pageStats.home_second;
+  const homeSecondSlotsLeft = Math.max(0, MAX_BANNER_IMAGES - existingHomeSecondCount);
+
   const handleCreateBanner = async (e) => {
     e.preventDefault();
     if (!createImageFiles.length) {
       setError("Please choose at least one image to upload.");
       return;
     }
-    if (isMultiUpload && createImageFiles.length > MAX_BANNER_IMAGES) {
-      setError(`Maximum ${MAX_BANNER_IMAGES} images allowed.`);
-      return;
-    }
     try {
       setSaving(true);
       setError("");
       setMessage("");
+
+      if (isMultiUpload) {
+        const liveCount = placementBanners.length;
+        const remainingSlots = MAX_BANNER_IMAGES - liveCount;
+        if (remainingSlots <= 0) {
+          setError(
+            `Home Second already has ${MAX_BANNER_IMAGES} banners. Delete some before uploading more.`
+          );
+          return;
+        }
+        if (createImageFiles.length > remainingSlots) {
+          setError(
+            `Home Second can have at most ${MAX_BANNER_IMAGES} banners. You can add ${remainingSlots} more.`
+          );
+          return;
+        }
+      }
+
       const result = await adminBannerService.uploadBanner({
         page: createPage,
         imageFiles: createImageFiles,
+        // Production API replaces the page set — re-send current images so they stay
+        keepExisting: isMultiUpload,
+        existingImageUrls: isMultiUpload
+          ? placementBanners.map(getBannerImage).filter(Boolean)
+          : [],
       });
-      const count = result?.count ?? createImageFiles.length;
+      const addedCount = createImageFiles.length;
+      const total =
+        result?.total ??
+        (isMultiUpload
+          ? placementBanners.length + addedCount
+          : result?.count ?? addedCount);
       setMessage(
         isMultiUpload
-          ? `${count} banner${count === 1 ? "" : "s"} uploaded for Home Second (previous banners replaced).`
+          ? `${addedCount} image${addedCount === 1 ? "" : "s"} added to Home Second (${Math.min(total, MAX_BANNER_IMAGES)} total).`
           : "Banner uploaded successfully."
       );
-      clearCreateForm();
-      await fetchBanners();
+      clearCreateForm({ keepPage: isMultiUpload });
+      await Promise.all([fetchBanners(), fetchPlacementBanners(createPage)]);
     } catch (err) {
-      setError(err?.message || "Failed to upload banner.");
+      setError(err?.error || err?.message || "Failed to upload banner.");
     } finally {
       setSaving(false);
     }
@@ -297,7 +344,7 @@ const AdminBanners = () => {
       setMessage("Banner updated successfully.");
       setEditingBanner(null);
       setEditImageFile(null);
-      await fetchBanners();
+      await Promise.all([fetchBanners(), fetchPlacementBanners(createPage)]);
     } catch (err) {
       setError(err?.message || "Failed to update banner.");
     } finally {
@@ -315,9 +362,9 @@ const AdminBanners = () => {
       setMessage("");
       await adminBannerService.deleteBanner(bannerId);
       setMessage("Banner deleted successfully.");
-      await fetchBanners();
+      await Promise.all([fetchBanners(), fetchPlacementBanners(createPage)]);
     } catch (err) {
-      setError(err?.message || "Failed to delete banner.");
+      setError(err?.error || err?.message || "Failed to delete banner.");
     } finally {
       setSaving(false);
     }
@@ -375,6 +422,8 @@ const AdminBanners = () => {
       if (!allowsMultipleImages(createPage)) {
         return images.slice(0, 1);
       }
+      // Cap selection so existing live banners + new files stay within max
+      const maxNew = Math.max(0, MAX_BANNER_IMAGES - existingHomeSecondCount);
       const merged = append ? [...prev, ...images] : images;
       const unique = [];
       const seen = new Set();
@@ -384,13 +433,20 @@ const AdminBanners = () => {
         seen.add(key);
         unique.push(f);
       }
-      return unique.slice(0, MAX_BANNER_IMAGES);
+      return unique.slice(0, maxNew);
     });
 
     if (allowsMultipleImages(createPage)) {
+      const maxNew = Math.max(0, MAX_BANNER_IMAGES - existingHomeSecondCount);
       const currentCount = append ? createImageFiles.length : 0;
-      if (currentCount + images.length > MAX_BANNER_IMAGES) {
-        setError(`Maximum ${MAX_BANNER_IMAGES} images allowed. Extra files were ignored.`);
+      if (maxNew <= 0) {
+        setError(
+          `Home Second already has ${MAX_BANNER_IMAGES} banners. Delete some before uploading more.`
+        );
+      } else if (currentCount + images.length > maxNew) {
+        setError(
+          `You can add at most ${maxNew} more image${maxNew === 1 ? "" : "s"} (${MAX_BANNER_IMAGES} total). Extra files were ignored.`
+        );
       }
     }
   };
@@ -407,85 +463,35 @@ const AdminBanners = () => {
       ? PAGE_OPTIONS.filter(({ value: optionValue }) => optionValue === value)
       : PAGE_OPTIONS;
 
+    if (compact) {
+      const option = options[0];
+      if (!option) return null;
+      const Icon = option.icon;
+      const spec = BANNER_DISPLAY_SPECS[option.value];
+      return (
+        <div
+          className={`flex items-center gap-3 p-3 rounded-xl border ${borderColor} ${
+            isDark ? "bg-gray-900/40" : "bg-slate-50"
+          }`}
+        >
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white">
+            <Icon size={18} />
+          </span>
+          <div className="min-w-0">
+            <p className={`text-sm font-semibold ${textColor}`}>{option.label}</p>
+            <p className={`text-xs ${textSecondary}`}>
+              {spec ? `${spec.width}×${spec.height}px` : option.hint}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div className="space-y-2.5" role="radiogroup" aria-label="Banner placement">
+      <div className="grid grid-cols-1 gap-2" role="radiogroup" aria-label="Banner placement">
         {options.map(({ value: optionValue, label, icon: Icon, hint }) => {
           const selected = value === optionValue;
           const spec = BANNER_DISPLAY_SPECS[optionValue];
-          const content = (
-            <>
-              <span
-                className={`flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg ${
-                  selected
-                    ? "bg-indigo-600 text-white"
-                    : isDark
-                      ? "bg-gray-700 text-gray-300"
-                      : "bg-gray-100 text-gray-600"
-                }`}
-              >
-                <Icon size={20} strokeWidth={2} />
-              </span>
-              <span className="min-w-0 flex-1 pt-0.5">
-                <span
-                  className={`block text-sm font-semibold leading-snug break-words ${
-                    selected
-                      ? "text-indigo-800 dark:text-indigo-200"
-                      : textColor
-                  }`}
-                >
-                  {label}
-                </span>
-                {hint && (
-                  <span className={`block text-xs mt-1 leading-relaxed break-words ${textSecondary}`}>
-                    {hint}
-                  </span>
-                )}
-                {spec && (
-                  <span
-                    className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold tabular-nums ${
-                      selected
-                        ? "bg-indigo-600/15 text-indigo-700 dark:bg-indigo-400/20 dark:text-indigo-200"
-                        : isDark
-                          ? "bg-gray-700 text-gray-300"
-                          : "bg-gray-100 text-gray-700"
-                    }`}
-                  >
-                    {spec.width} × {spec.height} px
-                  </span>
-                )}
-              </span>
-              <span
-                className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center mt-1 ${
-                  selected
-                    ? "border-indigo-600 bg-indigo-600 dark:border-indigo-400 dark:bg-indigo-500"
-                    : isDark
-                      ? "border-gray-500"
-                      : "border-gray-300"
-                }`}
-                aria-hidden
-              >
-                {selected && <span className="w-2 h-2 rounded-full bg-white" />}
-              </span>
-            </>
-          );
-
-          if (compact) {
-            return (
-              <div
-                key={optionValue}
-                className={`w-full flex items-start gap-3 p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all ${
-                  selected
-                    ? "border-indigo-500 bg-indigo-50 shadow-sm dark:bg-indigo-950/50 dark:border-indigo-400"
-                    : `${borderColor} ${isDark ? "bg-gray-900/40" : "bg-white"}`
-                }`}
-                role="radio"
-                aria-checked={selected}
-              >
-                {content}
-              </div>
-            );
-          }
-
           return (
             <button
               key={optionValue}
@@ -493,13 +499,42 @@ const AdminBanners = () => {
               role="radio"
               aria-checked={selected}
               onClick={() => onChange?.(optionValue)}
-              className={`w-full flex items-start gap-3 p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all ${
                 selected
-                  ? "border-indigo-500 bg-indigo-50 shadow-sm dark:bg-indigo-950/50 dark:border-indigo-400"
-                  : `${borderColor} ${isDark ? "bg-gray-900/40 hover:bg-gray-700/40" : "bg-white hover:bg-gray-50"}`
+                  ? "border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500/30 dark:bg-indigo-950/40 dark:border-indigo-400"
+                  : `${borderColor} ${isDark ? "bg-gray-900/30 hover:bg-gray-800/60" : "bg-white hover:bg-slate-50"}`
               }`}
             >
-              {content}
+              <span
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                  selected
+                    ? "bg-indigo-600 text-white"
+                    : isDark
+                      ? "bg-gray-700 text-gray-300"
+                      : "bg-slate-100 text-slate-600"
+                }`}
+              >
+                <Icon size={16} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className={`block text-sm font-semibold truncate ${selected ? "text-indigo-800 dark:text-indigo-200" : textColor}`}>
+                  {label}
+                </span>
+                <span className={`block text-[11px] truncate ${textSecondary}`}>
+                  {spec ? `${spec.width}×${spec.height} · ${spec.where}` : hint}
+                </span>
+              </span>
+              <span
+                className={`h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center ${
+                  selected
+                    ? "border-indigo-600 bg-indigo-600"
+                    : isDark
+                      ? "border-gray-500"
+                      : "border-gray-300"
+                }`}
+              >
+                {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+              </span>
             </button>
           );
         })}
@@ -515,19 +550,13 @@ const AdminBanners = () => {
     const isSecond = normalizedPage === "home_second";
     const BadgeIcon = isJob ? Briefcase : isFirst ? ChevronUp : isSecond ? ChevronDown : Home;
     const badgeClass = isJob
-      ? isDark
-        ? "bg-blue-900/40 text-blue-300"
-        : "bg-blue-100 text-blue-800"
+      ? "bg-sky-500/90 text-white"
       : isFirst
-        ? isDark
-          ? "bg-emerald-900/40 text-emerald-300"
-          : "bg-emerald-100 text-emerald-800"
-        : isDark
-          ? "bg-teal-900/40 text-teal-300"
-          : "bg-teal-100 text-teal-800";
+        ? "bg-emerald-500/90 text-white"
+        : "bg-teal-500/90 text-white";
     return (
-      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeClass}`}>
-        <BadgeIcon size={12} />
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold backdrop-blur-sm ${badgeClass}`}>
+        <BadgeIcon size={11} />
         {pageLabel(page)}
       </span>
     );
@@ -539,23 +568,21 @@ const AdminBanners = () => {
       <button
         type="button"
         onClick={() => setPageFilter(value)}
-        className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all border shrink-0 ${
+        className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
           active
-            ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-            : `${borderColor} ${textColor} ${
-                isDark ? "bg-gray-800/80 hover:bg-gray-700" : "bg-white hover:bg-gray-50"
-              }`
+            ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/25"
+            : `${textSecondary} ${isDark ? "hover:bg-gray-700 hover:text-white" : "hover:bg-slate-100 hover:text-slate-900"}`
         }`}
       >
         <span>{label}</span>
         {count !== undefined && (
           <span
-            className={`min-w-[1.25rem] px-1.5 py-0.5 rounded-md text-xs font-semibold text-center ${
+            className={`min-w-[1.25rem] px-1.5 py-0.5 rounded-full text-[11px] font-semibold text-center ${
               active
-                ? "bg-white/25 text-white"
+                ? "bg-white/20 text-white"
                 : isDark
-                  ? "bg-gray-700 text-gray-200"
-                  : "bg-gray-100 text-gray-700"
+                  ? "bg-gray-700 text-gray-300"
+                  : "bg-slate-200/80 text-slate-700"
             }`}
           >
             {count}
@@ -566,30 +593,29 @@ const AdminBanners = () => {
   };
 
   return (
-    <div className={`min-h-screen ${isDark ? "bg-gray-900" : "bg-gradient-to-b from-slate-50 to-gray-100"}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className={`min-h-screen ${isDark ? "bg-gray-900" : "bg-[#f4f6f9]"}`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2.5 rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-500/30">
-                <LayoutGrid size={22} />
-              </div>
-              <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight ${textColor}`}>
-                Banner Management
-              </h1>
-            </div>
-            <p className={`text-sm max-w-xl ${textSecondary}`}>
-              Manage Home First (upper) and Home Second (lower, multi-image) banners, plus Job page banners. New Home Second uploads replace old ones.
+            <h1 className={`text-2xl sm:text-[1.75rem] font-bold tracking-tight ${textColor}`}>
+              Banners
+            </h1>
+            <p className={`text-sm mt-1 ${textSecondary}`}>
+              Upload and manage Home & Job page banners
             </p>
           </div>
           <button
             type="button"
             onClick={fetchBanners}
             disabled={loading || saving}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 shadow-md transition-colors shrink-0"
+            className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-colors shrink-0 disabled:opacity-50 ${
+              isDark
+                ? "border-gray-600 bg-gray-800 text-white hover:bg-gray-700"
+                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-sm"
+            }`}
           >
-            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
             Refresh
           </button>
         </div>
@@ -597,20 +623,20 @@ const AdminBanners = () => {
         {/* Alerts */}
         {error && (
           <div
-            className={`mb-6 rounded-xl border px-4 py-3 text-sm flex items-start gap-2 ${
+            className={`mb-5 rounded-xl border px-4 py-3 text-sm flex items-start gap-2 ${
               isDark ? "border-red-800 bg-red-950/50 text-red-300" : "border-red-200 bg-red-50 text-red-700"
             }`}
           >
             <X size={16} className="shrink-0 mt-0.5" />
-            <span>{error}</span>
-            <button type="button" onClick={() => setError("")} className="ml-auto opacity-70 hover:opacity-100">
+            <span className="flex-1">{error}</span>
+            <button type="button" onClick={() => setError("")} className="opacity-70 hover:opacity-100">
               <X size={14} />
             </button>
           </div>
         )}
         {message && (
           <div
-            className={`mb-6 rounded-xl border px-4 py-3 text-sm flex items-center gap-2 ${
+            className={`mb-5 rounded-xl border px-4 py-3 text-sm flex items-center gap-2 ${
               isDark ? "border-emerald-800 bg-emerald-950/50 text-emerald-300" : "border-emerald-200 bg-emerald-50 text-emerald-800"
             }`}
           >
@@ -619,207 +645,328 @@ const AdminBanners = () => {
           </div>
         )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Stats — clickable filters */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
           {[
-            { label: "Total banners", value: totalCount, icon: Image, color: "indigo" },
-            { label: "Home first", value: pageStats.home_first, icon: Home, color: "emerald" },
-            { label: "Home second", value: pageStats.home_second, icon: Home, color: "teal" },
-            { label: "Job page", value: pageStats.job, icon: Briefcase, color: "blue" },
-          ].map(({ label, value, icon: Icon, color }) => (
-            <div
-              key={label}
-              className={`${cardBg} rounded-xl border ${borderColor} p-4 shadow-sm`}
-            >
-              <div className="flex items-center justify-between">
-                <p className={`text-xs font-medium uppercase tracking-wide ${textSecondary}`}>{label}</p>
-                <div
-                  className={`p-2 rounded-lg ${
-                    color === "indigo"
-                      ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300"
-                      : color === "emerald"
-                        ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-300"
-                        : color === "teal"
-                          ? "bg-teal-100 text-teal-600 dark:bg-teal-900/50 dark:text-teal-300"
-                          : color === "blue"
-                            ? "bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-300"
-                            : "bg-violet-100 text-violet-600 dark:bg-violet-900/50 dark:text-violet-300"
-                  }`}
-                >
-                  <Icon size={18} />
+            { label: "All", value: totalCount, filter: "all", icon: Image, accent: "indigo" },
+            { label: "Home First", value: pageStats.home_first, filter: "home_first", icon: ChevronUp, accent: "emerald" },
+            { label: "Home Second", value: pageStats.home_second, filter: "home_second", icon: ChevronDown, accent: "teal" },
+            { label: "Job Page", value: pageStats.job, filter: "job", icon: Briefcase, accent: "sky" },
+          ].map(({ label, value, filter, icon: Icon, accent }) => {
+            const active = pageFilter === filter;
+            const accentMap = {
+              indigo: active ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40" : "",
+              emerald: active ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40" : "",
+              teal: active ? "border-teal-500 bg-teal-50 dark:bg-teal-950/40" : "",
+              sky: active ? "border-sky-500 bg-sky-50 dark:bg-sky-950/40" : "",
+            };
+            const iconMap = {
+              indigo: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300",
+              emerald: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-300",
+              teal: "bg-teal-100 text-teal-600 dark:bg-teal-900/50 dark:text-teal-300",
+              sky: "bg-sky-100 text-sky-600 dark:bg-sky-900/50 dark:text-sky-300",
+            };
+            return (
+              <button
+                key={filter}
+                type="button"
+                onClick={() => setPageFilter(filter)}
+                className={`text-left rounded-2xl border p-4 shadow-sm transition-all ${cardBg} ${
+                  active ? accentMap[accent] : `${borderColor} hover:border-slate-300 dark:hover:border-gray-600`
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className={`text-xs font-medium ${textSecondary}`}>{label}</p>
+                  <span className={`p-1.5 rounded-lg ${iconMap[accent]}`}>
+                    <Icon size={14} />
+                  </span>
                 </div>
-              </div>
-              <p className={`text-2xl font-bold mt-2 ${textColor}`}>{value}</p>
-            </div>
-          ))}
+                <p className={`text-2xl font-bold mt-2 tabular-nums ${textColor}`}>{value}</p>
+              </button>
+            );
+          })}
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
           {/* Upload panel */}
           <div className="xl:col-span-4">
-            <div className={`${cardBg} rounded-2xl border ${borderColor} p-6 shadow-sm sticky top-6`}>
-              <h2 className={`text-lg font-semibold ${textColor} mb-1 flex items-center gap-2`}>
-                <Plus size={20} className="text-indigo-500" />
-                Upload new banner
-              </h2>
-              <p className={`text-xs ${textSecondary} mb-5`}>
-                JPG, PNG or WebP · upload at the size shown for each placement
-              </p>
+            <div className={`${cardBg} rounded-2xl border ${borderColor} shadow-sm sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto`}>
+              <div className={`px-5 py-4 border-b ${borderColor} sticky top-0 z-10 ${cardBg}`}>
+                <h2 className={`text-base font-semibold flex items-center gap-2 ${textColor}`}>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
+                    <Plus size={16} />
+                  </span>
+                  Upload banner
+                </h2>
+                <p className={`text-xs mt-1.5 ml-10 ${textSecondary}`}>
+                  JPG, PNG or WebP · match the size below
+                </p>
+              </div>
 
-              <form onSubmit={handleCreateBanner} className="space-y-5">
+              <form onSubmit={handleCreateBanner} className="p-5 space-y-5">
                 <div>
-                  <label className={`block text-sm font-medium ${textColor} mb-2`}>Banner placement</label>
+                  <label className={`block text-xs font-semibold uppercase tracking-wide mb-2 ${textSecondary}`}>
+                    Placement
+                  </label>
                   <PlacementSelector value={createPage} onChange={handleCreatePageChange} />
                 </div>
 
-                {/* Live display size guide */}
                 <div
-                  className={`rounded-xl border ${borderColor} px-3.5 py-3 ${
-                    isDark ? "bg-indigo-950/30" : "bg-indigo-50/80"
+                  className={`rounded-xl px-3.5 py-3 border ${
+                    isDark ? "border-indigo-800/50 bg-indigo-950/25" : "border-indigo-100 bg-indigo-50/70"
                   }`}
                 >
-                  <p className={`text-[11px] font-semibold uppercase tracking-wide ${textSecondary} mb-1`}>
-                    On-site display size
+                  <p className={`text-[10px] font-semibold uppercase tracking-wider ${textSecondary}`}>
+                    Display size
                   </p>
-                  <p className={`text-sm font-bold tabular-nums ${textColor}`}>
-                    Width {createDisplaySpec.width}px · Height {createDisplaySpec.height}px
+                  <p className={`text-sm font-bold tabular-nums mt-0.5 ${textColor}`}>
+                    {createDisplaySpec.width} × {createDisplaySpec.height} px
                   </p>
-                  <p className={`text-xs mt-1.5 ${textSecondary}`}>{createDisplaySpec.where}</p>
-                  <div className="mt-3 flex items-end gap-3">
-                    <div
-                      className={`rounded-md border-2 border-dashed border-indigo-400/60 bg-indigo-500/10 ${createDisplaySpec.previewMaxWidth} w-full ${createDisplaySpec.aspectClass}`}
-                      title={`${createDisplaySpec.width}×${createDisplaySpec.height}`}
-                      aria-hidden
-                    />
-            
-                  </div>
+                  <p className={`text-xs mt-1 ${textSecondary}`}>{createDisplaySpec.where}</p>
                 </div>
 
-                <div>
-                  <label className={`block text-sm font-medium ${textColor} mb-2`}>
-                    {isMultiUpload ? "Banner images" : "Banner image"}
-                    {isMultiUpload && (
-                      <span className={`ml-1 font-normal ${textSecondary}`}>
-                        (up to {MAX_BANNER_IMAGES}, replaces existing)
-                      </span>
-                    )}
-                  </label>
-                  <div
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setCreateDragOver(true);
-                    }}
-                    onDragLeave={() => setCreateDragOver(false)}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      setCreateDragOver(false);
-                      onCreateFiles(e.dataTransfer.files, {
-                        append: isMultiUpload && createImageFiles.length > 0,
-                      });
-                    }}
-                    className={`relative rounded-xl border-2 border-dashed transition-colors ${
-                      createDragOver
-                        ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20"
-                        : borderColor
-                    } ${previewCreateImages.length ? "p-3" : "p-8"}`}
-                  >
-                    {previewCreateImages.length > 0 ? (
-                      <div className="space-y-3">
-                        <div
-                          className={
-                            isMultiUpload && previewCreateImages.length > 1
-                              ? "grid grid-cols-2 gap-2"
-                              : "flex justify-center"
-                          }
-                        >
-                          {previewCreateImages.map(({ file, url }, index) => (
-                            <div
-                              key={`${file.name}-${index}`}
-                              className={`relative group rounded-lg overflow-hidden ${
-                                isMultiUpload && previewCreateImages.length > 1
-                                  ? ""
-                                  : `${createDisplaySpec.previewMaxWidth} w-full`
-                              }`}
-                            >
-                              <img
-                                src={url}
-                                alt={file.name}
-                                className={`w-full object-cover ${createDisplaySpec.aspectClass}`}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => removeCreateImageAt(index)}
-                                className="absolute top-1.5 right-1.5 p-1.5 rounded-lg bg-black/60 text-white opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                                title="Remove"
+                {/* Existing + new images for Home Second */}
+                {isMultiUpload ? (
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <label className={`text-xs font-semibold uppercase tracking-wide ${textSecondary}`}>
+                          Current · {placementBanners.length}/{MAX_BANNER_IMAGES}
+                        </label>
+                        {placementLoading && (
+                          <Loader2 size={14} className={`animate-spin ${textSecondary}`} />
+                        )}
+                      </div>
+
+                      {placementBanners.length > 0 ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          {placementBanners.map((banner, index) => {
+                            const imageUrl = getBannerImage(banner);
+                            const bannerId = getBannerId(banner);
+                            return (
+                              <div
+                                key={bannerId || index}
+                                className={`relative rounded-xl overflow-hidden border ${borderColor} bg-slate-100 dark:bg-gray-900`}
                               >
-                                <X size={14} />
-                              </button>
-                              {isMultiUpload && (
-                                <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-black/55 text-white text-[10px] font-medium">
-                                  {index + 1}/{previewCreateImages.length}
+                                {imageUrl ? (
+                                  <img
+                                    src={imageUrl}
+                                    alt={`Current banner ${index + 1}`}
+                                    className={`w-full object-cover ${createDisplaySpec.aspectClass}`}
+                                  />
+                                ) : (
+                                  <div
+                                    className={`w-full flex items-center justify-center ${createDisplaySpec.aspectClass}`}
+                                  >
+                                    <ImageOff size={18} className={textSecondary} />
+                                  </div>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteBanner(banner)}
+                                  disabled={saving}
+                                  className="absolute top-1.5 right-1.5 p-1.5 rounded-lg bg-red-500 text-white shadow hover:bg-red-600 disabled:opacity-50"
+                                  title="Remove"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                                <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-black/60 text-white text-[10px] font-medium">
+                                  {index + 1}
                                 </span>
-                              )}
-                            </div>
-                          ))}
+                              </div>
+                            );
+                          })}
                         </div>
-                        {isMultiUpload && createImageFiles.length < MAX_BANNER_IMAGES && (
-                          <label className={`flex items-center justify-center gap-2 py-2.5 rounded-lg border border-dashed ${borderColor} cursor-pointer text-sm ${textSecondary} hover:border-indigo-400 hover:text-indigo-600`}>
-                            <Plus size={16} />
-                            Add more images
+                      ) : (
+                        !placementLoading && (
+                          <div
+                            className={`rounded-xl border border-dashed px-3 py-6 text-center text-xs ${borderColor} ${textSecondary}`}
+                          >
+                            No images yet — add below
+                          </div>
+                        )
+                      )}
+                    </div>
+
+                    <div>
+                      <label className={`block text-xs font-semibold uppercase tracking-wide mb-2 ${textSecondary}`}>
+                        Add new · {homeSecondSlotsLeft} left
+                      </label>
+                      <div
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          if (homeSecondSlotsLeft > 0) setCreateDragOver(true);
+                        }}
+                        onDragLeave={() => setCreateDragOver(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setCreateDragOver(false);
+                          if (homeSecondSlotsLeft <= 0) return;
+                          onCreateFiles(e.dataTransfer.files, {
+                            append: createImageFiles.length > 0,
+                          });
+                        }}
+                        className={`relative rounded-xl border-2 border-dashed transition-all ${
+                          createDragOver
+                            ? "border-indigo-500 bg-indigo-50/60 dark:bg-indigo-900/20 scale-[1.01]"
+                            : borderColor
+                        } ${previewCreateImages.length ? "p-2.5" : "p-5"}`}
+                      >
+                        {previewCreateImages.length > 0 ? (
+                          <div className="space-y-2.5">
+                            <div className="grid grid-cols-2 gap-2">
+                              {previewCreateImages.map(({ file, url }, index) => (
+                                <div
+                                  key={`${file.name}-${index}`}
+                                  className="relative rounded-lg overflow-hidden"
+                                >
+                                  <img
+                                    src={url}
+                                    alt={file.name}
+                                    className={`w-full object-cover ${createDisplaySpec.aspectClass}`}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => removeCreateImageAt(index)}
+                                    className="absolute top-1.5 right-1.5 p-1.5 rounded-lg bg-black/60 text-white"
+                                    title="Remove"
+                                  >
+                                    <X size={13} />
+                                  </button>
+                                  <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-indigo-600 text-white text-[10px] font-medium">
+                                    New
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                            {createImageFiles.length < homeSecondSlotsLeft && (
+                              <label
+                                className={`flex items-center justify-center gap-2 py-2 rounded-lg border border-dashed cursor-pointer text-sm transition-colors ${borderColor} ${textSecondary} hover:border-indigo-400 hover:text-indigo-600`}
+                              >
+                                <Plus size={15} />
+                                Add more
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  multiple
+                                  className="sr-only"
+                                  onChange={(e) => {
+                                    onCreateFiles(e.target.files, { append: true });
+                                    e.target.value = "";
+                                  }}
+                                />
+                              </label>
+                            )}
+                          </div>
+                        ) : homeSecondSlotsLeft > 0 ? (
+                          <label className="flex flex-col items-center cursor-pointer text-center">
+                            <span className={`mb-2 flex h-11 w-11 items-center justify-center rounded-full ${isDark ? "bg-gray-700" : "bg-slate-100"}`}>
+                              <Upload size={18} className={textSecondary} />
+                            </span>
+                            <span className={`text-sm font-medium ${textColor}`}>
+                              Drop or browse
+                            </span>
+                            <span className={`text-[11px] mt-1 ${textSecondary}`}>
+                              {createDisplaySpec.width}×{createDisplaySpec.height}px
+                            </span>
                             <input
                               type="file"
                               accept="image/*"
                               multiple
                               className="sr-only"
                               onChange={(e) => {
-                                onCreateFiles(e.target.files, { append: true });
+                                onCreateFiles(e.target.files);
                                 e.target.value = "";
                               }}
                             />
                           </label>
+                        ) : (
+                          <p className={`text-xs text-center ${textSecondary}`}>
+                            Max {MAX_BANNER_IMAGES} reached. Remove one to add more.
+                          </p>
                         )}
                       </div>
-                    ) : (
-                      <label className="flex flex-col items-center cursor-pointer text-center">
-                        <Upload size={32} className={`mb-2 ${textSecondary}`} />
-                        <span className={`text-sm font-medium ${textColor}`}>
-                          {isMultiUpload
-                            ? "Drop images or click to browse"
-                            : "Drop image or click to browse"}
-                        </span>
-                        <span className={`text-xs mt-1 ${textSecondary}`}>
-                          {`Best size: ${createDisplaySpec.width} × ${createDisplaySpec.height} px`}
-                          {isMultiUpload ? ` · max ${MAX_BANNER_IMAGES} images` : ""}
-                        </span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple={isMultiUpload}
-                          className="sr-only"
-                          onChange={(e) => {
-                            onCreateFiles(e.target.files);
-                            e.target.value = "";
-                          }}
-                        />
-                      </label>
-                    )}
+                    </div>
                   </div>
-                  {isMultiUpload && createImageFiles.length > 0 && (
-                    <p className={`text-xs mt-2 ${textSecondary}`}>
-                      {createImageFiles.length} of {MAX_BANNER_IMAGES} selected · {createDisplaySpec.width}×{createDisplaySpec.height}px · uploading replaces current Home Second banners
-                    </p>
-                  )}
-                </div>
+                ) : (
+                  <div>
+                    <label className={`block text-xs font-semibold uppercase tracking-wide mb-2 ${textSecondary}`}>
+                      Image
+                    </label>
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setCreateDragOver(true);
+                      }}
+                      onDragLeave={() => setCreateDragOver(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setCreateDragOver(false);
+                        onCreateFiles(e.dataTransfer.files);
+                      }}
+                      className={`relative rounded-xl border-2 border-dashed transition-all ${
+                        createDragOver
+                          ? "border-indigo-500 bg-indigo-50/60 dark:bg-indigo-900/20"
+                          : borderColor
+                      } ${previewCreateImages.length ? "p-2.5" : "p-6"}`}
+                    >
+                      {previewCreateImages.length > 0 ? (
+                        <div className="flex justify-center">
+                          <div
+                            className={`relative rounded-lg overflow-hidden ${createDisplaySpec.previewMaxWidth} w-full`}
+                          >
+                            <img
+                              src={previewCreateImages[0].url}
+                              alt={previewCreateImages[0].file.name}
+                              className={`w-full object-cover ${createDisplaySpec.aspectClass}`}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeCreateImageAt(0)}
+                              className="absolute top-1.5 right-1.5 p-1.5 rounded-lg bg-black/60 text-white"
+                              title="Remove"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <label className="flex flex-col items-center cursor-pointer text-center">
+                          <span className={`mb-2 flex h-11 w-11 items-center justify-center rounded-full ${isDark ? "bg-gray-700" : "bg-slate-100"}`}>
+                            <Upload size={18} className={textSecondary} />
+                          </span>
+                          <span className={`text-sm font-medium ${textColor}`}>
+                            Drop or browse
+                          </span>
+                          <span className={`text-[11px] mt-1 ${textSecondary}`}>
+                            {createDisplaySpec.width}×{createDisplaySpec.height}px
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="sr-only"
+                            onChange={(e) => {
+                              onCreateFiles(e.target.files);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <button
                   type="submit"
                   disabled={saving || !createImageFiles.length}
-                  className="w-full py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 font-medium flex items-center justify-center gap-2 shadow-md"
+                  className="w-full py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-45 font-semibold flex items-center justify-center gap-2 shadow-sm shadow-indigo-500/20 transition-colors"
                 >
-                  {saving ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+                  {saving ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
                   {isMultiUpload && createImageFiles.length > 1
-                    ? `Upload ${createImageFiles.length} banners`
-                    : "Upload banner"}
+                    ? `Add ${createImageFiles.length} images`
+                    : isMultiUpload
+                      ? "Add image"
+                      : "Upload banner"}
                 </button>
               </form>
             </div>
@@ -827,131 +974,155 @@ const AdminBanners = () => {
 
           {/* Banner grid */}
           <div className="xl:col-span-8">
-            <div className={`${cardBg} rounded-2xl border ${borderColor} p-6 shadow-sm`}>
-              <div className="flex flex-col gap-4 mb-6">
-                <h2 className={`text-lg font-semibold ${textColor} flex items-center gap-2`}>
-                  <Image size={20} className="text-indigo-500" />
-                  All banners
+            <div className={`${cardBg} rounded-2xl border ${borderColor} shadow-sm overflow-hidden`}>
+              <div className={`px-5 py-4 border-b ${borderColor} flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3`}>
+                <h2 className={`text-base font-semibold ${textColor}`}>
+                  Library
+                  <span className={`ml-2 text-sm font-normal ${textSecondary}`}>
+                    {loading ? "…" : `${banners.length} shown`}
+                  </span>
                 </h2>
-                <div className="w-full overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin">
-                  <div className="flex flex-nowrap sm:flex-wrap gap-2 min-w-max sm:min-w-0">
-                    <FilterTab value="all" label="All" count={totalCount} />
-                    <FilterTab value="home_first" label="Home First" count={pageStats.home_first} />
-                    <FilterTab value="home_second" label="Home Second" count={pageStats.home_second} />
-                    <FilterTab value="job" label="Job Listings" count={pageStats.job} />
-                  </div>
+                <div
+                  className={`inline-flex flex-wrap gap-1 p-1 rounded-full ${
+                    isDark ? "bg-gray-900/60" : "bg-slate-100"
+                  }`}
+                >
+                  <FilterTab value="all" label="All" count={totalCount} />
+                  <FilterTab value="home_first" label="First" count={pageStats.home_first} />
+                  <FilterTab value="home_second" label="Second" count={pageStats.home_second} />
+                  <FilterTab value="job" label="Jobs" count={pageStats.job} />
                 </div>
               </div>
 
-              {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[1, 2].map((i) => (
-                    <div
-                      key={i}
-                      className={`rounded-xl border ${borderColor} overflow-hidden animate-pulse`}
-                    >
-                      <div className={`aspect-[21/9] ${isDark ? "bg-gray-700" : "bg-gray-200"}`} />
-                      <div className="p-4 space-y-2">
-                        <div className={`h-4 w-24 rounded ${isDark ? "bg-gray-700" : "bg-gray-200"}`} />
-                        <div className={`h-3 w-full rounded ${isDark ? "bg-gray-700" : "bg-gray-200"}`} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : banners.length === 0 ? (
-                <div className={`text-center py-16 rounded-xl border border-dashed ${borderColor}`}>
-                  <ImageOff size={48} className={`mx-auto mb-4 ${textSecondary}`} />
-                  <p className={`font-medium ${textColor}`}>No banners found</p>
-                  <p className={`text-sm mt-1 ${textSecondary}`}>
-                    {pageFilter === "all"
-                      ? "Upload your first banner using the form on the left."
-                      : `No banners for ${pageLabel(pageFilter)}. Try another filter or upload one.`}
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {banners.map((banner) => {
-                    const bannerId = getBannerId(banner);
-                    const imageUrl = getBannerImage(banner);
-                    const displaySpec = getBannerDisplaySpec(banner.page);
-                    return (
-                      <article
-                        key={bannerId}
-                        className={`group rounded-xl border ${borderColor} overflow-hidden transition-all shadow-sm ${hoverCard}`}
+              <div className="p-5">
+                {loading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div
+                        key={i}
+                        className={`rounded-2xl border ${borderColor} overflow-hidden animate-pulse`}
                       >
-                        <div className="relative aspect-[21/9] bg-gray-100 dark:bg-gray-900">
-                          {imageUrl ? (
-                            <img
-                              src={imageUrl}
-                              alt={`${pageLabel(banner.page)} banner`}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <ImageOff className={textSecondary} size={32} />
+                        <div className={`aspect-[16/9] ${isDark ? "bg-gray-700" : "bg-slate-200"}`} />
+                        <div className="p-3 space-y-2">
+                          <div className={`h-3 w-20 rounded ${isDark ? "bg-gray-700" : "bg-slate-200"}`} />
+                          <div className={`h-3 w-32 rounded ${isDark ? "bg-gray-700" : "bg-slate-200"}`} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : banners.length === 0 ? (
+                  <div className={`text-center py-16 rounded-2xl border border-dashed ${borderColor}`}>
+                    <span className={`mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl ${isDark ? "bg-gray-800" : "bg-slate-100"}`}>
+                      <ImageOff size={28} className={textSecondary} />
+                    </span>
+                    <p className={`font-semibold ${textColor}`}>No banners here</p>
+                    <p className={`text-sm mt-1 max-w-xs mx-auto ${textSecondary}`}>
+                      {pageFilter === "all"
+                        ? "Use the upload panel to add your first banner."
+                        : `Nothing for ${pageLabel(pageFilter)} yet.`}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {banners.map((banner) => {
+                      const bannerId = getBannerId(banner);
+                      const imageUrl = getBannerImage(banner);
+                      const displaySpec = getBannerDisplaySpec(banner.page);
+                      return (
+                        <article
+                          key={bannerId}
+                          className={`group rounded-2xl border overflow-hidden transition-all ${borderColor} ${
+                            isDark
+                              ? "bg-gray-900/40 hover:border-indigo-500/40"
+                              : "bg-white hover:border-indigo-300 hover:shadow-md"
+                          }`}
+                        >
+                          <div className="relative aspect-[16/9] bg-slate-100 dark:bg-gray-950">
+                            {imageUrl ? (
+                              <img
+                                src={imageUrl}
+                                alt={`${pageLabel(banner.page)} banner`}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <ImageOff className={textSecondary} size={28} />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-80" />
+                            <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5">
+                              <PageBadge page={banner.page} />
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-black/50 text-white tabular-nums">
+                                {displaySpec.width}×{displaySpec.height}
+                              </span>
                             </div>
-                          )}
-                          <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                            <PageBadge page={banner.page} />
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/55 text-white tabular-nums">
-                              {displaySpec.width}×{displaySpec.height}
-                            </span>
                           </div>
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                          <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              type="button"
-                              onClick={() => handleViewBanner(banner)}
-                              className="p-2 rounded-lg bg-white/90 text-gray-800 hover:bg-white shadow"
-                              title="View details"
-                            >
-                              <Eye size={16} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => openEdit(banner)}
-                              className="p-2 rounded-lg bg-white/90 text-gray-800 hover:bg-white shadow"
-                              title="Edit"
-                            >
-                              <Edit size={16} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteBanner(banner)}
-                              disabled={saving}
-                              className="p-2 rounded-lg bg-red-500/90 text-white hover:bg-red-600 shadow"
-                              title="Delete"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </div>
 
-                        <div className="p-4">
-                          <p className={`text-xs font-mono ${textSecondary}`} title={bannerId}>
-                            ID: {shortId(bannerId)}
-                          </p>
-                          <div className={`flex items-center gap-1.5 mt-2 text-xs ${textSecondary}`}>
-                            <Calendar size={12} />
-                            <span>Updated {formatDate(banner.updated_at || banner.created_at)}</span>
+                          <div className="p-3.5">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className={`text-[11px] font-mono truncate ${textSecondary}`} title={bannerId}>
+                                  {shortId(bannerId)}
+                                </p>
+                                <p className={`flex items-center gap-1 mt-1 text-xs ${textSecondary}`}>
+                                  <Calendar size={11} />
+                                  {formatDate(banner.updated_at || banner.created_at)}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className={`mt-3 flex items-center gap-1.5 pt-3 border-t ${borderColor}`}>
+                              <button
+                                type="button"
+                                onClick={() => handleViewBanner(banner)}
+                                className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors ${
+                                  isDark ? "bg-gray-800 hover:bg-gray-700 text-gray-200" : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                                }`}
+                              >
+                                <Eye size={13} />
+                                View
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openEdit(banner)}
+                                className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors ${
+                                  isDark ? "bg-gray-800 hover:bg-gray-700 text-gray-200" : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                                }`}
+                              >
+                                <Edit size={13} />
+                                Edit
+                              </button>
+                              {imageUrl && (
+                                <a
+                                  href={imageUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`p-2 rounded-lg transition-colors ${
+                                    isDark ? "bg-gray-800 hover:bg-gray-700 text-gray-200" : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                                  }`}
+                                  title="Open image"
+                                >
+                                  <ExternalLink size={13} />
+                                </a>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteBanner(banner)}
+                                disabled={saving}
+                                className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-400 dark:hover:bg-red-950/70 disabled:opacity-50"
+                                title="Delete"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
                           </div>
-                          {imageUrl && (
-                            <a
-                              href={imageUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 mt-3 text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
-                            >
-                              Open image <ExternalLink size={12} />
-                            </a>
-                          )}
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-              )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

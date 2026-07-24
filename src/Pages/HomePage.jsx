@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
-import "swiper/css/navigation";
-import { Navigation, Autoplay } from "swiper/modules";
+import { Autoplay } from "swiper/modules";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../Contexts/AuthContext";
 import { Search, MapPin, Upload, Building2, Users, CheckCircle, Star, ArrowRight, UserPlus, User, BookOpen, Briefcase, Moon, Sun, ChevronDown, Bookmark, Clock, DollarSign, Send } from "lucide-react";
@@ -1648,37 +1647,37 @@ const Homepage = () => {
 
         {/* Axis Banner and Trusted Companies */}
         <div className={`transition-colors duration-300 ${bgColor}`}>
-          {/* Home Second Banner (lower) — slider, 768×380 box, image fills */}
+          {/* Home Second Banner (lower) — slider, image fully covers box */}
           {!homeBannersLoading && homeSecondBanners.length > 0 && (
             <section className={`${bgColor} mx-4 transition-colors duration-300`}>
               <div className="w-full max-w-3xl mx-auto">
-                <div className="relative w-full max-w-[768px] mx-auto h-[240px] sm:h-[300px] md:h-[380px] rounded-xl overflow-hidden shadow-md bg-gray-100 dark:bg-gray-800">
+                <div className="relative w-full max-w-[768px] mx-auto aspect-[768/380] rounded-xl overflow-hidden shadow-md bg-gray-100 dark:bg-gray-800">
                   {homeSecondBanners.length === 1 ? (
                     <img
                       src={bannerService.getBannerImage(homeSecondBanners[0])}
                       alt="Home second banner"
-                      className="absolute inset-0 w-full h-full object-cover object-center"
+                      className="absolute inset-0 block w-full h-full object-cover object-center"
                       loading="lazy"
                     />
                   ) : (
                     <Swiper
-                      modules={[Autoplay, Navigation]}
+                      modules={[Autoplay]}
                       autoplay={{ delay: 4000, disableOnInteraction: false }}
-                      navigation
                       loop={homeSecondBanners.length > 1}
                       slidesPerView={1}
                       spaceBetween={0}
-                      className="absolute inset-0 w-full h-full [&_.swiper-button-next]:text-white [&_.swiper-button-prev]:text-white [&_.swiper-button-next]:scale-75 [&_.swiper-button-prev]:scale-75"
+                      speed={500}
+                      className="absolute inset-0 h-full w-full [&_.swiper-wrapper]:h-full [&_.swiper-slide]:!h-full [&_.swiper-slide]:overflow-hidden"
                     >
                       {homeSecondBanners.map((banner) => {
                         const imageUrl = bannerService.getBannerImage(banner);
                         const id = banner.banner_id || banner.id || imageUrl;
                         return (
-                          <SwiperSlide key={id}>
+                          <SwiperSlide key={id} className="!h-full relative">
                             <img
                               src={imageUrl}
                               alt="Home second banner"
-                              className="w-full h-full object-cover object-center"
+                              className="absolute inset-0 block w-full h-full object-cover object-center"
                               loading="lazy"
                             />
                           </SwiperSlide>

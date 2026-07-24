@@ -52,6 +52,13 @@ export default defineConfig({
         secure: false,
         // rewrite: (path) => path.replace(/^\/api/, ''),
       },
+      // Proxy S3 banner images in local dev to avoid browser CORS when re-uploading
+      '/s3-banner': {
+        target: 'https://banner-branding.s3.ap-southeast-1.amazonaws.com',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/s3-banner/, ''),
+      },
     },
   },
 })
