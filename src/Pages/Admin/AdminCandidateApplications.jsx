@@ -20,6 +20,7 @@ const AdminCandidateApplications = () => {
   const { candidateId } = useParams();
   const { theme } = useTheme();
   const returnViewMode = location.state?.returnViewMode || "overview";
+  const returnPath = location.state?.returnPath || "/admin/candidates";
   const [appliedJobs, setAppliedJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -212,7 +213,7 @@ const AdminCandidateApplications = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/admin/candidates', { state: { returnViewMode } })}
+              onClick={() => navigate(returnPath, { state: { returnViewMode } })}
               className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors`}
             >
               <ArrowLeft size={20} className={textColor} />

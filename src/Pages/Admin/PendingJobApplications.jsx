@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
 import adminApiClient from "../../services/adminApiClient";
@@ -15,6 +16,8 @@ const isRecruiterJob = (app) => {
 };
 
 function PendingJobApplications({ embedded = false, role = "recruiter" }) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { theme } = useTheme();
   const [allApplications, setAllApplications] = useState([]);
   const [loadingApplications, setLoadingApplications] = useState({});
@@ -353,7 +356,7 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
 
       Object.assign(params, getDateRangeFromFilter(dateFilter));
 
-      const response = await adminApiClient.get('/admin/applied-candidates', { params });
+      const response = await adminApiClient.get('/admin/get-all-applied-candidates', { params });
       const payload = response.data ?? {};
       const items = Array.isArray(payload.data) ? payload.data : [];
 
@@ -522,6 +525,20 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
       },
     });
     setShowCandidateModal(true);
+  };
+
+  const handleViewApplications = (application) => {
+    const candidateId =
+      application.student_id ||
+      application.user_details?.user_id ||
+      application.user_details?.student_id;
+    if (!candidateId) return;
+    navigate(`/admin/candidates/applications/${candidateId}`, {
+      state: {
+        returnViewMode: "applications",
+        returnPath: location.pathname,
+      },
+    });
   };
 
   const handleExportToExcel = () => {
@@ -932,6 +949,14 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
                           <Eye size={13} />
                           <span className="hidden sm:inline">View Details</span>
                           <span className="sm:hidden">View</span>
+                        </button>
+                        <button
+                          onClick={() => handleViewApplications(application)}
+                          className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5`}
+                          style={{ fontSize: '0.7rem' }}
+                        >
+                          <Briefcase size={13} />
+                          Applications
                         </button>
                         <button
                           type="button"
