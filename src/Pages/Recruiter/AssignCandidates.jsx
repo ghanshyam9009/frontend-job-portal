@@ -1,20 +1,23 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import RecruiterNavbar from "../../Components/Recruiter/RecruiterNavbar";
 import { candidateService, jobService } from "../../services";
 import { referralService } from "../../services/referralService";
 import {
+  ArrowLeft,
   Briefcase,
   Building,
   Download,
+  ExternalLink,
   Eye,
-  FileText,
+  Filter,
+  GraduationCap,
   Mail,
   MapPin,
   Phone,
   Search,
-  UserPlus,
   Users,
   X,
 } from "lucide-react";
@@ -42,6 +45,13 @@ const normalizeSkills = (skills) => {
 
 const normalizeCandidate = (raw = {}) => {
   const profile = raw.student || raw.profile || raw.data || raw;
+  const education = Array.isArray(profile.education) ? profile.education : [];
+  const qualification =
+    education[0]?.degree ||
+    education[0]?.institution ||
+    profile.qualification ||
+    "";
+
   return {
     id: profile.user_id || profile.student_id || profile.id || null,
     name: profile.full_name || profile.name || "Unknown Candidate",
@@ -57,8 +67,9 @@ const normalizeCandidate = (raw = {}) => {
     experience:
       profile.experience_years != null
         ? `${profile.experience_years} years`
-        : profile.experience || "",
-    education: Array.isArray(profile.education) ? profile.education : [],
+        : profile.experience || profile.experienceLevel || "",
+    qualification,
+    education,
     resumeUrl:
       profile.resume ||
       profile.resumeUrl ||
@@ -87,7 +98,17 @@ const normalizeJob = (raw = {}) => {
   };
 };
 
+const formatDate = (dateString) => {
+  if (!dateString) return "N/A";
+  return new Date(dateString).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
 const AssignCandidates = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -150,6 +171,7 @@ const AssignCandidates = () => {
                       bio: "",
                       skills: [],
                       experience: "",
+                      qualification: "",
                       education: [],
                       resumeUrl: null,
                       logo: null,
@@ -185,6 +207,7 @@ const AssignCandidates = () => {
               referralId,
               userId,
               jobId,
+              assignedAt: referral.createdAt || referral.created_at || "",
               recruiterId:
                 referral.targetRecruiterId ||
                 referral.recruiterId ||
@@ -218,11 +241,24 @@ const AssignCandidates = () => {
     const map = new Map();
     assignments.forEach((item) => {
       if (item.job?.id) {
-        map.set(String(item.job.id), item.job.title);
+        const key = String(item.job.id);
+        const existing = map.get(key);
+        map.set(key, {
+          id: key,
+          title: item.job.title,
+          count: (existing?.count || 0) + 1,
+        });
       }
     });
-    return Array.from(map.entries()).map(([id, title]) => ({ id, title }));
+    return Array.from(map.values());
   }, [assignments]);
+
+  const stats = useMemo(() => {
+    return {
+      total: assignments.length,
+      jobs: jobOptions.length,
+    };
+  }, [assignments, jobOptions.length]);
 
   const filteredAssignments = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -239,238 +275,326 @@ const AssignCandidates = () => {
     });
   }, [assignments, searchQuery, selectedJob]);
 
-  const bg = isDark ? "bg-gray-900" : "bg-slate-50";
-  const surface = isDark
-    ? "bg-gray-800/80 border-gray-700"
-    : "bg-white border-gray-100";
+  const bgColor = isDark ? "bg-gray-900" : "bg-gray-50";
+  const cardBg = isDark ? "bg-gray-800" : "bg-white";
   const textColor = isDark ? "text-white" : "text-gray-900";
   const textSecondary = isDark ? "text-gray-400" : "text-gray-600";
   const borderColor = isDark ? "border-gray-700" : "border-gray-200";
-  const inputCls = isDark
-    ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-blue-500"
-    : "bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-500";
+
+  const hasActiveFilters = selectedJob !== "all" || searchQuery.trim() !== "";
 
   return (
-    <div className={`min-h-screen font-sans transition-colors duration-300 ${bg}`}>
+    <div className={`min-h-screen ${bgColor}`}>
       <RecruiterNavbar toggleSidebar={() => {}} />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 rounded-xl bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300">
-              <UserPlus size={22} />
-            </div>
-            <div>
-              <h1 className={`text-2xl sm:text-3xl font-bold ${textColor}`}>
-                Assigned Candidates
-              </h1>
-              <p className={`text-sm ${textSecondary} mt-1`}>
-                Candidates assigned to you by admin with job and profile details.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div className={`rounded-2xl border p-5 ${surface}`}>
-            <div className="flex items-center gap-3">
-              <Users size={18} className="text-blue-500" />
-              <div>
-                <p className={`text-2xl font-bold ${textColor}`}>{assignments.length}</p>
-                <p className={`text-xs ${textSecondary}`}>Total Assigned</p>
-              </div>
-            </div>
-          </div>
-          <div className={`rounded-2xl border p-5 ${surface}`}>
-            <div className="flex items-center gap-3">
-              <Briefcase size={18} className="text-emerald-500" />
-              <div>
-                <p className={`text-2xl font-bold ${textColor}`}>{jobOptions.length}</p>
-                <p className={`text-xs ${textSecondary}`}>Linked Jobs</p>
-              </div>
-            </div>
-          </div>
-          <div className={`rounded-2xl border p-5 ${surface}`}>
-            <div className="flex items-center gap-3">
-              <FileText size={18} className="text-purple-500" />
-              <div>
-                <p className={`text-2xl font-bold ${textColor}`}>{filteredAssignments.length}</p>
-                <p className={`text-xs ${textSecondary}`}>Showing Results</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className={`rounded-2xl border p-4 mb-6 ${surface}`}>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search
-                size={18}
-                className={`absolute left-4 top-1/2 -translate-y-1/2 ${textSecondary}`}
-              />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search candidate, email, job or company..."
-                className={`w-full pl-11 pr-4 py-3 rounded-xl border outline-none text-sm ${inputCls}`}
-              />
-            </div>
-            <select
-              value={selectedJob}
-              onChange={(e) => setSelectedJob(e.target.value)}
-              className={`sm:w-64 px-4 py-3 rounded-xl border outline-none text-sm ${inputCls}`}
-            >
-              <option value="all">All jobs</option>
-              {jobOptions.map((job) => (
-                <option key={job.id} value={job.id}>
-                  {job.title}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {loading ? (
-          <div className={`rounded-2xl border p-12 text-center ${surface}`}>
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mx-auto mb-4" />
-            <p className={textSecondary}>Loading assigned candidates...</p>
-          </div>
-        ) : error ? (
-          <div className={`rounded-2xl border p-8 text-center ${surface}`}>
-            <p className="text-red-500">{error}</p>
-          </div>
-        ) : filteredAssignments.length === 0 ? (
-          <div className={`rounded-2xl border p-12 text-center ${surface}`}>
-            <UserPlus size={40} className={`mx-auto mb-4 ${textSecondary}`} />
-            <h3 className={`text-lg font-semibold ${textColor}`}>No assigned candidates yet</h3>
-            <p className={`text-sm ${textSecondary} mt-2`}>
-              When admin assigns candidates to you, they will appear here.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredAssignments.map((item) => (
-              <div
-                key={item.referralId || `${item.userId}-${item.jobId}`}
-                className={`rounded-2xl border p-5 sm:p-6 ${surface}`}
+      <div className={`${cardBg} border-b ${borderColor} mt-20 sticky top-0 z-40`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => navigate("/recruiter/dashboard")}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
-                <div className="flex flex-col lg:flex-row lg:items-start gap-5">
-                  <div className="flex items-start gap-4 flex-1 min-w-0">
-                    <div className="w-14 h-14 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold overflow-hidden flex-shrink-0">
-                      {item.candidate?.logo ? (
-                        <img
-                          src={item.candidate.logo}
-                          alt={item.candidate.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        getInitials(item.candidate?.name)
-                      )}
-                    </div>
+                <ArrowLeft size={20} className={textColor} />
+              </button>
+              <div className="flex-1">
+                <h1 className={`text-xl sm:text-2xl font-bold ${textColor}`}>
+                  Assigned Candidates
+                </h1>
+                <p className={`text-sm ${textSecondary} mt-1`}>
+                  Candidates assigned to you by admin
+                </p>
+              </div>
+            </div>
 
-                    <div className="min-w-0 flex-1">
-                      <h3 className={`text-lg font-bold ${textColor}`}>
-                        {item.candidate?.name || "Unknown Candidate"}
-                      </h3>
-
-                      <div className="flex flex-wrap gap-x-5 gap-y-2 mt-2 text-sm">
-                        {item.candidate?.email && (
-                          <span className={`flex items-center gap-1.5 ${textSecondary}`}>
-                            <Mail size={14} />
-                            {item.candidate.email}
-                          </span>
-                        )}
-                        {item.candidate?.phone && (
-                          <span className={`flex items-center gap-1.5 ${textSecondary}`}>
-                            <Phone size={14} />
-                            {item.candidate.phone}
-                          </span>
-                        )}
-                        {item.candidate?.location && (
-                          <span className={`flex items-center gap-1.5 ${textSecondary}`}>
-                            <MapPin size={14} />
-                            {item.candidate.location}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className={`mt-4 rounded-xl border ${borderColor} p-4`}>
-                        <div className="flex items-center gap-2 mb-2">
-                          <Briefcase size={16} className="text-blue-500" />
-                          <h4 className={`font-semibold ${textColor}`}>
-                            {item.job?.title || "Job not found"}
-                          </h4>
-                        </div>
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                          {item.job?.company && (
-                            <span className={`flex items-center gap-1.5 ${textSecondary}`}>
-                              <Building size={14} />
-                              {item.job.company}
-                            </span>
-                          )}
-                          {item.job?.location && (
-                            <span className={`flex items-center gap-1.5 ${textSecondary}`}>
-                              <MapPin size={14} />
-                              {item.job.location}
-                            </span>
-                          )}
-                          {item.job?.type && (
-                            <span className={`${textSecondary}`}>{item.job.type}</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {item.candidate?.skills?.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          {item.candidate.skills.slice(0, 5).map((skill) => (
-                            <span
-                              key={skill}
-                              className="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 lg:flex-col lg:min-w-[170px]">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedProfile(item)}
-                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                    >
-                      <Eye size={16} />
-                      View Profile
-                    </button>
-                    {item.candidate?.resumeUrl ? (
-                      <a
-                        href={item.candidate.resumeUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border ${borderColor} ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors`}
-                      >
-                        <Download size={16} />
-                        Download Resume
-                      </a>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled
-                        className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border ${borderColor} opacity-50 cursor-not-allowed`}
-                      >
-                        <Download size={16} />
-                        No Resume
-                      </button>
-                    )}
-                  </div>
+            <div className="flex flex-wrap gap-4">
+              <div className={`px-4 py-2 rounded-lg ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
+                <div className="flex items-center gap-2">
+                  <Users size={16} className={textSecondary} />
+                  <span className={`text-sm font-semibold ${textColor}`}>{stats.total}</span>
+                  <span className={`text-xs ${textSecondary}`}>Total</span>
                 </div>
               </div>
-            ))}
+              <div className="px-4 py-2 rounded-lg bg-yellow-50 dark:bg-yellow-500/20">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">
+                    {stats.jobs}
+                  </span>
+                  <span className="text-xs text-yellow-600 dark:text-yellow-500">Jobs</span>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex flex-col lg:flex-row gap-6">
+          <aside className="lg:w-72 flex-shrink-0">
+            <div className={`${cardBg} rounded-lg border ${borderColor} p-5 lg:sticky lg:top-24`}>
+              <h2 className={`text-lg font-bold ${textColor} mb-4 flex items-center gap-2`}>
+                <Filter size={20} />
+                Filters
+              </h2>
+
+              <div className="mb-6">
+                <label className={`block text-sm font-semibold ${textColor} mb-2`}>
+                  Search Candidates
+                </label>
+                <div className="relative">
+                  <Search
+                    size={18}
+                    className={`absolute left-3 top-1/2 -translate-y-1/2 ${textSecondary}`}
+                  />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Name or email..."
+                    className={`w-full pl-10 pr-4 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-semibold ${textColor} mb-3`}>
+                  Assigned Jobs
+                </label>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedJob("all")}
+                    className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      selectedJob === "all"
+                        ? "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30"
+                        : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>All</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
+                        {stats.total}
+                      </span>
+                    </div>
+                  </button>
+
+                  {jobOptions.map((job) => (
+                    <button
+                      key={job.id}
+                      type="button"
+                      onClick={() => setSelectedJob(job.id)}
+                      className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                        selectedJob === job.id
+                          ? "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30"
+                          : `${cardBg} ${textColor} border ${borderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate">{job.title}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
+                          {job.count}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <div className="flex-1 min-w-0">
+            <div className="mb-4">
+              <p className={`text-sm ${textSecondary}`}>
+                Showing{" "}
+                <span className={`font-semibold ${textColor}`}>
+                  {filteredAssignments.length}
+                </span>{" "}
+                {filteredAssignments.length === 1 ? "candidate" : "candidates"}
+              </p>
+            </div>
+
+            {loading && (
+              <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center`}>
+                <div className="relative mb-6">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-t-4 border-blue-500 mx-auto" />
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <Users className="text-blue-500" size={24} />
+                  </div>
+                </div>
+                <h3 className={`text-lg font-bold ${textColor}`}>Loading assigned candidates...</h3>
+                <p className={`${textSecondary} mt-2`}>Please wait</p>
+              </div>
+            )}
+
+            {error && !loading && (
+              <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center`}>
+                <div className="w-16 h-16 bg-red-100 dark:bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <X className="text-red-500" size={32} />
+                </div>
+                <h3 className="text-lg font-bold text-red-500 mb-2">
+                  Failed to Load Assigned Candidates
+                </h3>
+                <p className={textSecondary}>{error}</p>
+              </div>
+            )}
+
+            {!loading && !error && filteredAssignments.length === 0 && (
+              <div className={`${cardBg} rounded-lg border ${borderColor} p-12 text-center`}>
+                <div className={`w-16 h-16 ${isDark ? "bg-blue-500/20" : "bg-blue-100"} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                  <Users size={32} className="text-blue-500" />
+                </div>
+                <h3 className={`text-lg font-semibold ${textColor} mb-2`}>
+                  No assigned candidates found
+                </h3>
+                <p className={`${textSecondary} mb-6`}>
+                  {hasActiveFilters
+                    ? "Try adjusting your filters or search query"
+                    : "When admin assigns candidates to you, they will appear here."}
+                </p>
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedJob("all");
+                      setSearchQuery("");
+                    }}
+                    className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
+            )}
+
+            {!loading && !error && filteredAssignments.length > 0 && (
+              <div className="space-y-2.5">
+                {filteredAssignments.map((item) => (
+                  <div
+                    key={item.referralId || `${item.userId}-${item.jobId}`}
+                    className={`${cardBg} border ${borderColor} rounded-lg p-2.5 hover:border-blue-300 dark:hover:border-blue-500 transition-colors`}
+                  >
+                    <div className="flex items-start justify-between gap-2.5 mb-2.5">
+                      <div className="flex items-start gap-2 flex-1 min-w-0">
+                        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
+                          {item.candidate?.logo ? (
+                            <img
+                              src={item.candidate.logo}
+                              alt={item.candidate.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
+                              {getInitials(item.candidate?.name)}
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className={`text-xs font-bold ${textColor} truncate leading-tight`}>
+                            {item.candidate?.name || "Unknown Candidate"}
+                          </h4>
+                          <p className={`text-xs ${textSecondary} truncate`} style={{ fontSize: "0.7rem" }}>
+                            {item.candidate?.email || "No email"}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                            <span className={`text-xs ${textSecondary}`} style={{ fontSize: "0.65rem" }}>
+                              Assigned {formatDate(item.assignedAt)}
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded-full text-xs font-semibold border bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30" style={{ fontSize: "0.65rem" }}>
+                              Assigned
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className={`${isDark ? "bg-gray-700/50" : "bg-gray-50"} rounded-lg p-2 mb-2 border ${borderColor}`}>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <h5 className={`text-xs font-semibold ${textColor} mb-0.5 flex items-center gap-1`} style={{ fontSize: "0.7rem" }}>
+                            <Briefcase size={12} />
+                            Assigned Job
+                          </h5>
+                          <p className={`text-xs ${textSecondary}`} style={{ fontSize: "0.7rem" }}>
+                            {item.job?.title || "Job not found"}
+                          </p>
+                          {item.job?.company && (
+                            <p className={`text-xs ${textSecondary} flex items-center gap-1 mt-0.5`} style={{ fontSize: "0.65rem" }}>
+                              <Building size={11} />
+                              {item.job.company}
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <h5 className={`text-xs font-semibold ${textColor} mb-0.5 flex items-center gap-1`} style={{ fontSize: "0.7rem" }}>
+                            <GraduationCap size={12} />
+                            Qualification
+                          </h5>
+                          <p className={`text-xs ${textSecondary}`} style={{ fontSize: "0.7rem" }}>
+                            {item.candidate?.qualification || "Not provided"}
+                          </p>
+                        </div>
+
+                        <div>
+                          <h5 className={`text-xs font-semibold ${textColor} mb-0.5 flex items-center gap-1`} style={{ fontSize: "0.7rem" }}>
+                            <Briefcase size={12} />
+                            Experience
+                          </h5>
+                          <p className={`text-xs ${textSecondary}`} style={{ fontSize: "0.7rem" }}>
+                            {item.candidate?.experience || "Not provided"}
+                          </p>
+                        </div>
+
+                        <div>
+                          <h5 className={`text-xs font-semibold ${textColor} mb-0.5 flex items-center gap-1`} style={{ fontSize: "0.7rem" }}>
+                            <Phone size={12} />
+                            Contact Number
+                          </h5>
+                          <p className={`text-xs ${textSecondary}`} style={{ fontSize: "0.7rem" }}>
+                            {item.candidate?.phone || "Not provided"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedProfile(item)}
+                        className={`px-2.5 py-1 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium flex items-center gap-1`}
+                        style={{ fontSize: "0.7rem" }}
+                      >
+                        <Eye size={12} />
+                        View Profile
+                      </button>
+                      {item.candidate?.resumeUrl ? (
+                        <a
+                          href={item.candidate.resumeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`px-2.5 py-1 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium flex items-center gap-1`}
+                          style={{ fontSize: "0.7rem" }}
+                        >
+                          <ExternalLink size={12} />
+                          Resume
+                        </a>
+                      ) : (
+                        <span
+                          className={`px-2.5 py-1 border ${borderColor} ${textSecondary} rounded-lg text-xs font-medium flex items-center gap-1 opacity-60`}
+                          style={{ fontSize: "0.7rem" }}
+                        >
+                          <Download size={12} />
+                          No Resume
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {selectedProfile && (
@@ -479,10 +603,10 @@ const AssignCandidates = () => {
           onClick={() => setSelectedProfile(null)}
         >
           <div
-            className={`${isDark ? "bg-gray-800" : "bg-white"} rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl`}
+            className={`${cardBg} rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl`}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className={`sticky top-0 flex items-center justify-between p-5 border-b ${borderColor} ${isDark ? "bg-gray-800" : "bg-white"}`}>
+            <div className={`sticky top-0 flex items-center justify-between p-5 border-b ${borderColor} ${cardBg} z-10`}>
               <div>
                 <h2 className={`text-xl font-bold ${textColor}`}>Candidate Profile</h2>
                 <p className={`text-sm ${textSecondary}`}>
@@ -492,15 +616,15 @@ const AssignCandidates = () => {
               <button
                 type="button"
                 onClick={() => setSelectedProfile(null)}
-                className={`p-2 rounded-lg ${textSecondary} hover:bg-gray-100 dark:hover:bg-gray-700`}
+                className={`${textSecondary} hover:text-red-500 transition-colors p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded`}
               >
-                <X size={22} />
+                <X size={24} />
               </button>
             </div>
 
             <div className="p-5 space-y-5">
               <div className="flex items-start gap-4">
-                <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xl font-bold overflow-hidden">
+                <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
                   {selectedProfile.candidate?.logo ? (
                     <img
                       src={selectedProfile.candidate.logo}
@@ -508,7 +632,9 @@ const AssignCandidates = () => {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    getInitials(selectedProfile.candidate?.name)
+                    <div className="w-full h-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl">
+                      {getInitials(selectedProfile.candidate?.name)}
+                    </div>
                   )}
                 </div>
                 <div>
@@ -528,6 +654,12 @@ const AssignCandidates = () => {
                         {selectedProfile.candidate.phone}
                       </span>
                     )}
+                    {selectedProfile.candidate?.location && (
+                      <span className={`flex items-center gap-1.5 ${textSecondary}`}>
+                        <MapPin size={15} />
+                        {selectedProfile.candidate.location}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -541,7 +673,7 @@ const AssignCandidates = () => {
                 </div>
               )}
 
-              <div className={`rounded-xl border ${borderColor} p-4`}>
+              <div className={`rounded-lg border ${borderColor} p-4`}>
                 <h4 className={`font-semibold mb-3 flex items-center gap-2 ${textColor}`}>
                   <Briefcase size={18} className="text-blue-500" />
                   Assigned Job
@@ -568,30 +700,6 @@ const AssignCandidates = () => {
                 )}
               </div>
 
-              {selectedProfile.candidate?.experience && (
-                <div>
-                  <h4 className={`font-semibold mb-2 ${textColor}`}>Experience</h4>
-                  <p className={`text-sm ${textSecondary}`}>{selectedProfile.candidate.experience}</p>
-                </div>
-              )}
-
-              {selectedProfile.candidate?.education?.length > 0 && (
-                <div>
-                  <h4 className={`font-semibold mb-2 ${textColor}`}>Education</h4>
-                  <div className="space-y-2">
-                    {selectedProfile.candidate.education.map((edu, index) => (
-                      <div
-                        key={index}
-                        className={`rounded-lg border ${borderColor} p-3 text-sm ${textSecondary}`}
-                      >
-                        {edu.degree || edu.institution || "Education"}
-                        {edu.year ? ` • ${edu.year}` : ""}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {selectedProfile.candidate?.skills?.length > 0 && (
                 <div>
                   <h4 className={`font-semibold mb-2 ${textColor}`}>Skills</h4>
@@ -609,13 +717,13 @@ const AssignCandidates = () => {
               )}
             </div>
 
-            <div className={`sticky bottom-0 flex justify-end gap-3 p-5 border-t ${borderColor} ${isDark ? "bg-gray-800" : "bg-white"}`}>
+            <div className={`sticky bottom-0 flex justify-end gap-3 p-5 border-t ${borderColor} ${cardBg}`}>
               {selectedProfile.candidate?.resumeUrl && (
                 <a
                   href={selectedProfile.candidate.resumeUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
                 >
                   <Download size={16} />
                   Download Resume
@@ -624,7 +732,7 @@ const AssignCandidates = () => {
               <button
                 type="button"
                 onClick={() => setSelectedProfile(null)}
-                className={`px-5 py-2.5 rounded-xl text-sm font-semibold border ${borderColor} ${textColor}`}
+                className={`px-5 py-2.5 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium`}
               >
                 Close
               </button>
