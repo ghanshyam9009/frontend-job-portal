@@ -12,11 +12,34 @@ export const jobService = {
     }, 'Failed to fetch jobs');
   },
 
-  // Get job by ID
+  // Get job by ID (Recruiter jobs API — /jobs/:id is not available on backend)
   async getJobById(jobId) {
     return withErrorHandling(async () => {
-      const response = await apiClient.get(API_ENDPOINTS.jobs.getById(jobId));
-      return response;
+      if (jobId == null || jobId === "") {
+        throw new Error('Job ID is required');
+      }
+
+      const idNorm = String(jobId).trim();
+      const response = await apiClient.get('/Recruiter/jobs', {
+        params: { job_id: idNorm },
+      });
+
+      const jobs = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response?.jobs)
+          ? response.jobs
+          : [];
+
+      const match = jobs.find((job) => {
+        const jid = job.job_id ?? job.id;
+        if (jid == null) return false;
+        return String(jid) === idNorm;
+      });
+
+      if (match) return match;
+      if (jobs.length === 1) return jobs[0];
+
+      throw new Error(`Job not found: ${idNorm}`);
     }, 'Failed to fetch job');
   },
 

@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { adminService } from "../../services/adminService";
 import adminApiClient from "../../services/adminApiClient";
-import { Check, X, FileText, Download, ExternalLink, Search, Briefcase, Building, Clock, Mail, Phone, Calendar, Eye, MapPin, ArrowUpDown, Sparkles, User, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, X, FileText, Download, ExternalLink, Search, Briefcase, Building, Clock, Mail, Phone, Calendar, Eye, MapPin, ArrowUpDown, Sparkles, User, ChevronLeft, ChevronRight, UserPlus } from "lucide-react";
 import styles from "../../Styles/AdminDashboard.module.css";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -41,6 +41,16 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
   const [filterJobs, setFilterJobs] = useState([]);
   const [filterStatuses, setFilterStatuses] = useState([]);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignTarget, setAssignTarget] = useState(null);
+  const [assignRecruiters, setAssignRecruiters] = useState([]);
+  const [assignJobs, setAssignJobs] = useState([]);
+  const [selectedRecruiterId, setSelectedRecruiterId] = useState("");
+  const [selectedJobId, setSelectedJobId] = useState("");
+  const [assignDropdownLoading, setAssignDropdownLoading] = useState(false);
+  const [assignSaving, setAssignSaving] = useState(false);
+  const [assignError, setAssignError] = useState("");
+  const [assignSuccess, setAssignSuccess] = useState("");
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 400);
@@ -541,6 +551,112 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
     });
   };
 
+  const getCandidateUserId = (application) =>
+    application?.student_id ||
+    application?.user_details?.user_id ||
+    application?.user_details?.student_id ||
+    null;
+
+  const closeAssignModal = () => {
+    setShowAssignModal(false);
+    setAssignTarget(null);
+    setSelectedRecruiterId("");
+    setSelectedJobId("");
+    setAssignError("");
+    setAssignSuccess("");
+    setAssignSaving(false);
+  };
+
+  const handleOpenAssignRecruiter = async (application, details) => {
+    const userId = getCandidateUserId(application);
+    if (!userId) {
+      alert("Candidate ID not found for this application.");
+      return;
+    }
+
+    setAssignTarget({ application, details, userId });
+    setSelectedRecruiterId("");
+    setSelectedJobId(application.job_id || "");
+    setAssignError("");
+    setAssignSuccess("");
+    setShowAssignModal(true);
+    setAssignDropdownLoading(true);
+
+    try {
+      const [recruitersRes, jobsRes] = await Promise.all([
+        adminService.getAllRecruiters({ limit: 0 }),
+        adminApiClient.get("/Recruiter/jobs", { params: { limit: 0 } }),
+      ]);
+
+      const recruiters = Array.isArray(recruitersRes?.recruiters)
+        ? recruitersRes.recruiters
+        : Array.isArray(recruitersRes)
+          ? recruitersRes
+          : [];
+
+      const jobsPayload = jobsRes?.data;
+      const jobs = Array.isArray(jobsPayload?.data)
+        ? jobsPayload.data
+        : Array.isArray(jobsPayload)
+          ? jobsPayload
+          : Array.isArray(jobsRes?.data)
+            ? jobsRes.data
+            : [];
+
+      setAssignRecruiters(recruiters);
+      setAssignJobs(jobs);
+    } catch (error) {
+      console.error("Failed to load assign recruiter dropdowns:", error);
+      setAssignRecruiters([]);
+      setAssignJobs([]);
+      setAssignError(
+        typeof error === "string"
+          ? error
+          : error?.message || "Failed to load recruiters or jobs."
+      );
+    } finally {
+      setAssignDropdownLoading(false);
+    }
+  };
+
+  const handleSaveAssignRecruiter = async () => {
+    if (!assignTarget?.userId) {
+      setAssignError("Candidate ID is missing.");
+      return;
+    }
+    if (!selectedRecruiterId) {
+      setAssignError("Please select a recruiter.");
+      return;
+    }
+    if (!selectedJobId) {
+      setAssignError("Please select a job.");
+      return;
+    }
+
+    setAssignSaving(true);
+    setAssignError("");
+    setAssignSuccess("");
+
+    try {
+      await adminApiClient.post("/referrals", {
+        recruiterId: selectedRecruiterId,
+        userId: assignTarget.userId,
+        jobId: selectedJobId,
+      });
+      setAssignSuccess("Recruiter assigned successfully.");
+      setTimeout(() => closeAssignModal(), 1000);
+    } catch (error) {
+      console.error("Failed to assign recruiter:", error);
+      setAssignError(
+        typeof error === "string"
+          ? error
+          : error?.message || "Failed to assign recruiter. Please try again."
+      );
+    } finally {
+      setAssignSaving(false);
+    }
+  };
+
   const handleExportToExcel = () => {
     alert('Export functionality is temporarily disabled.');
   };
@@ -960,6 +1076,15 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
                         </button>
                         <button
                           type="button"
+                          onClick={() => handleOpenAssignRecruiter(application, details)}
+                          className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5`}
+                          style={{ fontSize: '0.7rem' }}
+                        >
+                          <UserPlus size={13} />
+                          Assign Recruiter
+                        </button>
+                        <button
+                          type="button"
                           className={`flex-1 sm:flex-initial px-3 py-1.5 border ${borderColor} rounded-lg text-xs font-medium ${textColor} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors`}
                           style={{ fontSize: '0.7rem' }}
                         >
@@ -1341,6 +1466,146 @@ function PendingJobApplications({ embedded = false, role = "recruiter" }) {
                 className={`px-6 py-2.5 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium`}
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Recruiter Modal */}
+      {showAssignModal && assignTarget && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={closeAssignModal}
+        >
+          <div
+            className={`${cardBg} rounded-lg max-w-lg w-full shadow-2xl`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={`flex items-center justify-between p-5 border-b ${borderColor}`}>
+              <div>
+                <h2 className={`text-lg font-bold ${textColor}`}>Assign Recruiter</h2>
+                <p className={`text-sm ${textSecondary} mt-0.5`}>
+                  {assignTarget.details?.studentName || "Candidate"}
+                  {assignTarget.details?.studentEmail
+                    ? ` • ${assignTarget.details.studentEmail}`
+                    : ""}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeAssignModal}
+                className={`${textSecondary} hover:text-red-500 transition-colors p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded`}
+              >
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {assignDropdownLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label className={`block text-sm font-medium ${textColor} mb-1.5`}>
+                      Recruiter <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={selectedRecruiterId}
+                      onChange={(e) => {
+                        setSelectedRecruiterId(e.target.value);
+                        setAssignError("");
+                      }}
+                      className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+                      required
+                    >
+                      <option value="">Select recruiter</option>
+                      {assignRecruiters.map((recruiter) => {
+                        const id =
+                          recruiter.employer_id ||
+                          recruiter.recruiter_id ||
+                          recruiter.id ||
+                          "";
+                        const label =
+                          recruiter.company_name ||
+                          recruiter.full_name ||
+                          recruiter.email ||
+                          id;
+                        return (
+                          <option key={id} value={id}>
+                            {label}
+                            {recruiter.full_name && recruiter.company_name
+                              ? ` (${recruiter.full_name})`
+                              : ""}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium ${textColor} mb-1.5`}>
+                      Job <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={selectedJobId}
+                      onChange={(e) => {
+                        setSelectedJobId(e.target.value);
+                        setAssignError("");
+                      }}
+                      className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${cardBg} ${textColor}`}
+                      required
+                    >
+                      <option value="">Select job</option>
+                      {assignJobs.map((job) => {
+                        const id = job.job_id || job.id || "";
+                        const title = job.job_title || job.title || "Untitled job";
+                        const company = job.company_name ? ` — ${job.company_name}` : "";
+                        return (
+                          <option key={id} value={id}>
+                            {title}{company}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {assignError && (
+                <p className="text-sm text-red-600 dark:text-red-400">{assignError}</p>
+              )}
+              {assignSuccess && (
+                <p className="text-sm text-green-600 dark:text-green-400">{assignSuccess}</p>
+              )}
+            </div>
+
+            <div className={`flex justify-end gap-3 p-5 border-t ${borderColor}`}>
+              <button
+                type="button"
+                onClick={closeAssignModal}
+                disabled={assignSaving}
+                className={`px-5 py-2.5 border ${borderColor} ${textColor} rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium text-sm disabled:opacity-50`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveAssignRecruiter}
+                disabled={
+                  assignDropdownLoading ||
+                  assignSaving ||
+                  !selectedRecruiterId ||
+                  !selectedJobId
+                }
+                className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {assignSaving && (
+                  <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white" />
+                )}
+                {assignSaving ? "Saving..." : "Save"}
               </button>
             </div>
           </div>

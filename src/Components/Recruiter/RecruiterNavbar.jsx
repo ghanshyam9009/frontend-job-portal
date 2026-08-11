@@ -21,7 +21,8 @@ import {
   LayoutDashboard,
   Info,
   Phone,
-  Hospital
+  Hospital,
+  UserPlus
 } from "lucide-react";
 
 const RecruiterNavbar = ({ toggleSidebar }) => {
@@ -254,6 +255,17 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
               </li>
               <li>
                 <button
+                  onClick={() => navigate('/assign-candidates')}
+                  className={`nav-link-btn px-3 py-2 text-sm font-semibold transition-colors rounded-md ${isActive("/assign-candidates")
+                    ? "active text-[#2271B5]"
+                    : `${textSecondary} hover:text-[#2271B5]`
+                    }`}
+                >
+                  <span>Assigned Candidates</span>
+                </button>
+              </li>
+              <li>
+                <button
                   onClick={() => navigate('/company-profile')}
                   className={`nav-link-btn px-3 py-2 text-sm font-semibold transition-colors rounded-md ${isActive("/company-profile")
                     ? "active text-[#2271B5]"
@@ -430,6 +442,15 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                       <Star size={18} className="text-[#2271B5] dark:text-blue-200" />
                     </div>
                     <span className={`font-semibold ${textSecondary} group-hover:text-[#2271B5] transition-colors`}>Shortlist</span>
+                  </button>
+                  <button
+                    onMouseDown={() => { navigate('/assign-candidates'); setShowProfileSidebar(false); }}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} shadow-sm hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`}
+                  >
+                    <div className="p-2 rounded-lg bg-blue-50 dark:bg-[#2271B5]/15 group-hover:bg-blue-100 dark:group-hover:bg-[#2271B5]/25 transition-colors">
+                      <UserPlus size={18} className="text-[#2271B5] dark:text-blue-200" />
+                    </div>
+                    <span className={`font-semibold ${textSecondary} group-hover:text-[#2271B5] transition-colors`}>Assigned Candidates</span>
                   </button>
                   <button
                     onMouseDown={() => { navigate('/company-profile'); setShowProfileSidebar(false); }}
@@ -647,6 +668,26 @@ const RecruiterNavbar = ({ toggleSidebar }) => {
                           }`} />
                       </div>
                       <span>Shortlist</span>
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => { navigate('/assign-candidates'); closeMobileMenu(); }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${isActive("/assign-candidates")
+                        ? `border-[#2271B5] ${isDark ? 'bg-[#2271B5]/15' : 'bg-blue-50'} text-[#2271B5]`
+                        : `${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white shadow-sm'} ${textSecondary} hover:border-[#2271B5] hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-[#2271B5]`
+                        }`}
+                    >
+                      <div className={`p-2 rounded-lg transition-colors ${isActive("/assign-candidates")
+                        ? (isDark ? 'bg-[#2271B5]/25' : 'bg-blue-100')
+                        : (isDark ? 'bg-[#2271B5]/15 group-hover:bg-[#2271B5]/25' : 'bg-blue-50 group-hover:bg-blue-100')
+                        }`}>
+                        <UserPlus size={18} className={`transition-colors ${isActive("/assign-candidates")
+                          ? (isDark ? 'text-blue-300' : 'text-[#2271B5]')
+                          : (isDark ? 'text-blue-200 group-hover:text-blue-300' : 'text-[#2271B5] group-hover:text-[#1a5a8f]')
+                          }`} />
+                      </div>
+                      <span>Assigned Candidates</span>
                     </button>
                   </li>
                   <li>

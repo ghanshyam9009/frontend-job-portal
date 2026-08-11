@@ -35,6 +35,7 @@ export { default as adminExternalService } from './adminExternalService';
 // Recruiter Services
 export { recruiterService } from './recruiterService';
 export { default as recruiterExternalService } from './recruiterExternalService';
+export { referralService } from './referralService';
 
 // Candidate External Services
 export { default as candidateExternalService } from './candidateExternalService';

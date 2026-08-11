@@ -13,14 +13,39 @@ export const candidateService = {
     }
   },
 
-  // Get candidate by ID
+  // Get candidate by user ID (admin list API — /candidates/:id is not available on backend)
   async getCandidateById(candidateId) {
-    try {
-      const response = await apiClient.get(API_ENDPOINTS.candidates.getById(candidateId));
-      return response;
-    } catch (error) {
-      throw error;
+    if (candidateId == null || candidateId === "") {
+      throw new Error("Candidate ID is required");
     }
+
+    const idNorm = String(candidateId).trim();
+    let page = 1;
+    const limit = 100;
+
+    while (page <= 20) {
+      const response = await apiClient.get(API_ENDPOINTS.admin.getAllCandidates, {
+        params: { page, limit },
+      });
+
+      const candidates =
+        (Array.isArray(response?.candidates) && response.candidates) ||
+        (Array.isArray(response?.data) && response.data) ||
+        [];
+
+      const match = candidates.find(
+        (candidate) =>
+          String(candidate.user_id || candidate.student_id || candidate.id) === idNorm
+      );
+
+      if (match) return match;
+
+      const totalPages = Number(response?.total_pages || 1);
+      if (page >= totalPages || candidates.length === 0) break;
+      page += 1;
+    }
+
+    throw new Error(`Candidate not found: ${idNorm}`);
   },
 
   // Update candidate profile

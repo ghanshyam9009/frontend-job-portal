@@ -65,6 +65,7 @@ const PrivacyPolicy = lazy(() => import('./Pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./Pages/TermsOfService'));
 const PaymentSuccess = lazy(() => import('./Pages/PaymentSuccess'));
 const ViewApplications = lazy(() => import('./Pages/Recruiter/ViewApplications'));
+const AssignCandidates = lazy(() => import('./Pages/Recruiter/AssignCandidates'));
 const IntegratedAdminLayout = lazy(() => import('./Components/Admin/IntegratedAdminLayout'));
 const AdminJobApplications = lazy(() => import('./Pages/Admin/AdminJobApplications'));
 const AdminJobs = lazy(() => import('./Pages/Admin/AdminManageJobs'));
@@ -156,6 +157,7 @@ function App() {
                 <Route path="/candidate-applications" element={<CandidateApplications />} />
                 <Route path="/jobs" element={<JobListings />} />
                 <Route path="/shortlist-candidates" element={<ShortlistCandidates />} />
+                <Route path="/assign-candidates" element={<AssignCandidates />} />
                 <Route path="/company-profile" element={<CompanyProfile />} />
                 <Route path="/membership-tokens" element={<MembershipTokens />} />
                 <Route path="/recruiter-settings" element={<RecruiterSettings />} />

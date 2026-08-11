@@ -4,7 +4,7 @@ import { useAuth } from "../../Contexts/AuthContext";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { recruiterExternalService } from "../../services";
 import { isProfileComplete } from "../../utils/recruiterProfileUtils";
-import { Home, Plus, FileText, Users, Star, Building, CreditCard, Settings } from "lucide-react";
+import { Home, Plus, FileText, Users, Star, Building, CreditCard, Settings, UserPlus } from "lucide-react";
 import styles from "./RecruiterSidebar.module.css";
 
 const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
@@ -107,6 +107,14 @@ const RecruiterSidebar = ({ isOpen, toggleSidebar }) => {
       label: 'Shortlist Candidates',
       icon: <Star size={20} />,
       path: '/shortlist-candidates',
+      restricted: !canAccessJobFeatures,
+      restrictionMessage: restrictionMessage
+    },
+    {
+      id: 'assign-candidates',
+      label: 'Assigned Candidates',
+      icon: <UserPlus size={20} />,
+      path: '/assign-candidates',
       restricted: !canAccessJobFeatures,
       restrictionMessage: restrictionMessage
     },
