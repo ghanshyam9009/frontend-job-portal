@@ -206,14 +206,13 @@ const JobDescription = () => {
       return;
     }
 
-    if (!user.resume || user.resume.trim() === "") {
-      alert("You must upload a resume before applying for jobs. Redirecting to profile management...");
-      navigate("/profile");
-      return;
-    }
-
     const eligibility = canCandidateApply(user, job);
     if (!eligibility.allowed) {
+      if (eligibility.reason === "membership_required") {
+        navigate("/membership-plans");
+        return;
+      }
+
       setPremiumModalReason(eligibility.reason);
       setShowPremiumModal(true);
       if (eligibility.reason === "manual_premium_job_required") {
@@ -227,6 +226,12 @@ const JobDescription = () => {
       } else {
         setApplicationError("");
       }
+      return;
+    }
+
+    if (!user.resume || user.resume.trim() === "") {
+      alert("You must upload a resume before applying for jobs. Redirecting to profile management...");
+      navigate("/profile");
       return;
     }
 
@@ -608,10 +613,13 @@ const JobDescription = () => {
                         disabled={
                           hasApplied ||
                           isApplying ||
-                          applyEligibility?.allowed === false
+                          (applyEligibility?.allowed === false &&
+                            applyEligibility?.reason !== "membership_required")
                         }
                         className={`flex-1 px-3 sm:px-4 py-2 rounded-full text-white text-sm sm:text-base ${
-                          hasApplied || applyEligibility?.allowed === false
+                          hasApplied ||
+                          (applyEligibility?.allowed === false &&
+                            applyEligibility?.reason !== "membership_required")
                             ? "bg-gray-400 cursor-not-allowed"
                             : "bg-blue-600 hover:bg-blue-700"
                         }`}
@@ -623,9 +631,7 @@ const JobDescription = () => {
                             : applyEligibility?.reason === "premium_plan_required" ||
                                 applyEligibility?.reason === "manual_premium_job_required"
                               ? "Premium plan required"
-                              : applyEligibility?.reason === "membership_required"
-                                ? "Membership required"
-                                : "Apply Now"}
+                              : "Apply"}
                       </button>
                       <button
                         onClick={(e) => {

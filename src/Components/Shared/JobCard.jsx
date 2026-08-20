@@ -114,12 +114,9 @@ const JobCard = ({
 
   const companyLogo = job.job_logo_url || job.job_logo || job.company_logo || job.logo;
   const isPremium = job.is_premium || job.premium_job;
-  const applyBlocked = applyEligibility?.allowed === false;
-  const applyButtonLabel = applyBlocked
-    ? applyEligibility?.reason === 'membership_required'
-      ? 'Membership required'
-      : 'Premium plan required'
-    : 'Apply Now';
+  const membershipRequired = applyEligibility?.reason === 'membership_required';
+  const applyBlocked = applyEligibility?.allowed === false && !membershipRequired;
+  const applyButtonLabel = applyBlocked ? 'Premium plan required' : 'Apply';
 
   const bgSecondary = isDark ? 'bg-gray-800' : 'bg-white';
   const textPrimary = isDark ? 'text-white' : 'text-gray-900';
@@ -155,6 +152,10 @@ const JobCard = ({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (membershipRequired) {
+                    navigate('/membership-plans');
+                    return;
+                  }
                   handleJobClick();
                 }}
                 className={`font-semibold px-4 py-1.5 rounded-md transition-all duration-300 text-xs ${
